@@ -1,0 +1,21 @@
+{
+  "name": "@flint/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "flint": "./dist/flint.js"
+  },
+  "scripts": {
+    "build": "tsup src/main.ts --format esm --platform node --target node22 --out-dir dist --clean && mv dist/main.js dist/flint.js",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@flint/core": "workspace:^",
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^9.0.0"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "flint",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.4.1",
+  "scripts": {
+    "dev": "pnpm --filter @flint/desktop dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "devDependencies": {
+    "@types/node": "22",
+    "@vitest/coverage-v8": "5",
+    "typescript": "5",
+    "vitest": "5"
+  }
+}
