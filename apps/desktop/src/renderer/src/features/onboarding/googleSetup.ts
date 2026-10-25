@@ -13,6 +13,9 @@ export const GOOGLE_STEPS: { title: string; body: string }[] = [
 
 export type ClientCheck = { ok: true; clientId: string; clientSecret: string } | { ok: false; errors: { clientId?: string; clientSecret?: string } };
 
+/** What the service returns instead of a saved client secret. Sending it back keeps the saved one. */
+export const SAVED_SECRET_MASK = "••••••••";
+
 export function checkClient(clientId: string, clientSecret: string): ClientCheck {
   const id = clientId.trim();
   const secret = clientSecret.trim();

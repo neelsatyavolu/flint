@@ -3,23 +3,25 @@ import { ExternalLink } from "lucide-react";
 import { flint } from "../../lib/api";
 import { openExternal } from "../../lib/host";
 import { Button, Input } from "../../ui";
-import { CONSOLE_URL, GOOGLE_STEPS, checkClient } from "./googleSetup";
+import { CONSOLE_URL, GOOGLE_STEPS, SAVED_SECRET_MASK, checkClient } from "./googleSetup";
 import styles from "./onboarding.module.css";
 
 /** Walks the user through creating a free Desktop OAuth client and saves it to settings.google. */
 export function GoogleSetupPanel({ initialId = "", initialSecret = "", onSaved }: { initialId?: string; initialSecret?: string; onSaved: () => void }) {
   const [clientId, setClientId] = useState(initialId);
-  const [clientSecret, setClientSecret] = useState(initialSecret);
+  // A saved secret comes back masked; keep it unless the user chooses to replace it.
+  const [savedSecret, setSavedSecret] = useState(initialSecret === SAVED_SECRET_MASK);
+  const [clientSecret, setClientSecret] = useState(initialSecret === SAVED_SECRET_MASK ? "" : initialSecret);
   const [errors, setErrors] = useState<{ clientId?: string; clientSecret?: string; save?: string }>({});
   const [busy, setBusy] = useState(false);
 
   const save = async () => {
-    const c = checkClient(clientId, clientSecret);
+    const c = checkClient(clientId, savedSecret ? SAVED_SECRET_MASK : clientSecret);
     if (!c.ok) return setErrors(c.errors);
     setErrors({});
     setBusy(true);
     try {
-      await flint.updateSettings({ google: { clientId: c.clientId, clientSecret: c.clientSecret } });
+      await flint.updateSettings({ google: savedSecret ? { clientId: c.clientId } : { clientId: c.clientId, clientSecret: c.clientSecret } });
       onSaved();
     } catch (err) {
       setErrors({ save: err instanceof Error ? err.message : "Couldn't save the client. Try again." });
@@ -46,7 +48,14 @@ export function GoogleSetupPanel({ initialId = "", initialSecret = "", onSaved }
       </label>
       <label className={styles.field}>
         <span className={`t-label ${styles.label}`}>Client secret</span>
-        <Input aria-label="Client secret" type="password" value={clientSecret} invalid={!!errors.clientSecret} autoComplete="off" spellCheck={false} onChange={(e) => setClientSecret(e.target.value)} />
+        {savedSecret ? (
+          <span className={styles.wait}>
+            <span className="t-data">Saved</span>
+            <Button variant="ghost" size="sm" onClick={() => setSavedSecret(false)}>Replace</Button>
+          </span>
+        ) : (
+          <Input aria-label="Client secret" type="password" value={clientSecret} invalid={!!errors.clientSecret} autoComplete="off" spellCheck={false} onChange={(e) => setClientSecret(e.target.value)} />
+        )}
         {errors.clientSecret ? <span role="alert" className={styles.err}>{errors.clientSecret}</span> : null}
       </label>
       {errors.save ? <p role="alert" className={styles.err}>{errors.save}</p> : null}

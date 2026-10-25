@@ -48,7 +48,7 @@ export function ImapStep({ preset, onDone, reauth }: Props) {
       if (id !== seq.current) return;
       if (found && !touched.current) {
         setServer(found);
-        setBridge((found as { hint?: string }).hint === "proton_bridge");
+        setBridge(found.hint === "proton_bridge");
         setDetect({ kind: "found" });
       } else if (!found) {
         setServer((s) => s ?? { ...EMPTY_SERVER, username: trimmed });

@@ -37,10 +37,10 @@
 .wait { display: flex; align-items: center; gap: var(--s-3); }
 
 .offer {
+  /* Bottom-right over the reader, above the Ask field, so it never covers list rows. */
   position: fixed;
-  left: 50%;
-  bottom: var(--s-6);
-  transform: translateX(-50%);
+  right: var(--s-4);
+  bottom: calc(var(--s-4) + 56px);
   z-index: var(--z-toast);
   display: flex;
   align-items: center;
