@@ -9,6 +9,8 @@ export type BootstrapDeps = {
   platform: Platform;
   forceMock: boolean;
   create: (platform: Platform, opts: ServiceOptions) => Promise<FlintService>;
+  /** Extra service options from the host, e.g. the bundled CLI path. */
+  options?: Omit<ServiceOptions, "agentServer">;
 };
 
 export type BootstrapResult =
@@ -20,7 +22,7 @@ function describe(err: unknown): string {
 }
 
 async function startReal(deps: BootstrapDeps): Promise<FlintService> {
-  const service = await deps.create(deps.platform, { agentServer: true });
+  const service = await deps.create(deps.platform, { ...deps.options, agentServer: true });
   await service.start();
   return service;
 }

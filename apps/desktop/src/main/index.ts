@@ -15,6 +15,7 @@ import { parseMailto } from "./mailto";
 import { createPlatform, resolveDataDir } from "./platform";
 import { createRequestFilter, receiptsHostFromEndpoint } from "./request-filter";
 import { secureSession } from "./security";
+import { applyDefaultReceiptsEndpoint } from "./receipts-default";
 import { bootstrapService } from "./service";
 import { createMainWindow, focusWindow, isMac } from "./window";
 
@@ -28,6 +29,13 @@ const appUrl = devUrl ?? APP_URL;
 const appOrigin = devUrl ? new URL(devUrl).origin : APP_ORIGIN;
 
 let mainWindow: BrowserWindow | null = null;
+
+/** The flint CLI script: shipped in Resources/cli when packaged, apps/cli/dist in development. */
+function bundledCliPath(): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, "cli", "flint.js")
+    : fileURLToPath(new URL("../../../cli/dist/flint.js", import.meta.url));
+}
 let service: FlintService | null = null;
 let rendererReady = false;
 let quitting = false;
@@ -90,6 +98,7 @@ async function main(): Promise<void> {
     platform,
     forceMock: process.env.FLINT_MOCK === "1",
     create: createFlintService,
+    options: { cliPath: bundledCliPath() },
   });
   if (!result.ok) {
     dialog.showErrorBox("Flint can't start", `The mail engine failed to load.\n\n${result.message}`);
@@ -99,6 +108,7 @@ async function main(): Promise<void> {
   }
   service = result.service;
   if (result.mock) log.warn("running with the mock service");
+  else await applyDefaultReceiptsEndpoint(service, dataDir);
 
   const badge = createBadgeUpdater({
     getUnread: async () => (await service!.getSidebar()).counts.inbox,
