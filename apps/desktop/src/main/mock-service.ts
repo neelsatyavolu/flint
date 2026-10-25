@@ -118,6 +118,8 @@ export function createMockService(dataDir: string): FlintService {
     async listSignatures() { return []; },
     async saveSignature(sig) { return { ...sig, id: sig.id ?? 1 }; },
     async deleteSignature() {},
+    async findSparkSignatures() { return null; },
+    async importSparkSignatures() { return []; },
     async listTemplates() { return []; },
     async saveTemplate(t) { return { ...t, id: t.id ?? 1 }; },
     async deleteTemplate() {},

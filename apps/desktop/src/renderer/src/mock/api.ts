@@ -6,6 +6,7 @@ import type {
 import { streamFakeAi, fakeAiText } from "./ai";
 import { approveSend, cancelSend, createDraft, deleteDraft, getDraft, sendDraft, updateDraft, type Ctx } from "./compose";
 import { ALL_CONTACTS } from "./people";
+import { mockSparkApi } from "./spark";
 import { buildState } from "./seed";
 import { deepMerge, liveDrafts, nextId, type MThread, type MockState } from "./state";
 import { matchesSearch, parseSearch, queryThreads, sortedOlder, unreadCount } from "./threads";
@@ -306,6 +307,7 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
       return saved;
     },
     async deleteSignature(id) { state.signatures = state.signatures.filter((s) => s.id !== id); },
+    ...mockSparkApi(state, now, () => nextId(state, "sig") + 100, emit),
     async listTemplates() { return state.templates; },
     async saveTemplate(t) {
       const saved = { ...t, id: t.id ?? nextId(state, "tpl") + 100 };

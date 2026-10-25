@@ -6,6 +6,7 @@ import { PaneHeader } from "../../shell/PaneHeader";
 import { useApp } from "../../state/AppContext";
 import { navStore, useNav } from "../../state/nav";
 import { viewSubtitle, viewTitle } from "../../state/viewMeta";
+import { BundleSummary, isBundleCategory } from "../ai/BundleSummary";
 import { compose } from "./mailCommands";
 import styles from "./ListHeader.module.css";
 
@@ -67,6 +68,7 @@ export function ListHeader() {
           <Focus size={16} strokeWidth={1.5} />
         </IconButton>
       ) : null}
+      {isBundleCategory(nav.category) ? <BundleSummary category={nav.category} /> : null}
       <IconButton label="Search" shortcut="/" pressed={nav.searchOpen} onClick={() => (nav.searchOpen ? navStore.getState().closeSearch() : navStore.getState().openSearch())}>
         <Search size={16} strokeWidth={1.5} />
       </IconButton>

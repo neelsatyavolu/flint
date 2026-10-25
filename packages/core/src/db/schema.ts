@@ -294,4 +294,8 @@ export const MIGRATIONS: readonly string[] = [
   /* 4: why a message the user asked to track went out without tracking (shown as the recipients' note) */ `
   ALTER TABLE tracked_messages ADD COLUMN untracked_reason TEXT;
   `,
+  /* 5: who set a message's category. NULL = the heuristics (or the AI second opinion); 'rule' = a rule's category action;
+        'manual' = the user. Re-categorizing leaves 'rule' and 'manual' values alone. */ `
+  ALTER TABLE messages ADD COLUMN category_source TEXT;
+  `,
 ];

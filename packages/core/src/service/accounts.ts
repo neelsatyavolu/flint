@@ -94,14 +94,16 @@ export function accountsApi(ctx: ServiceContext): AccountsApi {
       if (result.imap !== "ok") throw new FlintError("auth", result.imap);
       if (result.smtp !== "ok") throw new FlintError("auth", result.smtp);
 
+      // Bridge: the SMTP mode that worked (STARTTLS instead of implicit SSL) is what gets saved.
+      const working = result.smtpSecure === undefined ? server : { ...server, smtpSecure: result.smtpSecure };
       const existing = store.getAccountByEmail(input.email);
       let account: Account;
       if (existing) {
         // Signing in again: keep the mail, replace the credentials and server settings, reconnect.
-        account = store.updateAccount(existing.id, { ...server, provider, authKind: "password", enabled: true });
+        account = store.updateAccount(existing.id, { ...working, provider, authKind: "password", enabled: true });
         await saveCredentials(account.id, { password });
       } else {
-        account = store.createAccount({ email: input.email, name: input.name, provider, authKind: "password", ...server });
+        account = store.createAccount({ email: input.email, name: input.name, provider, authKind: "password", ...working });
         await saveCredentials(account.id, { password });
       }
       await ctx.syncs.restart(account.id);

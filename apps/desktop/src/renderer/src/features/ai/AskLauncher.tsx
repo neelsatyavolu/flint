@@ -26,6 +26,13 @@ export function AskLauncher(): JSX.Element | null {
     return () => window.removeEventListener(OPEN_ASK_EVENT, onOpen);
   }, [ask]);
 
+  // The reader keeps this much room at the bottom so the field never covers its last lines.
+  useEffect(() => {
+    const root = document.documentElement.style;
+    root.setProperty("--ask-clearance", `${16 + 40 + 16 + (minimized ? minimized * 36 + 8 : 0)}px`);
+    return () => { root.removeProperty("--ask-clearance"); };
+  }, [minimized]);
+
   if (open) return <AskPanel conversation={conversation} onClose={() => setOpen(false)} />;
   if (covered) return null;
 

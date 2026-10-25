@@ -1,7 +1,7 @@
 import { applyCategoryVerdicts, categorizeCandidates } from "../store/aiSearch";
 import type { Store } from "../store";
 import type { FlintEvent, Settings, ThreadId } from "../types";
-import { createAutoCategorizer, type AutoCategorizer } from "./autoCategorize";
+import { createAutoCategorizer, type AutoCategorizer, type CategorizerOptions } from "./autoCategorize";
 import type { AiEngine } from "./engine";
 
 export type CategorizerWiring = {
@@ -10,6 +10,8 @@ export type CategorizerWiring = {
   getSettings: () => Settings;
   now: () => number;
   emit: (event: FlintEvent) => void;
+  /** Timing overrides (tests). */
+  options?: CategorizerOptions;
 };
 
 /**
@@ -34,5 +36,5 @@ export function createStoreCategorizer(w: CategorizerWiring): AutoCategorizer {
       }
       for (const [accountId, ids] of accounts) w.emit({ type: "mail_changed", accountId, threadIds: ids });
     },
-  });
+  }, w.options);
 }

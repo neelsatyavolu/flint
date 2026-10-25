@@ -89,6 +89,32 @@ describe("recategorizeAll", () => {
     expect(store.recategorizeAll()).toBe(0);
   });
 
+  it("keeps a category a rule or the user chose", () => {
+    const store = makeStore();
+    const s = seedImap(store);
+    const [scoir] = store.ingestMessages(s.account.id, s.inbox.id, [msg({ uid: 1, messageId: "s@x", subject: "A school viewed your profile", from: [person("Scoir", "automated@notifications.scoir.com")] })]);
+    const [other] = store.ingestMessages(s.account.id, s.inbox.id, [msg({ uid: 2, messageId: "o@x", subject: "Your receipt", from: [person("Shop", "automated@notifications.shop.com")] })]);
+    store.db.prepare("UPDATE messages SET headers_json = ?").run(JSON.stringify({ "feedback-id": "1:scoir" }));
+    // Both were filed as people by an older run; one was then moved by a rule, the other by the user.
+    store.db.prepare("UPDATE messages SET category = 'people'").run();
+    store.pinCategory([scoir!.threadId], "people", "rule");
+    store.pinCategory([other!.threadId], "people", "manual");
+
+    expect(store.recategorizeAll()).toBe(0);
+    expect(store.getThreadRows(scoir!.threadId)!.category).toBe("people");
+    expect(store.getThreadRows(other!.threadId)!.category).toBe("people");
+  });
+
+  it("records a rule's category on ingest and keeps it through re-categorizing", () => {
+    const store = makeStore();
+    const s = seedImap(store);
+    store.saveRule({ accountId: null, name: "Scoir to people", enabled: true, match: "all", sortOrder: 0, conditions: [{ field: "from", op: "contains", value: "scoir" }], actions: [{ type: "category", category: "people" }] });
+    const [scoir] = store.ingestMessages(s.account.id, s.inbox.id, [msg({ uid: 1, messageId: "s@x", subject: "A school viewed your profile", from: [person("Scoir", "automated@notifications.scoir.com")], headers: { "feedback-id": "1:scoir" } })]);
+    expect(store.getThreadRows(scoir!.threadId)!.category).toBe("people");
+    expect(store.recategorizeAll()).toBe(0);
+    expect(store.getThreadRows(scoir!.threadId)!.category).toBe("people");
+  });
+
   it("leaves sent mail alone", () => {
     const store = makeStore();
     const s = seedImap(store);

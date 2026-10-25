@@ -4,7 +4,7 @@ import { logger } from "../log";
 import { evaluateRules, type RuleMessage } from "../rules";
 import { htmlToPlain } from "../store";
 import type { ActionResult } from "../store/types";
-import { FlintError, type Rule, type RuleAction, type ThreadId } from "../types";
+import { FlintError, type Category, type Rule, type RuleAction, type ThreadId } from "../types";
 import type { ServiceContext } from "./context";
 import { ensureRoleFolders } from "./roleFolders";
 
@@ -68,6 +68,8 @@ export function libraryApi(ctx: ServiceContext): LibraryApi {
     const snapshot = store.snapshotThreads(threadIds);
     const stmt = store.db.prepare("UPDATE threads SET category = ? WHERE id = ?");
     for (const t of threadIds) stmt.run(category, t);
+    // Also on the messages, so a rollup or a later re-categorize keeps what the rule decided.
+    store.pinCategory(threadIds, category as Category, "rule");
     return { snapshot, locations: [] };
   }
 

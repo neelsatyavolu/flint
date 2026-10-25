@@ -42,3 +42,5 @@ export const ErrorResponseSchema = z.object({ error: z.object({ code: z.string()
 
 export const RegisterMessageResponseSchema = z.object({ ref: z.string(), recipients: z.number().int() });
 export const OkResponseSchema = z.object({ ok: z.literal(true) });
+/** DELETE answers 202 { ok: false, deleted: false } when the service's storage failed. */
+export const DeleteResponseSchema = z.object({ ok: z.boolean(), deleted: z.boolean().optional() });

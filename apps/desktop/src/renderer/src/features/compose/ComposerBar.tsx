@@ -23,8 +23,8 @@ type Props = {
   fromOptions: FromOption[];
   templates: Template[];
   signatures: Signature[];
-  /** False when a receipt cannot be tracked; the Composer then explains why instead. */
-  receiptsAvailable: boolean;
+  /** Why a receipt cannot be tracked, or null. The toggle then shows the reason as its tooltip and does nothing. */
+  receiptsBlockedReason: string | null;
   aiOpen: boolean;
   sending: boolean;
   onMinimize: () => void;
@@ -75,11 +75,15 @@ export function ComposerBar(p: Props): JSX.Element {
           trigger={<IconButton label={remindLabel} pressed={fields.remindAt !== null}>{fields.remindAt ? <BellRing size={18} strokeWidth={1.5} /> : <Bell size={18} strokeWidth={1.5} />}</IconButton>}
         />
         <DateTimePicker title="Send later" onPick={p.onSendLater} trigger={<IconButton label="Send later"><Clock size={18} strokeWidth={1.5} /></IconButton>} />
-        {p.receiptsAvailable ? (
+        {p.receiptsBlockedReason ? (
+          <IconButton label={p.receiptsBlockedReason} aria-disabled className={styles.receiptsBlocked}>
+            <EyeOff size={18} strokeWidth={1.5} />
+          </IconButton>
+        ) : (
           <IconButton label={fields.track ? RECEIPTS_ON : RECEIPTS_OFF} pressed={fields.track} onClick={p.onToggleTrack}>
             {fields.track ? <Eye size={18} strokeWidth={1.5} /> : <EyeOff size={18} strokeWidth={1.5} />}
           </IconButton>
-        ) : null}
+        )}
         <Menu items={moreItems} placement="bottom-end" trigger={<IconButton label="More"><MoreHorizontal size={18} strokeWidth={1.5} /></IconButton>} />
         <span className={styles.sep} aria-hidden />
         <FromSelector value={fields.from} options={p.fromOptions} onChange={p.onFrom} />

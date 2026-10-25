@@ -35,3 +35,21 @@
 @keyframes pulse { 50% { opacity: 0.2; } }
 @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
 .wait { display: flex; align-items: center; gap: var(--s-3); }
+
+.offer {
+  position: fixed;
+  left: 50%;
+  bottom: var(--s-6);
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 44px;
+  padding: 0 var(--s-3) 0 var(--s-4);
+  background: var(--plane-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  color: var(--fg);
+  white-space: nowrap;
+}

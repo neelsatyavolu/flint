@@ -106,6 +106,7 @@ function ThreadBody({ thread, refetch }: { thread: ThreadDetail; refetch: () => 
           <Suspense fallback={null}><InlineReply threadId={thread.id} messageId={target.id} from={(target.isFromMe ? target.to[0] : target.from[0]) ?? target.from[0]} seedText={seedText} /></Suspense>
         </div>
       ) : null}
+      <div className={styles.askClearance} aria-hidden />
     </>
   );
 }

@@ -6,6 +6,14 @@ import type {
   Signature, SyncStatus, Template, ThreadDetail, ThreadId, ThreadPage, ThreadQuery, LoadOlderResult, ServerSearchResult, TrackedMessage,
 } from "./types";
 
+/** A signature found in Spark Desktop's settings, with the Flint accounts it is the default for. */
+export type SparkSignatureOffer = {
+  sparkId: string; name: string; html: string; accounts: string[]; modifiedAt: number;
+  matches: { accountId: AccountId; email: string }[];
+};
+export type SparkSignatureScan = { path: string; signatures: SparkSignatureOffer[] };
+export type ImportSparkSignaturesInput = { path?: string; items: { sparkId: string; name?: string; setDefaultFor: AccountId[] }[] };
+
 /**
  * The one surface every client uses. The desktop renderer reaches it over IPC
  * (window.flint), local agents over the agent API (flint CLI). The service in
@@ -84,6 +92,10 @@ export interface FlintApi {
   listSignatures(): Promise<Signature[]>;
   saveSignature(sig: Omit<Signature, "id"> & { id?: number }): Promise<Signature>;
   deleteSignature(id: number): Promise<void>;
+  /** Signatures in Spark Desktop's settings (or the settings.sqlite at `path`). Null when Spark isn't installed. */
+  findSparkSignatures(path?: string): Promise<SparkSignatureScan | null>;
+  /** Saves the chosen Spark signatures as Flint signatures (updating ones imported before) and makes them the default for the named accounts. */
+  importSparkSignatures(input: ImportSparkSignaturesInput): Promise<Signature[]>;
   listTemplates(): Promise<Template[]>;
   saveTemplate(t: Omit<Template, "id"> & { id?: number }): Promise<Template>;
   deleteTemplate(id: number): Promise<void>;
@@ -147,6 +159,7 @@ export const METHOD_TIERS: Record<FlintMethod, "read" | "modify" | "send" | "adm
   addAttachment: "modify", removeAttachment: "modify",
   sendDraft: "send", cancelSend: "modify", listScheduled: "read", approveSend: "admin",
   listSignatures: "read", saveSignature: "admin", deleteSignature: "admin",
+  findSparkSignatures: "admin", importSparkSignatures: "admin",
   listTemplates: "read", saveTemplate: "admin", deleteTemplate: "admin",
   listRules: "read", saveRule: "admin", deleteRule: "admin", applyRules: "modify",
   listTracked: "read", getReceipt: "read", refreshReceipts: "read", stopTracking: "modify",

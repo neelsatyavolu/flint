@@ -11,6 +11,7 @@ import { createContext } from "./context";
 import { wireNotifications } from "./notify";
 import { recategorizeIfStale } from "./recategorize";
 import { historyApi } from "./history";
+import { importSparkApi } from "./importSpark";
 import { readingApi } from "./reading";
 import { receiptsApi } from "./receipts";
 import { settingsApi } from "./settings";
@@ -42,6 +43,8 @@ export type ServiceOptions = {
   googleMailboxCheck?: typeof import("./connectionCheck").checkGoogleMailbox;
   /** MX lookup used to name the provider that hosts an address (tests). */
   resolveMx?: (domain: string) => Promise<{ exchange: string; priority: number }[]>;
+  /** Home directory searched for Spark Desktop's settings (tests; default is the real home). */
+  sparkHome?: string;
   /** Sync loop timing (tests shorten the poll interval). */
   sync?: SyncTuning;
   /** Absolute path of the bundled CLI script (apps/cli/dist/flint.js). installCli wraps it. */
@@ -60,6 +63,7 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
     ...historyApi(ctx),
     ...actionsApi(ctx),
     ...composeApi(ctx),
+    ...importSparkApi(ctx),
     ...receiptsApi(ctx),
     ...aiApi(ctx),
     ...agentsApi(ctx),

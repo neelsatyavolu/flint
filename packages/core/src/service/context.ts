@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { createAiEngine, type AiEngine } from "../ai";
+import { startCategorizer } from "./categorizerWiring";
 import { currentAgent } from "../agent/context";
 import type { AgentServerHandle } from "../agent/server";
 import { openDb } from "../db/open";
@@ -113,9 +114,13 @@ export function createContext(platform: Platform, options: ServiceOptions = {}):
     },
   });
 
-  const ai = createAiEngine(buildAiContext({ store, syncs, platform, getSettings, now, fetch: fetchImpl }), {
+  const engine = createAiEngine(buildAiContext({ store, syncs, platform, getSettings, now, fetch: fetchImpl }), {
     onChange: () => bus.emit({ type: "settings", settings: getSettings() }),
   });
+  // Background AI categorization: runs only with settings.ai.autoCategorize on and a connected provider.
+  const stopCategorizer = startCategorizer({ store, bus, engine, getSettings, now });
+  // service.stop() disposes the engine, so the categorizer goes down with it.
+  const ai: AiEngine = { ...engine, dispose: () => { stopCategorizer(); engine.dispose(); } };
 
   return {
     platform, options, store, bus, emit: bus.emit, now, fetch: fetchImpl, caller: currentAgent,

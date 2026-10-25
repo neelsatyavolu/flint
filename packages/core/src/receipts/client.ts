@@ -8,7 +8,7 @@ import { countedOpens, recipientIds, statusKey, statusesForTokens, stampReply, t
 import { callService, ServiceHttpError, type FetchLike } from "./http";
 import { newToken, normalizeEndpoint, pixelUrlFor } from "./pixel";
 import {
-  EventsResponseSchema, InstallResponseSchema, MAX_EVENTS_LIMIT, MAX_RECIPIENTS, OkResponseSchema, RegisterMessageResponseSchema,
+  EventsResponseSchema, InstallResponseSchema, MAX_EVENTS_LIMIT, MAX_RECIPIENTS, DeleteResponseSchema, OkResponseSchema, RegisterMessageResponseSchema,
   type ReceiptEvent,
 } from "./protocol";
 
@@ -257,7 +257,9 @@ export class ReceiptsClient {
     const ref = this.#refOf(trackedId);
     if (ref && this.#isActive(trackedId)) {
       try {
-        await this.#call("DELETE", `/v1/messages/${encodeURIComponent(ref)}`, OkResponseSchema);
+        const res = await this.#call("DELETE", `/v1/messages/${encodeURIComponent(ref)}`, DeleteResponseSchema);
+        // 202 { ok: false, deleted: false }: the service couldn't delete yet. Keep the row active so the user can try again.
+        if (!res.ok || res.deleted === false) throw new FlintError("network", "The receipts service couldn't stop tracking yet. Try again later.");
       } catch (err) {
         if (!(err instanceof ServiceHttpError && err.status === 404)) throw err instanceof FlintError ? err : new FlintError("network", "Couldn't reach the receipts service. Try again.");
       }

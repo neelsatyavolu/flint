@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Download } from "lucide-react";
 import type { Account, Signature } from "@flint/core";
 import { flint } from "../../../lib/api";
 import { useFlintQuery } from "../../../lib/hooks";
@@ -7,6 +8,7 @@ import { RichEditor } from "../editor/RichEditor";
 import { sanitizeHtml } from "../editor/richText";
 import { ChoiceSelect, SectionPage } from "../fields";
 import { ListEditor } from "../ListEditor";
+import { SparkImportSheet } from "../spark/SparkImportSheet";
 import { mapAfterDelete, planSignatureSave } from "../signatureDefaults";
 import { useSettingsStore } from "../settingsStore";
 import { useAccounts, errorText } from "../useAccounts";
@@ -21,6 +23,7 @@ export function SignaturesSection() {
   const { accounts } = useAccounts();
   const sigs = useFlintQuery((api) => api.listSignatures(), [], { mail: false });
   const [sel, setSel] = useState<number | "new" | null>(null);
+  const [importing, setImporting] = useState(false);
   const list = sigs.data ?? [];
   // The first signature is open by default so the editor pane is never an empty box.
   const active = sel ?? list[0]?.id ?? null;
@@ -55,6 +58,7 @@ export function SignaturesSection() {
 
   return (
     <SectionPage title="Signatures" description="Add a signature to new mail and replies, per account.">
+      <Button variant="ghost" size="sm" icon={<Download size={14} strokeWidth={1.5} />} onClick={() => setImporting(true)}>Import from Spark</Button>
       <ListEditor
         items={list}
         selectedId={active}
@@ -70,6 +74,14 @@ export function SignaturesSection() {
           <p className={styles.muted}>Select a signature to edit it, or create a new one.</p>
         )}
       </ListEditor>
+      <SparkImportSheet
+        open={importing}
+        onClose={() => setImporting(false)}
+        onImported={(saved) => {
+          sigs.refetch();
+          if (saved[0]) setSel(saved[0].id);
+        }}
+      />
     </SectionPage>
   );
 }

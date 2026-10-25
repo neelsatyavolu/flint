@@ -1,10 +1,10 @@
-import { createTransport } from "nodemailer";
 import { MX_HOST_NAMES, mxHostOf } from "../mail/autoconfig";
-import { createImapClient, describeConnectError, isLookupFailure, smtpOptions, type MailAuth } from "../mail/connect";
+import { openSmtp } from "../mail/bridgeSmtp";
+import { createImapClient, describeConnectError, isLookupFailure, type MailAuth } from "../mail/connect";
 import { FlintError, type ServerConfig } from "../types";
 
 
-export type ConnectionResult = { imap: "ok" | string; smtp: "ok" | string };
+export type ConnectionResult = { imap: "ok" | string; smtp: "ok" | string; /** The SMTP encryption mode that worked, when it differs from the one asked for (Bridge STARTTLS). */ smtpSecure?: boolean };
 
 /** Checks IMAP and SMTP separately so the form can point at the server that failed. */
 export async function checkConnection(server: ServerConfig, auth: MailAuth): Promise<ConnectionResult> {
@@ -19,15 +19,19 @@ export async function checkConnection(server: ServerConfig, auth: MailAuth): Pro
     imap = describeConnectError(error, "IMAP", server.imapHost).message;
   }
   let smtp: ConnectionResult["smtp"] = "ok";
-  const transport = createTransport(smtpOptions(server, auth));
+  let smtpSecure: boolean | undefined;
   try {
-    await transport.verify();
+    const opened = await openSmtp(server, auth);
+    try {
+      await opened.transport.verify();
+    } finally {
+      opened.transport.close();
+    }
+    if (opened.smtpSecure !== server.smtpSecure) smtpSecure = opened.smtpSecure;
   } catch (error) {
     smtp = describeConnectError(error, "SMTP", server.smtpHost).message;
-  } finally {
-    transport.close();
   }
-  return { imap, smtp };
+  return { imap, smtp, ...(smtpSecure === undefined ? {} : { smtpSecure }) };
 }
 
 

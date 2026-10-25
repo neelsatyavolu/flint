@@ -55,7 +55,11 @@ export async function resolveAuth(account: Account, deps: AuthDeps): Promise<Mai
   return { user: account.username, accessToken: next.accessToken };
 }
 
-const isLoopback = (host: string): boolean => host === "127.0.0.1" || host === "localhost" || host === "::1";
+export const isLoopback = (host: string): boolean => host === "127.0.0.1" || host === "localhost" || host === "::1";
+
+/** Proton Mail Bridge's default ports. Bridge always offers STARTTLS on IMAP, so a plain connection there must upgrade. */
+const BRIDGE_IMAP_PORT = 1143;
+const BRIDGE_SMTP_PORT = 1025;
 
 export function imapOptions(server: Pick<ServerConfig, "imapHost" | "imapPort" | "imapSecure">, auth: MailAuth): ImapFlowOptions {
   return {
@@ -68,8 +72,12 @@ export function imapOptions(server: Pick<ServerConfig, "imapHost" | "imapPort" |
     connectionTimeout: 20_000,
     greetingTimeout: 15_000,
     // Remote plain connections must upgrade with STARTTLS or fail, so a network attacker cannot strip it and read the
-    // password. Loopback hosts (Proton Bridge, local test servers) skip certificate checks and may stay plain.
-    ...(isLoopback(server.imapHost) ? { tls: { rejectUnauthorized: false } } : server.imapSecure ? {} : { doSTARTTLS: true }),
+    // password. Loopback hosts skip certificate checks (Bridge's certificate is self-signed). On Proton Bridge's port the
+    // upgrade is required too; any other loopback server (local test servers) upgrades when it advertises STARTTLS and
+    // otherwise stays plain.
+    ...(isLoopback(server.imapHost)
+      ? { tls: { rejectUnauthorized: false }, ...(!server.imapSecure && server.imapPort === BRIDGE_IMAP_PORT ? { doSTARTTLS: true } : {}) }
+      : server.imapSecure ? {} : { doSTARTTLS: true }),
   };
 }
 
@@ -82,7 +90,9 @@ export function smtpOptions(server: Pick<ServerConfig, "smtpHost" | "smtpPort" |
     connectionTimeout: 20_000,
     greetingTimeout: 15_000,
     socketTimeout: 60_000,
-    ...(isLoopback(server.smtpHost) ? { tls: { rejectUnauthorized: false } } : server.smtpSecure ? {} : { requireTLS: true }),
+    ...(isLoopback(server.smtpHost)
+      ? { tls: { rejectUnauthorized: false }, ...(!server.smtpSecure && server.smtpPort === BRIDGE_SMTP_PORT ? { requireTLS: true } : {}) }
+      : server.smtpSecure ? {} : { requireTLS: true }),
   };
 }
 

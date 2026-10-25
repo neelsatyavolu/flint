@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, rmSync, statSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -28,6 +28,26 @@ export function sparkSettingsCandidates(home = homedir()): string[] {
 
 export function findSparkSettings(home = homedir()): string | null {
   return sparkSettingsCandidates(home).find((p) => existsSync(p)) ?? null;
+}
+
+const PERMISSION_MESSAGE = "macOS blocked Flint from reading Spark's settings. Allow Flint under System Settings → Privacy & Security → App Management or Full Disk Access, then try again.";
+const isDenied = (error: unknown): boolean => ["EPERM", "EACCES"].includes((error as NodeJS.ErrnoException | undefined)?.code ?? "");
+
+/**
+ * Where Spark's settings are, "blocked" when macOS hides another app's container from Flint
+ * (existsSync reports that as absent), or null when Spark isn't installed.
+ */
+export function locateSparkSettings(home = homedir()): string | "blocked" | null {
+  let blocked = false;
+  for (const p of sparkSettingsCandidates(home)) {
+    try {
+      statSync(p);
+      return p;
+    } catch (error) {
+      if (isDenied(error)) blocked = true;
+    }
+  }
+  return blocked ? "blocked" : null;
 }
 
 const signatureRow = z.object({
@@ -112,7 +132,12 @@ const text = (v: unknown): string => (v instanceof Uint8Array ? Buffer.from(v).t
 
 /** Reads every live signature from a Spark Desktop settings.sqlite, with the accounts each one is the default for. */
 export function readSparkSignatures(path: string): SparkSignature[] {
-  if (!existsSync(path)) throw new FlintError("not_found", "Couldn't find Spark's settings on this Mac.");
+  try {
+    statSync(path);
+  } catch (error) {
+    if (isDenied(error)) throw new FlintError("permission", PERMISSION_MESSAGE);
+    throw new FlintError("not_found", "Couldn't find Spark's settings on this Mac.");
+  }
   try {
     return withCopy(path, (db) => {
       const rows = db.prepare("SELECT itemValue FROM settings WHERE itemGroup = 'SignaturesSettingsItemsGroup'").all() as { itemValue: unknown }[];
@@ -138,6 +163,7 @@ export function readSparkSignatures(path: string): SparkSignature[] {
     });
   } catch (error) {
     if (error instanceof FlintError) throw error;
+    if (isDenied(error)) throw new FlintError("permission", PERMISSION_MESSAGE);
     throw new FlintError("invalid", "That file isn't a Spark settings database Flint can read.");
   }
 }

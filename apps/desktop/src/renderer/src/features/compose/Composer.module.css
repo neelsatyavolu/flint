@@ -31,3 +31,4 @@
 .panelSlot { position: absolute; inset: 0; pointer-events: auto; }
 .panelSlot[hidden] { display: none; }
 .chips { position: fixed; right: 16px; bottom: 16px; z-index: 45; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; pointer-events: auto; }
+.receiptsBlocked { opacity: 0.4; cursor: default; }

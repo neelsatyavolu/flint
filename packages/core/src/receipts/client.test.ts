@@ -278,6 +278,20 @@ describe("markReplied, seenPing, stopTracking", () => {
     expect(u.service.calls).toHaveLength(0);
   });
 
+  it("stopTracking treats 202 { ok: false, deleted: false } as not done and keeps the row active for a retry", async () => {
+    const s = setup();
+    const p = await s.client.prepareTracked(input(s));
+    const trackedId = s.store.findTrackedByMessageId(s.seed.account.id, "out1@example.com")!;
+    s.service.deleteFails = true;
+    await expect(s.client.stopTracking(trackedId)).rejects.toMatchObject({ code: "network", message: expect.stringMatching(/Try again later/) });
+    expect(stateOf(s, trackedId)).toBe("active");
+    expect(s.service.messages.has(p.ref)).toBe(true);
+    s.service.deleteFails = false;
+    await s.client.stopTracking(trackedId);
+    expect(stateOf(s, trackedId)).toBe("stopped");
+    expect(s.service.messages.has(p.ref)).toBe(false);
+  });
+
   it("stopTracking reports a network failure and keeps the row active", async () => {
     const s = setup();
     await s.client.prepareTracked(input(s));

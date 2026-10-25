@@ -1,7 +1,8 @@
 import { logger } from "../log";
 import { newMessageId } from "../mail/compose";
 import { resolveAuth } from "../mail/connect";
-import { createSmtp, sendTracked, sendUntracked, type SendOutcome, type SentFolders, type Smtp } from "../mail/send";
+import { openSmtp } from "../mail/bridgeSmtp";
+import { sendTracked, sendUntracked, type SendOutcome, type SentFolders, type Smtp } from "../mail/send";
 import { injectPixel } from "../receipts";
 import { FlintError, type Account, type Address, type Draft } from "../types";
 import { assertAttachmentsExist, draftMimeInput } from "./compose-mime";
@@ -21,7 +22,10 @@ export async function openTransport(ctx: ServiceContext, account: Account): Prom
     fetch: (url, init) => ctx.fetch(url, init),
     now: ctx.now,
   });
-  return createSmtp(account, auth);
+  const { transport, smtpSecure } = await openSmtp(account, auth);
+  // Bridge answered with STARTTLS where implicit SSL was set: remember what works.
+  if (smtpSecure !== account.smtpSecure) ctx.store.updateAccount(account.id, { smtpSecure });
+  return transport;
 }
 
 function sentFolders(ctx: ServiceContext, account: Account): SentFolders {

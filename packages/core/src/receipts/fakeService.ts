@@ -15,6 +15,8 @@ export class FakeReceiptsService {
   offline = false;
   /** Set to make every request answer with this status. */
   forceStatus: number | null = null;
+  /** Set to make DELETE answer 202 { ok: false, deleted: false } like the Worker when its storage fails. */
+  deleteFails = false;
   pageLimit = 500;
   #nextId = 1;
   #installSeq = 0;
@@ -39,6 +41,7 @@ export class FakeReceiptsService {
     if (del && method === "DELETE") {
       const ref = decodeURIComponent(del[1]!);
       if (this.messages.get(ref)?.installId !== installId) return this.#error(404, "not_found", "No such message.");
+      if (this.deleteFails) return this.#json(202, { ok: false, deleted: false });
       this.messages.delete(ref);
       return this.#json(200, { ok: true });
     }

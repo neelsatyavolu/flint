@@ -250,7 +250,7 @@ export class IngestRepo {
         const resolved = resolveCategory(actions, category);
         if (resolved !== category) {
           category = resolved;
-          this.q.run("UPDATE messages SET category = ? WHERE id = ?", category, id);
+          this.q.run("UPDATE messages SET category = ?, category_source = 'rule' WHERE id = ?", category, id);
         }
         if (actions.some((a) => a.type === "mute")) this.q.run("UPDATE threads SET muted = 1 WHERE id = ?", threadId);
       }

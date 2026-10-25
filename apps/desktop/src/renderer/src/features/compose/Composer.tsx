@@ -54,7 +54,8 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
     return <div className={`t-body ${styles.loading}`}>{session.error ?? "Opening draft"}</div>;
   }
 
-  const blocker = receiptBlocker({ settings: session.settings, recipients: [...fields.to, ...fields.cc, ...fields.bcc], selfAddresses });
+  // The live check wins. Core's reason on the draft is a snapshot from when it opened, so it only stands in until settings load.
+  const blocker = receiptBlocker({ settings: session.settings, recipients: [...fields.to, ...fields.cc, ...fields.bcc], selfAddresses }) ?? (session.settings ? null : draft.trackingBlockedReason ?? null);
   const sendProblem = flow.problem;
   const recipientProblem = sendProblem === "Add at least one recipient.";
 
@@ -109,7 +110,7 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
         fromOptions={session.fromOptions}
         templates={session.templates}
         signatures={session.signatures}
-        receiptsAvailable={blocker === null}
+        receiptsBlockedReason={blocker}
         aiOpen={aiOpen}
         sending={flow.sending}
         onMinimize={() => minimizeComposer(entry.id)}
