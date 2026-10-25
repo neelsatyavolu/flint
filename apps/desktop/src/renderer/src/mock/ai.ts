@@ -65,6 +65,9 @@ export function fakeAiText(state: MockState, task: AiTask): string {
   switch (task.kind) {
     case "summarize": {
       const t = threadOf(state, task.threadId);
+      if (t?.subject === "Freelancing Cycle 3") {
+        return "Rodney sent the countersigned Cycle 3 agreement. Onboarding is in scope, the dashboard moves to cycle 4, and the in-app tour was cut to hold the earlier launch date.\n\nAction needed:\n- Confirm you can start Monday morning\n- Carla sends the kickoff invite";
+      }
       const names = [...new Set((t?.messages ?? []).map((m) => (m.isFromMe ? "You" : m.from[0]?.name.split(" ")[0] ?? "Someone")))];
       return `${names.slice(0, 3).join(", ")} discuss "${t?.subject ?? "this thread"}". The scope was agreed, the date moved earlier, and the signed copy is now attached.\n\nAction needed:\n- Confirm you can start Monday morning\n- File the countersigned agreement`;
     }

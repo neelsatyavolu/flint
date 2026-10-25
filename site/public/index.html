@@ -4,41 +4,168 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Flint Mail</title>
-  <meta name="description" content="Flint is a free desktop mail client with a Spark-style layout, AI on your own ChatGPT or Grok subscription, honest read receipts and a command line for local agents.">
+  <meta name="description" content="Flint is a free, open-source Mac mail client with a Spark-style layout, AI on your own ChatGPT or Grok plan, read receipts that only count real opens, and a command line for local agents.">
+  <link rel="canonical" href="https://flint.xanom.co/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Flint">
+  <meta property="og:title" content="Flint Mail">
+  <meta property="og:description" content="A free, open-source Mac mail client. Spark's layout, AI on your own plan, honest read receipts, and a CLI for agents.">
+  <meta property="og:url" content="https://flint.xanom.co/">
+  <meta property="og:image" content="https://flint.xanom.co/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="color-scheme" content="dark light">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <header class="top">
     <div class="wrap">
       <a class="brand" href="/"><img src="/favicon.svg" alt="">Flint</a>
-      <nav><a href="/privacy">Privacy</a><a href="https://xanom.co">Xanom</a></nav>
+      <nav>
+        <a href="#receipts">Receipts</a>
+        <a href="#ai">AI</a>
+        <a href="#agents">Agents</a>
+        <a href="https://github.com/neelsatyavolu/flint">GitHub</a>
+        <a class="nav-cta" href="#download">Download</a>
+      </nav>
     </div>
   </header>
 
   <main>
     <section class="hero">
       <div class="wrap">
-        <p class="eyebrow">Mail for macOS · free</p>
-        <h1>A calm inbox that costs nothing.<span class="caret" aria-hidden="true"></span></h1>
-        <p class="lede">Flint is a desktop mail client for Gmail and any IMAP account. It keeps the three-pane layout people like in Spark, runs its AI on the ChatGPT or Grok subscription you already have, and tells you when someone opens your mail only when it can actually know.</p>
-        <span class="status"><span class="dot" aria-hidden="true"></span>In development</span>
+        <p class="eyebrow">Mail for macOS <span class="sep">·</span> Free and open source</p>
+        <h1>The inbox you liked in Spark, without the subscription.<span class="caret" aria-hidden="true"></span></h1>
+        <p class="lede">Flint is a Mac mail client for Gmail, Proton and any IMAP account. Its AI runs on the ChatGPT or Grok plan you already pay for. It marks mail as opened only when someone opened it, and your local agents can use it from the command line.</p>
+        <div class="cta" id="download">
+          <a class="btn primary" href="https://github.com/neelsatyavolu/flint/releases/latest/download/Flint-arm64.dmg">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8m0 0L4.5 6.5M8 10l3.5-3.5M3 13h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Download for Apple silicon
+          </a>
+          <a class="btn" href="https://github.com/neelsatyavolu/flint/releases/latest/download/Flint-x64.dmg">Intel Mac</a>
+        </div>
+        <p class="fine"><span data-version>Version 0.1.0</span> <span class="sep">·</span> Signed and notarized <span class="sep">·</span> Updates itself <span class="sep">·</span> <a href="https://github.com/neelsatyavolu/flint/releases">All releases</a></p>
+      </div>
+      <div class="wrap wide">
+        <figure class="window">
+          <div class="chrome" aria-hidden="true"><i></i><i></i><i></i></div>
+          <picture>
+            <source srcset="/img/app-light.webp" media="(prefers-color-scheme: light)">
+            <img src="/img/app-dark.webp" width="2400" height="1500" alt="Flint with the unified inbox in the middle and a thread open on the right, topped by an AI summary that lists the actions needed.">
+          </picture>
+        </figure>
       </div>
     </section>
 
-    <section class="features">
+    <section class="facts">
       <div class="wrap">
-        <p class="label">What it does</p>
+        <dl>
+          <div><dt>Price</dt><dd>Free. No account, no subscription, no ads.</dd></div>
+          <div><dt>Accounts</dt><dd>Gmail, Proton Mail Bridge, iCloud, Outlook, Fastmail, any IMAP/SMTP.</dd></div>
+          <div><dt>Your data</dt><dd>Mail is stored on your Mac and goes straight to your provider.</dd></div>
+          <div><dt>License</dt><dd>MIT. Read it, build it, change it.</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="feature" id="receipts">
+      <div class="wrap split">
+        <div class="copy">
+          <p class="label">Read receipts</p>
+          <h2>An open means someone opened it.</h2>
+          <p>Most trackers count every image load, so Apple Mail, Outlook's link scanner and your own Sent folder all look like reads. Flint sends each recipient their own copy with a private marker, then throws out the hits it can't trust.</p>
+          <ul class="checks">
+            <li><b>Apple Mail Privacy Protection</b> preloads every image, so those recipients show as <em>can't confirm</em>, never as opened.</li>
+            <li><b>Security scanners and bots</b> that fetch mail on delivery are recognised and dropped.</li>
+            <li><b>Your own opens</b>, on any of your accounts, don't count.</li>
+            <li><b>Replies</b> count as the strongest signal of all.</li>
+          </ul>
+          <p class="aside">Your Sent folder keeps one clean copy, with no marker in it.</p>
+        </div>
+        <figure class="shot">
+          <picture>
+            <source srcset="/img/receipts-light.webp" media="(prefers-color-scheme: light)">
+            <img src="/img/receipts-dark.webp" width="1400" height="1005" loading="lazy" alt="Read Statuses list: per-recipient lines such as Opened, Replied, No open detected, and Can't confirm opens: Apple Mail Privacy Protection.">
+          </picture>
+        </figure>
+      </div>
+    </section>
+
+    <section class="feature" id="ai">
+      <div class="wrap split flip">
+        <div class="copy">
+          <p class="label">+AI</p>
+          <h2>Bring the AI plan you already have.</h2>
+          <p>Sign in with ChatGPT or Grok once and Flint uses that account. There's no Flint AI tier and nothing extra to pay.</p>
+          <ul class="checks">
+            <li><b>Summaries</b> at the top of long threads, with the actions that are waiting on you.</li>
+            <li><b>Replies and rewrites</b> in your own writing style, plus translation.</li>
+            <li><b>Ask anything</b> about your mail and get an answer that links to the threads it used.</li>
+            <li><b>Sorting help</b> for mail the built-in rules aren't sure about.</li>
+          </ul>
+          <p class="aside">Nothing is sent to an AI provider until you use an AI feature.</p>
+        </div>
+        <figure class="shot">
+          <picture>
+            <source srcset="/img/summary-light.webp" media="(prefers-color-scheme: light)">
+            <img src="/img/summary-dark.webp" width="1400" height="982" loading="lazy" alt="A project thread in Flint, opened with an AI summary and a short Action needed list above the messages.">
+          </picture>
+        </figure>
+      </div>
+    </section>
+
+    <section class="feature" id="agents">
+      <div class="wrap split">
+        <div class="copy">
+          <p class="label">Agents</p>
+          <h2>Agents get a command line. You keep the send button.</h2>
+          <p>The <code>flint</code> command gives local agents the same mailbox you see: list, read, search, draft, archive, snooze and send. Each call shows up in Agent Activity, and mail an agent wants to send waits there until you approve it.</p>
+          <div class="term" role="img" aria-label="Terminal session using the flint command">
+            <div class="term-bar" aria-hidden="true"><i></i><i></i><i></i><span>zsh</span></div>
+<pre><span class="p">$</span> flint search "from:rodney has:attachment"
+<span class="o">4821  Rodney Okafor  Freelancing Cycle 3  9:12</span>
+<span class="p">$</span> flint reply 4821 --body "Monday works."
+<span class="o">Draft 97 created.</span>
+<span class="p">$</span> flint send 97
+<span class="w">Waiting for approval in Flint → Agent Activity…</span></pre>
+          </div>
+        </div>
+        <figure class="shot">
+          <picture>
+            <source srcset="/img/agents-light.webp" media="(prefers-color-scheme: light)">
+            <img src="/img/agents-dark.webp" width="1400" height="1005" loading="lazy" alt="Agent Activity: a queued email waiting for Approve or Deny, above a log of what agents read, drafted and archived.">
+          </picture>
+        </figure>
+      </div>
+    </section>
+
+    <section class="more">
+      <div class="wrap">
+        <p class="label">And the rest of a good mail app</p>
         <div class="grid">
-          <div><h3>Every account, one inbox</h3><p>Gmail through Google sign-in or an app password, plus iCloud, Outlook, Fastmail and any IMAP/SMTP server.</p></div>
-          <div><h3>Focused inbox</h3><p>Mail from people comes first. Notifications and newsletters fold into bundles you open when you want to.</p></div>
-          <div><h3>Read receipts that don't guess</h3><p>Each recipient gets a private marker. Apple Mail Privacy Protection, security scanners and your own opens never count as reads.</p></div>
-          <div><h3>AI on your own plan</h3><p>Summaries, replies, rewrites, translation and questions about your inbox, through your ChatGPT or Grok account. Flint bills nothing.</p></div>
-          <div><h3>Built for agents</h3><p>The <code>flint</code> command lets local agents read, search, draft and act on mail. Every call is logged, and sending waits for your approval.</p></div>
-          <div><h3>The usual, done well</h3><p>Pins, snooze, send later, undo send, follow-up reminders, signatures, templates, rules and keyboard shortcuts.</p></div>
+          <div><h3>Smart inbox</h3><p>People first. Notifications and newsletters fold into bundles you open when you're ready.</p></div>
+          <div><h3>Pins, snooze, send later</h3><p>Plus undo send, follow-up reminders and mute for threads that won't stop.</p></div>
+          <div><h3>Signatures</h3><p>A default per account, and a one-click import of every signature you made in Spark.</p></div>
+          <div><h3>Rules and templates</h3><p>Move, label, pin or file mail as it arrives. Reuse the replies you write every week.</p></div>
+          <div><h3>Keyboard first</h3><p>Spark's shortcuts and a command palette on <kbd>⌘K</kbd>, so you rarely need the mouse.</p></div>
+          <div><h3>Trackers blocked</h3><p>Tracking pixels in mail you receive are blocked, and remote images load only for senders you trust.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="open">
+      <div class="wrap">
+        <div class="open-inner">
+          <h2>Free because it should be.</h2>
+          <p>Flint is MIT licensed and built in the open. Read every line, build it yourself, or run your own receipts server and point Flint at it.</p>
+          <div class="cta">
+            <a class="btn primary" href="https://github.com/neelsatyavolu/flint/releases/latest/download/Flint-arm64.dmg">Download for Apple silicon</a>
+            <a class="btn" href="https://github.com/neelsatyavolu/flint/releases/latest/download/Flint-x64.dmg">Intel Mac</a>
+            <a class="btn" href="https://github.com/neelsatyavolu/flint">Source on GitHub</a>
+          </div>
         </div>
       </div>
     </section>
@@ -47,8 +174,18 @@
   <footer>
     <div class="wrap">
       <span>Flint is made by <a href="https://xanom.co">Xanom</a>. MIT licensed.</span>
-      <span><a href="/privacy">Privacy policy</a> · <a href="mailto:neel@xanom.co">neel@xanom.co</a></span>
+      <span><a href="https://github.com/neelsatyavolu/flint">GitHub</a> · <a href="/privacy">Privacy policy</a> · <a href="mailto:neel@xanom.co">neel@xanom.co</a></span>
     </div>
   </footer>
+  <script>
+    // Show the newest release number; the static text stays if GitHub can't be reached.
+    fetch("https://api.github.com/repos/neelsatyavolu/flint/releases/latest")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((rel) => {
+        const v = rel && typeof rel.tag_name === "string" ? rel.tag_name.replace(/^v/, "") : "";
+        if (/^\d+\.\d+\.\d+$/.test(v)) document.querySelectorAll("[data-version]").forEach((el) => { el.textContent = "Version " + v; });
+      })
+      .catch(() => {});
+  </script>
 </body>
 </html>
