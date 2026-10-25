@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { memorySecrets, type Platform } from "../platform";
 import { defaultSignature } from "./compose-signature";
 import { createContext } from "./context";
-import { importSparkApi } from "./importSpark";
+import { applyRememberedSparkDefaults, importSparkApi } from "./importSpark";
 
 const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 
@@ -98,10 +98,50 @@ describe("importSparkSignatures", () => {
     expect(out[0]!.html.length).toBeGreaterThan(80_000);
     expect(out[0]!.html.startsWith("<div>--</div><div>Neel Satyavolu</div>")).toBe(true);
     expect(ctx.getSettings().compose.defaultSignatureByAccount).toEqual({ [xanom.id]: out[0]!.id, [nenu.id]: out[1]!.id });
+    expect(ctx.getSettings().compose.defaultReplySignatureByAccount).toEqual({ [xanom.id]: out[0]!.id, [nenu.id]: out[1]!.id });
     for (const mode of ["new", "reply"] as const) {
       expect(defaultSignature(ctx.store, ctx.getSettings(), xanom.id, mode)?.id).toBe(out[0]!.id);
       expect(defaultSignature(ctx.store, ctx.getSettings(), nenu.id, mode)?.id).toBe(out[1]!.id);
     }
+  });
+
+  it("applies Spark's defaults again on re-import, even over an explicit None", async () => {
+    const { api, ctx, xanom } = rig();
+    const path = fixture();
+    const [first] = await api.importSparkSignatures({ path, items: [{ sparkId: "A", setDefaultFor: [xanom.id] }] });
+    ctx.updateSettings({ compose: { defaultSignatureByAccount: { [xanom.id]: null }, defaultReplySignatureByAccount: { [xanom.id]: null } } });
+    expect(defaultSignature(ctx.store, ctx.getSettings(), xanom.id, "new")).toBeNull();
+    await api.importSparkSignatures({ path, items: [{ sparkId: "A", setDefaultFor: [xanom.id] }] });
+    expect(defaultSignature(ctx.store, ctx.getSettings(), xanom.id, "new")?.id).toBe(first!.id);
+    expect(defaultSignature(ctx.store, ctx.getSettings(), xanom.id, "reply")?.id).toBe(first!.id);
+  });
+
+  it("drops Spark's fonts but keeps bold, color and links", async () => {
+    const path = sparkDb([sig("F", `<div style="font-family: Helvetica; font-size: 14px; color:#333"><font face="Arial" size="3" color="#f00">Hi</font> <b style="font:bold 12px Verdana">there</b> <a href="https://x.org" style="font-family:Georgia;text-decoration:none">x</a></div>`)]);
+    const { api } = rig();
+    const [out] = await api.importSparkSignatures({ path, items: [{ sparkId: "F", setDefaultFor: [] }] });
+    expect(out!.html).not.toMatch(/font-family|font-size|face=|size=|Helvetica|Verdana|Georgia/);
+    expect(out!.html).toContain('style="color:#333"');
+    expect(out!.html).toContain('<font color="#f00">Hi</font>');
+    expect(out!.html).toContain('font-weight:bold');
+    expect(out!.html).toContain('text-decoration:none');
+  });
+
+  it("gives an account added after the import its Spark default", async () => {
+    const { api, ctx, xanom } = rig();
+    const path = fixture();
+    const [first, second] = await api.importSparkSignatures({ path, items: [{ sparkId: "A", setDefaultFor: [xanom.id] }, { sparkId: "B", setDefaultFor: [] }] });
+    const base = { provider: "imap" as const, authKind: "password" as const, imapHost: "x", imapPort: 993, imapSecure: true, smtpHost: "x", smtpPort: 465, smtpSecure: true };
+    const late = ctx.store.createAccount({ ...base, email: "stranger@x.org", username: "c" });
+    applyRememberedSparkDefaults(ctx, late);
+    expect(defaultSignature(ctx.store, ctx.getSettings(), late.id, "new")?.id).toBe(second!.id);
+    expect(ctx.getSettings().compose.defaultReplySignatureByAccount[late.id]).toBe(second!.id);
+    // An account that already made a choice keeps it.
+    const chosen = ctx.store.createAccount({ ...base, email: "hello@nenu.co", username: "d" });
+    ctx.updateSettings({ compose: { defaultSignatureByAccount: { [chosen.id]: null } } });
+    applyRememberedSparkDefaults(ctx, chosen);
+    expect(ctx.getSettings().compose.defaultSignatureByAccount[chosen.id]).toBeNull();
+    expect(first!.id).not.toBe(second!.id);
   });
 
   it("updates in place when imported again, even after a rename", async () => {

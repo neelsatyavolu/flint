@@ -11,6 +11,9 @@ type LocalDraftRow = {
   attachments_json: string; updated_at: number;
 };
 
+/** A draft whose send is queued (in its undo window, scheduled or going out) is no longer a draft to edit; the Scheduled view and the undo toast own it. */
+export const NOT_QUEUED_DRAFT = "NOT EXISTS (SELECT 1 FROM scheduled_sends s WHERE s.draft_id = drafts.id AND s.status IN ('pending','awaiting_approval','sending'))";
+
 export type DraftListEntry = { key: number; id: number; item: ThreadListItem };
 
 /** Plain text preview of a draft body, whitespace collapsed. */
@@ -24,8 +27,8 @@ export const draftRowId = (draftId: number): number => -draftId;
 /** Every local draft as a Drafts-list row, newest edit first. `accountId` narrows to one account. */
 export function localDraftEntries(q: Sql, accountId: string | undefined): DraftListEntry[] {
   const rows = accountId
-    ? q.all<LocalDraftRow>("SELECT * FROM drafts WHERE account_id = ?", accountId)
-    : q.all<LocalDraftRow>("SELECT * FROM drafts");
+    ? q.all<LocalDraftRow>(`SELECT * FROM drafts WHERE account_id = ? AND ${NOT_QUEUED_DRAFT}`, accountId)
+    : q.all<LocalDraftRow>(`SELECT * FROM drafts WHERE ${NOT_QUEUED_DRAFT}`);
   return rows.map((r) => {
     const people: Address[] = [...addresses(r.to_json), ...addresses(r.cc_json), ...addresses(r.bcc_json)];
     const id = draftRowId(r.id);

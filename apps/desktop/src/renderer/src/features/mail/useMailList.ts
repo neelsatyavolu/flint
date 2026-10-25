@@ -42,6 +42,7 @@ export function useMailList(enabled: boolean): void {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const off = flint.subscribe((e) => {
       if (e.type !== "mail_changed" && e.type !== "new_mail") return;
+      if (e.type === "mail_changed") listStore.getState().forgetInSnapshots(e.threadIds);
       clearTimeout(timer);
       timer = setTimeout(() => void listStore.getState().refresh(), REFRESH_DEBOUNCE_MS);
     });

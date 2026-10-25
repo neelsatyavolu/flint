@@ -64,10 +64,12 @@ describe("ThreadSummary", () => {
     expect(aiRun).not.toHaveBeenCalled();
   });
 
-  it("streams a summary for long threads and collapses", async () => {
+  it("shows a summary for long threads only once it is whole, and collapses", async () => {
     render(<ThreadSummary threadId={7} messageCount={4} wordCount={100} />);
     await waitFor(() => expect(aiRun).toHaveBeenCalledWith({ kind: "summarize", threadId: 7 }));
-    emit({ type: "ai", chunk: { runId: "r1", type: "text", text: "They agreed on scope." } });
+    emit({ type: "ai", chunk: { runId: "r1", type: "text", text: "They agreed" } });
+    expect(screen.queryByText(/They agreed/)).toBeNull();
+    emit({ type: "ai", chunk: { runId: "r1", type: "done", text: "They agreed on scope." } });
     expect(await screen.findByText("They agreed on scope.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /summary/i }));
     expect(screen.queryByText("They agreed on scope.")).toBeNull();

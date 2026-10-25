@@ -1,40 +1,63 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pin, BellOff } from "lucide-react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Pin, BellOff, ChevronDown as CaretDown } from "lucide-react";
 import clsx from "clsx";
 import type { ThreadDetail } from "@flint/core";
 import { flint } from "../../lib/api";
 import { formatPresetTime } from "../../lib/time";
-import { Badge, Button, EmptyState, Skeleton, useToast } from "../../ui";
+import { Badge, Button, EmptyState, Menu, Skeleton, useToast } from "../../ui";
 import { useApp } from "../../state/AppContext";
 import { replyTarget } from "../../state/compose";
 import { quickRepliesEligible, quickRepliesKey } from "../../state/quickRepliesGate";
 import { listStore } from "../../state/listStore";
 import { useNav } from "../../state/nav";
+import { useThreadActions } from "../../state/useActions";
 import { useInlineReply } from "../../state/inlineReply";
 import type { InlineReplyCloseResult } from "../compose/inlineReplyTypes";
 import { scheduleMarkRead } from "../../state/readOnOpen";
 import { CATEGORY_TITLES } from "../../state/viewMeta";
-const InlineReplyDock = lazy(() => import("../compose/InlineReplyDock").then((m) => ({ default: m.InlineReplyDock })));
+const loadReplyDock = () => import("../compose/InlineReplyDock");
+const InlineReplyDock = lazy(() => loadReplyDock().then((m) => ({ default: m.InlineReplyDock })));
 import { QuickReplies } from "../ai/QuickReplies";
 import { ThreadSummary } from "../ai/ThreadSummary";
 import { DraftCard } from "./DraftCard";
+import { FrameGateContext, type FrameGate } from "./frameGate";
 import { MessageItem } from "./MessageItem";
-import { ReaderToolbar } from "./ReaderToolbar";
+import { ReaderToolbar, OUT_OF_INBOX } from "./ReaderToolbar";
+import { categoryMenuItems } from "./rowMenu";
 import { initialExpanded, wordCount } from "./quotedText";
 import { scrollTargetTop } from "./scrollTarget";
-import { useThread } from "./useThread";
+import { prefetchThread, useThread } from "./useThread";
 import styles from "./Reader.module.css";
 
-function ThreadHeader({ thread }: { thread: ThreadDetail }) {
+
+export function ThreadHeader({ thread }: { thread: ThreadDetail }) {
   const { accounts } = useApp();
   const toast = useToast();
+  const view = useNav((s) => s.view);
+  const { run } = useThreadActions();
   const account = accounts.find((a) => a.id === thread.accountId);
   const unsub = thread.messages.findLast((m) => m.unsubscribe);
   const chips = [
     thread.pinned ? <Badge key="pin"><Pin size={10} strokeWidth={1.5} style={{ marginRight: 4 }} />Pinned</Badge> : null,
     thread.muted ? <Badge key="mute"><BellOff size={10} strokeWidth={1.5} style={{ marginRight: 4 }} />Muted</Badge> : null,
     thread.snoozedUntil && thread.snoozedUntil > Date.now() ? <Badge key="snz" tone="accent">Snoozed until {formatPresetTime(thread.snoozedUntil)}</Badge> : null,
-    thread.category !== "people" ? <Badge key="cat">{CATEGORY_TITLES[thread.category]}</Badge> : null,
+    thread.category !== "people" ? (
+      OUT_OF_INBOX.has(view) ? (
+        <Badge key="cat">{CATEGORY_TITLES[thread.category]}</Badge>
+      ) : (
+        <Menu
+          key="cat"
+          items={categoryMenuItems(thread.category, (action) => void run(action, [thread.id]))}
+          placement="bottom-start"
+          trigger={
+            <button type="button" className={styles.categoryChip} aria-label={`Category: ${CATEGORY_TITLES[thread.category]}. Change category`}>
+              {CATEGORY_TITLES[thread.category]}
+              <CaretDown size={10} strokeWidth={1.5} aria-hidden />
+            </button>
+          }
+        />
+      )
+    ) : null,
     account && accounts.length > 1 ? (
       <Badge key="acct">
         <span className={styles.acctDot} style={{ background: account.color ?? "var(--fg-3)" }} aria-hidden />
@@ -64,9 +87,25 @@ function ThreadHeader({ thread }: { thread: ThreadDetail }) {
   );
 }
 
-function ThreadBody({ thread, refetch }: { thread: ThreadDetail; refetch: () => void }) {
+/** Longest the reader waits for mail frames to report their height before showing the thread anyway. */
+const REVEAL_TIMEOUT_MS = 700;
+const NOOP = () => undefined;
+
+type BodyProps = {
+  thread: ThreadDetail;
+  refetch: () => void;
+  /** Laid out but invisible and not scrolling, while the thread before it stays on screen. */
+  staged: boolean;
+  /** Still the previous thread while the open one loads: dimmed after a moment and not clickable. */
+  stale?: boolean;
+  /** Called once, when every mail frame has its height. The reader then swaps this thread in. */
+  onReady: (id: number) => void;
+};
+
+function ThreadBody({ thread, refetch, staged, stale, onReady }: BodyProps) {
   const { selfAddresses } = useApp();
   const [expanded, setExpanded] = useState(() => initialExpanded(thread.messages));
+  const stageRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const footRef = useRef<HTMLDivElement>(null);
@@ -77,6 +116,38 @@ function ThreadBody({ thread, refetch }: { thread: ThreadDetail; refetch: () => 
   const words = useMemo(() => thread.messages.reduce((n, m) => n + wordCount(m), 0), [thread.messages]);
   const request = useInlineReply((s) => s.request);
   const dockOpen = request !== null && request.threadId === thread.id;
+
+  // Hold the reveal until the frames in the first paint know their height.
+  const pending = useRef(0);
+  const announced = useRef(false);
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
+  const announce = useCallback(() => {
+    if (announced.current) return;
+    announced.current = true;
+    onReadyRef.current(thread.id);
+  }, [thread.id]);
+  const gate = useMemo<FrameGate>(
+    () => ({
+      begin: () => {
+        if (announced.current) return NOOP;
+        pending.current += 1;
+        let done = false;
+        return () => {
+          if (done) return;
+          done = true;
+          pending.current -= 1;
+          if (pending.current <= 0) announce();
+        };
+      },
+    }),
+    [announce],
+  );
+  useLayoutEffect(() => {
+    if (pending.current <= 0) announce();
+    const timer = setTimeout(announce, REVEAL_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [announce]);
 
   /** Puts the newest card fully in view, with the Ask clearance below it. */
   const showNewest = useCallback(() => {
@@ -93,36 +164,55 @@ function ThreadBody({ thread, refetch }: { thread: ThreadDetail; refetch: () => 
     scroller.scrollTop = scrollTargetTop({ cardTop: top, cardHeight: end - box.top, viewport: scroller.clientHeight, clearance });
   }, []);
 
-  // Open on the newest message. Mail frames size themselves after load, so follow the growth until the reader scrolls.
-  useEffect(() => {
+  // Open on the newest message. Content above it (the summary) and the frames inside the cards grow after first
+  // paint; a ResizeObserver re-applies the position before the next paint, so the view never visibly hops.
+  useLayoutEffect(() => {
+    if (staged) return;
+    const stage = stageRef.current;
+    const scroller = stage?.closest("[data-reader-scroll]");
+    if (!stage || !(scroller instanceof HTMLElement)) return;
+    userScrolled.current = false;
     showNewest();
-    const list = messagesRef.current;
-    const scroller = list?.closest("[data-reader-scroll]");
-    if (!list || !(scroller instanceof HTMLElement)) return;
     const stop = () => {
       userScrolled.current = true;
     };
     scroller.addEventListener("wheel", stop, { passive: true });
     scroller.addEventListener("touchmove", stop, { passive: true });
     scroller.addEventListener("keydown", stop);
-    // Content above (the summary) and frames inside the cards grow after first paint, so re-apply for a moment.
-    const poll = setInterval(() => !userScrolled.current && showNewest(), 100);
-    const timer = setTimeout(() => clearInterval(poll), 2500);
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => !userScrolled.current && showNewest());
+    ro?.observe(stage);
+    const timer = setTimeout(() => ro?.disconnect(), 3000);
     return () => {
       clearTimeout(timer);
-      clearInterval(poll);
+      ro?.disconnect();
       scroller.removeEventListener("wheel", stop);
       scroller.removeEventListener("touchmove", stop);
       scroller.removeEventListener("keydown", stop);
     };
-  }, [showNewest]);
+  }, [staged, showNewest]);
 
-  useEffect(() => {
-    if (!dockOpen) return;
+  // The reply is part of the thread, at its end. Opening it brings the whole dock to the bottom of the reader, and it
+  // stays in view as the editor grows.
+  useLayoutEffect(() => {
+    if (!dockOpen || staged) return;
+    const mount = dockRef.current;
+    const scroller = mount?.closest("[data-reader-scroll]");
+    if (!mount || !(scroller instanceof HTMLElement)) return;
     // The reply takes over the bottom of the reader; stop pulling the view back to the newest message.
     userScrolled.current = true;
-    dockRef.current?.scrollIntoView?.({ block: "nearest" });
-  }, [dockOpen, request?.nonce]);
+    mount.focus({ preventScroll: true });
+    const bottomAlign = () => {
+      scroller.scrollTop += mount.getBoundingClientRect().bottom - scroller.getBoundingClientRect().bottom;
+    };
+    const keepVisible = () => {
+      const over = mount.getBoundingClientRect().bottom - scroller.getBoundingClientRect().bottom;
+      if (over > 0) scroller.scrollTop += over;
+    };
+    bottomAlign();
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(keepVisible);
+    ro?.observe(mount);
+    return () => ro?.disconnect();
+  }, [dockOpen, request?.nonce, staged]);
 
   const toggle = useCallback((id: number) => {
     setExpanded((cur) => {
@@ -149,45 +239,90 @@ function ThreadBody({ thread, refetch }: { thread: ThreadDetail; refetch: () => 
   const quickReply = (seedText: string) => target && useInlineReply.getState().open({ threadId: thread.id, messageId: target.id, mode: "reply", seedText });
 
   return (
-    <>
-      <ThreadHeader thread={thread} />
-      <ThreadSummary threadId={thread.id} messageCount={thread.messages.length} wordCount={words} />
-      <div className={styles.messages} ref={messagesRef}>
-        {thread.messages.map((m) => (
-          <MessageItem key={m.id} message={m} expanded={expanded.has(m.id)} selfAddresses={selfAddresses} onToggle={toggle} onUpdated={refetch} now={now} />
-        ))}
-      </div>
-      {drafts.length ? (
-        <div className={styles.drafts}>
-          {drafts.map((id) => (
-            <DraftCard key={id} draftId={id} threadId={thread.id} messageId={target?.id ?? null} reloadKey={draftRev} onChanged={() => { setDraftRev((n) => n + 1); refetch(); }} />
+    <FrameGateContext.Provider value={gate}>
+      <div ref={stageRef} className={clsx(styles.stage, staged && styles.staged, stale && styles.stale)} aria-hidden={staged || undefined} inert={staged || stale || undefined}>
+        <ThreadHeader thread={thread} />
+        <ThreadSummary threadId={thread.id} messageCount={thread.messages.length} wordCount={words} />
+        <div className={styles.messages} ref={messagesRef}>
+          {thread.messages.map((m) => (
+            <MessageItem key={m.id} message={m} expanded={expanded.has(m.id)} selfAddresses={selfAddresses} onToggle={toggle} onUpdated={refetch} now={now} />
           ))}
         </div>
-      ) : null}
-      {target && !dockOpen && quickRepliesEligible(thread.category, thread.messages) ? (
-        <div className={styles.foot} ref={footRef}>
-          <QuickReplies threadId={thread.id} cacheKey={quickRepliesKey(thread.id, thread.messages)} onPick={quickReply} />
-        </div>
-      ) : null}
-      {dockOpen ? (
-        <div className={styles.dock} ref={dockRef} data-inline-reply-mount>
-          <Suspense fallback={null}><InlineReplyDock key={request.nonce} request={request} onClose={closeDock} /></Suspense>
-        </div>
-      ) : (
-        <div className={styles.askClearance} aria-hidden />
-      )}
-    </>
+        {drafts.length ? (
+          <div className={styles.drafts}>
+            {drafts.map((id) => (
+              <DraftCard key={id} draftId={id} threadId={thread.id} messageId={target?.id ?? null} reloadKey={draftRev} onChanged={() => { setDraftRev((n) => n + 1); refetch(); }} />
+            ))}
+          </div>
+        ) : null}
+        {target && !dockOpen && quickRepliesEligible(thread.category, thread.messages) ? (
+          <div className={styles.foot} ref={footRef}>
+            <QuickReplies threadId={thread.id} cacheKey={quickRepliesKey(thread.id, thread.messages)} onPick={quickReply} />
+          </div>
+        ) : null}
+        {dockOpen ? (
+          <div className={styles.dock} ref={dockRef} tabIndex={-1} data-inline-reply-mount>
+            <Suspense fallback={<div className={styles.dockLoading} aria-hidden />}><InlineReplyDock key={request.nonce} request={request} onClose={closeDock} /></Suspense>
+          </div>
+        ) : (
+          <div className={styles.askClearance} aria-hidden />
+        )}
+      </div>
+    </FrameGateContext.Provider>
   );
 }
 
+/** Same dimensions as a loaded thread's header and first card, so the real thing replaces it without moving. */
 function ReaderSkeleton() {
   return (
-    <div className={styles.threadHead} role="status" aria-label="Loading conversation">
-      <Skeleton width="60%" height={24} />
-      <div style={{ height: 16 }} />
-      <Skeleton width="90%" /><div style={{ height: 8 }} /><Skeleton width="80%" /><div style={{ height: 8 }} /><Skeleton width="45%" />
+    <div role="status" aria-label="Loading conversation">
+      <div className={styles.threadHead}>
+        <Skeleton width="60%" height={24} />
+      </div>
+      <div className={styles.messages}>
+        <div className={styles.skelCard}>
+          <div className={styles.skelHead}>
+            <Skeleton width={32} height={32} />
+            <Skeleton width="30%" />
+          </div>
+          <div className={styles.skelLines}>
+            <Skeleton width="90%" /><Skeleton width="80%" /><Skeleton width="45%" />
+          </div>
+        </div>
+      </div>
     </div>
   );
+}
+
+/** Warms the threads around the open one so j and k land on an already loaded conversation. */
+function usePrefetchNeighbors(openId: number | null, loaded: boolean) {
+  useEffect(() => {
+    if (openId === null || !loaded) return;
+    const items = listStore.getState().items;
+    const at = items.findIndex((i) => i.id === openId);
+    if (at < 0) return;
+    const order = [items[at + 1], items[at - 1], items[at + 2], items[at - 2]];
+    const timers = order.flatMap((item, n) => (item ? [setTimeout(() => prefetchThread(item.id), 80 + n * 120)] : []));
+    return () => timers.forEach(clearTimeout);
+  }, [openId, loaded]);
+}
+
+/** Loads a row's thread shortly after the pointer rests on it, so clicking it opens at once. */
+function useHoverPrefetch() {
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const over = (e: PointerEvent) => {
+      clearTimeout(timer);
+      const row = e.target instanceof Element ? e.target.closest("[data-thread-id]") : null;
+      const id = Number(row?.getAttribute("data-thread-id"));
+      if (row && Number.isFinite(id)) timer = setTimeout(() => prefetchThread(id), 60);
+    };
+    document.addEventListener("pointerover", over);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("pointerover", over);
+    };
+  }, []);
 }
 
 export function Reader() {
@@ -196,6 +331,29 @@ export function Reader() {
   const { thread, error, refetch } = useThread(openId);
   const full = settings.appearance.layout === "full";
   const mode = settings.inbox.markReadOnOpen;
+  // The thread on screen stays until the next one is laid out, so opening never flashes an empty or loading state.
+  const [shownId, setShownId] = useState<number | null>(null);
+  const shown = useRef<ThreadDetail | undefined>(undefined);
+  if (thread && thread.id === shownId) shown.current = thread;
+  const front = shownId !== null && shown.current?.id === shownId && openId !== null ? shown.current : undefined;
+  const staged = thread && thread.id !== front?.id ? thread : undefined;
+  const revealed = useCallback((id: number) => setShownId(id), []);
+  const bodies = [
+    front ? <ThreadBody key={front.id} thread={front.id === thread?.id ? thread : front} refetch={refetch} staged={false} stale={front.id !== openId} onReady={revealed} /> : <ReaderSkeleton key="loading" />,
+    staged ? <ThreadBody key={staged.id} thread={staged} refetch={refetch} staged onReady={revealed} /> : null,
+  ];
+  usePrefetchNeighbors(openId, thread !== undefined);
+  // Fetch the reply editor's code once a thread is open, so pressing r never waits on it.
+  useEffect(() => {
+    if (thread === undefined) return;
+    const t = setTimeout(() => void loadReplyDock().catch(() => undefined), 400);
+    return () => clearTimeout(t);
+  }, [thread === undefined]);
+  useHoverPrefetch();
+
+  useEffect(() => {
+    if (openId === null) setShownId(null);
+  }, [openId]);
 
   // A reply dock belongs to the thread it was opened in. Leaving that thread ends it, so coming back
   // opens the saved draft as a card instead of creating a second draft.
@@ -220,12 +378,10 @@ export function Reader() {
       <div className={styles.scroll} data-reader-scroll>
         {openId === null ? (
           <EmptyState />
-        ) : thread ? (
-          <ThreadBody key={thread.id} thread={thread} refetch={refetch} />
-        ) : error ? (
+        ) : error && !thread ? (
           <EmptyState title="Couldn't open this conversation" description="It may have moved or been deleted." action={<Button variant="ghost" onClick={refetch}>Try again</Button>} markSize={48} />
         ) : (
-          <ReaderSkeleton />
+          bodies
         )}
       </div>
     </section>

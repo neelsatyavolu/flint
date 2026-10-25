@@ -5,6 +5,7 @@ import type { MessageLocation, StoredMessage, StoredThreadMessage, ThreadRows } 
 import { parseUnsubscribe } from "./unsubscribe";
 import type { AccountsRepo } from "./accounts";
 import { lowerAddr } from "./mappers";
+import { NOT_QUEUED_DRAFT } from "./draftList";
 
 type MessageRow = {
   id: number; account_id: string; thread_id: number; folder_id: number; uid: number; gm_msgid: string | null; gm_thrid: string | null;
@@ -86,7 +87,7 @@ export class MessagesRepo {
       const m = rowToStored(r);
       return { ...m, isFromMe: m.from.some((a) => own.has(lowerAddr(a))), inSent: sentIds.has(m.id), attachments: byMsg.get(m.id) ?? [], unsubscribe: parseUnsubscribe(m.headers) };
     });
-    const draftIds = this.q.all<{ id: number }>("SELECT id FROM drafts WHERE thread_id = ? ORDER BY id", threadId).map((d) => d.id);
+    const draftIds = this.q.all<{ id: number }>(`SELECT id FROM drafts WHERE thread_id = ? AND ${NOT_QUEUED_DRAFT} ORDER BY id`, threadId).map((d) => d.id);
     return {
       id: t.id, accountId: t.account_id, subject: t.subject, category: asCategory(t.category) ?? "people",
       pinned: bool(t.pinned), muted: bool(t.muted), snoozedUntil: t.snoozed_until, resurfacedAt: t.resurfaced_at, messages, draftIds,

@@ -34,6 +34,17 @@ describe("Toast", () => {
     expect(undo).toHaveBeenCalledOnce();
   });
 
+  it("runs the secondary action instead of undo and dismisses", () => {
+    mount();
+    const undo = vi.fn();
+    const always = vi.fn();
+    act(() => void show({ message: "Moved to Notifications", action: { label: "Undo", onClick: undo }, secondaryAction: { label: "Always for Hotel", onClick: always } }));
+    fireEvent.click(screen.getByRole("button", { name: "Always for Hotel" }));
+    expect(always).toHaveBeenCalledOnce();
+    expect(undo).not.toHaveBeenCalled();
+    expect(screen.queryByText("Moved to Notifications")).toBeNull();
+  });
+
   it("honors a custom timeout and keeps timeout 0 toasts until dismissed", () => {
     mount();
     act(() => void show({ message: "Quick", timeout: 1000 }));

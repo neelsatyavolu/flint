@@ -102,8 +102,7 @@ export function useComposerSession(key: SessionKey, options: { trackMeta?: boole
   /** Switches the From address. Returns the signature the body should now carry (null = none). */
   const chooseFrom = useCallback(
     (option: FromOption): Signature | null => {
-      const mode = draft?.mode === "new" ? "new" : "reply";
-      const sig = defaultSignatureFor(signatures.data ?? [], option.accountId, mode, settings?.compose.defaultSignatureByAccount ?? {});
+      const sig = defaultSignatureFor(signatures.data ?? [], option.accountId, draft?.mode ?? "new", settings?.compose ?? { defaultSignatureByAccount: {} });
       patch({ from: option.address, accountId: option.accountId, signatureId: sig?.id ?? null });
       return sig;
     },

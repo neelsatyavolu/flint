@@ -10,6 +10,7 @@ import { safeFilename } from "../mail/sync/attachments";
 import { FlintError, type Account, type AddAccountInput, type AutoconfigResult, type Provider, type ServerConfig } from "../types";
 import { checkConnection, checkGoogleMailbox } from "./connectionCheck";
 import type { ServiceContext } from "./context";
+import { applyRememberedSparkDefaults } from "./importSpark";
 import { avatarStoreFor, fetchGoogleAccountPhoto } from "./avatars";
 
 const log = logger("service.accounts");
@@ -106,6 +107,7 @@ export function accountsApi(ctx: ServiceContext): AccountsApi {
         await saveCredentials(account.id, { password });
       } else {
         account = store.createAccount({ email: input.email, name: input.name, provider, authKind: "password", ...working });
+        applyRememberedSparkDefaults(ctx, account);
         await saveCredentials(account.id, { password });
       }
       await ctx.syncs.restart(account.id);
@@ -133,6 +135,7 @@ export function accountsApi(ctx: ServiceContext): AccountsApi {
           imapHost: gmail.imapHost, imapPort: gmail.imapPort, imapSecure: gmail.imapSecure,
           smtpHost: gmail.smtpHost, smtpPort: gmail.smtpPort, smtpSecure: gmail.smtpSecure,
         });
+        applyRememberedSparkDefaults(ctx, account);
         await saveCredentials(account.id, secret);
       }
       // Best effort: the picture is nice to have and must never fail a sign-in.

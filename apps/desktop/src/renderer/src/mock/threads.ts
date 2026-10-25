@@ -25,6 +25,11 @@ function participants(state: MockState, t: MThread): Address[] {
   return list;
 }
 
+/** A draft whose send is queued (undo window, scheduled) is no longer a draft to edit; the real service hides it the same way. */
+export function isQueuedDraft(state: MockState, draftId: number): boolean {
+  return state.scheduled.some((s) => s.draftId === draftId && (s.status === "pending" || s.status === "awaiting_approval" || s.status === "sending"));
+}
+
 export function toListItem(state: MockState, t: MThread): ThreadListItem {
   const lastSent = [...t.messages].reverse().find((m) => m.isFromMe);
   const lastMsg = t.messages.at(-1);
@@ -35,7 +40,7 @@ export function toListItem(state: MockState, t: MThread): ThreadListItem {
     snippet: lastMsg ? lastMsg.snippet : plainSnippet(stripHtml(draft?.html ?? "")),
     participants: participants(state, t), lastDate: lastDate(state, t), messageCount: Math.max(1, t.messages.length),
     unreadCount: unreadCount(t), hasAttachments: t.messages.some((m) => m.attachments.length > 0), pinned: t.pinned, muted: t.muted,
-    snoozedUntil: t.snoozedUntil, category: t.category, hasDraft: t.draftIds.length > 0, receipt: tracked?.summary ?? null,
+    snoozedUntil: t.snoozedUntil, category: t.category, hasDraft: t.draftIds.some((d) => !isQueuedDraft(state, d)), receipt: tracked?.summary ?? null,
   };
 }
 

@@ -82,12 +82,35 @@ export function describeEvent(e: KeyboardEvent, isMac: boolean): string {
   });
 }
 
+/** Containers inside which single-key shortcuts never fire, whatever element inside has focus. */
+const EDITABLE_SCOPES = [
+  "[data-inline-reply-mount]",
+  "[data-composer]",
+  '[contenteditable]:not([contenteditable="false"])',
+  ".ProseMirror",
+  '[role="dialog"]',
+  '[role="alertdialog"]',
+  '[role="menu"]',
+  '[role="listbox"]:not([aria-label="Conversations"])',
+  '[role="combobox"]',
+  '[role="textbox"]',
+  '[role="searchbox"]',
+].join(",");
+
 export function isEditableTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   if (!el || typeof el.tagName !== "string") return false;
   const tag = el.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
-  return el.isContentEditable === true || el.getAttribute?.("contenteditable") === "true";
+  if (el.isContentEditable === true || el.getAttribute?.("contenteditable") === "true") return true;
+  return typeof el.closest === "function" && el.closest(EDITABLE_SCOPES) !== null;
+}
+
+/** The event target, or the focused element when the event was dispatched on body/document. */
+function eventScopeTarget(event: KeyboardEvent): EventTarget | null {
+  if (isEditableTarget(event.target)) return event.target;
+  const active = typeof document !== "undefined" ? document.activeElement : null;
+  return active && active !== document.body ? active : event.target;
 }
 
 export function createShortcutRegistry(opts: { isMac?: boolean; now?: () => number } = {}): ShortcutRegistry {
@@ -113,7 +136,7 @@ export function createShortcutRegistry(opts: { isMac?: boolean; now?: () => numb
 
   function dispatch(event: KeyboardEvent): boolean {
     if (event.isComposing || MODIFIER_KEYS.has(event.key)) return false;
-    const editable = isEditableTarget(event.target);
+    const editable = isEditableTarget(eventScopeTarget(event));
     const d = describeEvent(event, isMac);
     const t = now();
     if (t - lastAt > SEQUENCE_TIMEOUT_MS) buffer = [];

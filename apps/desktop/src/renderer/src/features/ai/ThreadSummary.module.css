@@ -5,7 +5,9 @@
 .head button:hover { color: var(--fg-2); }
 .note { color: var(--fg-3); }
 .text { margin-top: 4px; color: var(--fg); }
+/* The last paragraph's bottom margin would add 8px beyond the height the placeholder reserved. */
+.text > div > :last-child { margin-bottom: 0 !important; }
 .caret { display: inline-block; width: 2px; height: 1em; margin-left: 2px; vertical-align: text-bottom; background: var(--accent); animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 .error { margin-top: 4px; color: var(--fg-3); display: flex; align-items: center; gap: var(--s-2); }
-.lines { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.lines { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }

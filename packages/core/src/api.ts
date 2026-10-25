@@ -1,6 +1,6 @@
 import type {
   AutoconfigResult,
-  Account, AccountId, AddAccountInput, AgentActivity, AgentSkillStatus, AiProvider, AiRun, AiStatus, AiTask, Contact,
+  Account, AccountId, AddAccountInput, Category, AgentActivity, AgentSkillStatus, AiProvider, AiRun, AiStatus, AiTask, Contact,
   DeepPartial, Draft, DraftInit, DraftPatch, FlintEvent, Folder, FolderId, HomeData, MessageRowId,
   MessageView, ReceiptDetail, Rule, ScheduledSend, SendResult, ServerConfig, Settings, SidebarData, AvatarRef,
   Signature, SyncStatus, Template, ThreadDetail, ThreadId, ThreadPage, ThreadQuery, LoadOlderResult, ServerSearchResult, TrackedMessage,
@@ -75,6 +75,12 @@ export interface FlintApi {
   snooze(threadIds: ThreadId[], until: number): Promise<{ undoToken: string }>;
   unsnooze(threadIds: ThreadId[]): Promise<{ undoToken: string }>;
   setMuted(threadIds: ThreadId[], muted: boolean): Promise<{ undoToken: string }>;
+  /**
+   * Files these threads under People, Notifications or Newsletters. The choice is the user's, so automatic categorizing
+   * never overrides it. With `sender: true` the senders are remembered (a rule) so their future mail lands there too,
+   * and their mail already in the inbox moves as well.
+   */
+  setCategory(threadIds: ThreadId[], category: Category, opts?: { sender?: boolean }): Promise<{ undoToken: string }>;
   undo(undoToken: string): Promise<void>;
   unsubscribe(messageId: MessageRowId): Promise<{ method: "one_click" | "mailto" | "browser" }>;
 
@@ -175,7 +181,7 @@ export const METHOD_TIERS: Record<FlintMethod, "read" | "modify" | "send" | "adm
   getSidebar: "read", getHome: "read", listThreads: "read", loadOlder: "read", searchServer: "read", getThread: "read", getMessage: "read",
   allowRemoteImages: "modify", listFolders: "read", saveAttachment: "read", openAttachment: "admin", suggestContacts: "read",
   markRead: "modify", setPinned: "modify", archive: "modify", trash: "modify", markSpam: "modify",
-  moveToFolder: "modify", moveToInbox: "modify", snooze: "modify", unsnooze: "modify", setMuted: "modify", undo: "modify",
+  moveToFolder: "modify", moveToInbox: "modify", snooze: "modify", unsnooze: "modify", setMuted: "modify", setCategory: "modify", undo: "modify",
   unsubscribe: "send",
   blockSender: "modify", unblockSender: "modify", listBlocked: "read",
   createDraft: "modify", getDraft: "read", updateDraft: "modify", deleteDraft: "modify", listDrafts: "read", openServerDraft: "modify",

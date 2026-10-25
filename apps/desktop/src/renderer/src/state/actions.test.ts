@@ -19,6 +19,7 @@ function setup(over: { view?: "inbox" | "pinned"; failWith?: Error; afterArchive
     unsnooze: vi.fn(async () => ({ undoToken: "u8" })),
     moveToFolder: vi.fn(async () => ({ undoToken: "u9" })),
     moveToInbox: vi.fn(async () => ({ undoToken: "u10" })),
+    setCategory: vi.fn(async () => ({ undoToken: "u11" })),
     undo: vi.fn(async () => undefined),
   };
   if (over.failWith) for (const k of Object.keys(api) as (keyof typeof api)[]) if (k !== "undo") api[k].mockRejectedValue(over.failWith);

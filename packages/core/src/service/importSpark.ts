@@ -6,6 +6,32 @@ import type { ServiceContext } from "./context";
 
 const PERMISSION_MESSAGE = "macOS blocked Flint from reading Spark's settings. Allow Flint under System Settings → Privacy & Security → App Management or Full Disk Access, then try again.";
 const kvKey = (sparkId: string) => `spark-signature:${sparkId}`;
+/** Spark's address-to-signature bindings from the last import, as {address: sparkId}, so accounts added later get theirs. */
+const BINDINGS_KEY = "spark-bindings";
+
+function readBindings(ctx: ServiceContext): Record<string, string> {
+  try {
+    const parsed = z.record(z.string(), z.string()).safeParse(JSON.parse(ctx.store.kvGet(BINDINGS_KEY) ?? "{}"));
+    return parsed.success ? parsed.data : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Gives a freshly added account the Spark default remembered for its address (or an alias), for new mail and replies.
+ * Does nothing when the account already has a choice or the signature is gone.
+ */
+export function applyRememberedSparkDefaults(ctx: ServiceContext, account: Account): void {
+  const settings = ctx.getSettings().compose;
+  if (account.id in settings.defaultSignatureByAccount || account.id in settings.defaultReplySignatureByAccount) return;
+  const bindings = readBindings(ctx);
+  const sparkId = [account.email, ...account.aliases].map((a) => bindings[a.toLowerCase()]).find((id) => id !== undefined);
+  if (!sparkId) return;
+  const id = Number(ctx.store.kvGet(kvKey(sparkId)));
+  if (!Number.isInteger(id) || id <= 0 || !ctx.store.getSignature(id)) return;
+  ctx.updateSettings({ compose: { defaultSignatureByAccount: { [account.id]: id }, defaultReplySignatureByAccount: { [account.id]: id } } });
+}
 
 const inputSchema = z.object({
   path: z.string().min(1).max(4096).optional(),
@@ -67,10 +93,11 @@ export function importSparkApi(ctx: ServiceContext): Pick<FlintApi, Methods> {
 
       const saved: Signature[] = [];
       const defaults: Record<string, number> = {};
+      const bindings = readBindings(ctx);
       for (const item of input.items) {
         const source = bySparkId.get(item.sparkId)!;
         const prior = existing(source.sparkId, source.html);
-        // Spark signatures aren't per account, so these stay shared; the per-account default lives in settings.
+        // Spark signatures aren't per account, so these stay shared; the per-account defaults live in settings.
         const sig = store.saveSignature({
           ...(prior ? { id: prior.id } : {}),
           name: item.name?.trim() || source.name,
@@ -81,9 +108,12 @@ export function importSparkApi(ctx: ServiceContext): Pick<FlintApi, Methods> {
         }, ctx.now());
         store.kvSet(kvKey(source.sparkId), String(sig.id));
         for (const accountId of item.setDefaultFor) defaults[accountId] = sig.id;
+        for (const address of source.accounts) bindings[address] = source.sparkId;
         saved.push(sig);
       }
-      if (Object.keys(defaults).length > 0) ctx.updateSettings({ compose: { defaultSignatureByAccount: defaults } });
+      store.kvSet(BINDINGS_KEY, JSON.stringify(bindings));
+      // Spark has one default per address, so it becomes the default for new mail and for replies.
+      if (Object.keys(defaults).length > 0) ctx.updateSettings({ compose: { defaultSignatureByAccount: defaults, defaultReplySignatureByAccount: defaults } });
       return saved;
     },
   };

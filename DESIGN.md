@@ -141,7 +141,7 @@ macOS window with `titleBarStyle: hiddenInset`. Traffic lights sit over the side
 
 ### Menus, popovers, toasts
 - `--plane-3`, 1px `--line-strong` border, 4px radius, no shadow. Menu items 28px with shortcut hints in Data at right.
-- Toasts bottom-centre: "Archived · Undo" with the action as a text button in `--accent`. 5s.
+- Toasts bottom-right, resting on top of the Ask field so they never cover the list or the field: "Archived · Undo" with the action as a text button in `--accent`. 5s.
 - Snooze / send-later pickers: list of presets (Later today, Tomorrow, This weekend, Next week, Pick date & time) with the resolved time in Data at right.
 
 ## 6. Icons

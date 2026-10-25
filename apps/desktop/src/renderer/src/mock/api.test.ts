@@ -282,6 +282,20 @@ describe("compose and send", () => {
     expect((await api.listDrafts()).some((d) => d.id === draft.id)).toBe(true);
   });
 
+  it("keeps a reply out of the thread's drafts while its send is queued, and restores it on undo", async () => {
+    vi.useFakeTimers({ now: NOW });
+    const api = make();
+    const page = await api.listThreads({ view: "inbox", limit: 20 });
+    const thread = await api.getThread(page.items.find((i) => i.messageCount > 0 && i.id > 0)!.id);
+    const target = thread.messages.findLast((m) => !m.isFromMe)!;
+    const draft = await api.createDraft({ mode: "reply", messageId: target.id, html: "<p>On it</p>" });
+    expect((await api.getThread(thread.id)).draftIds).toContain(draft.id);
+    const { scheduledId } = await api.sendDraft(draft.id);
+    expect((await api.getThread(thread.id)).draftIds).not.toContain(draft.id);
+    await api.cancelSend(scheduledId);
+    expect((await api.getThread(thread.id)).draftIds).toContain(draft.id);
+  });
+
   it("rejects sends with no recipients", async () => {
     const api = make();
     const draft = await api.createDraft({ mode: "new" });
@@ -417,5 +431,19 @@ describe("accounts and misc", () => {
     expect((await api.listThreads({ view: "folder", folderId: clients.id, limit: 100 })).items.some((i) => i.id === ids[2])).toBe(true);
     await api.moveToFolder([ids[2]!], folders.find((f) => f.role === "inbox")!.id);
     await expect(api.moveToFolder([ids[2]!], 99999)).rejects.toThrow();
+  });
+});
+
+describe("setCategory", () => {
+  it("moves a thread between categories, with the sender's other inbox mail, and undoes it", async () => {
+    const api = createMockApi({ now: Date.UTC(2026, 9, 25, 12), seed: 1 });
+    const news = await api.listThreads({ view: "inbox", category: "newsletters", limit: 50 });
+    const first = news.items[0]!;
+    const { undoToken } = await api.setCategory([first.id], "people", { sender: true });
+    const people = await api.listThreads({ view: "inbox", category: "people", limit: 200 });
+    expect(people.items.some((i) => i.id === first.id)).toBe(true);
+    await api.undo(undoToken);
+    const back = await api.listThreads({ view: "inbox", category: "newsletters", limit: 50 });
+    expect(back.items.some((i) => i.id === first.id)).toBe(true);
   });
 });

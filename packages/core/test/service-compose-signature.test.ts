@@ -34,4 +34,14 @@ describe("defaultSignature", () => {
     expect(defaultSignature(source, settings({ a: null }), "a", "new")).toBeNull();
     expect(defaultSignature(source, settings({ a: 99 }), "a", "new")?.id).toBe(2);
   });
+
+  it("reads replies from their own map, falling back to the new-mail choice", () => {
+    const both = (forNew: Record<string, number | null>, forReply: Record<string, number | null>) =>
+      ({ ...DEFAULT_SETTINGS, compose: { ...DEFAULT_SETTINGS.compose, defaultSignatureByAccount: forNew, defaultReplySignatureByAccount: forReply } });
+    expect(defaultSignature(source, both({ a: 1 }, { a: 3 }), "a", "reply")?.id).toBe(3);
+    expect(defaultSignature(source, both({ a: 1 }, { a: 3 }), "a", "new")?.id).toBe(1);
+    expect(defaultSignature(source, both({ a: 1 }, { a: null }), "a", "replyAll")).toBeNull();
+    expect(defaultSignature(source, both({ a: 1 }, { a: null }), "a", "new")?.id).toBe(1);
+    expect(defaultSignature(source, both({ a: 1 }, {}), "a", "reply")?.id).toBe(1);
+  });
 });

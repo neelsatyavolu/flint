@@ -22,7 +22,7 @@ describe("sidebar data", () => {
     const side = store.getSidebarData();
     expect(side.accounts.map((x) => [x.account.email, x.inboxUnread])).toEqual([["a@example.com", 2], ["b@gmail.com", 1]]);
     expect(side.accounts[0]!.folders.map((f) => f.path)).toContain("INBOX");
-    expect(side.counts).toEqual({ inbox: 3, pinned: 1, drafts: 2, snoozed: 1, scheduled: 1, awaitingApproval: 1, spam: 1 });
+    expect(side.counts).toEqual({ inbox: 3, pinned: 1, drafts: 1, snoozed: 1, scheduled: 1, awaitingApproval: 1, spam: 1 });
   });
 
   it("ignores disabled accounts in badge counts", () => {

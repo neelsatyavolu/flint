@@ -40,18 +40,31 @@ type SignatureSource = {
   listSignatures(): Signature[];
 };
 
+const isReply = (mode: ComposeMode): boolean => mode === "reply" || mode === "replyAll";
+
+/**
+ * What settings say about an account: a signature id, null for "none", undefined for "no choice yet".
+ * Replies read their own map first and fall back to the new-mail one (what a single default meant before the split).
+ */
+export function chosenSignatureId(settings: Settings, accountId: AccountId, mode: ComposeMode): number | null | undefined {
+  const { defaultSignatureByAccount: forNew, defaultReplySignatureByAccount: forReply } = settings.compose;
+  if (isReply(mode) && forReply && accountId in forReply) return forReply[accountId];
+  return forNew[accountId];
+}
+
 /**
  * The signature a new draft starts with. Settings win when they name one for the account (null = none),
  * otherwise the signature flagged as default for new mail or for replies, account-specific before shared.
+ * A choice that points at a deleted signature counts as no choice.
  */
 export function defaultSignature(source: SignatureSource, settings: Settings, accountId: AccountId, mode: ComposeMode): Signature | null {
-  const chosen = settings.compose.defaultSignatureByAccount[accountId];
+  const chosen = chosenSignatureId(settings, accountId, mode);
   if (chosen === null) return null;
   if (chosen !== undefined) {
     const sig = source.getSignature(chosen);
     if (sig) return sig;
   }
-  const flag = mode === "reply" || mode === "replyAll" ? "defaultReply" : "defaultNew";
+  const flag = isReply(mode) ? "defaultReply" : "defaultNew";
   const all = source.listSignatures().filter((s) => s[flag]);
   return all.find((s) => s.accountId === accountId) ?? all.find((s) => s.accountId === null) ?? null;
 }

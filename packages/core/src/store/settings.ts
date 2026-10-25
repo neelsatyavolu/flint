@@ -8,7 +8,7 @@ const log = logger("store.settings");
 export const DEFAULT_SETTINGS: Settings = {
   appearance: { layout: "split", theme: "system", avatars: "everywhere", senderLogos: true, senderPhotos: false, emailAppearance: "match", previewLines: 1, density: "comfortable", accountColors: true },
   inbox: { focused: true, sort: "newest", markReadOnOpen: "instant", afterArchive: "next", blockTrackers: true, remoteImages: "known_senders" },
-  compose: { undoSendSeconds: 10, defaultSignatureByAccount: {}, plainTextOnly: false },
+  compose: { undoSendSeconds: 10, defaultSignatureByAccount: {}, defaultReplySignatureByAccount: {}, plainTextOnly: false },
   receipts: { enabled: true, defaultOn: true, endpoint: "", notifyOnOpen: true },
   notifications: { enabled: true, scope: "people", sound: true, soundName: "default", preview: "sender_subject", badge: "unified_unread", disabledAccounts: [] },
   ai: { enabled: true, provider: null, model: null, autoSummarize: true, smartReplies: true, autoCategorize: false, writingStyle: "", replyLanguage: "" },
@@ -28,7 +28,8 @@ const sections = {
   }),
   compose: z.object({
     undoSendSeconds: z.union([z.literal(0), z.literal(5), z.literal(10), z.literal(20), z.literal(30)]),
-    defaultSignatureByAccount: z.record(z.string(), z.number().int().nullable()), plainTextOnly: z.boolean(),
+    defaultSignatureByAccount: z.record(z.string(), z.number().int().nullable()),
+    defaultReplySignatureByAccount: z.record(z.string(), z.number().int().nullable()), plainTextOnly: z.boolean(),
   }),
   receipts: z.object({ enabled: z.boolean(), defaultOn: z.boolean(), endpoint: z.string().max(500), notifyOnOpen: z.boolean() }),
   notifications: z.object({

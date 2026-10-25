@@ -1,6 +1,7 @@
 .view { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--plane-2); }
-.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 24px 48px; }
-.list { max-width: 760px; margin-inline: auto; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 48px; }
+/* Left-aligned under the pane title, like the mail list. */
+.list { max-width: 760px; }
 .row { display: flex; align-items: center; gap: 16px; min-height: 56px; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .subject { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

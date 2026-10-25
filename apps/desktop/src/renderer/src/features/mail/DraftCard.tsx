@@ -5,6 +5,7 @@ import { flint } from "../../lib/api";
 import { displayName } from "../../lib/format";
 import { Avatar, Button, useToast } from "../../ui";
 import { useInlineReply } from "../../state/inlineReply";
+import { useFrameGate } from "./frameGate";
 import styles from "./Message.module.css";
 
 /** Plain text of draft HTML for the card preview. Never injects the HTML itself. */
@@ -21,13 +22,28 @@ export function DraftCard({ draftId, threadId, messageId, reloadKey, onChanged }
   const toast = useToast();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
+  // The thread is not shown until this card knows its height, so it never pops in under a reader that is already visible.
+  const sized = useFrameGate();
 
   useEffect(() => {
     let live = true;
-    void flint.getDraft(draftId).then((d) => live && setDraft(d), () => live && setDraft(null));
+    void flint.getDraft(draftId).then(
+      (d) => {
+        if (!live) return;
+        setDraft(d);
+        sized();
+      },
+      () => {
+        if (!live) return;
+        setDraft(null);
+        sized();
+      },
+    );
     return () => {
       live = false;
     };
+    // sized is stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftId, reloadKey]);
 
   if (!draft) return null;

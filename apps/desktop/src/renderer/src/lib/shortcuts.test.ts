@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import { createShortcutRegistry, formatCombo, parseCombo } from "./shortcuts";
 
@@ -192,4 +193,55 @@ describe("formatCombo", () => {
     expect(formatCombo("Escape", true)).toBe("Esc");
   });
   it("renders words elsewhere", () => expect(formatCombo("mod+shift+z", false)).toBe("Ctrl+Shift+Z"));
+});
+
+describe("editable scopes", () => {
+  const fireOn = (el: Element, k: string) => {
+    const e = key(k);
+    Object.defineProperty(e, "target", { value: el });
+    return e;
+  };
+  const mount = (html: string) => {
+    document.body.innerHTML = html;
+    return document.body.querySelector("#t") as HTMLElement;
+  };
+
+  it("ignores single keys from anywhere inside the reply dock, dialogs, menus and popup listboxes", () => {
+    for (const html of [
+      '<div data-inline-reply-mount><button id="t">Send</button></div>',
+      '<div role="dialog"><button id="t">x</button></div>',
+      '<div role="menu"><div id="t" role="menuitem">x</div></div>',
+      '<div role="listbox" aria-label="Recipients"><div id="t">x</div></div>',
+      '<div class="ProseMirror"><p id="t">hi</p></div>',
+    ]) {
+      const { reg } = setup();
+      const fn = vi.fn();
+      reg.register("e", fn);
+      expect(reg.dispatch(fireOn(mount(html), "e"))).toBe(false);
+      expect(fn).not.toHaveBeenCalled();
+    }
+  });
+
+  it("still fires from the conversation list listbox and honors allowInInput", () => {
+    const { reg } = setup();
+    const fn = vi.fn();
+    const mod = vi.fn();
+    reg.register("e", fn);
+    reg.register("mod+k", mod, { allowInInput: true });
+    expect(reg.dispatch(fireOn(mount('<div role="listbox" aria-label="Conversations"><div id="t"></div></div>'), "e"))).toBe(true);
+    mount('<div role="dialog"><i id="t"></i></div>');
+    const k = key("k", { metaKey: true });
+    Object.defineProperty(k, "target", { value: document.getElementById("t") });
+    expect(reg.dispatch(k)).toBe(true);
+  });
+
+  it("uses the focused element when the event targets the body", () => {
+    document.body.innerHTML = '<div data-inline-reply-mount><input id="t" /></div>';
+    (document.getElementById("t") as HTMLElement).focus();
+    const { reg } = setup();
+    const fn = vi.fn();
+    reg.register("e", fn);
+    expect(reg.dispatch(fireOn(document.body, "e"))).toBe(false);
+    expect(fn).not.toHaveBeenCalled();
+  });
 });

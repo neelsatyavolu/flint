@@ -7,10 +7,11 @@ import { streamFakeAi, fakeAiText } from "./ai";
 import { approveSend, cancelSend, createDraft, deleteDraft, getDraft, sendDraft, updateDraft, type Ctx } from "./compose";
 import { ALL_CONTACTS } from "./people";
 import { mockAvatarApi } from "./avatars";
+import { mockCategoryApi } from "./categories";
 import { mockSparkApi } from "./spark";
 import { buildState } from "./seed";
 import { deepMerge, liveDrafts, nextId, type MThread, type MockState } from "./state";
-import { hiddenAccounts, matchesSearch, parseSearch, queryThreads, sortedOlder, unreadCount } from "./threads";
+import { hiddenAccounts, isQueuedDraft, matchesSearch, parseSearch, queryThreads, sortedOlder, unreadCount } from "./threads";
 
 export type MockOptions = { now?: number; seed?: number; latencyMs?: number };
 
@@ -208,7 +209,7 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
     async getThread(id): Promise<ThreadDetail> {
       await delay();
       const t = find(id);
-      return { id: t.id, accountId: t.accountId, subject: t.subject, category: t.category, pinned: t.pinned, muted: t.muted, snoozedUntil: t.snoozedUntil, messages: t.messages, draftIds: t.draftIds };
+      return { id: t.id, accountId: t.accountId, subject: t.subject, category: t.category, pinned: t.pinned, muted: t.muted, snoozedUntil: t.snoozedUntil, messages: t.messages, draftIds: t.draftIds.filter((d) => !isQueuedDraft(state, d)) };
     },
     async getMessage(id) { await delay(); return findMessage(id); },
     async allowRemoteImages(id, always) {
@@ -250,6 +251,7 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
     async snooze(ids, until) { return mutate(ids, (t) => ({ ...t, snoozedUntil: until })); },
     async unsnooze(ids) { return mutate(ids, (t) => ({ ...t, snoozedUntil: null, resurfacedAt: now() })); },
     async setMuted(ids, muted) { return mutate(ids, (t) => ({ ...t, muted })); },
+    ...mockCategoryApi({ state, mutate }),
     async undo(token) {
       const fn = undo.get(token);
       if (!fn) throw new FlintError("not_found", "Too late to undo that.");

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { cleanSignatureHtml, findSparkSettings, readSparkSignatures } from "./spark";
+import { cleanSignatureHtml, findSparkSettings, readSparkSignatures, styleWithoutFonts } from "./spark";
 
 const PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 
@@ -102,5 +102,15 @@ describe("findSparkSettings", () => {
     mkdirSync(store, { recursive: true });
     writeFileSync(join(store, "settings.sqlite"), "");
     expect(findSparkSettings(home)).toBe(join(store, "settings.sqlite"));
+  });
+});
+
+describe("styleWithoutFonts", () => {
+  it("removes typeface, size and line height and keeps everything else", () => {
+    expect(styleWithoutFonts("font-family: Arial, sans-serif; font-size:13px; line-height:1.4; color:#333; font-weight:bold")).toBe("color:#333;font-weight:bold");
+  });
+  it("reduces the font shorthand to its weight and style", () => {
+    expect(styleWithoutFonts("font: italic bold 12px/1.2 Helvetica")).toBe("font-weight:bold;font-style:italic");
+    expect(styleWithoutFonts("font: 12px Helvetica")).toBe("");
   });
 });

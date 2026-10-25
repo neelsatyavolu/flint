@@ -51,3 +51,15 @@ export async function move(ctx: Ctx, idRaw: string, folder: string): Promise<voi
   const r = await ctx.client.moveToFolder([id], hit.id);
   emit(ctx, { ...r, threadIds: [id], folder: hit.name }, () => withUndo(`Moved thread ${id} to ${hit.name}.`, r.undoToken));
 }
+
+const CATEGORIES = ["people", "notifications", "newsletters"] as const;
+
+/** flint categorize <threadId> <people|notifications|newsletters> [--sender] */
+export async function categorize(ctx: Ctx, idRaw: string, categoryRaw: string, opts: { sender?: boolean }): Promise<void> {
+  const id = parseId(idRaw);
+  const category = CATEGORIES.find((c) => c === categoryRaw.toLowerCase());
+  if (!category) throw new FlintError("invalid", `Category must be one of: ${CATEGORIES.join(", ")}.`);
+  const r = await ctx.client.setCategory([id], category, opts.sender ? { sender: true } : undefined);
+  const tail = opts.sender ? " Mail from the same sender goes there from now on." : "";
+  emit(ctx, { ...r, threadIds: [id], category }, () => withUndo(`Moved thread ${id} to ${category}.${tail}`, r.undoToken));
+}

@@ -10,10 +10,11 @@ import { replyTarget } from "../../state/compose";
 import { useInlineReply } from "../../state/inlineReply";
 import type { InlineReplyMode } from "../compose/inlineReplyTypes";
 import { openMovePicker, openSnooze } from "./mailCommands";
+import { categoryMenuItems } from "./rowMenu";
 import styles from "./Reader.module.css";
 
 const ICON = { size: 18, strokeWidth: 1.5 } as const;
-const OUT_OF_INBOX = new Set(["archive", "trash", "spam", "blocked", "folder"]);
+export const OUT_OF_INBOX = new Set(["archive", "trash", "spam", "blocked", "folder"]);
 
 export function ReaderToolbar({ thread }: { thread: ThreadDetail | undefined }) {
   const { settings } = useApp();
@@ -30,6 +31,7 @@ export function ReaderToolbar({ thread }: { thread: ThreadDetail | undefined }) 
 
   const moreItems: MenuItem[] = thread
     ? [
+        ...(OUT_OF_INBOX.has(view) ? [] : [...categoryMenuItems(thread.category, (action) => void run(action, ids)), { type: "separator", id: "sep-cat" } as MenuItem]),
         { id: "mute", label: thread.muted ? "Unmute" : "Mute", shortcut: "m", onSelect: () => void run({ type: "mute", muted: !thread.muted }, ids) },
         { id: "spam", label: "Mark as spam", shortcut: "!", onSelect: () => void run({ type: "spam", spam: true }, ids) },
         ...(sender

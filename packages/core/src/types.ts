@@ -395,7 +395,10 @@ export type Settings = {
   };
   compose: {
     undoSendSeconds: 0 | 5 | 10 | 20 | 30;
+    /** Signature new mail and forwards start with, per account. A number picks it, null means none, a missing key means "use the signature flagged as default". */
     defaultSignatureByAccount: Record<AccountId, number | null>;
+    /** Same, for replies. */
+    defaultReplySignatureByAccount: Record<AccountId, number | null>;
     plainTextOnly: boolean;
   };
   receipts: {

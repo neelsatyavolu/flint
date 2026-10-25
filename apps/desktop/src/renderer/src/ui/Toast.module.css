@@ -1,12 +1,13 @@
 .viewport {
+  /* Bottom-right, resting on top of the Ask field, so it never covers the thread list, the quick replies or the field itself. */
   position: fixed;
-  left: 50%;
-  bottom: var(--s-6);
-  transform: translateX(-50%);
+  right: var(--s-4);
+  bottom: max(var(--s-4), var(--ask-clearance, 0px));
+  max-width: calc(100vw - 2 * var(--s-4));
   z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--s-2);
   pointer-events: none;
 }

@@ -91,6 +91,7 @@ export function summarize(method: FlintMethod, params: readonly unknown[], resul
     case "snooze": return `Snoozed ${threads(n)} until ${when(params[1])}`.trim();
     case "unsnooze": return `Unsnoozed ${threads(n)}`;
     case "setMuted": return `${params[1] === false ? "Unmuted" : "Muted"} ${threads(n)}`;
+    case "setCategory": return `Moved ${threads(n)} to ${String(params[1])}`;
     case "undo": return "Undid an action";
     case "unsubscribe": return `Unsubscribed from a sender${isObj(result) && str(result.method) ? ` (${String(result.method)})` : ""}`;
     case "blockSender": return `Blocked sender ${clip(String(p0))}`;

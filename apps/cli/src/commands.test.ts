@@ -201,6 +201,15 @@ describe("actions", () => {
     expect(r.out).toBe("Snoozed thread 5 until 2026-10-26 08:00. Undo: flint undo u\n");
     expect((await exec(["snooze", "5", "yesterday"], f)).code).toBe(1);
   });
+  it("categorizes a thread, optionally for the sender", async () => {
+    const f = fakeClient({ setCategory: { undoToken: "u" } });
+    expect((await exec(["categorize", "7", "Notifications"], f)).out).toBe("Moved thread 7 to notifications. Undo: flint undo u\n");
+    expect(f.calls.at(-1)).toEqual({ method: "setCategory", params: [[7], "notifications", undefined] });
+    await exec(["categorize", "7", "people", "--sender"], f);
+    expect(f.calls.at(-1)).toEqual({ method: "setCategory", params: [[7], "people", { sender: true }] });
+    expect((await exec(["categorize", "7", "spam"], f)).err).toMatch(/Category must be one of/);
+  });
+
   it("moves to a folder, by name or inbox", async () => {
     const f = fakeClient({ getThread: thread, listFolders: [{ id: 4, name: "Receipts", path: "Receipts", role: null }, { id: 5, name: "Archive", path: "A", role: "archive" }], moveToFolder: { undoToken: "u" }, moveToInbox: { undoToken: "u" } });
     expect((await exec(["move", "7", "receipts"], f)).out).toBe("Moved thread 7 to Receipts. Undo: flint undo u\n");

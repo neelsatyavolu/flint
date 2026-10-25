@@ -65,3 +65,12 @@
 @keyframes pulse { 50% { opacity: 0.2; } }
 @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
 .back { margin-bottom: var(--s-3); }
+
+.defaults { margin: var(--s-4) 0; }
+.defaultRow { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; padding: var(--s-3) 0; border-bottom: 1px solid var(--line); }
+.defaultPick { display: flex; flex-direction: column; gap: 4px; width: 220px; }
+.defaultPick > span:last-child, .defaultPick select { width: 100%; }
+
+.linkButton { all: unset; color: var(--accent); cursor: default; border-radius: var(--r-control); }
+.linkButton:hover { text-decoration: underline; }
+.linkButton:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }

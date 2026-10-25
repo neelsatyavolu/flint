@@ -5,6 +5,7 @@ import { MessageItem, hasSingleRecipient } from "./MessageItem";
 import { Reader } from "./Reader";
 import { navStore } from "../../state/nav";
 import { DraftCard, draftPreviewText } from "./DraftCard";
+import { FrameGateContext } from "./frameGate";
 import { ToastProvider } from "../../ui";
 import { AppContext, type AppData } from "../../state/AppContext";
 import { defaultSettings } from "../../mock/fixtures";
@@ -74,6 +75,33 @@ describe("DraftCard", () => {
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Delete" })); });
     expect(del).toHaveBeenCalledWith(5);
     expect(changed).toHaveBeenCalled();
+  });
+  it("holds the thread's reveal until the draft has loaded, then lets it go", async () => {
+    let resolve: (d: Draft) => void = () => undefined;
+    vi.mocked(flint.getDraft).mockReturnValue(new Promise<Draft>((r) => (resolve = r)));
+    const ended = vi.fn();
+    const begin = vi.fn(() => ended);
+    wrap(
+      <FrameGateContext.Provider value={{ begin }}>
+        <DraftCard draftId={5} threadId={3} messageId={7} reloadKey={0} onChanged={vi.fn()} />
+      </FrameGateContext.Provider>,
+    );
+    expect(begin).toHaveBeenCalledTimes(1);
+    expect(ended).not.toHaveBeenCalled();
+    await act(async () => resolve(draft));
+    expect(ended).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("DRAFT")).toBeTruthy();
+  });
+  it("lets the reveal go when the draft cannot be loaded", async () => {
+    vi.mocked(flint.getDraft).mockRejectedValue(new Error("gone"));
+    const ended = vi.fn();
+    wrap(
+      <FrameGateContext.Provider value={{ begin: () => ended }}>
+        <DraftCard draftId={5} threadId={3} messageId={7} reloadKey={0} onChanged={vi.fn()} />
+      </FrameGateContext.Provider>,
+    );
+    await waitFor(() => expect(ended).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText("DRAFT")).toBeNull();
   });
   it("turns draft HTML into plain preview text", () => {
     expect(draftPreviewText("<p>One</p><p>Two<br>three</p>")).toBe("One\nTwo\nthree");

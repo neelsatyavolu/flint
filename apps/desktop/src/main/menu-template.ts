@@ -13,7 +13,13 @@ export function buildMenuTemplate(opts: { isMac: boolean; isDev: boolean; send: 
     label,
     ...(accelerator ? { accelerator } : {}),
     ...(display ? { registerAccelerator: false } : {}),
-    click: () => send(action),
+    // macOS ignores registerAccelerator and still fires single-key items (E, R, #) on a plain keypress the page
+    // didn't consume, such as typing in the reply editor. The renderer's own shortcuts handle these keys and skip
+    // text fields, so a display-only item acts only on a real menu click.
+    click: (_item, _window, event) => {
+      if (display && event?.triggeredByAccelerator) return;
+      send(action);
+    },
   });
 
   const appMenu: MenuItemConstructorOptions = {

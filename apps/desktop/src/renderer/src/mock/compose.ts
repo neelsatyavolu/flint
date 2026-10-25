@@ -1,5 +1,6 @@
 import { FlintError } from "@flint/core/types";
 import type { Address, Draft, DraftInit, DraftPatch, FlintEvent, MessageView, ScheduledSend, SendResult } from "@flint/core";
+import { defaultSignatureFor } from "../features/compose/signature";
 import { quoteBlock } from "./bodies";
 import { registerTracked } from "./seed";
 import { nextId, plainSnippet, stripHtml, type MThread, type MockState } from "./state";
@@ -24,8 +25,7 @@ function findMessage(state: MockState, id: number): { thread: MThread; message: 
 }
 
 const signatureBlock = (ctx: Ctx, accountId: string, mode: "new" | "reply"): { html: string; id: number | null } => {
-  const id = ctx.state.settings.compose.defaultSignatureByAccount[accountId] ?? null;
-  const sig = ctx.state.signatures.find((s) => s.id === id && (mode === "new" ? s.defaultNew : s.defaultReply));
+  const sig = defaultSignatureFor(ctx.state.signatures, accountId, mode, ctx.state.settings.compose);
   return sig ? { id: sig.id, html: `<div class="flint-signature" data-signature-id="${sig.id}">${sig.html}</div>` } : { id: null, html: "" };
 };
 

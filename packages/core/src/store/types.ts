@@ -156,7 +156,9 @@ export type ThreadSnapshot = {
     muted: boolean;
     snoozedUntil: number | null;
     resurfacedAt: number | null;
-    messages: { id: MessageRowId; folderId: FolderId; uid: number; seen: boolean; flagged: boolean; answered: boolean; memberFolderIds: FolderId[] }[];
+    messages: { id: MessageRowId; folderId: FolderId; uid: number; seen: boolean; flagged: boolean; answered: boolean; memberFolderIds: FolderId[];
+      /** Category and who set it, so undoing a category change can put both back (absent in snapshots that predate it). */
+      category?: string | null; categorySource?: string | null }[];
   }[];
 };
 

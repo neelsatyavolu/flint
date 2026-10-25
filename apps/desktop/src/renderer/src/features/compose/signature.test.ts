@@ -5,13 +5,26 @@ import { defaultSignatureFor, isBodyEmpty, signaturesForAccount, swapSignatureHt
 const sig = (id: number, o: Partial<Signature> = {}): Signature => ({ id, name: `S${id}`, html: `<b>sig${id}</b>`, accountId: null, defaultNew: true, defaultReply: false, ...o });
 
 describe("defaultSignatureFor", () => {
-  const sigs = [sig(1), sig(2, { defaultNew: false, defaultReply: true })];
-  it("respects the per-account default and the new/reply flags", () => {
-    expect(defaultSignatureFor(sigs, "a", "new", { a: 1 })?.id).toBe(1);
-    expect(defaultSignatureFor(sigs, "a", "reply", { a: 1 })).toBeNull();
-    expect(defaultSignatureFor(sigs, "a", "reply", { a: 2 })?.id).toBe(2);
-    expect(defaultSignatureFor(sigs, "b", "new", { a: 1 })).toBeNull();
-    expect(defaultSignatureFor(sigs, "a", "new", { a: null })).toBeNull();
+  const sigs = [sig(1, { accountId: "a" }), sig(2, { defaultNew: false, defaultReply: true })];
+  const forNew = (m: Record<string, number | null>, r: Record<string, number | null> = {}) => ({ defaultSignatureByAccount: m, defaultReplySignatureByAccount: r });
+  it("uses the settings choice even when the signature carries no default flag", () => {
+    expect(defaultSignatureFor(sigs, "a", "new", forNew({ a: 2 }))?.id).toBe(2);
+    expect(defaultSignatureFor(sigs, "a", "forward", forNew({ a: 2 }))?.id).toBe(2);
+  });
+  it("reads replies from their own map, then from the new-mail choice", () => {
+    expect(defaultSignatureFor(sigs, "a", "reply", forNew({ a: 1 }, { a: 2 }))?.id).toBe(2);
+    expect(defaultSignatureFor(sigs, "a", "replyAll", forNew({ a: 1 }))?.id).toBe(1);
+    expect(defaultSignatureFor(sigs, "a", "reply", forNew({ a: 1 }, { a: null }))).toBeNull();
+    expect(defaultSignatureFor(sigs, "a", "new", forNew({ a: 1 }, { a: null }))?.id).toBe(1);
+  });
+  it("treats null as an explicit none", () => {
+    expect(defaultSignatureFor(sigs, "a", "new", forNew({ a: null }))).toBeNull();
+  });
+  it("falls back to the flagged signature when there is no choice or it points at a deleted one", () => {
+    expect(defaultSignatureFor(sigs, "a", "new", forNew({}))?.id).toBe(1);
+    expect(defaultSignatureFor(sigs, "a", "new", forNew({ a: 99 }))?.id).toBe(1);
+    expect(defaultSignatureFor(sigs, "b", "reply", forNew({}))?.id).toBe(2);
+    expect(defaultSignatureFor([sig(3, { defaultNew: false })], "a", "new", forNew({}))).toBeNull();
   });
   it("lists shared and account-specific signatures", () => {
     const list = signaturesForAccount([sig(1), sig(2, { accountId: "a" }), sig(3, { accountId: "b" })], "a");

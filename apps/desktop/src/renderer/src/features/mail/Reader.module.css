@@ -3,15 +3,29 @@
 .full .toolbar { padding-left: max(12px, var(--lights-inset, 0px)); }
 .cluster { display: flex; align-items: center; gap: 2px; }
 .grow { flex: 1; }
-.scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; position: relative; }
+.stage { min-width: 0; }
+/* The next thread is laid out here, out of sight, until its mail frames have their height; the one before it stays on screen meanwhile. */
+.staged { position: absolute; top: 0; left: 0; right: 0; visibility: hidden; pointer-events: none; }
+/* Only if loading takes a moment does the old thread dim, so quick opens never flicker. */
+.stale { animation: stale 140ms var(--ease, ease) 350ms both; }
+@keyframes stale { to { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { .stale { animation: none; } }
+.skelCard { padding: 16px 20px 12px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--plane-3); }
+.skelHead { display: flex; align-items: center; gap: 12px; }
+.skelLines { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
 .threadHead { padding: 24px 24px 16px; }
 .subject { overflow-wrap: anywhere; }
 .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
+.categoryChip { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 6px; border-radius: var(--r-control); background: var(--active); color: var(--fg-2); font: 400 var(--text-data) / 1 var(--font-mono); cursor: default; white-space: nowrap; }
+.categoryChip:hover { background: var(--hover); color: var(--fg); }
+.categoryChip:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .acctDot { width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; flex: none; }
 .messages { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
 .drafts { display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 0; }
-/* The inline reply docks to the bottom of the reader while the thread scrolls behind it, like Spark. */
-.dock { position: sticky; bottom: 0; z-index: 2; padding: 12px 16px 16px; background: var(--plane-2); max-height: 72vh; overflow-y: auto; }
-.foot { display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 0; }
+/* The inline reply is the last thing in the thread. Opening it scrolls it to the bottom of the reader. */
+.dock { padding: 12px 16px 16px; max-height: 72vh; overflow-y: auto; outline: none; }
+.foot { display: flex; flex-direction: column; gap: 12px; min-height: 40px; padding: 12px 16px 0; }
 /* Room for the floating "Ask anything" field (16px gap + 40px field + 16px), so it never covers the end of a message or the inline reply. */
+.dockLoading { min-height: var(--reply-dock-h, 300px); }
 .askClearance { flex: none; height: var(--ask-clearance, 72px); }

@@ -5,6 +5,7 @@ import type { MessageView } from "@flint/core";
 import { flint } from "../../lib/api";
 import { Button, MailFrame, Skeleton, useToast } from "../../ui";
 import { useResolvedTheme } from "../../lib/theme";
+import { useFrameGate } from "./frameGate";
 import { useMailAppearance } from "./mailAppearance";
 import { splitQuoted, splitQuotedHtml } from "./quotedText";
 import styles from "./Message.module.css";
@@ -37,6 +38,7 @@ function QuotePill({ open, onClick }: { open: boolean; onClick: () => void }) {
 function HtmlBody({ html, subject, allowed, title, sheet }: { html: string; subject: string; allowed: boolean; title: string; sheet: "theme" | "light-sheet" }) {
   const [showQuoted, setShowQuoted] = useState(false);
   const { body, quoted } = useMemo(() => splitQuotedHtml(html, subject), [html, subject]);
+  const ready = useFrameGate();
   const cls = styles.sheet;
   // Themed mail sits flush with the avatar and header. The light sheet keeps its inset only on a dark card; on the
   // light theme the card is already white, so an inset would just indent the text.
@@ -44,7 +46,7 @@ function HtmlBody({ html, subject, allowed, title, sheet }: { html: string; subj
   const flush = sheet === "theme" || theme === "light" ? 0 : undefined;
   return (
     <>
-      <div className={cls}><MailFrame html={body} allowRemoteImages={allowed} sheet={sheet} padding={flush} title={title} /></div>
+      <div className={cls}><MailFrame html={body} allowRemoteImages={allowed} sheet={sheet} padding={flush} title={title} onReady={ready} /></div>
       {quoted !== null ? (
         <>
           <QuotePill open={showQuoted} onClick={() => setShowQuoted((s) => !s)} />

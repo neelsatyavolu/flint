@@ -63,6 +63,30 @@ const bindings = z.record(z.string(), z.string());
 const APPLE_EPOCH_OFFSET_S = 978_307_200;
 const fromAppleTime = (s: number | undefined): number => (s === undefined ? 0 : Math.round((s + APPLE_EPOCH_OFFSET_S) * 1000));
 
+const DROPPED_STYLES = new Set(["font-family", "font-size", "font-size-adjust", "font-stretch", "line-height"]);
+
+/**
+ * A style attribute without the typeface: font-family, font-size and line-height go, bold, italic, color,
+ * spacing and layout stay. The `font` shorthand is reduced to the weight and style it carried.
+ */
+export function styleWithoutFonts(style: string): string {
+  const kept: string[] = [];
+  for (const decl of style.split(";")) {
+    const at = decl.indexOf(":");
+    if (at < 0) continue;
+    const prop = decl.slice(0, at).trim().toLowerCase();
+    const value = decl.slice(at + 1).trim();
+    if (!prop || !value || DROPPED_STYLES.has(prop)) continue;
+    if (prop === "font") {
+      if (/\b(bold|bolder|[6-9]00)\b/i.test(value)) kept.push("font-weight:bold");
+      if (/\b(italic|oblique)\b/i.test(value)) kept.push("font-style:italic");
+      continue;
+    }
+    kept.push(`${prop}:${value}`);
+  }
+  return kept.join(";");
+}
+
 /** Signature-safe HTML: formatting, links and embedded or https images only. A "--" divider is kept as written. */
 export function cleanSignatureHtml(html: string): string {
   return sanitizeHtml(html, {
@@ -71,13 +95,25 @@ export function cleanSignatureHtml(html: string): string {
       a: ["href", "title", "target", "rel"],
       img: ["src", "alt", "width", "height", "style"],
       "*": ["style", "align", "color", "width"],
-      font: ["face", "size", "color"],
+      font: ["color"],
     },
     allowedSchemes: ["http", "https", "mailto", "tel"],
     allowedSchemesByTag: { img: ["https", "data"] },
     allowedSchemesAppliedToAttributes: ["href", "src"],
     allowProtocolRelative: false,
-    transformTags: { a: sanitizeHtml.simpleTransform("a", { target: "_blank", rel: "noopener" }) },
+    // Spark's typefaces would clash with the one Flint composes in, so they are dropped here.
+    transformTags: {
+      "*": (tagName, attribs) => {
+        const next = { ...attribs };
+        if (next.style !== undefined) {
+          const style = styleWithoutFonts(next.style);
+          if (style) next.style = style;
+          else delete next.style;
+        }
+        if (tagName === "a") Object.assign(next, { target: "_blank", rel: "noopener" });
+        return { tagName, attribs: next };
+      },
+    },
   }).trim();
 }
 

@@ -98,6 +98,19 @@ describe("menu template", () => {
     expect(view(true)).toEqual(expect.arrayContaining(["reload", "toggleDevTools"]));
     expect(labels(buildMenuTemplate({ isMac: false, isDev: false, send: vi.fn() }))[0]).toBe("File");
   });
+  it("ignores the keystroke path for single-key items but runs them from a menu click", () => {
+    const send = vi.fn();
+    const message = buildMenuTemplate({ isMac: true, isDev: false, send })[4]?.submenu as { label?: string; click?: (...a: unknown[]) => void }[];
+    const archive = message.find((i) => i.label === "Archive")!;
+    archive.click?.({}, undefined, { triggeredByAccelerator: true });
+    expect(send).not.toHaveBeenCalled();
+    archive.click?.({}, undefined, { triggeredByAccelerator: false });
+    expect(send).toHaveBeenCalledWith("archive");
+    const reply = message.find((i) => i.label === "Reply All")!;
+    reply.click?.({}, undefined, { triggeredByAccelerator: true });
+    expect(send).toHaveBeenCalledTimes(2);
+  });
+
   it("shows Check for Updates only when the updater runs", () => {
     const appItems = (checkForUpdates?: () => void) => buildMenuTemplate({ isMac: true, isDev: false, send: vi.fn(), checkForUpdates })[0]?.submenu as { label?: string; click?: () => void }[];
     expect(appItems().some((i) => i.label === "Check for Updates...")).toBe(false);

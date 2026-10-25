@@ -7,7 +7,7 @@ import { recomputeThreads } from "./rollup";
 import { bool, chunks, Sql } from "./sql";
 import type { ActionResult, MoveTarget, ThreadSnapshot } from "./types";
 
-type MsgState = { id: number; thread_id: number; account_id: string; seen: number; flagged: number; draft: number; folder_id: number; uid: number; answered: number };
+type MsgState = { id: number; thread_id: number; account_id: string; seen: number; flagged: number; draft: number; folder_id: number; uid: number; answered: number; category: string | null; category_source: string | null };
 
 /** Local (optimistic) thread state changes. Each returns an undo snapshot and the locations of messages the mail engine must update on the server. */
 export class ThreadActionsRepo {
@@ -19,14 +19,14 @@ export class ThreadActionsRepo {
     for (const part of chunks(threadIds)) {
       const marks = Sql.marks(part.length);
       const rows = this.q.all<{ id: number; pinned: number; muted: number; snoozed_until: number | null; resurfaced_at: number | null }>(`SELECT id, pinned, muted, snoozed_until, resurfaced_at FROM threads WHERE id IN (${marks})`, ...part);
-      const msgs = this.q.all<MsgState>(`SELECT id, thread_id, account_id, seen, flagged, answered, draft, folder_id, uid FROM messages WHERE thread_id IN (${marks}) ORDER BY id`, ...part);
+      const msgs = this.q.all<MsgState>(`SELECT id, thread_id, account_id, seen, flagged, answered, draft, folder_id, uid, category, category_source FROM messages WHERE thread_id IN (${marks}) ORDER BY id`, ...part);
       const members = this.#members(msgs.map((m) => m.id));
       for (const t of rows) {
         threads.push({
           id: t.id, pinned: bool(t.pinned), muted: bool(t.muted), snoozedUntil: t.snoozed_until, resurfacedAt: t.resurfaced_at,
           messages: msgs.filter((m) => m.thread_id === t.id).map((m) => ({
             id: m.id, folderId: m.folder_id, uid: m.uid, seen: bool(m.seen), flagged: bool(m.flagged), answered: bool(m.answered),
-            memberFolderIds: members.get(m.id) ?? [],
+            memberFolderIds: members.get(m.id) ?? [], category: m.category, categorySource: m.category_source,
           })),
         });
       }
@@ -47,11 +47,13 @@ export class ThreadActionsRepo {
         for (const m of t.messages) {
           if (!this.q.get("SELECT 1 FROM messages WHERE id = ?", m.id)) continue;
           this.q.run("UPDATE messages SET seen = ?, flagged = ?, answered = ? WHERE id = ?", m.seen, m.flagged, m.answered, m.id);
+          if (m.category !== undefined) this.q.run("UPDATE messages SET category = ?, category_source = ? WHERE id = ?", m.category, m.categorySource ?? null, m.id);
           this.q.run("DELETE FROM message_folders WHERE message_id = ?", m.id);
           for (const f of m.memberFolderIds) this.q.run("INSERT OR IGNORE INTO message_folders (message_id, folder_id) SELECT ?, id FROM folders WHERE id = ?", m.id, f);
         }
         restored.push(t.id);
       }
+      recomputeThreads(this.q, restored);
       return restored;
     });
   }
@@ -195,7 +197,7 @@ export class ThreadActionsRepo {
       const snapshot = this.snapshotThreads(ids);
       const msgs: MsgState[] = [];
       for (const part of chunks(ids)) {
-        msgs.push(...this.q.all<MsgState>(`SELECT id, thread_id, account_id, seen, flagged, answered, draft, folder_id, uid FROM messages WHERE thread_id IN (${Sql.marks(part.length)}) ORDER BY date, id`, ...part));
+        msgs.push(...this.q.all<MsgState>(`SELECT id, thread_id, account_id, seen, flagged, answered, draft, folder_id, uid, category, category_source FROM messages WHERE thread_id IN (${Sql.marks(part.length)}) ORDER BY date, id`, ...part));
       }
       const changed = change(msgs);
       recomputeThreads(this.q, ids);

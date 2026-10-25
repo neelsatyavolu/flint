@@ -1,8 +1,9 @@
-import type { FlintApi, FolderId, Settings, ThreadId, ThreadListItem } from "@flint/core";
+import type { Bundle, Category, FlintApi, FolderId, Settings, ThreadId, ThreadListItem } from "@flint/core";
 import { formatPresetTime } from "../lib/time";
 import type { ListStore } from "./listStore";
 import type { NavStore, NavView } from "./nav";
 import { threadKey } from "./grouping";
+import { CATEGORY_TITLES } from "./viewMeta";
 
 export type ThreadAction =
   | { type: "archive" }
@@ -14,12 +15,15 @@ export type ThreadAction =
   | { type: "snooze"; until: number }
   | { type: "unsnooze" }
   | { type: "move"; folderId: FolderId; folderName: string }
-  | { type: "inbox" };
+  | { type: "inbox" }
+  /** Files the conversations under People, Notifications or Newsletters. `sender` also remembers it for their senders. */
+  | { type: "category"; category: Category; sender?: boolean };
 
-export type NotifyInput = { message: string; action?: { label: string; onClick: () => void }; level?: "info" | "error" };
+type ToastButton = { label: string; onClick: () => void };
+export type NotifyInput = { message: string; action?: ToastButton; secondaryAction?: ToastButton; level?: "info" | "error" };
 
 export type ActionDeps = {
-  api: Pick<FlintApi, "archive" | "trash" | "markSpam" | "setPinned" | "markRead" | "setMuted" | "snooze" | "unsnooze" | "moveToFolder" | "moveToInbox" | "undo">;
+  api: Pick<FlintApi, "archive" | "trash" | "markSpam" | "setPinned" | "markRead" | "setMuted" | "setCategory" | "snooze" | "unsnooze" | "moveToFolder" | "moveToInbox" | "undo">;
   list: ListStore;
   nav: NavStore;
   notify: (t: NotifyInput) => void;
@@ -27,7 +31,14 @@ export type ActionDeps = {
   now?: () => number;
 };
 
-type ViewInfo = { view: NavView; folderId?: FolderId };
+type ViewInfo = {
+  view: NavView;
+  folderId?: FolderId;
+  /** The category list that is open (the inbox filtered to one category). */
+  category?: Category;
+  /** The inbox shows only People plus bundle rows. */
+  focused?: boolean;
+};
 
 /** Whether the thread leaves the list the user is looking at once the action is applied. */
 export function removesFromView(action: ThreadAction, v: ViewInfo): boolean {
@@ -49,6 +60,9 @@ export function removesFromView(action: ThreadAction, v: ViewInfo): boolean {
       return ["inbox", "snoozed", "trash", "spam", "blocked", "archive"].includes(v.view);
     case "inbox":
       return ["archive", "trash", "spam", "blocked", "folder"].includes(v.view);
+    case "category":
+      if (v.view !== "inbox") return false;
+      return v.category ? v.category !== action.category : v.focused !== false && action.category !== "people";
     case "read":
     case "mute":
       return false;
@@ -66,6 +80,10 @@ export function actionMessage(action: ThreadAction, count: number, now: number =
     case "unsnooze": return "Snooze removed";
     case "move": return `Moved to ${action.folderName}`;
     case "inbox": return "Moved to Inbox";
+    case "category":
+      return action.sender
+        ? `Mail from ${count === 1 ? "this sender" : "these senders"} will go to ${CATEGORY_TITLES[action.category]}`
+        : `Moved${noun} to ${CATEGORY_TITLES[action.category]}`;
     case "pin":
     case "read":
       return null;
@@ -83,6 +101,7 @@ const FAILURE: Record<ThreadAction["type"], string> = {
   unsnooze: "Couldn't remove the snooze. Try again.",
   move: "Couldn't move. Try again.",
   inbox: "Couldn't move to Inbox. Try again.",
+  category: "Couldn't change the category. Try again.",
 };
 
 function optimisticPatch(action: ThreadAction): ((item: ThreadListItem) => Partial<ThreadListItem>) | null {
@@ -106,7 +125,33 @@ function call(api: ActionDeps["api"], action: ThreadAction, ids: ThreadId[]): Pr
     case "unsnooze": return api.unsnooze(ids);
     case "move": return api.moveToFolder(ids, action.folderId);
     case "inbox": return api.moveToInbox(ids);
+    case "category": return api.setCategory(ids, action.category, action.sender ? { sender: true } : undefined);
   }
+}
+
+const isMe = (p: { name: string }) => p.name.trim().toLowerCase() === "me";
+
+/** Who the "Always for ..." button names: the one sender of these rows, or a plural when they differ. */
+export function senderLabel(items: ThreadListItem[]): string | null {
+  const senders = new Map<string, string>();
+  for (const i of items) {
+    const p = i.participants.find((x) => !isMe(x));
+    if (p) senders.set(p.address.toLowerCase(), p.name.trim() || p.address);
+  }
+  if (senders.size === 0) return null;
+  return senders.size === 1 ? [...senders.values()][0]! : "these senders";
+}
+
+/** Bundle rows as they will read once these People rows are filed under `category`. */
+function withMoved(bundles: Bundle[], category: Exclude<Category, "people">, moved: ThreadListItem[]): Bundle[] {
+  const unread = moved.filter((i) => i.unreadCount > 0).length;
+  const lastDate = Math.max(...moved.map((i) => i.lastDate));
+  const latest = moved.map((i) => ({ from: i.participants.find((p) => !isMe(p)) ?? i.participants[0]!, subject: i.subject }));
+  const have = bundles.find((b) => b.category === category);
+  if (!have) return [...bundles, { category, unreadCount: unread, totalCount: moved.length, lastDate, latest: latest.slice(0, 3) }];
+  return bundles.map((b) => (b === have
+    ? { ...b, unreadCount: b.unreadCount + unread, totalCount: b.totalCount + moved.length, lastDate: Math.max(b.lastDate, lastDate), latest: [...latest, ...b.latest].slice(0, 3) }
+    : b));
 }
 
 /** Which thread to open after `gone` leave the list, per settings.inbox.afterArchive. */
@@ -131,7 +176,7 @@ export async function performAction(deps: ActionDeps, action: ThreadAction, allI
   const { api, list, nav, notify } = deps;
   const before = list.getState();
   const navState = nav.getState();
-  const removes = removesFromView(action, { view: navState.view, folderId: navState.folderId });
+  const removes = removesFromView(action, { view: navState.view, folderId: navState.folderId, category: navState.category, focused: deps.getSettings()?.inbox.focused ?? true });
   const originals = new Map(before.raw.filter((i) => ids.includes(i.id)).map((i) => [i.id, i]));
   const patch = optimisticPatch(action);
 
@@ -147,6 +192,10 @@ export async function performAction(deps: ActionDeps, action: ThreadAction, allI
     }
     if (navState.selected.length) nav.getState().setSelected(navState.selected.filter((id) => !ids.includes(id)));
     list.getState().hide(ids);
+    if (action.type === "category" && action.category !== "people" && !navState.category) {
+      const moved = [...originals.values()].filter((i) => i.category === "people");
+      if (moved.length > 0) list.getState().patchBundles((b) => withMoved(b, action.category as Exclude<Category, "people">, moved));
+    }
   } else if (patch) {
     list.getState().patchItems(ids, patch);
   }
@@ -156,6 +205,7 @@ export async function performAction(deps: ActionDeps, action: ThreadAction, allI
     nav.getState().setLastUndo(undoToken);
     const message = actionMessage(action, ids.length, deps.now?.());
     if (message) {
+      const sender = action.type === "category" && !action.sender ? senderLabel([...originals.values()]) : null;
       notify({
         message,
         action: {
@@ -164,6 +214,12 @@ export async function performAction(deps: ActionDeps, action: ThreadAction, allI
             void api.undo(undoToken).then(() => list.getState().refresh(), () => notify({ message: "Too late to undo that.", level: "error" }));
           },
         },
+        ...(sender && action.type === "category" ? {
+          secondaryAction: {
+            label: `Always for ${sender}`,
+            onClick: () => void performAction(deps, { type: "category", category: action.category, sender: true }, ids),
+          },
+        } : {}),
       });
     }
     await list.getState().refresh();

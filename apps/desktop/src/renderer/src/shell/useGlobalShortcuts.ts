@@ -1,11 +1,24 @@
 import { useEffect, useRef } from "react";
 import { shortcuts } from "../lib/shortcuts";
+import { listStore } from "../state/listStore";
 import { navStore } from "../state/nav";
 import type { AppCommands } from "./useAppCommands";
 
 /** Whether a key press should be left to a menu or dialog that is open. */
 function surfaceOpen(): boolean {
   return navStore.getState().overlay !== null || document.querySelector('[role="menu"]') !== null;
+}
+
+/**
+ * While a new view loads, the previous rows stay on screen dimmed. Keys that pick rows from the list (j/k, Enter, x,
+ * or an action on selected or highlighted rows) wait for the fresh rows; an action on the open thread is still safe.
+ */
+export function rowsReady(): boolean {
+  return !listStore.getState().stale;
+}
+export function actionTargetReady(): boolean {
+  const n = navStore.getState();
+  return rowsReady() || (n.openId !== null && n.selected.length === 0);
 }
 
 /** True when no button, link or field has focus, so Enter is free to open the highlighted row. */
@@ -36,6 +49,8 @@ export function useGlobalShortcuts(cmds: AppCommands): void {
   useEffect(() => {
     const c = () => ref.current;
     const mail = () => !surfaceOpen() && c().inMailView();
+    const act = () => mail() && actionTargetReady();
+    const rows = () => mail() && rowsReady();
     const any = () => !surfaceOpen();
     const nav = () => navStore.getState();
     const reg = (combo: string | string[], handler: () => void | false, when: () => boolean, extra: { allowInInput?: boolean } = {}) =>
@@ -46,18 +61,18 @@ export function useGlobalShortcuts(cmds: AppCommands): void {
       reg("r", () => c().reply("reply"), mail),
       reg("a", () => c().reply("replyAll"), mail),
       reg("f", () => c().reply("forward"), mail),
-      reg("e", () => c().archive(), mail),
-      reg(["#", "Backspace", "Delete"], () => c().trash(), mail),
-      reg("s", () => c().togglePin(), mail),
-      reg("h", () => c().snooze(), mail),
-      reg("v", () => c().move(), mail),
-      reg("u", () => c().toggleRead(), mail),
-      reg("!", () => c().spam(), mail),
-      reg("m", () => c().toggleMute(), mail),
-      reg("x", () => c().toggleSelect(), mail),
-      reg(["j", "ArrowDown"], () => c().step(1), mail),
-      reg(["k", "ArrowUp"], () => c().step(-1), mail),
-      reg(["Enter", "o"], () => c().openCursor(), () => mail() && idleFocus()),
+      reg("e", () => c().archive(), act),
+      reg(["#", "Backspace", "Delete"], () => c().trash(), act),
+      reg("s", () => c().togglePin(), act),
+      reg("h", () => c().snooze(), act),
+      reg("v", () => c().move(), act),
+      reg("u", () => c().toggleRead(), act),
+      reg("!", () => c().spam(), act),
+      reg("m", () => c().toggleMute(), act),
+      reg("x", () => c().toggleSelect(), rows),
+      reg(["j", "ArrowDown"], () => c().step(1), rows),
+      reg(["k", "ArrowUp"], () => c().step(-1), rows),
+      reg(["Enter", "o"], () => c().openCursor(), () => rows() && idleFocus()),
       reg("Escape", () => (escapeStep() ? undefined : false), () => true),
       reg(["/", "mod+f"], () => nav().openSearch(), () => !surfaceOpen() && !nav().settingsOpen, { allowInInput: false }),
       reg("mod+k", () => nav().showOverlay("palette"), () => nav().overlay === null, { allowInInput: true }),

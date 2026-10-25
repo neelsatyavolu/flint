@@ -5,6 +5,7 @@ import type { AccountsRepo } from "./accounts";
 import type { FoldersRepo } from "./folders";
 import type { ReceiptsRepo } from "./receipts";
 import type { RulesRepo } from "./rulesRepo";
+import { NOT_QUEUED_DRAFT } from "./draftList";
 import { inUnified, type Sql } from "./sql";
 import type { ThreadListRepo } from "./threadList";
 import { viewPredicate } from "./threadViews";
@@ -52,7 +53,7 @@ export class DashboardRepo {
     return {
       accounts: sidebarAccounts,
       counts: {
-        inbox: onEnabled(unread), pinned, drafts: one(`SELECT COUNT(*) AS n FROM drafts WHERE ${inUnified("account_id")}`)
+        inbox: onEnabled(unread), pinned, drafts: one(`SELECT COUNT(*) AS n FROM drafts WHERE ${inUnified("account_id")} AND ${NOT_QUEUED_DRAFT}`)
           + one(`SELECT COUNT(DISTINCT m.thread_id) AS n FROM messages m JOIN threads t ON t.id = m.thread_id WHERE ${serverDrafts.sql} AND ${inUnified("m.account_id")}`, ...serverDrafts.params), snoozed,
         scheduled: one("SELECT COUNT(*) AS n FROM scheduled_sends WHERE status IN ('pending','sending')"),
         awaitingApproval: one("SELECT COUNT(*) AS n FROM scheduled_sends WHERE status = 'awaiting_approval'"), spam,

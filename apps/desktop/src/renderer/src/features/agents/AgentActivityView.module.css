@@ -1,6 +1,6 @@
 .view { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--plane-2); }
-.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 24px 80px; }
-.column { max-width: 760px; margin-inline: auto; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 80px; }
+.column { max-width: 760px; }
 .group { margin-top: 20px; }
 .groupLabel { padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 .attention { color: var(--warn); }

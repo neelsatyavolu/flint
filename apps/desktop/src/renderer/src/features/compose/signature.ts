@@ -1,4 +1,4 @@
-import type { AccountId, Signature } from "@flint/core";
+import type { AccountId, ComposeMode, Signature } from "@flint/core";
 
 /** Class used inside the editor view (mock drafts also use it). */
 export const SIGNATURE_CLASS = "flint-signature";
@@ -6,17 +6,32 @@ export const SIGNATURE_CLASS = "flint-signature";
 export const CORE_SIGNATURE_CLASS = "flint_signature";
 export const SIGNATURE_SELECTOR = `.${SIGNATURE_CLASS}, .${CORE_SIGNATURE_CLASS}`;
 
-/** The default signature for an account, following the same rules as the backend: per-account default plus the new/reply flag. */
-export function defaultSignatureFor(
-  signatures: Signature[],
-  accountId: AccountId,
-  mode: "new" | "reply",
-  defaults: Record<AccountId, number | null>,
-): Signature | null {
-  const id = defaults[accountId] ?? null;
-  const sig = signatures.find((s) => s.id === id);
-  if (!sig) return null;
-  return (mode === "new" ? sig.defaultNew : sig.defaultReply) ? sig : null;
+export type SignatureDefaults = {
+  defaultSignatureByAccount: Record<AccountId, number | null>;
+  defaultReplySignatureByAccount?: Record<AccountId, number | null>;
+};
+
+const isReply = (mode: ComposeMode): boolean => mode === "reply" || mode === "replyAll";
+
+/** What settings say for an account: a signature id, null for "none", undefined for "no choice". Same rule as the backend. */
+export function chosenSignatureId(defaults: SignatureDefaults, accountId: AccountId, mode: ComposeMode): number | null | undefined {
+  const forReply = defaults.defaultReplySignatureByAccount;
+  if (isReply(mode) && forReply && accountId in forReply) return forReply[accountId];
+  return defaults.defaultSignatureByAccount[accountId];
+}
+
+/**
+ * The default signature for an account, following the same rules as the backend: the settings choice (null = none),
+ * else the signature flagged for new mail or replies, the account's own before a shared one.
+ * A choice that points at a deleted signature counts as no choice.
+ */
+export function defaultSignatureFor(signatures: Signature[], accountId: AccountId, mode: ComposeMode, defaults: SignatureDefaults): Signature | null {
+  const chosen = chosenSignatureId(defaults, accountId, mode);
+  if (chosen === null) return null;
+  const picked = chosen === undefined ? undefined : signatures.find((s) => s.id === chosen);
+  if (picked) return picked;
+  const flagged = signatures.filter((s) => (isReply(mode) ? s.defaultReply : s.defaultNew));
+  return flagged.find((s) => s.accountId === accountId) ?? flagged.find((s) => s.accountId === null) ?? null;
 }
 
 /** Signatures the user can pick for a From account: that account's own and the shared ones. */

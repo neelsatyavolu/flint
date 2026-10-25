@@ -39,3 +39,19 @@ export function toImportInput(path: string, rows: SparkRow[]): ImportSparkSignat
     items: rows.filter((r) => r.checked).map((r) => ({ sparkId: r.sparkId, name: r.label.trim() || r.name, setDefaultFor: r.defaults })),
   };
 }
+
+/** Emails of the accounts the import will make a default, in the order the sheet lists them. */
+export function defaultEmails(rows: SparkRow[]): string[] {
+  const emails = new Map<AccountId, string>();
+  for (const r of rows.filter((x) => x.checked)) for (const m of r.matches) if (r.defaults.includes(m.accountId)) emails.set(m.accountId, m.email);
+  return [...emails.values()];
+}
+
+/** The toast after an import: what was saved and which accounts got a default. */
+export function importMessage(count: number, rows: SparkRow[]): string {
+  const base = `Imported ${count} signature${count === 1 ? "" : "s"} from Spark`;
+  const emails = defaultEmails(rows);
+  if (emails.length === 0) return base;
+  const list = emails.length === 1 ? emails[0]! : `${emails.slice(0, -1).join(", ")} and ${emails[emails.length - 1]}`;
+  return `${base}. Set as the default for new mail and replies on ${list}.`;
+}

@@ -87,6 +87,7 @@ export function createMockService(dataDir: string): FlintService {
     async snooze() { return undo; },
     async unsnooze() { return undo; },
     async setMuted() { return undo; },
+    async setCategory() { return undo; },
     async undo() {},
     async unsubscribe() { return { method: "browser" as const }; },
 

@@ -6,7 +6,7 @@ import { pluralize } from "../../../lib/format";
 import { Button, Dialog, useToast } from "../../../ui";
 import { errorText } from "../useAccounts";
 import { SparkSignatureRow } from "./SparkSignatureRow";
-import { patchRow, selectedCount, toImportInput, toRows, toggleDefault, type SparkRow } from "./sparkRows";
+import { importMessage, patchRow, selectedCount, toImportInput, toRows, toggleDefault, type SparkRow } from "./sparkRows";
 import styles from "./spark.module.css";
 
 type Load =
@@ -56,7 +56,7 @@ export function SparkImportSheet({ open, onClose, onImported }: Props) {
     setBusy(true);
     try {
       const saved = await flint.importSparkSignatures(toImportInput(load.path, load.rows));
-      toast.show({ message: `Imported ${pluralize(saved.length, "signature")} from Spark` });
+      toast.show({ message: importMessage(saved.length, load.rows) });
       onImported?.(saved);
       onClose();
     } catch (err) {
@@ -105,6 +105,9 @@ export function SparkImportSheet({ open, onClose, onImported }: Props) {
             />
           ))}
         </ul>
+      ) : null}
+      {load.kind === "ready" && load.rows.some((r) => r.matches.length > 0) ? (
+        <p className={styles.note}>The accounts marked above get that signature by default for new mail and replies, replacing what they have now. Spark's fonts are dropped so signatures use the font Flint writes in.</p>
       ) : null}
     </Dialog>
   );

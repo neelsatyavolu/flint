@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { collect, type CliClient, type Ctx } from "./ctx";
-import { act, move, snooze, VERBS } from "./commands/actions";
+import { act, categorize, move, snooze, VERBS } from "./commands/actions";
 import { attachment, block, blocked, cancel, contacts, deleteDraft, drafts, folders, queue, undo, unsubscribe } from "./commands/manage";
 import { AGENT_GUIDE } from "./agent-guide";
 import { draft, forward, reply, send } from "./commands/compose";
@@ -39,6 +39,7 @@ const EXAMPLES: Record<string, string> = {
   spam: "flint spam 1234",
   snooze: "flint snooze 1234 2h\n  flint snooze 1234 tomorrow\n  flint snooze 1234 monday\n  flint snooze 1234 \"2026-10-26 09:00\"",
   move: "flint move 1234 Receipts\n  flint move 1234 inbox",
+  categorize: "flint categorize 1234 notifications\n  flint categorize 1234 people --sender",
   receipts: "flint receipts\n  flint receipts 7",
   summarize: "flint summarize 1234",
   ask: 'flint ask "What did Carla say about the invoice?"',
@@ -146,6 +147,10 @@ export function buildProgram(deps: Deps, jsonMode = false): Command {
   command("move", "Move a thread to a folder by name, path or role")
     .argument("<threadId>").argument("<folder>")
     .action(async (id: string, folder: string, _o, cmd: Command) => move(ctxFor(cmd), id, folder));
+  command("categorize", "Move a thread to People, Notifications or Newsletters")
+    .argument("<threadId>").argument("<category>", "people, notifications or newsletters")
+    .option("--sender", "also file future mail from the same sender there")
+    .action(async (id: string, category: string, o: { sender?: boolean }, cmd: Command) => categorize(ctxFor(cmd), id, category, o));
   command("attachment", "Save an attachment to the downloads folder and print its path")
     .argument("<attachmentId>").action(async (id: string, _o, cmd: Command) => attachment(ctxFor(cmd), id));
   command("cancel", "Cancel a queued send (it stays a draft)")

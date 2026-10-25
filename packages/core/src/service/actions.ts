@@ -2,13 +2,14 @@ import { z } from "zod";
 import type { FlintApi } from "../api";
 import { inverseFlagged, inverseMove, inverseSeen } from "./actionOps";
 import { blockedApi } from "./blocked";
+import { categoriesApi } from "./categories";
 import type { ServiceContext } from "./context";
 import { ensureRoleFolders } from "./roleFolders";
 import { unsubscribe } from "./unsubscribe";
 
 export type ActionsApi = Pick<FlintApi,
   "markRead" | "setPinned" | "archive" | "trash" | "markSpam" | "moveToFolder" | "moveToInbox" | "snooze" | "unsnooze" |
-  "setMuted" | "undo" | "unsubscribe" | "blockSender" | "unblockSender" | "listBlocked">;
+  "setMuted" | "setCategory" | "undo" | "unsubscribe" | "blockSender" | "unblockSender" | "listBlocked">;
 
 const threadIds = z.array(z.number().int().positive()).max(5000);
 
@@ -16,6 +17,7 @@ export function actionsApi(ctx: ServiceContext): ActionsApi {
   const { store } = ctx;
   const run = ctx.optimistic.run;
   const move = inverseMove(store);
+  const categories = categoriesApi(ctx);
 
   return {
     async markRead(ids, read) {
@@ -77,9 +79,17 @@ export function actionsApi(ctx: ServiceContext): ActionsApi {
     },
 
     async undo(token) {
-      await ctx.optimistic.undo(token);
+      try {
+        await ctx.optimistic.undo(token);
+      } catch (err) {
+        categories.forget(token);
+        throw err;
+      }
+      categories.onUndo(token);
       ctx.scheduler.poke();
     },
+
+    setCategory: categories.api.setCategory,
 
     unsubscribe: (messageId) => unsubscribe(ctx, messageId),
     ...blockedApi(ctx),

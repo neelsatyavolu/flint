@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { flint } from "../lib/api";
 import { useToast } from "../ui/Toast";
 import { useApp } from "./AppContext";
-import { performAction, undoLast, type ThreadAction } from "./actions";
+import { performAction, undoLast, type NotifyInput, type ThreadAction } from "./actions";
 import { listStore } from "./listStore";
 import { navStore, targetIds } from "./nav";
 
@@ -17,7 +17,7 @@ export function useThreadActions() {
       list: listStore,
       nav: navStore,
       getSettings,
-      notify: (t: { message: string; action?: { label: string; onClick: () => void }; level?: "info" | "error" }) => {
+      notify: (t: NotifyInput) => {
         toast.show(t);
       },
     };

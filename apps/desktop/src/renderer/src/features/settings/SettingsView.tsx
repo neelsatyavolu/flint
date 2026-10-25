@@ -1,9 +1,10 @@
-import { useEffect, useState, type JSX } from "react";
+import { useContext, useEffect, useState, type JSX } from "react";
 import {
   Bot, Eye, FileText, Filter, Info, Inbox, Keyboard, type LucideIcon, Bell, Ban, Palette, PenLine, SlidersHorizontal, Sparkles, UserRound, X,
 } from "lucide-react";
 import { useShortcut } from "../../lib/useShortcut";
 import { IconButton, Skeleton } from "../../ui";
+import { AppContext } from "../../state/AppContext";
 import { SECTIONS, SECTION_VIEWS, parseSection, type SectionId } from "./sections";
 import { SettingsProvider } from "./settingsStore";
 import styles from "./settings.module.css";
@@ -24,6 +25,7 @@ export function SettingsView(props: { section?: string; onClose: () => void }): 
     props.onClose();
   });
 
+  const initial = useContext(AppContext)?.settings;
   const View = SECTION_VIEWS[target.id];
   return (
     <div className={styles.root}>
@@ -47,7 +49,7 @@ export function SettingsView(props: { section?: string; onClose: () => void }): 
       </nav>
       <main className={styles.scroll}>
         <div className={styles.column}>
-          <SettingsProvider fallback={<Skeleton height={240} />}>
+          <SettingsProvider initial={initial} fallback={<Skeleton height={240} />}>
             <View key={`${target.id}:${target.page ?? ""}`} page={target.page} />
           </SettingsProvider>
         </div>

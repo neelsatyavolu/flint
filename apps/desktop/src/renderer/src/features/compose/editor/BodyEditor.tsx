@@ -48,9 +48,14 @@ function signaturePos(editor: Editor): number | null {
   return pos;
 }
 
-/** The signature is an atom block; the cursor needs a paragraph above it to type into. */
+/**
+ * The signature is an atom block; the cursor needs a paragraph above it to type into. A body that ends in the
+ * signature also gets the empty paragraph after it that the editor would otherwise add a frame later, which made the
+ * docked reply grow by a line right after it opened.
+ */
 export function withLeadingParagraph(html: string): string {
-  return html.trimStart().startsWith("<p") ? html : `<p></p>${html}`;
+  const lead = html.trimStart().startsWith("<p") ? html : `<p></p>${html}`;
+  return /<\/div>\s*$/.test(lead) ? `${lead}<p></p>` : lead;
 }
 
 function readAsDataUrl(file: File): Promise<string> {

@@ -46,7 +46,7 @@ describe("SparkImportSheet", () => {
 
     await waitFor(() => expect(imp).toHaveBeenCalledTimes(1));
     expect(imp).toHaveBeenCalledWith({ path: "/spark/settings.sqlite", items: [{ sparkId: "A", name: "Work", setDefaultFor: ["acc1"] }] });
-    expect(await screen.findByText("Imported 1 signature from Spark")).toBeTruthy();
+    expect(await screen.findByText("Imported 1 signature from Spark. Set as the default for new mail and replies on a@x.co.")).toBeTruthy();
     expect(onImported).toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
   });

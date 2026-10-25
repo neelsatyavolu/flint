@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type JSX } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useSettings } from "../../lib/hooks";
 import { readStored, writeStored } from "../../lib/storage";
@@ -14,6 +14,11 @@ type Props = { threadId: number; messageCount: number; wordCount: number };
 
 const COLLAPSED_KEY = "flint.summary.collapsed";
 const cache = new Map<string, string>();
+/** Whether summaries were on the last time we knew. A new thread reserves the summary's space from this while availability reloads. */
+let lastWanted = false;
+/** Height of the last summary that was shown. Real summaries run taller than a two-line placeholder, so the placeholder reserves this much and the text lands without moving the thread. */
+let lastTextHeight = 150;
+const clampHeight = (px: number): number => Math.min(Math.max(Math.round(px), 72), 260);
 
 /** A summary is worth showing on long threads only. */
 export const needsSummary = (messageCount: number, wordCount: number): boolean => messageCount >= 3 || wordCount >= 300;
@@ -27,16 +32,21 @@ export function ThreadSummary({ threadId, messageCount, wordCount }: Props): JSX
   const cacheKey = `${threadId}:${messageCount}`;
   const [cached, setCached] = useState<string | undefined>(() => cache.get(cacheKey));
 
-  const wanted = needsSummary(messageCount, wordCount) && ai.ready && settings?.ai.autoSummarize !== false && settings !== undefined;
+  const resolved = !ai.loading && settings !== undefined;
+  const enabled = resolved ? ai.ready && settings?.ai.autoSummarize !== false : lastWanted;
+  const wanted = needsSummary(messageCount, wordCount) && enabled;
+  useEffect(() => {
+    if (resolved) lastWanted = ai.ready && settings?.ai.autoSummarize !== false;
+  }, [resolved, ai.ready, settings?.ai.autoSummarize]);
 
   useEffect(() => {
     const hit = cache.get(cacheKey);
     setCached(hit);
     reset();
-    if (wanted && !hit) void start({ kind: "summarize", threadId });
+    if (wanted && resolved && !hit) void start({ kind: "summarize", threadId });
     // start and reset are stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cacheKey, wanted]);
+  }, [cacheKey, wanted, resolved]);
 
   useEffect(() => {
     if (state.status === "done" && state.text.trim()) {
@@ -44,6 +54,12 @@ export function ThreadSummary({ threadId, messageCount, wordCount }: Props): JSX
       setCached(state.text);
     }
   }, [state.status, state.text, cacheKey]);
+
+  const textRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const h = textRef.current?.firstElementChild instanceof HTMLElement ? textRef.current.firstElementChild.offsetHeight : 0;
+    if (h > 0) lastTextHeight = clampHeight(h);
+  });
 
   const translate = ai.ready ? <ThreadTranslate threadId={threadId} /> : null;
   if (!wanted) return translate;
@@ -53,8 +69,9 @@ export function ThreadSummary({ threadId, messageCount, wordCount }: Props): JSX
     setCollapsed(next);
     writeStored(COLLAPSED_KEY, next ? "1" : "0");
   };
-  const text = cached ?? state.text;
   const busy = isBusy(state);
+  // The summary appears whole once it is written. Streaming it line by line would push the messages down every few frames.
+  const text = cached ?? (busy ? "" : state.text);
   const Chevron = collapsed ? ChevronRight : ChevronDown;
 
   return (
@@ -73,12 +90,11 @@ export function ThreadSummary({ threadId, messageCount, wordCount }: Props): JSX
           <Button size="sm" variant="ghost" onClick={() => void start({ kind: "summarize", threadId })}>Try again</Button>
         </div>
       ) : text ? (
-        <div className={styles.text}>
+        <div className={styles.text} ref={textRef} style={{ minHeight: lastTextHeight }}>
           <ProseText text={text} />
-          {busy ? <span className={styles.caret} aria-hidden /> : null}
         </div>
       ) : (
-        <div className={styles.lines} aria-busy="true">
+        <div className={styles.lines} aria-busy="true" style={{ minHeight: lastTextHeight }}>
           <Skeleton height={14} width="92%" />
           <Skeleton height={14} width="78%" />
         </div>

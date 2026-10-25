@@ -7,6 +7,8 @@ import styles from "./Toast.module.css";
 export type ToastInput = {
   message: string;
   action?: { label: string; onClick: () => void };
+  /** A second button after `action`, e.g. "Always for this sender" next to "Undo". */
+  secondaryAction?: { label: string; onClick: () => void };
   /** Milliseconds before it dismisses itself. Default 5000. 0 keeps it until dismissed. */
   timeout?: number;
   level?: "info" | "error";
@@ -54,13 +56,28 @@ function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: num
           >
             {toast.action.label}
           </button>
+          {toast.secondaryAction ? (
+            <>
+              <span className={styles.dot} aria-hidden>·</span>
+              <button
+                type="button"
+                className={styles.action}
+                onClick={() => {
+                  toast.secondaryAction?.onClick();
+                  onDismiss(toast.id);
+                }}
+              >
+                {toast.secondaryAction.label}
+              </button>
+            </>
+          ) : null}
         </>
       ) : null}
     </div>
   );
 }
 
-/** Bottom-centre toasts. Also turns main-process 'toast' events into toasts, wiring undoToken to "Undo". */
+/** Bottom-right toasts, above the Ask field. Also turns main-process 'toast' events into toasts, wiring undoToken to "Undo". */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const nextId = useRef(1);

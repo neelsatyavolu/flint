@@ -1,5 +1,6 @@
 import { useContext, useEffect, useRef, useState, type JSX, type KeyboardEvent } from "react";
 import { EyeOff } from "lucide-react";
+import clsx from "clsx";
 import type { Signature, Template } from "@flint/core";
 import { useInlineReply } from "../../state/inlineReply";
 import { AppContext } from "../../state/AppContext";
@@ -60,12 +61,19 @@ function Dock({ request, onClose }: InlineReplyDockProps): JSX.Element {
   useEffect(() => {
     useInlineReply.getState().setLiveDraft(draft?.id ?? null);
   }, [draft?.id]);
+  // The editor is what the reply is for: make sure it has focus once it exists, so single-key shortcuts
+  // (archive, reply) can never fire while the reader types. A forward still waiting for recipients focuses To instead.
+  const wantsBodyFocus = !!draft && (draft.mode !== "forward" || (fields?.to.length ?? 0) > 0);
   useEffect(() => {
-    if (!draft) return;
-    const show = () => ((root.current?.nextElementSibling as HTMLElement | null) ?? root.current)?.scrollIntoView?.({ block: "end" });
-    show();
-    const t = setTimeout(show, 150);
+    if (!draft || !wantsBodyFocus) return;
+    const t = setTimeout(() => {
+      const a = document.activeElement;
+      const inField = a instanceof HTMLElement && root.current?.contains(a) && a.matches("input,textarea,[contenteditable='true']");
+      if (!inField) body.current?.focus();
+    }, 30);
     return () => clearTimeout(t);
+    // Once per draft.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft?.id]);
   useEffect(() => {
     const focus = () => body.current?.focus();
@@ -82,7 +90,7 @@ function Dock({ request, onClose }: InlineReplyDockProps): JSX.Element {
 
   if (!fields || !draft) {
     return (
-      <section className={styles.dock} aria-busy="true" aria-label="Reply">
+      <section className={clsx(styles.dock, styles.loading)} aria-busy="true" aria-label="Reply">
         <span className="t-body" style={{ color: "var(--fg-3)" }}>{session.error ?? "Opening reply"}</span>
       </section>
     );
@@ -215,7 +223,6 @@ function Dock({ request, onClose }: InlineReplyDockProps): JSX.Element {
           <p className="t-body" style={{ color: "var(--fg-2)" }}>The reply will be deleted.</p>
         </Dialog>
       </section>
-      <div className={styles.clearance} aria-hidden />
     </>
   );
 }

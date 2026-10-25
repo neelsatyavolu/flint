@@ -32,9 +32,11 @@ export function AskLauncher(): JSX.Element | null {
   // The reader keeps this much room at the bottom so the field never covers its last lines.
   useEffect(() => {
     const root = document.documentElement.style;
-    root.setProperty("--ask-clearance", `${16 + 40 + 16 + (minimized ? minimized * 36 + 8 : 0)}px`);
+    const chips = minimized ? minimized * 36 + 8 : 0;
+    // While the reply is docked the field is hidden, so no room is kept for it.
+    root.setProperty("--ask-clearance", `${replying ? chips : 16 + 40 + 16 + chips}px`);
     return () => { root.removeProperty("--ask-clearance"); };
-  }, [minimized]);
+  }, [minimized, replying]);
 
   if (open) return <AskPanel conversation={conversation} onClose={() => setOpen(false)} />;
   if (covered) return null;
@@ -51,7 +53,7 @@ export function AskLauncher(): JSX.Element | null {
       }}
     >
       <Sparkles size={16} strokeWidth={1.5} aria-hidden />
-      <input className={styles.field} value={text} onChange={(e) => setText(e.target.value)} placeholder="Ask anything" aria-label="Ask anything" spellCheck={false} />
+      <input className={styles.field} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") e.currentTarget.blur(); }} placeholder="Ask anything" aria-label="Ask anything" spellCheck={false} />
     </form>
   );
 }

@@ -53,4 +53,16 @@ describe("settings store", () => {
     await waitFor(() => expect(screen.getByTestId("theme").textContent).toBe(real.appearance.theme));
     expect(await screen.findByText("Disk is full.")).toBeTruthy();
   });
+
+  it("paints at once from the settings the app already holds", async () => {
+    const real = await flint.getSettings();
+    const seeded = mergeSettings(real, { appearance: { theme: real.appearance.theme === "light" ? "dark" : "light" } });
+    let release!: (s: typeof real) => void;
+    vi.spyOn(flint, "getSettings").mockReturnValue(new Promise((res) => { release = res; }));
+    render(<ToastProvider><SettingsProvider initial={seeded} fallback={<span data-testid="wait" />}><Probe expose={() => undefined} /></SettingsProvider></ToastProvider>);
+    expect(screen.queryByTestId("wait")).toBeNull();
+    expect(screen.getByTestId("theme").textContent).toBe(seeded.appearance.theme);
+    await act(async () => release(real));
+    expect(screen.getByTestId("theme").textContent).toBe(real.appearance.theme);
+  });
 });

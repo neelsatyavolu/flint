@@ -21,6 +21,21 @@ import { useToast } from "../../ui/Toast";
 import styles from "./ThreadList.module.css";
 
 const OVERSCAN = 8;
+/** A list that loads faster than this never shows its skeleton, so quick view changes do not flash. */
+const SKELETON_DELAY_MS = 140;
+
+function useDelayedFlag(on: boolean, ms: number): boolean {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (!on) {
+      setShown(false);
+      return;
+    }
+    const t = setTimeout(() => setShown(true), ms);
+    return () => clearTimeout(t);
+  }, [on, ms]);
+  return on && shown;
+}
 const LOAD_AHEAD = 12;
 const INBOX_LIKE = new Set(["inbox", "snoozed", "pinned", "drafts", "sent", "folder", "search"]);
 
@@ -29,6 +44,7 @@ export function ThreadList() {
   const nav = useNav((s) => s);
   const entries = useList((s) => s.entries);
   const status = useList((s) => s.status);
+  const stale = useList((s) => s.stale);
   const error = useList((s) => s.error);
   const hasMore = useList((s) => s.nextCursor !== null);
   const serverSearch = useList((s) => s.serverSearch);
@@ -41,6 +57,8 @@ export function ThreadList() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => Date.now());
   const [stickyAt, setStickyAt] = useState(-1);
+  const pending = (status === "loading" || status === "idle") && entries.length === 0;
+  const showSkeleton = useDelayedFlag(pending, SKELETON_DELAY_MS);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 60_000);
@@ -79,6 +97,11 @@ export function ThreadList() {
     autoOlder.current = listKey;
     void listStore.getState().loadOlder();
   }, [hasMore, olderOnServer, status, listKey, rows.length, lastVisible]);
+
+  // The scroller stays mounted across lists that paint from memory, so each new list starts at the top.
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [listKey]);
 
   const onScroll = useCallback(() => {
     const top = scrollRef.current?.scrollTop ?? 0;
@@ -135,7 +158,7 @@ export function ThreadList() {
     [run, toast.show, onTrash],
   );
 
-  if (status === "loading" && rows.length === 0) return <div className={styles.fill}><SkeletonRows count={9} density={density} /></div>;
+  if (pending) return <div className={styles.fill}>{showSkeleton ? <SkeletonRows count={12} density={density} rowHeight={threadH} /> : null}</div>;
   if (status === "error" && rows.length === 0) {
     return (
       <div className={styles.fill}>
@@ -153,7 +176,7 @@ export function ThreadList() {
   const inboxLike = INBOX_LIKE.has(nav.view);
 
   return (
-    <div ref={scrollRef} className={styles.scroll} onScroll={onScroll} role="listbox" aria-label="Conversations" aria-multiselectable>
+    <div ref={scrollRef} className={clsx(styles.scroll, stale && styles.stale)} onScroll={onScroll} role="listbox" aria-label="Conversations" aria-multiselectable aria-busy={stale || undefined} inert={stale || undefined}>
       {stickyLabel?.kind === "label" ? <div className={clsx("t-label", styles.sticky)} aria-hidden>{stickyLabel.label}</div> : null}
       <div className={styles.canvas} style={{ height: virt.getTotalSize() }}>
         {items.map((v) => {

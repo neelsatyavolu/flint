@@ -1,41 +1,33 @@
-import type { AccountId, Signature } from "@flint/core";
+import type { AccountId, DeepPartial, Settings, Signature } from "@flint/core";
+import { defaultSignatureFor, signaturesForAccount } from "../compose/signature";
 
-export type DefaultsMap = Record<AccountId, number | null>;
+export type DefaultKind = "new" | "reply";
+type Compose = Settings["compose"];
 
-export type SignaturePlan = {
-  /** Other signatures that must drop a default flag because the saved one took it. */
-  demote: Signature[];
-  /** New settings.compose.defaultSignatureByAccount, or null when unchanged. */
-  map: DefaultsMap | null;
-};
+/** What a default picker shows: a signature id, null for an explicit None, "unset" when nothing is chosen yet. */
+export type PickerValue = number | null | "unset";
 
 /**
- * Keeps "default for new mail" and "default for replies" unique per account scope, and keeps
- * settings.compose.defaultSignatureByAccount (the new-mail default) in step with the flags.
+ * The picker's value for an account, following the same rules as the composer: the settings choice,
+ * else the signature flagged as default. A choice pointing at a deleted signature counts as no choice.
  */
-export function planSignatureSave(all: Signature[], saved: Signature, current: DefaultsMap): SignaturePlan {
-  const demote: Signature[] = [];
-  for (const other of all) {
-    if (other.id === saved.id || other.accountId !== saved.accountId) continue;
-    const dropNew = saved.defaultNew && other.defaultNew;
-    const dropReply = saved.defaultReply && other.defaultReply;
-    if (dropNew || dropReply) {
-      demote.push({ ...other, defaultNew: dropNew ? false : other.defaultNew, defaultReply: dropReply ? false : other.defaultReply });
-    }
-  }
-
-  let map: DefaultsMap | null = null;
-  const acct = saved.accountId;
-  if (acct !== null) {
-    if (saved.defaultNew && current[acct] !== saved.id) map = { ...current, [acct]: saved.id };
-    else if (!saved.defaultNew && current[acct] === saved.id) map = { ...current, [acct]: null };
-  }
-  return { demote, map };
+export function pickerValue(signatures: Signature[], compose: Compose, accountId: AccountId, kind: DefaultKind): PickerValue {
+  const mode = kind === "new" ? "new" : "reply";
+  const choice = defaultSignatureFor(signatures, accountId, mode, compose);
+  if (choice) return choice.id;
+  const map = kind === "reply" && accountId in (compose.defaultReplySignatureByAccount ?? {}) ? compose.defaultReplySignatureByAccount : compose.defaultSignatureByAccount;
+  return map[accountId] === null ? null : "unset";
 }
 
-/** Map after deleting a signature: accounts that pointed at it fall back to none. */
-export function mapAfterDelete(current: DefaultsMap, id: number): DefaultsMap | null {
-  const hit = Object.entries(current).filter(([, v]) => v === id);
-  if (hit.length === 0) return null;
-  return { ...current, ...Object.fromEntries(hit.map(([k]) => [k, null])) };
+/** The settings patch for choosing `value` (a signature id, or null for None) as an account's default. */
+export function defaultPatch(kind: DefaultKind, accountId: AccountId, value: number | null): DeepPartial<Settings> {
+  return kind === "new"
+    ? { compose: { defaultSignatureByAccount: { [accountId]: value } } }
+    : { compose: { defaultReplySignatureByAccount: { [accountId]: value } } };
+}
+
+/** True when an account has signatures to choose from but no default for new mail or replies yet. */
+export function needsDefaultHint(signatures: Signature[], compose: Compose, accountId: AccountId): boolean {
+  if (signaturesForAccount(signatures, accountId).length === 0) return false;
+  return (["new", "reply"] as const).some((kind) => pickerValue(signatures, compose, accountId, kind) === "unset");
 }

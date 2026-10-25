@@ -14,7 +14,9 @@
 .row:hover { --row-tint: var(--hover); }
 .cursor { --row-tint: var(--active); }
 .selected, .selected:hover { --row-tint: var(--accent-soft); }
-.row { background-image: linear-gradient(var(--row-tint), var(--row-tint)); transition: background-color var(--dur-fast) var(--ease); }
+/* Registered so the hover, cursor and selected tints fade instead of snapping. */
+@property --row-tint { syntax: "<color>"; inherits: true; initial-value: transparent; }
+.row { background-image: linear-gradient(var(--row-tint), var(--row-tint)); transition: --row-tint var(--dur-fast) var(--ease); }
 .selected::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); }
 .checked::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); }
 .dot { position: absolute; left: 6px; top: 20px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }

@@ -36,11 +36,12 @@ export function useSettingsStore(): SettingsStore {
 }
 
 /** Loads settings once, keeps them live through 'settings' events, and offers optimistic saves. */
-export function SettingsProvider({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
+export function SettingsProvider({ children, fallback, initial }: { children: ReactNode; fallback?: ReactNode; initial?: Settings }) {
   const toast = useToast();
-  const [settings, setSettings] = useState<Settings | undefined>();
+  // The app already holds settings, so a screen opened from it paints at once instead of waiting for a second load.
+  const [settings, setSettings] = useState<Settings | undefined>(initial);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const current = useRef<Settings | undefined>(undefined);
+  const current = useRef<Settings | undefined>(initial);
   const seq = useRef(0);
 
   const apply = useCallback((next: Settings) => {
@@ -51,7 +52,7 @@ export function SettingsProvider({ children, fallback }: { children: ReactNode; 
   useEffect(() => {
     let alive = true;
     flint.getSettings().then(
-      (s) => alive && apply(s),
+      (s) => alive && seq.current === 0 && apply(s),
       () => alive && setLoadError("Couldn't load settings. Close this view and open it again."),
     );
     const off = flint.subscribe((e) => {

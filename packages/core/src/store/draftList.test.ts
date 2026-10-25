@@ -11,6 +11,25 @@ function fixture() {
   return { store, s, serverDraft };
 }
 
+describe("queued sends", () => {
+  it("are not drafts while the send is queued, and come back when it is cancelled", () => {
+    const { store, s } = fixture();
+    const thread = store.ingestMessages(s.account.id, s.inbox.id, [msg({ uid: 50, from: [person("Dana")], to: [me()], subject: "Hello" })]);
+    const threadId = store.listThreads({ view: "inbox" }).items[0]!.id;
+    expect(thread).toBeDefined();
+    const d = store.createDraft({ accountId: s.account.id, from: "me@example.com", threadId, to: [person("Dana")], subject: "Re: Hello" }, T0);
+    expect(store.getThreadRows(threadId)?.draftIds).toEqual([d.id]);
+    expect(store.listThreads({ view: "inbox" }).items[0]!.hasDraft).toBe(true);
+    const row = store.createScheduledSend({ draftId: d.id, sendAt: T0 + 10_000 }, T0);
+    expect(store.getThreadRows(threadId)?.draftIds).toEqual([]);
+    expect(store.listThreads({ view: "inbox" }).items[0]!.hasDraft).toBe(false);
+    expect(store.listThreads({ view: "drafts" }).items).toHaveLength(0);
+    store.updateScheduled(row.id, { status: "cancelled" });
+    expect(store.getThreadRows(threadId)?.draftIds).toEqual([d.id]);
+    expect(store.listThreads({ view: "drafts" }).items).toHaveLength(1);
+  });
+});
+
 describe("Drafts view", () => {
   it("lists local drafts that were never synced, newest first, with the Draft fields", () => {
     const { store, s } = fixture();

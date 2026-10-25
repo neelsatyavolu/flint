@@ -5,8 +5,9 @@
   border-radius: var(--r-card, 12px);
   background: var(--plane-2);
 }
+/* Holds the space the open reply will take while its session starts, so the reader scrolls to it once. */
+.loading { min-height: var(--reply-dock-h, 300px); box-sizing: border-box; }
 .dock:focus-within { border-color: var(--accent); }
-.clearance { flex: none; height: var(--ask-clearance, 72px); }
 .head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); min-height: 28px; }
 .title { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); font: 600 var(--text-body) / var(--lh-body) var(--font-ui); }
 .headActions { display: flex; flex: none; align-items: center; gap: 2px; }

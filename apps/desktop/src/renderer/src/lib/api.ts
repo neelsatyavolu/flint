@@ -57,10 +57,17 @@ export function wrapBridge(real: FlintApi): FlintApi {
   return wrapped as unknown as FlintApi;
 }
 
+/** `?latency=<ms>` in the browser preview simulates the real app's round trips. */
+export function previewLatency(search: string = typeof window === "undefined" ? "" : window.location.search): number {
+  const n = Number(new URLSearchParams(search).get("latency"));
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 5000) : 0;
+}
+
 function pick(): FlintApi {
   const real = typeof window === "undefined" ? undefined : (window as unknown as Win).flint;
   if (real) return wrapBridge(real);
-  return createLazyApi(async () => (await import("../mock")).createMockApi());
+  const latency = previewLatency();
+  return createLazyApi(async () => (await import("../mock")).createMockApi(latency > 0 ? { latencyMs: latency } : {}));
 }
 
 /** The API every renderer module uses: window.flint in Electron, the in-memory mock in a browser or tests. */

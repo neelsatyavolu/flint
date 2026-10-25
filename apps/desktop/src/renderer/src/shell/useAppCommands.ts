@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { compose, deleteDraftRow, openDraftRow, openMovePicker, openSnooze, replyTo } from "../features/mail/mailCommands";
+import type { Category } from "@flint/core";
 import type { ReplyMode } from "../state/compose";
 import { stepKey, threadIdOf } from "../state/grouping";
 import { listStore } from "../state/listStore";
@@ -82,6 +83,12 @@ export function useAppCommands() {
       toggleRead: () => {
         const anyUnread = items().some((i) => i.unreadCount > 0);
         void run({ type: "read", read: anyUnread });
+      },
+      setCategory: (category: Category) => void run({ type: "category", category }),
+      /** Categories of the targeted conversations that are not all in the same one are listed as null. */
+      targetCategory: (): Category | null => {
+        const cats = new Set(items().map((i) => i.category));
+        return cats.size === 1 ? [...cats][0]! : null;
       },
       toggleMute: () => {
         const list = items();

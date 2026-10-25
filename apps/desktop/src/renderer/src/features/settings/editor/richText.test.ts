@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_IMAGE_BYTES, needsSourceMode, normalizeLink, readImageFile, sanitizeHtml } from "./richText";
+import { MAX_IMAGE_BYTES, applyFlintFont, hasCustomFont, needsSourceMode, normalizeLink, readImageFile, sanitizeHtml } from "./richText";
 
 describe("normalizeLink", () => {
   it("keeps allowed schemes", () => {
@@ -44,5 +44,26 @@ describe("readImageFile", () => {
     expect((await readImageFile(new File(["x"], "a.txt", { type: "text/plain" }))).ok).toBe(false);
     const big = new File([new Uint8Array(MAX_IMAGE_BYTES + 1)], "b.png", { type: "image/png" });
     expect((await readImageFile(big)).ok).toBe(false);
+  });
+});
+
+describe("applyFlintFont", () => {
+  const spark = '<div style="font-family: Helvetica; font-size: 13px; color:#333"><font face="Arial" size="3" color="#f00">Hi</font> <b style="font:bold 12px Verdana">Neel</b> <a href="https://x.org" style="font-family:Georgia;text-decoration:none">x</a><img src="https://x.org/a.png" width="40"></div>';
+  it("drops typeface and size and keeps bold, color, links and images", () => {
+    const out = applyFlintFont(spark);
+    expect(out).not.toMatch(/font-family|font-size|face=|size=|Helvetica|Verdana|Georgia/);
+    expect(out).toContain('style="color:#333"');
+    expect(out).toContain('color="#f00"');
+    expect(out).toContain("font-weight:bold");
+    expect(out).toContain('href="https://x.org"');
+    expect(out).toContain("<img");
+  });
+  it("leaves a signature without fonts alone", () => {
+    expect(applyFlintFont("<p>Thanks,<br>Neel</p>")).toBe("<p>Thanks,<br>Neel</p>");
+  });
+  it("hasCustomFont sees what the transform removes", () => {
+    expect(hasCustomFont(spark)).toBe(true);
+    expect(hasCustomFont(applyFlintFont(spark))).toBe(false);
+    expect(hasCustomFont("<p><b>Neel</b></p>")).toBe(false);
   });
 });

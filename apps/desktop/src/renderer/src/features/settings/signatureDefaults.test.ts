@@ -1,44 +1,45 @@
 import { describe, expect, it } from "vitest";
-import type { Signature } from "@flint/core";
-import { mapAfterDelete, planSignatureSave } from "./signatureDefaults";
+import type { Settings, Signature } from "@flint/core";
+import { defaultPatch, needsDefaultHint, pickerValue } from "./signatureDefaults";
 
-const sig = (over: Partial<Signature> & { id: number }): Signature => ({ name: "S", html: "", accountId: "a", defaultNew: false, defaultReply: false, ...over });
+const sig = (id: number, over: Partial<Signature> = {}): Signature => ({ id, name: `S${id}`, html: "", accountId: null, defaultNew: false, defaultReply: false, ...over });
+const compose = (forNew: Record<string, number | null>, forReply: Record<string, number | null> = {}) =>
+  ({ undoSendSeconds: 10, plainTextOnly: false, defaultSignatureByAccount: forNew, defaultReplySignatureByAccount: forReply }) as Settings["compose"];
 
-describe("planSignatureSave", () => {
-  it("takes the new-mail default from another signature on the same account", () => {
-    const all = [sig({ id: 1, defaultNew: true, defaultReply: true }), sig({ id: 2 })];
-    const saved = sig({ id: 2, defaultNew: true });
-    const plan = planSignatureSave(all, saved, { a: 1 });
-    expect(plan.demote).toEqual([{ ...all[0], defaultNew: false }]);
-    expect(plan.map).toEqual({ a: 2 });
+describe("pickerValue", () => {
+  const sigs = [sig(1), sig(2, { accountId: "a" })];
+  it("shows the chosen signature, or None when None was chosen", () => {
+    expect(pickerValue(sigs, compose({ a: 2 }), "a", "new")).toBe(2);
+    expect(pickerValue(sigs, compose({ a: null }), "a", "new")).toBeNull();
   });
-
-  it("takes the reply default without touching the new-mail default", () => {
-    const all = [sig({ id: 1, defaultNew: true, defaultReply: true }), sig({ id: 2 })];
-    const plan = planSignatureSave(all, sig({ id: 2, defaultReply: true }), { a: 1 });
-    expect(plan.demote).toEqual([{ ...all[0], defaultReply: false }]);
-    expect(plan.map).toBeNull();
+  it("shows the new-mail choice for replies until replies get their own", () => {
+    expect(pickerValue(sigs, compose({ a: 2 }), "a", "reply")).toBe(2);
+    expect(pickerValue(sigs, compose({ a: 2 }, { a: 1 }), "a", "reply")).toBe(1);
+    expect(pickerValue(sigs, compose({ a: 2 }, { a: null }), "a", "reply")).toBeNull();
   });
-
-  it("ignores signatures that belong to other accounts", () => {
-    const all = [sig({ id: 1, accountId: "b", defaultNew: true }), sig({ id: 2 })];
-    expect(planSignatureSave(all, sig({ id: 2, defaultNew: true }), { b: 1 }).demote).toEqual([]);
+  it("reads as unset with no choice and no flagged signature, and ignores a deleted choice", () => {
+    expect(pickerValue(sigs, compose({}), "a", "new")).toBe("unset");
+    expect(pickerValue(sigs, compose({ a: 99 }), "a", "new")).toBe("unset");
   });
-
-  it("clears the account default when the flag is removed", () => {
-    const plan = planSignatureSave([sig({ id: 1 })], sig({ id: 1, defaultNew: false }), { a: 1 });
-    expect(plan.map).toEqual({ a: null });
-  });
-
-  it("does not touch the map for all-accounts signatures", () => {
-    const plan = planSignatureSave([], sig({ id: 1, accountId: null, defaultNew: true }), {});
-    expect(plan.map).toBeNull();
+  it("falls back to the flagged signature", () => {
+    expect(pickerValue([sig(3, { defaultNew: true })], compose({}), "a", "new")).toBe(3);
+    expect(pickerValue([sig(3, { defaultNew: true })], compose({}), "a", "reply")).toBe("unset");
   });
 });
 
-describe("mapAfterDelete", () => {
-  it("nulls entries pointing at the deleted signature", () => {
-    expect(mapAfterDelete({ a: 1, b: 2 }, 1)).toEqual({ a: null, b: 2 });
-    expect(mapAfterDelete({ a: 1 }, 9)).toBeNull();
+describe("defaultPatch", () => {
+  it("writes only the one account in the matching map", () => {
+    expect(defaultPatch("new", "a", 4)).toEqual({ compose: { defaultSignatureByAccount: { a: 4 } } });
+    expect(defaultPatch("reply", "a", null)).toEqual({ compose: { defaultReplySignatureByAccount: { a: null } } });
+  });
+});
+
+describe("needsDefaultHint", () => {
+  it("is true only when the account can pick a signature and has none chosen", () => {
+    expect(needsDefaultHint([sig(1)], compose({}), "a")).toBe(true);
+    expect(needsDefaultHint([sig(1)], compose({ a: 1 }), "a")).toBe(false);
+    expect(needsDefaultHint([sig(1)], compose({ a: null }), "a")).toBe(false);
+    expect(needsDefaultHint([sig(1, { accountId: "b" })], compose({}), "a")).toBe(false);
+    expect(needsDefaultHint([], compose({}), "a")).toBe(false);
   });
 });

@@ -6,7 +6,7 @@ import { addresses, asCategory, lowerAddr } from "./mappers";
 import type { ReceiptsRepo } from "./receipts";
 import type { RulesRepo } from "./rulesRepo";
 import { bool, inUnified, Sql, type Param } from "./sql";
-import { localDraftEntries } from "./draftList";
+import { localDraftEntries, NOT_QUEUED_DRAFT } from "./draftList";
 import { categoryClause, viewPredicate } from "./threadViews";
 
 const log = logger("store.threads");
@@ -165,7 +165,7 @@ export class ThreadListRepo {
       if (list) list.push(m); else byThread.set(m.thread_id, [m]);
     }
     const drafts = new Set([
-      ...this.q.all<{ thread_id: number }>(`SELECT DISTINCT thread_id FROM drafts WHERE thread_id IN (${marks})`, ...ids).map((r) => r.thread_id),
+      ...this.q.all<{ thread_id: number }>(`SELECT DISTINCT thread_id FROM drafts WHERE thread_id IN (${marks}) AND ${NOT_QUEUED_DRAFT}`, ...ids).map((r) => r.thread_id),
       ...this.q.all<{ thread_id: number }>(`SELECT DISTINCT thread_id FROM messages WHERE thread_id IN (${marks}) AND draft = 1`, ...ids).map((r) => r.thread_id),
     ]);
     const own = this.accounts.ownAddresses();
