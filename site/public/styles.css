@@ -1,0 +1,69 @@
+:root {
+  --plane-0: #111110; --plane-1: #161615; --plane-2: #1b1b19;
+  --fg: #edebe5; --fg-2: rgba(237,235,229,.70); --fg-3: rgba(237,235,229,.46);
+  --line: rgba(237,235,229,.08); --line-strong: rgba(237,235,229,.18);
+  --accent: #4c8dff; --accent-fg: #0b1424;
+  --sans: "Geist", ui-sans-serif, sans-serif;
+  --mono: "Geist Mono", ui-monospace, Menlo, monospace;
+  --serif: "Newsreader", Georgia, serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --plane-0: #efede6; --plane-1: #f6f4ee; --plane-2: #fbfaf6;
+    --fg: #1a1a17; --fg-2: rgba(26,26,23,.68); --fg-3: rgba(26,26,23,.48);
+    --line: rgba(26,26,23,.10); --line-strong: rgba(26,26,23,.20);
+    --accent: #2f6fe0; --accent-fg: #ffffff;
+    color-scheme: light;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--plane-1); color: var(--fg);
+  font: 400 16px/1.6 var(--sans); -webkit-font-smoothing: antialiased;
+}
+a { color: var(--fg); text-underline-offset: 3px; }
+a:hover { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+header.top { border-bottom: 1px solid var(--line); background: var(--plane-0); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; letter-spacing: -.01em; }
+.brand img { width: 24px; height: 24px; }
+nav a { font: 500 12px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--fg-3); text-decoration: none; margin-left: 20px; }
+nav a:hover { color: var(--fg); }
+
+.hero { padding: 88px 0 64px; border-bottom: 1px solid var(--line); }
+.eyebrow { font: 500 12px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--fg-3); margin: 0 0 20px; }
+.hero h1 { font: 600 clamp(36px, 6vw, 60px)/1.05 var(--sans); letter-spacing: -.025em; margin: 0 0 20px; max-width: 16ch; text-wrap: balance; }
+.hero p.lede { font: 400 21px/1.55 var(--serif); color: var(--fg-2); max-width: 58ch; margin: 0 0 32px; }
+.caret { display: inline-block; width: 3px; height: .9em; background: var(--accent); vertical-align: -.08em; margin-left: 6px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .caret { animation: none; } }
+.status { display: inline-flex; align-items: center; gap: 8px; font: 500 12px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--fg-2); border: 1px solid var(--line-strong); padding: 10px 14px; border-radius: 4px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); border-left: 1px solid var(--line); }
+.grid > div { padding: 28px 24px 32px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.grid h3 { font: 600 15px/1.4 var(--sans); margin: 0 0 8px; }
+.grid p { margin: 0; color: var(--fg-2); font-size: 15px; }
+section.features { padding: 0 0 64px; }
+section.features .label { font: 500 12px/1 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--fg-3); padding: 48px 0 20px; margin: 0; }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .grid { grid-template-columns: 1fr; } .hero { padding: 56px 0 44px; } }
+
+.doc { padding: 64px 0 88px; }
+.doc .inner { max-width: 680px; }
+.doc h1 { font: 600 36px/1.15 var(--sans); letter-spacing: -.02em; margin: 0 0 8px; }
+.doc .meta { font: 400 12px/1 var(--mono); color: var(--fg-3); text-transform: uppercase; letter-spacing: .08em; margin: 0 0 40px; }
+.doc h2 { font: 600 19px/1.35 var(--sans); margin: 40px 0 10px; }
+.doc p, .doc li { font: 400 17.5px/1.65 var(--serif); color: var(--fg-2); }
+.doc ul { padding-left: 1.2em; }
+.doc strong { color: var(--fg); font-weight: 600; }
+
+footer { border-top: 1px solid var(--line); background: var(--plane-0); }
+footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 24px 20px; font: 400 12px/1.6 var(--mono); color: var(--fg-3); }
+footer a { color: var(--fg-3); }
+code { font: 400 .88em/1 var(--mono); background: var(--plane-2); border: 1px solid var(--line); padding: 2px 5px; border-radius: 4px; }

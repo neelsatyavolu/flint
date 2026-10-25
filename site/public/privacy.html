@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flint Privacy Policy</title>
+  <meta name="description" content="What Flint does with your mail, your Google data, AI requests and read receipts.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="/"><img src="/favicon.svg" alt="">Flint</a>
+      <nav><a href="/privacy">Privacy</a><a href="https://xanom.co">Xanom</a></nav>
+    </div>
+  </header>
+
+  <main class="doc">
+    <div class="wrap"><div class="inner">
+      <h1>Privacy policy</h1>
+      <p class="meta">Effective October 25, 2026</p>
+
+      <p>Flint is a desktop mail client made by Xanom. It runs on your computer. There is no Flint account, and Flint has no server that receives your mail.</p>
+
+      <h2>Your mail stays on your computer</h2>
+      <p>Flint connects directly from your computer to your mail provider (for example Gmail or iCloud) over IMAP and SMTP. Messages, attachments, contacts, drafts and settings are stored in a local database on your computer. Passwords and sign-in tokens are encrypted with the macOS Keychain. Flint does not copy any of this to Xanom or anyone else.</p>
+      <p>Flint does not include analytics, advertising or crash-reporting software.</p>
+
+      <h2>Google user data</h2>
+      <p>When you sign in with Google, Flint asks for access to Gmail (<code>https://mail.google.com/</code>) and your basic profile (name and email address). Flint uses this access only to show, search, send and organize your mail inside the app on your computer, at your request.</p>
+      <ul>
+        <li>Your Google data is stored only on your computer.</li>
+        <li>It is not sent to Xanom servers, sold, or used for advertising.</li>
+        <li>No person at Xanom reads it.</li>
+        <li>It is not used to train AI models.</li>
+        <li>It is shared with an AI provider only when you use an AI feature, as described below.</li>
+      </ul>
+      <p>Flint's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+      <p>You can remove Flint's access at any time in your <a href="https://myaccount.google.com/permissions">Google account permissions</a>. Removing an account in Flint deletes its local mail and credentials.</p>
+
+      <h2>AI features</h2>
+      <p>AI features are off until you connect your own ChatGPT or Grok account. When you ask for a summary, a reply, a rewrite, a translation or an answer about your inbox, Flint sends the text needed for that request (for example the thread you are reading) from your computer to the provider you connected, using your account with them. That provider's own privacy terms apply. Xanom does not receive these requests.</p>
+
+      <h2>Read receipts</h2>
+      <p>If you leave read receipts on, Flint adds a small invisible image to each copy of a message you send, with a random code for each recipient. When a recipient's mail app loads that image, the Flint receipts service (<code>flintr.xanom.co</code>, run by Xanom on Cloudflare) records:</p>
+      <ul>
+        <li>the time of the request,</li>
+        <li>the mail app and device type, read from the user agent,</li>
+        <li>city and country as estimated by Cloudflare,</li>
+        <li>a keyed one-way hash of the IP address, used to filter out your own opens and repeat loads. The IP address itself is not stored.</li>
+      </ul>
+      <p>To tell real opens apart from Apple Mail Privacy Protection and security scanners, the service also looks at the network the request comes from at the moment it arrives. The network name is not stored.</p>
+      <p>The service never receives the message, its subject or any email address. Records are deleted after 180 days. You can turn receipts off for one message in the composer or for all mail in Settings, and you can point Flint at a receipts service you run yourself.</p>
+
+      <h2>Local agents</h2>
+      <p>Flint can let programs on your computer, such as coding agents, use your mail through the <code>flint</code> command. This works only on your computer, through a private socket protected by a token file. You can turn it off, limit what agents may do, and require your approval before an agent sends mail. Every agent action is listed in Agent Activity.</p>
+
+      <h2>Children</h2>
+      <p>Flint is not directed at children under 13.</p>
+
+      <h2>Changes and contact</h2>
+      <p>If this policy changes, the new version will be posted here with a new effective date. Questions go to <a href="mailto:neel@xanom.co">neel@xanom.co</a>.</p>
+    </div></div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Flint is made by <a href="https://xanom.co">Xanom</a>. MIT licensed.</span>
+      <span><a href="/privacy">Privacy policy</a> · <a href="mailto:neel@xanom.co">neel@xanom.co</a></span>
+    </div>
+  </footer>
+</body>
+</html>
