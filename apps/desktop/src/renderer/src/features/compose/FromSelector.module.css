@@ -1,0 +1,18 @@
+.from {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 240px;
+  height: 36px;
+  padding: 0 8px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-control);
+  color: var(--fg-2);
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.from:hover:not(:disabled) { background: var(--hover); }
+.text { display: flex; flex-direction: column; min-width: 0; }
+.address { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.name { color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 14px; }

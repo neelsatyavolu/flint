@@ -1,0 +1,170 @@
+/* Flint design tokens. Source of truth: DESIGN.md §2-§7. Components never use raw hex. */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --plane-0: #111110;
+  --plane-1: #161615;
+  --plane-2: #1b1b19;
+  --plane-3: #232321;
+  --fg: #edebe5;
+  --fg-2: rgba(237, 235, 229, 0.7);
+  --fg-3: rgba(237, 235, 229, 0.46);
+  --fg-4: rgba(237, 235, 229, 0.26);
+  --hover: rgba(237, 235, 229, 0.045);
+  --active: rgba(237, 235, 229, 0.08);
+  --line: rgba(237, 235, 229, 0.08);
+  --line-strong: rgba(237, 235, 229, 0.18);
+  --accent: #4c8dff;
+  --accent-fg: #0b1424;
+  --accent-soft: rgba(76, 141, 255, 0.14);
+  --accent-ring: rgba(76, 141, 255, 0.5);
+  --danger: #e5483a;
+  --ok: #4fbf85;
+  --warn: #d9a441;
+  --avatar-l: 0.58;
+  --avatar-c: 0.09;
+  --avatar-fg: #f4f2ec;
+  --scrollbar-thumb: rgba(237, 235, 229, 0.16);
+  --scrollbar-thumb-hover: rgba(237, 235, 229, 0.28);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --plane-0: #efede6;
+  --plane-1: #f6f4ee;
+  --plane-2: #fbfaf6;
+  --plane-3: #ffffff;
+  --fg: #1a1a17;
+  --fg-2: rgba(26, 26, 23, 0.68);
+  --fg-3: rgba(26, 26, 23, 0.48);
+  --fg-4: rgba(26, 26, 23, 0.28);
+  --hover: rgba(26, 26, 23, 0.04);
+  --active: rgba(26, 26, 23, 0.07);
+  --line: rgba(26, 26, 23, 0.1);
+  --line-strong: rgba(26, 26, 23, 0.2);
+  --accent: #2f6fe0;
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(47, 111, 224, 0.1);
+  --accent-ring: rgba(47, 111, 224, 0.45);
+  --danger: #c8352a;
+  --ok: #24894f;
+  --warn: #9c6b12;
+  --avatar-l: 0.68;
+  --avatar-c: 0.08;
+  --scrollbar-thumb: rgba(26, 26, 23, 0.18);
+  --scrollbar-thumb-hover: rgba(26, 26, 23, 0.32);
+}
+
+:root {
+  /* Type families */
+  --font-ui: "Geist Variable", "Geist", ui-sans-serif, sans-serif;
+  --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
+  --font-prose: "Newsreader Variable", "Newsreader", Georgia, serif;
+
+  /* Type scale (size / line) */
+  --text-body: 13.5px;
+  --lh-body: 20px;
+  --text-title: 15px;
+  --lh-title: 22px;
+  --text-subject: 21px;
+  --lh-subject: 28px;
+  --text-compose: 24px;
+  --lh-compose: 32px;
+  --text-data: 11.5px;
+  --lh-data: 16px;
+  --text-label: 11px;
+  --lh-label: 16px;
+  --text-prose: 16.5px;
+  --lh-prose: 26px;
+  --text-setting: 14.5px;
+
+  /* Spacing, 4px grid */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-12: 48px;
+
+  /* Radius */
+  --r-0: 0;
+  --r-control: 4px;
+  --r-round: 999px;
+
+  /* Control heights */
+  --h-control: 32px;
+  --h-icon: 28px;
+  --h-menu-item: 28px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 120ms;
+  --dur-panel: 180ms;
+  --dur-collapse: 160ms;
+
+  /* Focus */
+  --focus-ring: 2px solid var(--accent-ring);
+  --focus-offset: 1px;
+
+  /* Layout */
+  --titlebar-h: 38px;
+  --z-menu: 1000;
+  --z-dialog: 900;
+  --z-toast: 1100;
+  --z-tooltip: 1200;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --plane-0: #efede6;
+    --plane-1: #f6f4ee;
+    --plane-2: #fbfaf6;
+    --plane-3: #ffffff;
+    --fg: #1a1a17;
+    --fg-2: rgba(26, 26, 23, 0.68);
+    --fg-3: rgba(26, 26, 23, 0.48);
+    --fg-4: rgba(26, 26, 23, 0.28);
+    --hover: rgba(26, 26, 23, 0.04);
+    --active: rgba(26, 26, 23, 0.07);
+    --line: rgba(26, 26, 23, 0.1);
+    --line-strong: rgba(26, 26, 23, 0.2);
+    --accent: #2f6fe0;
+    --accent-fg: #ffffff;
+    --accent-soft: rgba(47, 111, 224, 0.1);
+    --accent-ring: rgba(47, 111, 224, 0.45);
+    --danger: #c8352a;
+    --ok: #24894f;
+    --warn: #9c6b12;
+    --avatar-l: 0.68;
+    --avatar-c: 0.08;
+    --scrollbar-thumb: rgba(26, 26, 23, 0.18);
+    --scrollbar-thumb-hover: rgba(26, 26, 23, 0.32);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-panel: 0ms;
+    --dur-collapse: 0ms;
+  }
+}
+
+/* Type role classes */
+.t-body { font: 400 var(--text-body) / var(--lh-body) var(--font-ui); }
+.t-strong { font: 600 var(--text-body) / var(--lh-body) var(--font-ui); }
+.t-title { font: 600 var(--text-title) / var(--lh-title) var(--font-ui); }
+.t-subject { font: 600 var(--text-subject) / var(--lh-subject) var(--font-ui); text-wrap: balance; }
+.t-compose { font: 600 var(--text-compose) / var(--lh-compose) var(--font-ui); }
+.t-data { font: 400 var(--text-data) / var(--lh-data) var(--font-mono); font-variant-numeric: tabular-nums; }
+.t-label {
+  font: 500 var(--text-label) / var(--lh-label) var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-3);
+}
+.t-prose { font: 400 var(--text-prose) / var(--lh-prose) var(--font-prose); max-width: 68ch; }

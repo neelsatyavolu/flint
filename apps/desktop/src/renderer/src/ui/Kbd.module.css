@@ -1,0 +1,7 @@
+.kbd {
+  font: 400 var(--text-data) / var(--lh-data) var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-3);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}

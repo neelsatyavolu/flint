@@ -1,0 +1,16 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--r-control);
+  font: 400 var(--text-data) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  background: var(--active);
+  color: var(--fg-2);
+  white-space: nowrap;
+}
+.accent { background: var(--accent-soft); color: var(--accent); }
+.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+.warn { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.danger { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }

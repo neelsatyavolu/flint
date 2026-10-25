@@ -1,0 +1,78 @@
+.row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  min-height: 36px;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+.row:focus-within { border-bottom-color: var(--line); }
+.invalid { border-bottom-color: var(--danger); }
+.compact { min-height: 28px; padding: 2px 0; }
+.label {
+  flex: none;
+  width: 28px;
+  padding-top: 5px;
+  color: var(--fg-3);
+}
+.chips { position: relative; display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  height: 24px;
+  padding: 0 4px 0 4px;
+  background: var(--active);
+  border-radius: var(--r-control);
+  font: 400 var(--text-body) / var(--lh-body) var(--font-ui);
+  color: var(--fg);
+}
+.chipText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg-3);
+  border-radius: var(--r-control);
+}
+.remove:hover { color: var(--fg); background: var(--active); }
+.input {
+  flex: 1;
+  min-width: 120px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font: 400 var(--text-body) / var(--lh-body) var(--font-ui);
+  caret-color: var(--accent);
+}
+.input:focus, .input:focus-visible { outline: none; }
+.input::placeholder { color: var(--fg-3); }
+.trailing { flex: none; display: flex; gap: 2px; padding-top: 2px; }
+.list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: var(--z-menu);
+  min-width: 320px;
+  max-width: 480px;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--plane-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+}
+.option { display: flex; align-items: center; gap: var(--s-2); height: 36px; padding: 0 8px; border-radius: var(--r-control); }
+.optionActive { background: var(--active); }
+.optionName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
+.optionEmail { margin-left: auto; color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="#161615"/>
+  <!-- faceted flint stone -->
+  <polygon points="470,250 690,330 760,560 610,780 380,740 270,520 330,330" fill="#4C8DFF" fill-opacity="0.22"/>
+  <polygon points="470,250 690,330 560,470" fill="#4C8DFF" fill-opacity="0.9"/>
+  <polygon points="470,250 560,470 330,330" fill="#4C8DFF" fill-opacity="0.55"/>
+  <polygon points="330,330 560,470 270,520" fill="#4C8DFF" fill-opacity="0.35"/>
+  <polygon points="690,330 760,560 560,470" fill="#4C8DFF" fill-opacity="0.65"/>
+  <polygon points="560,470 760,560 610,780" fill="#4C8DFF" fill-opacity="0.42"/>
+  <polygon points="560,470 610,780 380,740" fill="#4C8DFF" fill-opacity="0.28"/>
+  <polygon points="270,520 560,470 380,740" fill="#4C8DFF" fill-opacity="0.18"/>
+  <!-- spark -->
+  <path d="M790 200 L808 262 L870 280 L808 298 L790 360 L772 298 L710 280 L772 262 Z" fill="#EDEBE5"/>
+</svg>

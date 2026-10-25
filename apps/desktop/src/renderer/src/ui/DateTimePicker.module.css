@@ -1,0 +1,9 @@
+.panel { min-width: 260px; }
+.title { padding: 8px 8px 4px; }
+.list { display: flex; flex-direction: column; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); height: var(--h-menu-item); padding: 0 8px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--fg); text-align: left; font: 400 var(--text-body) / 1 var(--font-ui); }
+.row:hover { background: var(--hover); }
+.row:focus-visible { outline: none; background: var(--active); }
+.rowLabel { display: inline-flex; align-items: center; gap: var(--s-2); }
+.custom { display: flex; gap: var(--s-2); padding: var(--s-2) 4px 4px; }
+.custom input { flex: 1; }

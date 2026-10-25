@@ -1,0 +1,26 @@
+.bar {
+  position: fixed;
+  z-index: var(--z-menu);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  transform: translateX(-50%);
+  background: var(--plane-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+}
+.sep { width: 1px; height: 16px; margin: 0 4px; background: var(--line); }
+.link { display: flex; }
+.linkInput {
+  width: 260px;
+  height: 28px;
+  padding: 0 8px;
+  background: transparent;
+  border: 0;
+  color: var(--fg);
+  font: 400 var(--text-body) / var(--lh-body) var(--font-ui);
+  caret-color: var(--accent);
+}
+.linkInput:focus { outline: none; }
+.linkInput::placeholder { color: var(--fg-3); }

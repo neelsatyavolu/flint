@@ -1,0 +1,12 @@
+.popover {
+  z-index: var(--z-menu);
+  min-width: 240px;
+  max-width: 360px;
+  padding: 4px;
+  background: var(--plane-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  outline: none;
+  animation: in var(--dur-panel) var(--ease);
+}
+@keyframes in { from { opacity: 0; transform: translateY(4px); } }

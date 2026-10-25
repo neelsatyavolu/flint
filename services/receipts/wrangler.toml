@@ -1,0 +1,16 @@
+name = "flint-receipts"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+# Run daily at 03:17 UTC: purge events/messages older than 180 days and stale sender fingerprints.
+[triggers]
+crons = ["17 3 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "flint-receipts"
+# Replace with the id printed by `wrangler d1 create flint-receipts`.
+database_id = "REPLACE_WITH_D1_ID"
+migrations_dir = "migrations"
+
+# Secret, not a var. Set with: wrangler secret put FINGERPRINT_SALT

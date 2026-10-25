@@ -1,0 +1,2 @@
+.divider { flex: none; height: 1px; width: 100%; background: var(--line); }
+.vertical { width: 1px; height: 100%; }

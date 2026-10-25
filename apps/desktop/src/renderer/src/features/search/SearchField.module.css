@@ -1,0 +1,11 @@
+.wrap { position: relative; padding: 0 16px 8px; background: var(--plane-1); }
+.field { position: relative; display: flex; align-items: center; }
+.icon { position: absolute; left: 10px; color: var(--fg-3); pointer-events: none; }
+.input { padding-left: 32px; padding-right: 30px; width: 100%; }
+.clear { position: absolute; right: 4px; }
+.hints { position: absolute; z-index: 10; left: 16px; right: 16px; top: 36px; padding: 4px; background: var(--plane-3); border: 1px solid var(--line-strong); border-radius: var(--r-control); animation: in var(--dur-panel) var(--ease); }
+@keyframes in { from { opacity: 0; transform: translateY(4px); } }
+.hint { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; height: 28px; padding: 0 8px; border: 0; border-radius: var(--r-control); background: transparent; text-align: left; color: var(--fg); }
+.hint:hover, .hintOn { background: var(--active); }
+.token { color: var(--accent); }
+.desc { color: var(--fg-3); }

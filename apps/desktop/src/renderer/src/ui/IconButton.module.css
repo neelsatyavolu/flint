@@ -1,0 +1,22 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--fg-2);
+  border-radius: var(--r-control);
+  transition: background-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.s24 { width: 24px; height: 24px; }
+.s28 { width: 28px; height: 28px; }
+.s32 { width: 32px; height: 32px; }
+.btn:hover { background: var(--hover); color: var(--fg); }
+.btn:active, .pressed { background: var(--active); color: var(--fg); }
+.btn:disabled { opacity: 0.4; pointer-events: none; }
+.accent { color: var(--accent); }
+.accent:hover { color: var(--accent); }
+.filled, .filled:hover, .filled:active { background: var(--accent); color: var(--accent-fg); }
+.filled:hover { background: color-mix(in srgb, var(--accent) 88%, var(--fg)); }

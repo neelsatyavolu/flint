@@ -1,0 +1,19 @@
+.list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 280px;
+  height: 28px;
+  padding: 0 4px 0 8px;
+  background: var(--active);
+  border-radius: var(--r-control);
+  color: var(--fg);
+}
+.icon { flex: none; color: var(--fg-3); }
+.name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.remove {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; padding: 0; border: 0; background: transparent; color: var(--fg-3); border-radius: var(--r-control);
+}
+.remove:hover { color: var(--fg); background: var(--active); }

@@ -1,0 +1,31 @@
+appId: co.xanom.flint
+productName: Flint
+copyright: Xanom
+directories:
+  output: release
+  buildResources: build
+asar: true
+# The main process bundle includes every dependency, so no node_modules ship.
+files:
+  - out/**
+  - package.json
+  - "!node_modules/**/*"
+extraResources:
+  - from: ../cli/dist/flint.js
+    to: cli/flint.js
+protocols:
+  - name: Mail link
+    schemes:
+      - mailto
+mac:
+  category: public.app-category.productivity
+  icon: build/icon.png
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist

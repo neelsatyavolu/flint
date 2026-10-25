@@ -1,0 +1,19 @@
+.avatar {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+  color: var(--avatar-fg);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+.s16 { width: 16px; height: 16px; font-size: 8px; }
+.s24 { width: 24px; height: 24px; font-size: 10px; }
+.s32 { width: 32px; height: 32px; font-size: 12px; }
+.img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--plane-3); }
+.initials { letter-spacing: 0.02em; }

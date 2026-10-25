@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "types": ["@cloudflare/workers-types", "node"], "lib": ["ES2023"] },
+  "include": ["src", "scripts/*.d.ts", "vitest.config.ts"]
+}
