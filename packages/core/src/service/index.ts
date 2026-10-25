@@ -49,6 +49,8 @@ export type ServiceOptions = {
   sync?: SyncTuning;
   /** Google OAuth client this build ships with, used when the user hasn't set their own in settings.google. */
   googleClient?: import("../mail/connect").GoogleClient;
+  /** Home directory whose coding-agent skills folders get the flint skill (tests; default is the real home). */
+  agentHome?: string;
   /** Absolute path of the bundled CLI script (apps/cli/dist/flint.js). installCli wraps it. */
   cliPath?: string;
   /** Where installCli writes the `flint` wrapper and agentInfo looks for it. Default ~/.local/bin, /usr/local/bin. */

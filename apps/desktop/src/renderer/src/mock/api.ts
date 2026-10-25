@@ -375,6 +375,15 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
     },
     async agentInfo() { return { socketPath: "/Users/alex/Library/Application Support/Flint/agent.sock", tokenPath: "/Users/alex/Library/Application Support/Flint/agent-token", cliInstalled: false, cliPath: null }; },
     async installCli() { return { path: "/usr/local/bin/flint" }; },
+    async agentSkillStatus() { return state.skill; },
+    async installAgentSkill() {
+      state.skill = { installed: true, targets: state.skill.targets.map((t) => ({ ...t, installed: t.present })) };
+      return state.skill;
+    },
+    async removeAgentSkill() {
+      state.skill = { installed: false, targets: state.skill.targets.map((t) => ({ ...t, installed: false })) };
+      return state.skill;
+    },
 
     // Settings
     async getSettings() { return state.settings; },

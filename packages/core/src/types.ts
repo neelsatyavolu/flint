@@ -335,6 +335,17 @@ export type AgentActivity = {
   detail: Record<string, unknown>;
 };
 
+/** One coding agent's user-level skills folder and whether Flint's "flint" skill is in it. */
+export type AgentSkillTarget = {
+  id: string;
+  label: string;          // "Claude Code", "Codex, Gemini CLI, Copilot CLI and OpenCode", ...
+  path: string;           // the skill folder, e.g. ~/.claude/skills/flint
+  present: boolean;       // the agent seems to be installed on this Mac
+  installed: boolean;     // Flint's skill is there
+  note?: string;          // why it was skipped
+};
+export type AgentSkillStatus = { targets: AgentSkillTarget[]; installed: boolean };
+
 // ---------- Home ----------
 
 export type HomeData = {

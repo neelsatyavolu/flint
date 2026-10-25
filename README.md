@@ -12,12 +12,12 @@ Flint updates itself. It checks GitHub Releases at launch and every six hours, d
 
 ## What it does
 
-- **Accounts.** Gmail through Google sign-in or an app password, Proton Mail through Proton Mail Bridge, and iCloud, Outlook, Fastmail or any IMAP/SMTP server. Settings are filled in automatically for most providers.
+- **Accounts.** Gmail through Google sign-in (no setup) or an app password, Proton Mail through Proton Mail Bridge, and iCloud, Outlook, Fastmail or any IMAP/SMTP server. Settings are filled in automatically for most providers.
 - **Smart inbox.** Mail from people comes first. Notifications and newsletters are grouped into bundles. Pins, snooze, send later, undo send, follow-up reminders, mute, rules and templates.
 - **Signatures.** Per-account defaults, and a one-click import of your signatures from Spark.
 - **Read receipts.** Each recipient gets their own copy with a private marker. The receipts service drops opens it can't trust: Apple Mail Privacy Protection prefetches, security scanners, bots, your own opens and repeats. Apple prefetches show as "can't be known", never as "opened". Your Sent folder keeps one clean copy.
 - **+AI.** Summaries, reply drafts, rewrites, translation and questions about your inbox, through your own ChatGPT (Codex) or Grok account via [shared-ai-auth](https://github.com/neelsatyavolu/shared-ai-auth). Flint charges nothing and sends nothing to an AI provider unless you use an AI feature.
-- **Agents.** The `flint` command (Settings → Agents → Install) lets local agents list, read, search, draft, archive, snooze and send. Every call shows up in Agent Activity, and sending waits for your approval unless you allow it.
+- **Agents.** The `flint` command (Settings → Agents → Install) lets local agents list, read, search, draft, archive, snooze and send. Every call shows up in Agent Activity, and sending waits for your approval unless you allow it. **Skill for AI agents** (same page) adds a `flint` [Agent Skill](https://agentskills.io) to Claude Code, Codex, Gemini CLI, Copilot CLI, OpenCode, Grok, Cursor, Factory and Antigravity, so they know the commands without being told.
 
 ```sh
 flint list --view inbox

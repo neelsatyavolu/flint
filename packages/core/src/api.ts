@@ -1,6 +1,6 @@
 import type {
   AutoconfigResult,
-  Account, AccountId, AddAccountInput, AgentActivity, AiProvider, AiRun, AiStatus, AiTask, Contact,
+  Account, AccountId, AddAccountInput, AgentActivity, AgentSkillStatus, AiProvider, AiRun, AiStatus, AiTask, Contact,
   DeepPartial, Draft, DraftInit, DraftPatch, FlintEvent, Folder, FolderId, HomeData, MessageRowId,
   MessageView, ReceiptDetail, Rule, ScheduledSend, SendResult, ServerConfig, Settings, SidebarData,
   Signature, SyncStatus, Template, ThreadDetail, ThreadId, ThreadPage, ThreadQuery, LoadOlderResult, ServerSearchResult, TrackedMessage,
@@ -133,6 +133,12 @@ export interface FlintApi {
   listAgentActivity(opts?: { limit?: number; before?: number }): Promise<AgentActivity[]>;
   agentInfo(): Promise<{ socketPath: string; tokenPath: string; cliInstalled: boolean; cliPath: string | null }>;
   installCli(): Promise<{ path: string }>;
+  /** Where the "flint" Agent Skill is (or could be) installed for each coding agent on this Mac. */
+  agentSkillStatus(): Promise<AgentSkillStatus>;
+  /** Writes the skill for every agent found, installing the flint command first if needed. */
+  installAgentSkill(): Promise<AgentSkillStatus>;
+  /** Removes the copies of the skill Flint wrote. */
+  removeAgentSkill(): Promise<AgentSkillStatus>;
 
   // Settings
   getSettings(): Promise<Settings>;
@@ -171,6 +177,7 @@ export const METHOD_TIERS: Record<FlintMethod, "read" | "modify" | "send" | "adm
   aiStatus: "read", aiStartConnect: "admin", aiFinishConnect: "admin", aiDisconnect: "admin", aiSetModel: "admin",
   aiRun: "read", aiRunToText: "read", aiCancel: "read",
   listAgentActivity: "read", agentInfo: "admin", installCli: "admin",
+  agentSkillStatus: "admin", installAgentSkill: "admin", removeAgentSkill: "admin",
   getSettings: "admin", updateSettings: "admin",
 };
 

@@ -1,4 +1,4 @@
-import type { Address, Draft, Folder, MailboxRole, MessageView, ReceiptDetail, ReceiptRecipient, TrackedMessage } from "@flint/core";
+import type { Address, AgentSkillStatus, Draft, Folder, MailboxRole, MessageView, ReceiptDetail, ReceiptRecipient, TrackedMessage } from "@flint/core";
 import { SIGNATURES, quoteBlock, textToMailHtml } from "./bodies";
 import { ACCOUNT_IDS, defaultAi, defaultSettings, makeAccounts, makeActivity, makeRules, makeSignatures, makeTemplates } from "./fixtures";
 import { generateThreads } from "./generated";
@@ -148,7 +148,7 @@ export function buildState(now: number, seed = 7): MockState {
   const state: MockState = {
     accounts: makeAccounts(now), folders: [], threads: [], drafts: [], scheduled: [], signatures: makeSignatures(), templates: makeTemplates(), rules: makeRules(),
     blocked: [{ pattern: "outreach@growth-hacker.example", createdAt: now - 12 * DAY * MIN }, { pattern: "@bulk-deals.example", createdAt: now - 40 * DAY * MIN }],
-    tracked: [], receipts: {}, activity: makeActivity(now), settings: defaultSettings(), ai: defaultAi(),
+    tracked: [], receipts: {}, activity: makeActivity(now), skill: mockSkill(), settings: defaultSettings(), ai: defaultAi(),
     sync: [], ids: {}, older: [],
   };
   state.folders = buildFolders(state);
@@ -160,4 +160,20 @@ export function buildState(now: number, seed = 7): MockState {
   state.older = generateOlder(rng).map((s) => buildThread(state, s, now, folderByName));
   seedDrafts(state, now);
   return state;
+}
+
+/** Agent skill folders as a Mac with Claude Code, Codex and Grok installed would report them. */
+function mockSkill(): AgentSkillStatus {
+  const t = (id: string, label: string, dir: string, present: boolean) => ({ id, label, path: `/Users/alex/${dir}/flint`, present, installed: false });
+  return {
+    installed: false,
+    targets: [
+      t("claude", "Claude Code", ".claude/skills", true),
+      t("agents", "Codex, Gemini CLI, Copilot CLI and OpenCode", ".agents/skills", true),
+      t("grok", "Grok", ".grok/skills", true),
+      t("cursor", "Cursor", ".cursor/skills", false),
+      t("factory", "Factory Droid", ".factory/skills", false),
+      t("antigravity", "Antigravity", ".gemini/config/skills", false),
+    ],
+  };
 }

@@ -148,6 +148,9 @@ export function createMockService(dataDir: string): FlintService {
       return { ...agentPaths(dataDir), cliInstalled: false, cliPath: null };
     },
     async installCli() { throw new FlintError("invalid", "The command line tool is unavailable in mock mode"); },
+    async agentSkillStatus() { return { targets: [], installed: false }; },
+    async installAgentSkill() { throw new FlintError("invalid", "The agent skill is unavailable in mock mode"); },
+    async removeAgentSkill() { return { targets: [], installed: false }; },
 
     async getSettings() { return settings; },
     async updateSettings(patch) {

@@ -1,6 +1,8 @@
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createFlintService } from "@flint/core";
+import { refreshSkill } from "@flint/core/agent/skill";
 import { initLog, logger } from "@flint/core/log";
 import type { FlintService } from "@flint/core/service/index";
 import type { BrowserWindow } from "electron";
@@ -127,7 +129,16 @@ async function main(): Promise<void> {
   }
   service = result.service;
   if (result.mock) log.warn("running with the mock service");
-  else await applyDefaultReceiptsEndpoint(service, dataDir);
+  else {
+    await applyDefaultReceiptsEndpoint(service, dataDir);
+    // Keep an installed flint skill in step with this version's command.
+    try {
+      const changed = refreshSkill(homedir(), app.getVersion());
+      if (changed) log.info("refreshed the flint agent skill", { changed });
+    } catch (err) {
+      log.warn("could not refresh the flint agent skill", { message: String(err) });
+    }
+  }
 
   const badge = createBadgeUpdater({
     getUnread: async () => (await service!.getSidebar()).counts.inbox,

@@ -1,4 +1,5 @@
 import type {
+  AgentSkillStatus,
   Account, AccountId, AgentActivity, AiStatus, Category, Draft, Folder, FolderId, MessageView, Rule, ReceiptDetail,
   ScheduledSend, Settings, Signature, SyncStatus, Template, ThreadId, TrackedMessage,
 } from "@flint/core";
@@ -34,6 +35,7 @@ export type MockState = {
   tracked: TrackedMessage[];
   receipts: Record<number, ReceiptDetail>;
   activity: AgentActivity[];
+  skill: AgentSkillStatus;
   settings: Settings;
   ai: AiStatus;
   sync: SyncStatus[];

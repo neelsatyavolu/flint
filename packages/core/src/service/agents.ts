@@ -3,13 +3,14 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { FlintApi } from "../api";
 import { agentPaths } from "../agent/paths";
+import { installSkill, removeSkill, skillStatus } from "../agent/skill";
 import { logger } from "../log";
 import { FlintError, type AgentActivity } from "../types";
 import type { ServiceContext } from "./context";
 
 const log = logger("service.agents");
 
-export type AgentsApi = Pick<FlintApi, "listAgentActivity" | "agentInfo" | "installCli">;
+export type AgentsApi = Pick<FlintApi, "listAgentActivity" | "agentInfo" | "installCli" | "agentSkillStatus" | "installAgentSkill" | "removeAgentSkill">;
 
 const MAX_SCAN = 500;
 
@@ -54,7 +55,8 @@ export function markApproval(ctx: ServiceContext, scheduledId: number, status: "
 }
 
 export function agentsApi(ctx: ServiceContext): AgentsApi {
-  return {
+  const home = (): string => ctx.options.agentHome ?? homedir();
+  const api: AgentsApi = {
     async listAgentActivity(opts) {
       return ctx.store.listActivity(opts ?? {});
     },
@@ -96,5 +98,24 @@ export function agentsApi(ctx: ServiceContext): AgentsApi {
       }
       throw new FlintError("permission", "Flint couldn't write the flint command. Check that ~/.local/bin is writable.");
     },
+
+    async agentSkillStatus() {
+      return skillStatus(home());
+    },
+
+    async installAgentSkill() {
+      // The skill tells agents to run `flint`, so put the command on the PATH first.
+      if (!installedAt(ctx)) {
+        await api.installCli().catch((error: Error) => log.warn("installing the skill without the flint command", { reason: error.message }));
+      }
+      const status = installSkill(home(), ctx.platform.appVersion);
+      log.info("installed the flint skill", { targets: status.targets.filter((t) => t.installed).map((t) => t.id) });
+      return status;
+    },
+
+    async removeAgentSkill() {
+      return removeSkill(home());
+    },
   };
+  return api;
 }
