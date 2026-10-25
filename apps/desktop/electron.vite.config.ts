@@ -11,8 +11,17 @@ const requireBanner =
   "import { createRequire as __flintCreateRequire } from 'node:module';\n" +
   "const require = __flintCreateRequire(import.meta.url);";
 
+// The Google OAuth client this build ships with, read from the environment at build time (scripts/dist.sh loads it
+// from 1Password). It is never committed: Google treats a Desktop client's secret as public, but a secret pushed to
+// GitHub gets reported to Google and disabled. Empty means users bring their own client.
+const googleClient = {
+  clientId: process.env.FLINT_GOOGLE_CLIENT_ID ?? "",
+  clientSecret: process.env.FLINT_GOOGLE_CLIENT_SECRET ?? "",
+};
+
 export default defineConfig({
   main: {
+    define: { __FLINT_GOOGLE_CLIENT__: JSON.stringify(googleClient) },
     build: {
       externalizeDeps: false,
       outDir: "out/main",

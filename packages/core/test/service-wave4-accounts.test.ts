@@ -66,6 +66,41 @@ describe("Google account without a Gmail inbox", () => {
   });
 });
 
+describe("built-in Google client", () => {
+  const builtIn = { clientId: "builtin.apps.googleusercontent.com", clientSecret: "builtin-secret" };
+
+  it("signs in with the client the build ships when the user has none, and says so in settings", async () => {
+    const used: string[] = [];
+    const { service } = await boot({
+      googleClient: builtIn,
+      googleAuth: async (opts) => { used.push(opts.clientId); return { ...signIn, email: "me@gmail.com" }; },
+      googleMailboxCheck: async () => undefined,
+    });
+    const settings = await service.getSettings();
+    expect(settings.google).toEqual({ clientId: "", clientSecret: "", builtIn: true });
+    await service.addGoogleAccount();
+    expect(used).toEqual([builtIn.clientId]);
+  });
+
+  it("prefers the user's own client", async () => {
+    const used: string[] = [];
+    const { service } = await boot({
+      googleClient: builtIn,
+      googleAuth: async (opts) => { used.push(opts.clientId); return { ...signIn, email: "me@gmail.com" }; },
+      googleMailboxCheck: async () => undefined,
+    });
+    await service.updateSettings({ google: { clientId: "own.apps.googleusercontent.com", clientSecret: "own" } });
+    await service.addGoogleAccount();
+    expect(used).toEqual(["own.apps.googleusercontent.com"]);
+  });
+
+  it("reports no built-in client when the build has none", async () => {
+    const { service } = await boot();
+    expect((await service.getSettings()).google.builtIn).toBeUndefined();
+    await expect(service.addGoogleAccount()).rejects.toMatchObject({ code: "invalid" });
+  });
+});
+
 describe("connection error wording", () => {
   it("treats Lookup failed as a missing mailbox, not a password problem", () => {
     const err = { authenticationFailed: true, responseText: "Lookup failed", serverResponseCode: "AUTHENTICATIONFAILED" };

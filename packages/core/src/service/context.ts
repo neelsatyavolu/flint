@@ -73,8 +73,14 @@ export function createContext(platform: Platform, options: ServiceOptions = {}):
   const fetchImpl: typeof fetch = options.fetch ?? ((input, init) => fetch(input, init));
   const googleSecret = new GoogleSecret(platform.secrets, store);
   /** Settings as the rest of the app sees them: the Google client secret is masked. */
-  const getSettings = (): Settings => googleSecret.redact(store.getSettings());
-  const googleClient = () => googleClientFrom({ ...store.getSettings(), google: { ...store.getSettings().google, clientSecret: googleSecret.value } });
+  const builtInGoogle = options.googleClient?.clientId && options.googleClient.clientSecret ? options.googleClient : null;
+  const getSettings = (): Settings => {
+    const settings = googleSecret.redact(store.getSettings());
+    return builtInGoogle ? { ...settings, google: { ...settings.google, builtIn: true } } : settings;
+  };
+  /** The user's own client when they set one, else the one this build ships with. */
+  const googleClient = () =>
+    googleClientFrom({ ...store.getSettings(), google: { ...store.getSettings().google, clientSecret: googleSecret.value } }) ?? builtInGoogle;
   const secretsReady = googleSecret.load();
 
   const syncs = new SyncManager({

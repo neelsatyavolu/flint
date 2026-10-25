@@ -395,7 +395,9 @@ export type Settings = {
     send: "allow" | "ask" | "deny"; // 'ask' queues for approval in Agent Activity
   };
   sync: { initialDays: number; bodiesForRecentDays: number };
-  google: { clientId: string; clientSecret: string }; // user-supplied OAuth client (Desktop app type)
+  // user-supplied OAuth client (Desktop app type). builtIn is reported by getSettings, never stored: true when
+  // this build ships its own client, which is used whenever the user hasn't set one.
+  google: { clientId: string; clientSecret: string; builtIn?: boolean };
 };
 
 export type DeepPartial<T> = { [K in keyof T]?: T[K] extends Record<string, unknown> ? DeepPartial<T[K]> : T[K] };

@@ -102,6 +102,19 @@ describe("AddAccount", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Sign in with Google" }));
     await waitFor(() => expect(onDone).toHaveBeenCalled());
   });
+
+  it("goes straight to sign-in with the built-in client, and can switch to your own and back", async () => {
+    const real = await flint.getSettings();
+    vi.spyOn(flint, "getSettings").mockResolvedValue({ ...real, google: { clientId: "", clientSecret: "", builtIn: true } });
+    render(<AddAccount onDone={() => {}} />);
+    fireEvent.click(screen.getByText("Sign in with Google"));
+    expect(await screen.findByRole("button", { name: "Sign in with Google" })).toBeTruthy();
+    expect(screen.queryByText(/Desktop app/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Use my own Google client" }));
+    expect(await screen.findByText(/Desktop app/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(await screen.findByRole("button", { name: "Sign in with Google" })).toBeTruthy();
+  });
 });
 
 describe("Proton Bridge", () => {

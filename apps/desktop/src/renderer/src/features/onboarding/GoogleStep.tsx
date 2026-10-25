@@ -18,8 +18,17 @@ export function GoogleStep({ onDone, onSwitch }: Props) {
   if (!settings.data) return <p className={styles.muted} role="status">Loading…</p>;
   const g = settings.data.google;
 
-  if (editing || g.clientId.trim() === "") {
-    return <GoogleSetupPanel initialId={g.clientId} initialSecret={g.clientSecret} onSaved={() => { setEditing(false); settings.refetch(); }} />;
+  const ownClient = g.clientId.trim() !== "";
+  // Builds ship Flint's own Google client (settings.google.builtIn), so the setup panel is only needed without one.
+  if (editing || (!ownClient && !g.builtIn)) {
+    return (
+      <GoogleSetupPanel
+        initialId={g.clientId}
+        initialSecret={g.clientSecret}
+        onSaved={() => { setEditing(false); settings.refetch(); }}
+        {...(ownClient || g.builtIn ? { onCancel: () => setEditing(false) } : {})}
+      />
+    );
   }
 
   const signIn = async () => {
@@ -41,7 +50,7 @@ export function GoogleStep({ onDone, onSwitch }: Props) {
       ) : (
         <div className={styles.actions}>
           <Button variant="primary" onClick={() => void signIn()}>Sign in with Google</Button>
-          <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>Change Google client</Button>
+          <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>{ownClient ? "Change Google client" : "Use my own Google client"}</Button>
         </div>
       )}
       {error ? (

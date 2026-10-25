@@ -44,6 +44,22 @@ else
   echo "==> Unsigned build"
 fi
 
+# The Google OAuth client Flint ships with (1Password "Flint Google OAuth (Desktop)"), baked into the main bundle at
+# build time and never committed. Releases require it; other builds fall back to "bring your own client".
+GOOGLE_ITEM="op://Private/up35cvpqwmkehksfib4f35taq4"
+if [ -z "${FLINT_GOOGLE_CLIENT_ID:-}" ] && command -v op >/dev/null 2>&1; then
+  FLINT_GOOGLE_CLIENT_ID="$(op --account E3OXZANXQRDOBNXQMPXZ6YBHTY read "$GOOGLE_ITEM/username" 2>/dev/null || true)"
+  FLINT_GOOGLE_CLIENT_SECRET="$(op --account E3OXZANXQRDOBNXQMPXZ6YBHTY read "$GOOGLE_ITEM/credential" 2>/dev/null || true)"
+fi
+export FLINT_GOOGLE_CLIENT_ID="${FLINT_GOOGLE_CLIENT_ID:-}" FLINT_GOOGLE_CLIENT_SECRET="${FLINT_GOOGLE_CLIENT_SECRET:-}"
+if [ -n "$FLINT_GOOGLE_CLIENT_ID" ] && [ -n "$FLINT_GOOGLE_CLIENT_SECRET" ]; then
+  echo "==> Bundling the Flint Google OAuth client"
+elif [ "$MODE" = "apple" ]; then
+  echo "error: a release needs the Google OAuth client from 1Password ($GOOGLE_ITEM)" >&2; exit 1
+else
+  echo "==> No Google OAuth client: users add their own"
+fi
+
 cd "$ROOT"
 pnpm --filter @flint/cli build
 cd "$ROOT/apps/desktop"

@@ -7,7 +7,7 @@ import { CONSOLE_URL, GOOGLE_STEPS, SAVED_SECRET_MASK, checkClient } from "./goo
 import styles from "./onboarding.module.css";
 
 /** Walks the user through creating a free Desktop OAuth client and saves it to settings.google. */
-export function GoogleSetupPanel({ initialId = "", initialSecret = "", onSaved }: { initialId?: string; initialSecret?: string; onSaved: () => void }) {
+export function GoogleSetupPanel({ initialId = "", initialSecret = "", onSaved, onCancel }: { initialId?: string; initialSecret?: string; onSaved: () => void; onCancel?: () => void }) {
   const [clientId, setClientId] = useState(initialId);
   // A saved secret comes back masked; keep it unless the user chooses to replace it.
   const [savedSecret, setSavedSecret] = useState(initialSecret === SAVED_SECRET_MASK);
@@ -59,7 +59,10 @@ export function GoogleSetupPanel({ initialId = "", initialSecret = "", onSaved }
         {errors.clientSecret ? <span role="alert" className={styles.err}>{errors.clientSecret}</span> : null}
       </label>
       {errors.save ? <p role="alert" className={styles.err}>{errors.save}</p> : null}
-      <div className={styles.actions}><Button variant="primary" disabled={busy} onClick={() => void save()}>Save and continue</Button></div>
+      <div className={styles.actions}>
+        <Button variant="primary" disabled={busy} onClick={() => void save()}>Save and continue</Button>
+        {onCancel ? <Button variant="ghost" onClick={onCancel}>Cancel</Button> : null}
+      </div>
     </div>
   );
 }

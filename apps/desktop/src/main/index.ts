@@ -33,6 +33,10 @@ const appOrigin = devUrl ? new URL(devUrl).origin : APP_ORIGIN;
 
 let mainWindow: BrowserWindow | null = null;
 
+declare const __FLINT_GOOGLE_CLIENT__: { clientId: string; clientSecret: string };
+/** Set at build time (electron.vite.config.ts); empty in builds made without it. */
+const BUILT_IN_GOOGLE = __FLINT_GOOGLE_CLIENT__;
+
 /** The flint CLI script: shipped in Resources/cli when packaged, apps/cli/dist in development. */
 function bundledCliPath(): string {
   return app.isPackaged
@@ -113,7 +117,7 @@ async function main(): Promise<void> {
     platform,
     forceMock: isDev && process.env.FLINT_MOCK === "1",
     create: createFlintService,
-    options: { cliPath: bundledCliPath() },
+    options: { cliPath: bundledCliPath(), ...(BUILT_IN_GOOGLE.clientId ? { googleClient: BUILT_IN_GOOGLE } : {}) },
   });
   if (!result.ok) {
     dialog.showErrorBox("Flint can't start", `The mail engine failed to load.\n\n${result.message}`);
