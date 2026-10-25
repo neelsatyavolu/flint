@@ -57,6 +57,9 @@ module.exports = {
   files: ["out/**", "package.json", "!node_modules/**/*"],
   extraResources: [{ from: "../cli/dist/flint.js", to: "cli/flint.js" }],
   protocols: [{ name: "Mail link", schemes: ["mailto"] }],
+  // The update feed: electron-builder writes app-update.yml into the app and latest-mac.yml next to the
+  // builds; scripts/release.sh uploads both with the zips to the GitHub release.
+  publish: [{ provider: "github", owner: "neelsatyavolu", repo: "flint", releaseType: "release" }],
   mac: {
     category: "public.app-category.productivity",
     icon: "build/icon.png",
@@ -73,5 +76,6 @@ module.exports = {
     notarize,
     artifactName: "Flint-${version}-${arch}-mac.${ext}",
   },
-  dmg: { artifactName: "Flint-${version}-${arch}.dmg" },
+  // scripts/dist.sh --apple notarizes and staples the signed DMG after the build.
+  dmg: { artifactName: "Flint-${version}-${arch}.dmg", sign },
 };

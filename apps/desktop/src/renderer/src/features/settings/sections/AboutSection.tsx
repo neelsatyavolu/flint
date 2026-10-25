@@ -16,7 +16,8 @@ export function AboutSection() {
         </div>
       </div>
       <SettingsRow title="Free" description="Flint is free. No account, no tracking of you." />
-      <SettingsRow title="License" description="MIT. You can read, change and share the source." />
+      <SettingsRow title="License" description="MIT. You can read, change and share the source at github.com/neelsatyavolu/flint." />
+      <SettingsRow title="Updates" description="Flint checks GitHub for new releases, downloads them in the background and asks before restarting. Flint → Check for Updates checks now." />
       <SettingsRow title="Your mail stays on this computer" description="Mail is cached in a local database. Flint talks to your mail provider, and to an AI provider only when you use an AI feature." />
     </SectionPage>
   );

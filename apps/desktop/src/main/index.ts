@@ -5,6 +5,7 @@ import { initLog, logger } from "@flint/core/log";
 import type { FlintService } from "@flint/core/service/index";
 import type { BrowserWindow } from "electron";
 import { app, dialog, nativeTheme, session } from "electron";
+import electronUpdater from "electron-updater";
 import { CHANNELS } from "../preload/channels";
 import { APP_ORIGIN, APP_URL, registerAppScheme, serveRenderer } from "./app-protocol";
 import { serveAttachments } from "./attachment-protocol";
@@ -17,6 +18,7 @@ import { createRequestFilter, receiptsHostFromEndpoint } from "./request-filter"
 import { secureSession } from "./security";
 import { applyDefaultReceiptsEndpoint } from "./receipts-default";
 import { bootstrapService } from "./service";
+import { createUpdateController, type UpdateController } from "./updater";
 import { createMainWindow, focusWindow, isMac } from "./window";
 
 app.setName("Flint");
@@ -93,7 +95,19 @@ async function main(): Promise<void> {
 
   serveAttachments(() => service, dataDir);
   registerIpc({ getWindow: () => mainWindow, getService: () => service, appOrigin });
-  installMenu({ isMac, isDev, send: sendMenu });
+  // Packaged builds update themselves from GitHub Releases (app-update.yml is written by electron-builder).
+  const updates: UpdateController | null = app.isPackaged
+    ? createUpdateController({
+        updater: electronUpdater.autoUpdater,
+        currentVersion: app.getVersion(),
+        ask: async (box) => {
+          const opts = { type: "info" as const, ...box, defaultId: 0, cancelId: box.buttons.length - 1 };
+          const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
+          return (await (win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts))).response;
+        },
+      })
+    : null;
+  installMenu({ isMac, isDev, send: sendMenu, ...(updates ? { checkForUpdates: () => updates.check(true) } : {}) });
 
   const result = await bootstrapService({
     platform,
@@ -129,6 +143,7 @@ async function main(): Promise<void> {
   badge.request();
 
   openWindow(dataDir);
+  updates?.start();
   app.on("activate", () => {
     if (!mainWindow) openWindow(dataDir);
     else focusWindow(mainWindow);

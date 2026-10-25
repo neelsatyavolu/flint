@@ -49,11 +49,22 @@ pnpm --filter @flint/cli build
 cd "$ROOT/apps/desktop"
 rm -rf release
 pnpm exec electron-vite build
-pnpm exec electron-builder --mac --config electron-builder.config.cjs
+pnpm exec electron-builder --mac --config electron-builder.config.cjs --publish never
 
 APP="$(find release -maxdepth 2 -name 'Flint.app' -type d | head -1 || true)"
 if [ -n "$APP" ]; then
   codesign -dv --verbose=2 "$APP" 2>&1 | grep -E '^(Authority|TeamIdentifier|Identifier)=' || true
   [ "$MODE" = "apple" ] && { spctl --assess --type execute --verbose "$APP" 2>&1 || true; xcrun stapler validate "$APP" 2>&1 | tail -1 || true; }
+fi
+
+# electron-builder notarizes the app (inside both the zip and the DMG); the DMG itself is notarized here
+# so the download opens without a Gatekeeper warning. Updates use the zips, so latest-mac.yml stays valid.
+if [ "$MODE" = "apple" ]; then
+  for dmg in release/*.dmg; do
+    echo "==> Notarizing $dmg"
+    xcrun notarytool submit "$dmg" --key "$APPLE_API_KEY" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER" --wait
+    xcrun stapler staple "$dmg"
+    spctl --assess --type install --verbose "$dmg"
+  done
 fi
 ls -lh release/*.dmg release/*.zip 2>/dev/null || true

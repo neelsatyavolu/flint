@@ -1,5 +1,50 @@
 # Flint
 
-A free desktop mail client with Spark's layout, AI on your own ChatGPT or Grok subscription, read receipts that don't lie, and a CLI for local agents.
+A free, open-source mail client for macOS. It keeps the three-pane layout people like in Spark, runs its AI on the ChatGPT or Grok subscription you already pay for, has read receipts that only count real opens, and includes a `flint` command so local agents can read and act on your mail.
 
-See `docs/SPEC.md` for behavior and architecture and `DESIGN.md` for the visual system.
+Website: [flint.xanom.co](https://flint.xanom.co)
+
+## Install
+
+Download the DMG for your Mac from the [latest release](https://github.com/neelsatyavolu/flint/releases/latest): `Flint-arm64.dmg` for Apple silicon, `Flint-x64.dmg` for Intel. Builds are signed with a Developer ID and notarized by Apple.
+
+Flint updates itself. It checks GitHub Releases at launch and every six hours, downloads new versions in the background, and asks before restarting. **Flint → Check for Updates** checks right away.
+
+## What it does
+
+- **Accounts.** Gmail through Google sign-in or an app password, Proton Mail through Proton Mail Bridge, and iCloud, Outlook, Fastmail or any IMAP/SMTP server. Settings are filled in automatically for most providers.
+- **Smart inbox.** Mail from people comes first. Notifications and newsletters are grouped into bundles. Pins, snooze, send later, undo send, follow-up reminders, mute, rules and templates.
+- **Signatures.** Per-account defaults, and a one-click import of your signatures from Spark.
+- **Read receipts.** Each recipient gets their own copy with a private marker. The receipts service drops opens it can't trust: Apple Mail Privacy Protection prefetches, security scanners, bots, your own opens and repeats. Apple prefetches show as "can't be known", never as "opened". Your Sent folder keeps one clean copy.
+- **+AI.** Summaries, reply drafts, rewrites, translation and questions about your inbox, through your own ChatGPT (Codex) or Grok account via [shared-ai-auth](https://github.com/neelsatyavolu/shared-ai-auth). Flint charges nothing and sends nothing to an AI provider unless you use an AI feature.
+- **Agents.** The `flint` command (Settings → Agents → Install) lets local agents list, read, search, draft, archive, snooze and send. Every call shows up in Agent Activity, and sending waits for your approval unless you allow it.
+
+```sh
+flint list --view inbox
+flint search "from:carla has:attachment"
+flint read 4821
+flint reply 4821 --body "Thanks, that works."
+```
+
+## Privacy
+
+Mail is cached in a local SQLite database on your Mac. Flint connects to your mail servers, to `flintr.xanom.co` only for read receipts you send (it stores message tokens and hashed, never raw, IP addresses), and to an AI provider only when you use an AI feature. The receipts service is in `services/receipts`; you can deploy your own and point Settings → Read Receipts at it. See the [privacy policy](https://flint.xanom.co/privacy).
+
+## Build from source
+
+Requires Node 22.5+ and pnpm 10.
+
+```sh
+pnpm install
+pnpm dev            # run the app with hot reload
+pnpm test           # unit and integration tests
+scripts/dist.sh     # unsigned .app, .dmg and .zip in apps/desktop/release
+```
+
+Layout: `packages/core` (sync, storage, receipts, AI, agent API), `apps/desktop` (Electron + React), `apps/cli` (the `flint` command), `services/receipts` (Cloudflare Worker + D1), `site` (flint.xanom.co). `docs/SPEC.md` describes behavior and architecture; `DESIGN.md` is the visual system.
+
+Releases: bump the version in `apps/desktop/package.json` and `AboutSection.tsx`, commit, then run `scripts/release.sh`. It signs and notarizes with credentials from 1Password and publishes the GitHub release the updater reads.
+
+## License
+
+[MIT](LICENSE)

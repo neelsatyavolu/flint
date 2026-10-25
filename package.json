@@ -1,5 +1,6 @@
 {
   "name": "flint",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.4.1",

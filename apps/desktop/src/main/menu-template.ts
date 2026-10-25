@@ -7,8 +7,8 @@ export type MenuSend = (action: string, arg?: string) => void;
  * Single-key shortcuts are shown but not registered (registerAccelerator: false)
  * so the renderer keeps them and typing in fields still works.
  */
-export function buildMenuTemplate(opts: { isMac: boolean; isDev: boolean; send: MenuSend }): MenuItemConstructorOptions[] {
-  const { isMac, isDev, send } = opts;
+export function buildMenuTemplate(opts: { isMac: boolean; isDev: boolean; send: MenuSend; checkForUpdates?: () => void }): MenuItemConstructorOptions[] {
+  const { isMac, isDev, send, checkForUpdates } = opts;
   const item = (label: string, action: string, accelerator?: string, display = false): MenuItemConstructorOptions => ({
     label,
     ...(accelerator ? { accelerator } : {}),
@@ -20,6 +20,7 @@ export function buildMenuTemplate(opts: { isMac: boolean; isDev: boolean; send: 
     label: "Flint",
     submenu: [
       { role: "about" },
+      ...(checkForUpdates ? [{ label: "Check for Updates...", click: checkForUpdates }] : []),
       { type: "separator" },
       item("Settings...", "settings", "CmdOrCtrl+,"),
       { type: "separator" },

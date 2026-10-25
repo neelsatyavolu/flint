@@ -98,6 +98,13 @@ describe("menu template", () => {
     expect(view(true)).toEqual(expect.arrayContaining(["reload", "toggleDevTools"]));
     expect(labels(buildMenuTemplate({ isMac: false, isDev: false, send: vi.fn() }))[0]).toBe("File");
   });
+  it("shows Check for Updates only when the updater runs", () => {
+    const appItems = (checkForUpdates?: () => void) => buildMenuTemplate({ isMac: true, isDev: false, send: vi.fn(), checkForUpdates })[0]?.submenu as { label?: string; click?: () => void }[];
+    expect(appItems().some((i) => i.label === "Check for Updates...")).toBe(false);
+    const check = vi.fn();
+    appItems(check).find((i) => i.label === "Check for Updates...")?.click?.();
+    expect(check).toHaveBeenCalledOnce();
+  });
 });
 
 describe("mergeDeep", () => {
