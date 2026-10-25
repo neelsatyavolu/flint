@@ -10,7 +10,8 @@ import { describeConnectError, isLookupFailure } from "../src/mail/connect";
 import { FlintError, type FlintEvent } from "../src/types";
 
 const services: FlintService[] = [];
-afterEach(async () => { await Promise.all(services.splice(0).map((s) => s.stop())); });
+// One test adds a Gmail account, whose sync dials imap.gmail.com; stopping it can take a while offline.
+afterEach(async () => { await Promise.all(services.splice(0).map((s) => s.stop())); }, 30_000);
 
 async function boot(opts: ServiceOptions = {}, secrets = memorySecrets()) {
   const platform: Platform = {
@@ -71,26 +72,19 @@ describe("built-in Google client", () => {
 
   it("signs in with the client the build ships when the user has none, and says so in settings", async () => {
     const used: string[] = [];
-    const { service } = await boot({
-      googleClient: builtIn,
-      googleAuth: async (opts) => { used.push(opts.clientId); return { ...signIn, email: "me@gmail.com" }; },
-      googleMailboxCheck: async () => undefined,
-    });
+    // Stop at sign-in: adding the account would start a real Gmail sync.
+    const { service } = await boot({ googleClient: builtIn, googleAuth: async (opts) => { used.push(opts.clientId); throw new FlintError("auth", "stop here"); } });
     const settings = await service.getSettings();
     expect(settings.google).toEqual({ clientId: "", clientSecret: "", builtIn: true });
-    await service.addGoogleAccount();
+    await expect(service.addGoogleAccount()).rejects.toMatchObject({ message: "stop here" });
     expect(used).toEqual([builtIn.clientId]);
   });
 
   it("prefers the user's own client", async () => {
     const used: string[] = [];
-    const { service } = await boot({
-      googleClient: builtIn,
-      googleAuth: async (opts) => { used.push(opts.clientId); return { ...signIn, email: "me@gmail.com" }; },
-      googleMailboxCheck: async () => undefined,
-    });
+    const { service } = await boot({ googleClient: builtIn, googleAuth: async (opts) => { used.push(opts.clientId); throw new FlintError("auth", "stop here"); } });
     await service.updateSettings({ google: { clientId: "own.apps.googleusercontent.com", clientSecret: "own" } });
-    await service.addGoogleAccount();
+    await expect(service.addGoogleAccount()).rejects.toMatchObject({ message: "stop here" });
     expect(used).toEqual(["own.apps.googleusercontent.com"]);
   });
 
