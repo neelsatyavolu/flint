@@ -10,8 +10,42 @@ type Row = { id: number; thread_id: number; subject: string; from_json: string; 
 /** Who decided a category on purpose. Re-categorizing never overrides these. */
 export type CategorySource = "rule" | "manual";
 
+/** Where to re-fetch headers: one IMAP folder and the UIDs of stored mail in it. */
+export type HeaderRefreshTarget = { folderId: number; folderPath: string; uids: number[] };
+
 export class RecategorizeRepo {
   constructor(protected q: Sql) {}
+
+  /**
+   * Received inbox mail of an account since a date whose category nobody set on purpose, grouped by the folder its
+   * UID lives in (All Mail for Gmail). Used to re-fetch headers that older syncs didn't store.
+   */
+  headerRefreshTargets(accountId: string, sinceMs: number): HeaderRefreshTarget[] {
+    const rows = this.q.all<{ folder_id: number; path: string; uid: number }>(
+      `SELECT m.folder_id, f.path, m.uid FROM messages m JOIN folders f ON f.id = m.folder_id
+       WHERE m.account_id = ? AND m.draft = 0 AND m.category_source IS NULL AND m.date >= ?
+         AND EXISTS (SELECT 1 FROM message_folders mf JOIN folders fi ON fi.id = mf.folder_id WHERE mf.message_id = m.id AND fi.role = 'inbox')
+       ORDER BY m.folder_id, m.uid`,
+      accountId, sinceMs,
+    );
+    const byFolder = new Map<number, HeaderRefreshTarget>();
+    for (const r of rows) {
+      const t = byFolder.get(r.folder_id) ?? { folderId: r.folder_id, folderPath: r.path, uids: [] };
+      t.uids.push(r.uid);
+      byFolder.set(r.folder_id, t);
+    }
+    return [...byFolder.values()];
+  }
+
+  /** Adds freshly fetched headers to stored messages (new values win; nothing is removed). */
+  mergeHeaders(folderId: number, items: { uid: number; headers: Record<string, string> }[]): number {
+    let n = 0;
+    for (const it of items) {
+      if (Object.keys(it.headers).length === 0) continue;
+      n += Number(this.q.run("UPDATE messages SET headers_json = json_patch(headers_json, ?) WHERE folder_id = ? AND uid = ?", JSON.stringify(it.headers), folderId, it.uid).changes);
+    }
+    return n;
+  }
 
   /**
    * Re-runs categorize() over stored received mail (headers_json, sender, subject, contact history) and rewrites

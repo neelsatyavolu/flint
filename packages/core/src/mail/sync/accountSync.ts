@@ -7,7 +7,8 @@ import { createImapClient, describeConnectError, type MailAuth } from "../connec
 import { withMailbox, type ImapRunner } from "../runner";
 import { attachmentPath, downloadPart, readCached, writeCached } from "./attachments";
 import { loadBody } from "./body";
-import { reconcileExpunges, syncFolder, type Batch, type FolderSyncDeps } from "./folderSync";
+import { chunks, reconcileExpunges, syncFolder, type Batch, type FolderSyncDeps } from "./folderSync";
+import { FETCH_HEADERS, parseHeaders } from "./headers";
 import { classifyMailboxes, gmailLabelPaths } from "./folders";
 import { backfillFolder, searchFolder, type BackfillResult } from "./history";
 import { buildGmailRaw, buildImapCriteria, inTargets, type ParsedSearch } from "../../search";
@@ -190,6 +191,25 @@ export class AccountSync implements ImapRunner {
 
   async run<T>(fn: (client: ImapFlow) => Promise<T>): Promise<T> {
     return fn(await this.#ensureClient());
+  }
+
+  /**
+   * Re-fetches the categorization headers (FETCH_HEADERS) for stored messages and merges them in. Older syncs
+   * stored fewer headers; this lets a newer categorizer see the same signals new mail has. Returns messages updated.
+   */
+  async refreshHeaders(targets: { folderId: number; folderPath: string; uids: number[] }[]): Promise<number> {
+    let updated = 0;
+    for (const t of targets) {
+      for (const part of chunks(t.uids, 200)) {
+        const fetched = await this.run((c) => withMailbox(c, t.folderPath, () => c.fetchAll(part.join(","), { uid: true, headers: [...FETCH_HEADERS] }, { uid: true }), true));
+        const items = fetched.map((m) => {
+          const { references: _refs, ...selected } = parseHeaders(m.headers);
+          return { uid: m.uid, headers: selected };
+        });
+        updated += this.#o.store.mergeHeaders(t.folderId, items);
+      }
+    }
+    return updated;
   }
 
   // ---------- bodies and attachments ----------

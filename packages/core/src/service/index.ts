@@ -9,7 +9,7 @@ import { aiApi } from "./ai";
 import { composeApi } from "./compose";
 import { createContext } from "./context";
 import { wireNotifications } from "./notify";
-import { recategorizeIfStale } from "./recategorize";
+import { recategorizeIfStale, refreshHeadersIfStale } from "./recategorize";
 import { historyApi } from "./history";
 import { importSparkApi } from "./importSpark";
 import { readingApi } from "./reading";
@@ -54,6 +54,9 @@ export type ServiceOptions = {
 };
 
 /** Builds the real service. The method groups live in their own files; TypeScript checks the composition covers FlintApi. */
+/** Header refresh waits for the first sync cycles so it doesn't compete with them. */
+const HEADER_REFRESH_DELAY_MS = 20_000;
+
 export async function createFlintService(platform: Platform, opts: ServiceOptions = {}): Promise<FlintService> {
   const ctx = createContext(platform, opts);
   const api: FlintApi = {
@@ -72,6 +75,7 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
   };
   const unwire = wireNotifications(ctx);
   let state: "new" | "started" | "stopped" = "new";
+  let headerRefresh: ReturnType<typeof setTimeout> | null = null;
 
   return {
     ...api,
@@ -83,6 +87,9 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
       ctx.store.kvPurgeExpired(ctx.now());
       recategorizeIfStale(ctx);
       ctx.syncs.startAll();
+      // After the first sync settles, bring older mail's headers up to what the categorizer reads.
+      headerRefresh = setTimeout(() => void refreshHeadersIfStale(ctx).catch((error: Error) => log.warn("header refresh failed", { reason: error.message })), HEADER_REFRESH_DELAY_MS);
+      headerRefresh.unref?.();
       void ctx.optimistic.replayPending().catch((error: Error) => log.warn("replaying pending operations failed", { reason: error.message }));
       await ctx.scheduler.start();
       if (opts.agentServer) ctx.agent.handle = await startAgentWiring(ctx, api);
@@ -92,6 +99,7 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
     async stop() {
       if (state === "stopped") return;
       state = "stopped";
+      if (headerRefresh) clearTimeout(headerRefresh);
       unwire();
       ctx.scheduler.stop();
       await stopAgentWiring(ctx);
