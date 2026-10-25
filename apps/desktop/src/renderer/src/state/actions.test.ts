@@ -97,6 +97,15 @@ describe("performAction", () => {
     await vi.waitFor(() => expect(s.api.undo).toHaveBeenCalledWith("u1"));
   });
 
+  it("ignores local-only draft rows (negative ids) for thread actions", async () => {
+    const s = setup();
+    await loaded(s);
+    await performAction(s.deps, { type: "archive" }, [-7]);
+    expect(s.api.archive).not.toHaveBeenCalled();
+    await performAction(s.deps, { type: "archive" }, [-7, 2]);
+    expect(s.api.archive).toHaveBeenCalledWith([2]);
+  });
+
   it("closes the reader when afterArchive is list", async () => {
     const s = setup({ afterArchive: "list" });
     await loaded(s);

@@ -280,6 +280,12 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
     async updateDraft(id, patch) { return updateDraft(ctx, id, patch); },
     async deleteDraft(id) { deleteDraft(ctx, id); },
     async listDrafts() { return [...liveDrafts(state)].sort((a, b) => b.updatedAt - a.updatedAt); },
+    async openServerDraft(messageId) {
+      const thread = state.threads.find((t) => t.messages.some((m) => m.id === messageId));
+      const existing = thread?.draftIds[0];
+      if (existing !== undefined) return getDraft(ctx, existing);
+      return createDraft(ctx, { mode: "reply", messageId });
+    },
     async addAttachment(draftId, filePath) {
       const d = getDraft(ctx, draftId);
       const filename = filePath.split("/").pop() ?? "file";

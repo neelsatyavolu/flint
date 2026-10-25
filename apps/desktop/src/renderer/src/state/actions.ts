@@ -124,7 +124,9 @@ export function pickAdvance(items: ThreadListItem[], openId: ThreadId, gone: Thr
  * Applies an action optimistically: the row leaves (or changes) at once, the API call runs,
  * and a failure puts everything back. Success shows an "Undo" toast that calls api.undo.
  */
-export async function performAction(deps: ActionDeps, action: ThreadAction, ids: ThreadId[]): Promise<void> {
+export async function performAction(deps: ActionDeps, action: ThreadAction, allIds: ThreadId[]): Promise<void> {
+  // Local-only draft rows carry negative ids; they are not threads, so thread actions skip them (they only support delete).
+  const ids = allIds.filter((id) => id > 0);
   if (ids.length === 0) return;
   const { api, list, nav, notify } = deps;
   const before = list.getState();

@@ -251,6 +251,11 @@ export async function deleteDraftByUid(runner: ImapRunner, draftsPath: string, u
   await deleteUids(runner, draftsPath, [uid]);
 }
 
+/** UID of the copy of a draft in the server Drafts folder, found by Message-ID (null when the server has none). */
+export async function findDraftUid(runner: ImapRunner, draftsPath: string, messageId: string): Promise<number | null> {
+  return (await findUids(runner, draftsPath, messageId))[0] ?? null;
+}
+
 /** Appends the new copy first, then removes the previous one, so a failure never leaves the server with no draft. */
 export async function replaceDraft(runner: ImapRunner, draftsPath: string, previousUid: number | null, mime: Buffer): Promise<number | null> {
   const uid = await appendDraft(runner, draftsPath, mime);

@@ -1,17 +1,19 @@
 import { useMemo } from "react";
-import { compose, openDraftThread, openMovePicker, openSnooze, replyTo } from "../features/mail/mailCommands";
+import { compose, deleteDraftRow, openDraftRow, openMovePicker, openSnooze, replyTo } from "../features/mail/mailCommands";
 import type { ReplyMode } from "../state/compose";
 import { stepKey, threadIdOf } from "../state/grouping";
 import { listStore } from "../state/listStore";
 import { navStore, targetIds } from "../state/nav";
 import { useThreadActions } from "../state/useActions";
 import { useApp } from "../state/AppContext";
+import { useToast } from "../ui/Toast";
 
 const PURE_MAIL_VIEWS = new Set(["home", "receipts", "agent_activity", "scheduled"]);
 
 /** Imperative app commands shared by keyboard shortcuts, the native menu and the command palette. */
 export function useAppCommands() {
   const { run, undo } = useThreadActions();
+  const toast = useToast();
   const { settings, updateSettings, narrow, accounts } = useApp();
   const split = settings.appearance.layout === "split";
 
@@ -37,8 +39,9 @@ export function useAppCommands() {
       }
       const id = threadIdOf(key);
       if (id === null) return;
-      if (n.view === "drafts") void openDraftThread(id);
-      else n.openThread(id);
+      const row = listStore.getState().raw.find((i) => i.id === id);
+      if (n.view === "drafts" && row) void openDraftRow(row, toast.show);
+      else if (n.view !== "drafts") n.openThread(id);
     };
 
     const step = (delta: 1 | -1) => {
@@ -60,7 +63,13 @@ export function useAppCommands() {
       step,
       openCursor,
       archive: () => void run({ type: "archive" }),
-      trash: () => void run({ type: "trash" }),
+      trash: () => {
+        const drafts = navStore.getState().view === "drafts" ? items().flatMap((i) => (i.draft?.draftId != null ? [i.draft.draftId] : [])) : [];
+        for (const draftId of drafts) void deleteDraftRow(draftId, toast.show);
+        if (drafts.length === 0) { void run({ type: "trash" }); return; }
+        const rest = items().filter((i) => i.draft?.draftId == null).map((i) => i.id);
+        if (rest.length) void run({ type: "trash" }, rest);
+      },
       spam: () => void run({ type: "spam", spam: true }),
       snooze: () => openSnooze(targets()),
       move: () => openMovePicker(targets()),
@@ -96,7 +105,7 @@ export function useAppCommands() {
         if (a) navStore.getState().go({ view: "inbox", accountId: a.id }, a.email);
       },
     };
-  }, [run, undo, settings.inbox.focused, split, narrow, accounts, updateSettings]);
+  }, [run, undo, settings.inbox.focused, split, narrow, accounts, updateSettings, toast.show]);
 }
 
 export type AppCommands = ReturnType<typeof useAppCommands>;

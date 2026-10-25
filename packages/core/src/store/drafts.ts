@@ -7,7 +7,7 @@ export type NewDraft = Pick<Draft, "accountId" | "from"> & Partial<Omit<Draft, "
   references?: string[];
 };
 export type DraftUpdate = DraftPatch & Partial<Pick<Draft, "attachments" | "quotedHtml" | "threadId" | "sourceMessageId" | "mode" | "createdBy">>;
-export type DraftMeta = { inReplyTo: string | null; references: string[]; serverUid: number | null };
+export type DraftMeta = { inReplyTo: string | null; references: string[]; serverUid: number | null; serverMessageId: string | null };
 
 type DraftRow = {
   id: number; account_id: string; from_address: string; mode: string; source_message_id: number | null; thread_id: number | null;
@@ -81,21 +81,32 @@ export class DraftsRepo {
     return this.q.all<DraftRow>("SELECT * FROM drafts ORDER BY updated_at DESC, id DESC").map(toDraft);
   }
 
+  /** The local draft whose server Drafts copy is this message (same Message-ID, or the UID it was saved under). */
+  findDraftByServerCopy(accountId: string, messageId: string | null, folderId: number, uid: number): Draft | null {
+    const r = this.q.get<DraftRow>(
+      `SELECT * FROM drafts WHERE account_id = ? AND ((server_message_id IS NOT NULL AND server_message_id = ?)
+         OR (server_uid IS NOT NULL AND server_uid = ? AND ? IN (SELECT id FROM folders WHERE role = 'drafts'))) ORDER BY id LIMIT 1`,
+      accountId, messageId, uid, folderId);
+    return r ? toDraft(r) : null;
+  }
+
   listDraftsForThread(threadId: ThreadId): Draft[] {
     return this.q.all<DraftRow>("SELECT * FROM drafts WHERE thread_id = ? ORDER BY id", threadId).map(toDraft);
   }
 
   /** Reply headers and the server Drafts copy, which the Draft type does not carry. */
   getDraftMeta(id: number): DraftMeta {
-    const r = this.q.get<{ in_reply_to: string | null; refs: string; server_uid: number | null }>("SELECT in_reply_to, refs, server_uid FROM drafts WHERE id = ?", id);
+    const r = this.q.get<{ in_reply_to: string | null; refs: string; server_uid: number | null; server_message_id: string | null }>(
+      "SELECT in_reply_to, refs, server_uid, server_message_id FROM drafts WHERE id = ?", id);
     if (!r) throw new FlintError("not_found", "That draft no longer exists.");
-    return { inReplyTo: r.in_reply_to, references: parseJson<string[]>(r.refs, []), serverUid: r.server_uid };
+    return { inReplyTo: r.in_reply_to, references: parseJson<string[]>(r.refs, []), serverUid: r.server_uid, serverMessageId: r.server_message_id };
   }
 
   setDraftMeta(id: number, patch: Partial<DraftMeta>): void {
     const cur = this.getDraftMeta(id);
     const next = { ...cur, ...patch };
-    this.q.run("UPDATE drafts SET in_reply_to = ?, refs = ?, server_uid = ? WHERE id = ?", next.inReplyTo, JSON.stringify(next.references), next.serverUid, id);
+    this.q.run("UPDATE drafts SET in_reply_to = ?, refs = ?, server_uid = ?, server_message_id = ? WHERE id = ?",
+      next.inReplyTo, JSON.stringify(next.references), next.serverUid, next.serverMessageId, id);
   }
 }
 

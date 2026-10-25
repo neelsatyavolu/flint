@@ -104,6 +104,7 @@ export function createMockService(dataDir: string): FlintService {
     async updateDraft(id, patch) { return replaceDraft({ ...getDraft(id), ...patch, updatedAt: Date.now() }); },
     async deleteDraft(id) { drafts = drafts.filter((d) => d.id !== id); },
     async listDrafts() { return [...drafts]; },
+    async openServerDraft() { throw notFound("Draft"); },
     async addAttachment(draftId) { return getDraft(draftId); },
     async removeAttachment(draftId) { return getDraft(draftId); },
     async sendDraft(id) {

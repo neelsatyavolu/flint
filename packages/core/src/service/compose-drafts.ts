@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { FlintApi } from "../api";
 import { logger } from "../log";
 import { buildReplyDraft, type ReplyOptions, type ReplySource } from "../mail/compose";
+import { findDraftUid } from "../mail/send";
+import { sanitizeForDisplay } from "../sanitize";
 import { FlintError, type Account, type Draft, type DraftAttachment, type Signature } from "../types";
 import { copyIntoDraft, draftDir, removeDraftDir, removeDraftFile, writeIntoDraft } from "./compose-files";
 import { defaultSignature, replaceSignature } from "./compose-signature";
@@ -12,9 +14,14 @@ import { trackingBlockedReason } from "./send";
 const log = logger("service.drafts");
 const INLINE_IMAGE_MAX_BYTES = 2_000_000;
 const INLINE_IMAGE_MAX_COUNT = 12;
+/** Attachments of a server draft are copied only while the total stays small, so opening one stays quick. */
+const SERVER_DRAFT_ATTACHMENT_BYTES = 10_000_000;
+
+const escapeHtml = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const textToHtml = (text: string): string => text.split(/\n{2,}/).map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`).join("");
 
 export type DraftsApi = Pick<FlintApi,
-  "createDraft" | "getDraft" | "updateDraft" | "deleteDraft" | "listDrafts" | "addAttachment" | "removeAttachment">;
+  "createDraft" | "getDraft" | "updateDraft" | "deleteDraft" | "listDrafts" | "openServerDraft" | "addAttachment" | "removeAttachment">;
 
 const address = z.object({
   name: z.string().max(300),
@@ -153,6 +160,67 @@ function draftsInner(ctx: ServiceContext, serverDrafts: ServerDrafts): DraftsApi
     }
   }
 
+  /** Attachments of a server draft, copied while they stay under the size budget. Best effort: one that fails is left out. */
+  async function carryServerAttachments(draft: Draft, accountId: string, messageRowId: number, threadId: number): Promise<DraftAttachment[]> {
+    const source = store.getThreadRows(threadId)?.messages.find((m) => m.id === messageRowId);
+    const out: DraftAttachment[] = [];
+    let total = 0;
+    for (const a of (source?.attachments ?? []).filter((x) => !x.inline)) {
+      if (total + a.size > SERVER_DRAFT_ATTACHMENT_BYTES) continue;
+      try {
+        const data = await ctx.syncs.get(accountId).fetchAttachment(a.id);
+        out.push(await writeIntoDraft(draftDir(ctx.platform.dataDir, draft.id), a.filename, a.contentType, data, out));
+        total += a.size;
+      } catch (error) {
+        log.warn("could not copy an attachment of a server draft", { reason: (error as Error).message });
+      }
+    }
+    return out;
+  }
+
+  /** UID of the draft's copy in the Drafts folder. A message synced from Gmail's All Mail has to be looked up there by Message-ID. */
+  async function serverUidOf(msg: { accountId: string; folderId: number; uid: number; messageId: string | null }): Promise<number | null> {
+    const folder = store.getFolderByRole(msg.accountId, "drafts");
+    if (folder && folder.id === msg.folderId) return msg.uid;
+    if (!folder || !msg.messageId) return null;
+    try {
+      return await findDraftUid(ctx.syncs.get(msg.accountId), folder.path, msg.messageId);
+    } catch (error) {
+      log.warn("could not find the server copy of a draft", { reason: (error as Error).message });
+      return null;
+    }
+  }
+
+  async function openServerDraft(rawId: number): Promise<Draft> {
+    const id = parse(z.number().int().positive(), rawId);
+    const first = store.getMessage(id);
+    if (!first) throw new FlintError("not_found", "That draft is no longer on this computer.");
+    const linked = store.findDraftByServerCopy(first.accountId, first.messageId, first.folderId, first.uid);
+    if (linked) return linked;
+    if (!first.draft && store.getFolderByRole(first.accountId, "drafts")?.id !== first.folderId) {
+      throw new FlintError("invalid", "That message isn't a draft.");
+    }
+    await ctx.ensureBodies([id]);
+    const msg = store.getMessage(id) ?? first;
+    const account = store.requireAccount(msg.accountId);
+    const mine = addressesOf(account);
+    const sender = msg.from.find((a) => mine.includes(a.address.toLowerCase()))?.address ?? account.email;
+    const source = msg.inReplyTo ? store.findByMessageId(account.id, msg.inReplyTo).find((m) => !m.draft) : undefined;
+    const rawHtml = msg.rawHtml ?? (msg.text ? textToHtml(msg.text) : "");
+    const html = rawHtml ? sanitizeForDisplay(rawHtml, { allowRemoteImages: true, blockTrackers: false }).html : "";
+    const draft = store.createDraft({
+      accountId: account.id, from: sender, mode: source ? "reply" : "new", sourceMessageId: source?.id ?? null, threadId: source?.threadId ?? null,
+      to: msg.to, cc: msg.cc, bcc: msg.bcc, subject: msg.subject, html, track: trackDefault(), createdBy: creator(),
+      inReplyTo: msg.inReplyTo, references: msg.references,
+    }, ctx.now());
+    store.setDraftMeta(draft.id, { serverUid: await serverUidOf(msg), serverMessageId: msg.messageId });
+    const attachments = await carryServerAttachments(draft, account.id, msg.id, msg.threadId);
+    const result = attachments.length ? store.updateDraft(draft.id, { attachments }, ctx.now()) : draft;
+    changed(result);
+    ctx.emit({ type: "mail_changed", accountId: account.id, threadIds: [msg.threadId] });
+    return result;
+  }
+
   /** The account a patch moves the draft to, and the address it sends from. */
   function resolveSender(draft: Draft, patch: z.infer<typeof patchSchema>): { account: Account; from: string } {
     const wanted = patch.from?.toLowerCase();
@@ -181,6 +249,8 @@ function draftsInner(ctx: ServiceContext, serverDrafts: ServerDrafts): DraftsApi
     async listDrafts() {
       return store.listDrafts();
     },
+
+    openServerDraft,
 
     async updateDraft(id, rawPatch) {
       const patch = parse(patchSchema, rawPatch);
@@ -254,6 +324,7 @@ export function draftsApi(ctx: ServiceContext, serverDrafts: ServerDrafts): Draf
     getDraft: async (id) => mark(await inner.getDraft(id)),
     updateDraft: async (id, patch) => mark(await inner.updateDraft(id, patch)),
     listDrafts: async () => (await inner.listDrafts()).map(mark),
+    openServerDraft: async (id) => mark(await inner.openServerDraft(id)),
     addAttachment: async (id, path) => mark(await inner.addAttachment(id, path)),
     removeAttachment: async (id, attachmentId) => mark(await inner.removeAttachment(id, attachmentId)),
   };

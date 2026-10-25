@@ -38,6 +38,7 @@ export class DashboardRepo {
     );
     const enabled = new Set(accounts.filter((a) => a.enabled).map((a) => a.id));
     const sidebarAccounts = accounts.map((account) => ({ account, inboxUnread: unread.get(account.id) ?? 0, folders: sidebarFolders(this.folders.listFolders(account.id)) }));
+    const serverDrafts = viewPredicate({ view: "drafts" }, now, new Set())!;
     const one = (sql: string, ...p: (string | number)[]) => this.q.get<{ n: number }>(sql, ...p)?.n ?? 0;
     const onEnabled = (n: Iterable<[string, number]>) => [...n].reduce((s, [id, c]) => s + (enabled.has(id) ? c : 0), 0);
     const pinned = onEnabled(this.q.all<{ account_id: string; n: number }>(
@@ -50,7 +51,8 @@ export class DashboardRepo {
     return {
       accounts: sidebarAccounts,
       counts: {
-        inbox: onEnabled(unread), pinned, drafts: one("SELECT COUNT(*) AS n FROM drafts"), snoozed,
+        inbox: onEnabled(unread), pinned, drafts: one("SELECT COUNT(*) AS n FROM drafts")
+          + one(`SELECT COUNT(DISTINCT m.thread_id) AS n FROM messages m JOIN threads t ON t.id = m.thread_id WHERE ${serverDrafts.sql}`, ...serverDrafts.params), snoozed,
         scheduled: one("SELECT COUNT(*) AS n FROM scheduled_sends WHERE status IN ('pending','sending')"),
         awaitingApproval: one("SELECT COUNT(*) AS n FROM scheduled_sends WHERE status = 'awaiting_approval'"), spam,
       },

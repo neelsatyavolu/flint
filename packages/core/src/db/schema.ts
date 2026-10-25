@@ -298,4 +298,8 @@ export const MIGRATIONS: readonly string[] = [
         'manual' = the user. Re-categorizing leaves 'rule' and 'manual' values alone. */ `
   ALTER TABLE messages ADD COLUMN category_source TEXT;
   `,
+  /* 6: Message-ID (without <>) of the draft's copy in the server Drafts folder, so the Drafts view can tell the copy from the
+        local draft behind it (on Gmail the copy is synced from All Mail under another UID). */ `
+  ALTER TABLE drafts ADD COLUMN server_message_id TEXT;
+  `,
 ];

@@ -75,12 +75,18 @@ function ThreadRowImpl({ item, compact, previewLines, avatars, accountColor, ope
         {showPreview ? <div className={clsx(styles.preview, previewLines === 2 && styles.preview2)}>{item.snippet}</div> : null}
       </div>
       <div className={styles.actions} onClick={(e) => e.stopPropagation()}>
-        <IconButton size={24} tabIndex={-1} label={item.pinned ? "Unpin" : "Pin"} shortcut="s" onClick={() => onPin(item)}>
-          {item.pinned ? <PinOff size={14} strokeWidth={1.5} /> : <Pin size={14} strokeWidth={1.5} />}
-        </IconButton>
-        <IconButton size={24} tabIndex={-1} label="Archive" shortcut="e" onClick={() => onArchive(item)}><Archive size={14} strokeWidth={1.5} /></IconButton>
-        <IconButton size={24} tabIndex={-1} label="Trash" shortcut="#" onClick={() => onTrash(item)}><Trash2 size={14} strokeWidth={1.5} /></IconButton>
-        <IconButton size={24} tabIndex={-1} label="Snooze" shortcut="h" onClick={() => onSnooze(item)}><Clock size={14} strokeWidth={1.5} /></IconButton>
+        {item.draft ? (
+          <IconButton size={24} tabIndex={-1} label="Delete draft" shortcut="#" onClick={() => onTrash(item)}><Trash2 size={14} strokeWidth={1.5} /></IconButton>
+        ) : (
+          <>
+            <IconButton size={24} tabIndex={-1} label={item.pinned ? "Unpin" : "Pin"} shortcut="s" onClick={() => onPin(item)}>
+              {item.pinned ? <PinOff size={14} strokeWidth={1.5} /> : <Pin size={14} strokeWidth={1.5} />}
+            </IconButton>
+            <IconButton size={24} tabIndex={-1} label="Archive" shortcut="e" onClick={() => onArchive(item)}><Archive size={14} strokeWidth={1.5} /></IconButton>
+            <IconButton size={24} tabIndex={-1} label="Trash" shortcut="#" onClick={() => onTrash(item)}><Trash2 size={14} strokeWidth={1.5} /></IconButton>
+            <IconButton size={24} tabIndex={-1} label="Snooze" shortcut="h" onClick={() => onSnooze(item)}><Clock size={14} strokeWidth={1.5} /></IconButton>
+          </>
+        )}
       </div>
     </div>
   );

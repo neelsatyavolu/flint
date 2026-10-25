@@ -13,10 +13,11 @@ import { useThreadActions } from "../../state/useActions";
 import { BundleRow } from "./BundleRow";
 import { ListFooter } from "./ListFooter";
 import { ThreadRow } from "./ThreadRow";
-import { openDraftThread, openMovePicker, openSnooze, replyTo } from "./mailCommands";
+import { deleteDraftRow, openDraftRow, openMovePicker, openSnooze, replyTo } from "./mailCommands";
 import { rowMenuItems } from "./rowMenu";
 import { activeLabelIndex, rowOffsets } from "./stickyLabel";
 import { flint } from "../../lib/api";
+import { useToast } from "../../ui/Toast";
 import styles from "./ThreadList.module.css";
 
 const OVERSCAN = 8;
@@ -36,6 +37,7 @@ export function ThreadList() {
   const listKey = useList((s) => s.queryKey);
   const autoOlder = useRef<string | null>(null);
   const { run } = useThreadActions();
+  const toast = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => Date.now());
   const [stickyAt, setStickyAt] = useState(-1);
@@ -103,29 +105,34 @@ export function ThreadList() {
       n.setCursor(key);
     } else if (n.view === "drafts") {
       n.setCursor(key);
-      void openDraftThread(item.id);
+      void openDraftRow(item, toast.show);
     } else {
       n.openThread(item.id);
     }
-  }, []);
+  }, [toast.show]);
 
   const onBundle = useCallback((b: Bundle) => navStore.getState().openCategory(b.category), []);
   const onPin = useCallback((i: ThreadListItem) => void run({ type: "pin", pinned: !i.pinned }, [i.id]), [run]);
   const onArchive = useCallback((i: ThreadListItem) => void run({ type: "archive" }, [i.id]), [run]);
-  const onTrash = useCallback((i: ThreadListItem) => void run({ type: "trash" }, [i.id]), [run]);
+  const onTrash = useCallback(
+    (i: ThreadListItem) => (i.draft?.draftId != null ? void deleteDraftRow(i.draft.draftId, toast.show) : void run({ type: "trash" }, [i.id])),
+    [run, toast.show],
+  );
   const onSnooze = useCallback((i: ThreadListItem) => openSnooze([i.id]), []);
   const menuHandlers = useMemo(
     () => ({
       run: (a: Parameters<typeof run>[0], ids: number[]) => void run(a, ids),
       snooze: openSnooze,
       move: openMovePicker,
+      openDraft: (i: ThreadListItem) => void openDraftRow(i, toast.show),
+      deleteDraft: onTrash,
       reply: (i: ThreadListItem, m: "reply" | "replyAll" | "forward") => replyTo(i.id, m),
       block: (i: ThreadListItem) => {
         const sender = i.participants.find((p) => p.name.toLowerCase() !== "me");
         if (sender) void flint.blockSender(sender.address).then(() => run({ type: "archive" }, [i.id]));
       },
     }),
-    [run],
+    [run, toast.show, onTrash],
   );
 
   if (status === "loading" && rows.length === 0) return <div className={styles.fill}><SkeletonRows count={9} density={density} /></div>;

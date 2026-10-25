@@ -8,10 +8,20 @@ type Handlers = {
   move: (ids: number[]) => void;
   reply: (item: ThreadListItem, mode: "reply" | "replyAll" | "forward") => void;
   block: (item: ThreadListItem) => void;
+  /** Drafts view. */
+  openDraft?: (item: ThreadListItem) => void;
+  deleteDraft?: (item: ThreadListItem) => void;
 };
 
 /** Right-click menu for a row. `ids` is the multi-selection when the row is part of it, else just this row. */
 export function rowMenuItems(item: ThreadListItem, ids: number[], h: Handlers, inInboxLike: boolean): MenuItem[] {
+  if (item.draft && h.openDraft && h.deleteDraft) {
+    const { openDraft, deleteDraft } = h;
+    return [
+      { id: "open", label: "Open draft", shortcut: "↵", onSelect: () => openDraft(item) },
+      { id: "delete", label: "Delete draft", shortcut: "#", danger: true, onSelect: () => deleteDraft(item) },
+    ];
+  }
   const many = ids.length > 1;
   const subject = many ? ` (${ids.length})` : "";
   const items: MenuItem[] = [];

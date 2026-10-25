@@ -6,7 +6,7 @@ import { runAsAgent } from "../src/agent/context";
 import type { FlintEvent, ThreadListItem } from "../src/types";
 import { tryStartGreenMail, TEST_DOMAIN, type GreenMail } from "./greenmail";
 import { waitFor } from "./harness";
-import { addrOf, boot, header, mailbox, pixelToken, RECEIPTS_ENDPOINT, startWorker, unfold, type Rig } from "./service-compose-kit";
+import { addrOf, boot, header, mailbox, onServer, pixelToken, RECEIPTS_ENDPOINT, startWorker, unfold, type Rig } from "./service-compose-kit";
 
 const gm: GreenMail | null = await tryStartGreenMail({ users: ["alice", "bob", "carol", "dave", "erin"] });
 afterAll(async () => { await gm?.stop(); });
@@ -263,6 +263,49 @@ describe.skipIf(!gm)("compose and send against GreenMail", { timeout: 90_000 }, 
 
     await svc().deleteDraft(draft.id);
     await waitFor(async () => (await mailbox(gm!, "alice", "Drafts")).length === 0, "the server draft to be removed", 15_000);
+  });
+
+  it("lists server and local drafts once each and opens a server draft linked to its copy", async () => {
+    const draftsView = async (): Promise<ThreadListItem[]> => (await svc().listThreads({ view: "drafts" })).items;
+    const bySubject = async (subject: string): Promise<ThreadListItem[]> => (await draftsView()).filter((i) => i.subject === subject);
+    const raw = [
+      `From: Alice <${addrOf("alice")}>`, `To: Bob <${addrOf("bob")}>`, "Subject: Started in Gmail web", "Message-ID: <web-draft-1@gmail.example>",
+      "Date: Mon, 26 Oct 2026 09:00:00 +0000", "MIME-Version: 1.0", "Content-Type: text/html; charset=utf-8", "", "<p>Half a thought from the web</p>", "",
+    ].join("\r\n");
+    await onServer(gm!, "alice", async (c) => { await c.mailboxCreate("Drafts").catch(() => undefined); await c.append("Drafts", Buffer.from(raw), ["\\Draft", "\\Seen"]); });
+    await svc().syncNow();
+    const serverRow = (await waitFor(async () => { const r = await bySubject("Started in Gmail web"); return r.length ? r : null; }, "the server draft in the Drafts view", 30_000))[0]!;
+    expect(serverRow.draft).toMatchObject({ draftId: null });
+    expect(serverRow.draft!.messageId).toBeGreaterThan(0);
+
+    const local = await svc().createDraft({ mode: "new", to: [person("carol")], subject: "Local only" });
+    const localRow = (await bySubject("Local only"))[0]!;
+    expect(localRow.draft).toEqual({ draftId: local.id, messageId: null });
+    expect((await svc().getSidebar()).counts.drafts).toBe((await draftsView()).length);
+
+    const opened = await svc().openServerDraft(serverRow.draft!.messageId!);
+    expect(opened).toMatchObject({ subject: "Started in Gmail web", accountId: rig.accountId });
+    expect(opened.to.map((a) => a.address)).toEqual([addrOf("bob")]);
+    expect(opened.html).toContain("Half a thought from the web");
+    expect((await svc().openServerDraft(serverRow.draft!.messageId!)).id).toBe(opened.id);
+    const after = await bySubject("Started in Gmail web");
+    expect(after).toHaveLength(1);
+    expect(after[0]!.draft).toEqual({ draftId: opened.id, messageId: null });
+    expect((await svc().getSidebar()).counts.drafts).toBe((await draftsView()).length);
+
+    await svc().updateDraft(opened.id, { html: "<p>Finished in Flint</p>" });
+    const copies = await waitFor(async () => {
+      const m = (await mailbox(gm!, "alice", "Drafts")).filter((x) => header(x.source, "Subject") === "Started in Gmail web");
+      return m.length === 1 && unfold(m[0]!.source).includes("Finished in Flint") ? m : null;
+    }, "the server copy to be replaced, not duplicated", 30_000);
+    expect(copies).toHaveLength(1);
+    await svc().syncNow();
+    await sleep(1500);
+    expect(await bySubject("Started in Gmail web")).toHaveLength(1);
+
+    await svc().deleteDraft(opened.id);
+    await svc().deleteDraft(local.id);
+    await waitFor(async () => (await mailbox(gm!, "alice", "Drafts")).length === 0, "the server drafts to be removed", 15_000);
   });
 
   it("saves rules with validation and applies them to the inbox", async () => {

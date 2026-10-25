@@ -103,6 +103,11 @@ export type ThreadListItem = {
   category: Category;
   hasDraft: boolean;
   receipt: ReceiptSummary | null; // only for threads whose latest sent mail is tracked
+  /**
+   * Drafts view only. `draftId` set: a local draft (an item for a draft without a thread has a negative `id`; do not
+   * pass that id to thread actions). `messageId` set: a server Drafts copy with no local draft, opened with openServerDraft.
+   */
+  draft?: { draftId: number | null; messageId: MessageRowId | null };
 };
 
 export type Bundle = {

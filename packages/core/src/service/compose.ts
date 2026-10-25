@@ -7,7 +7,7 @@ import type { ServiceContext } from "./context";
 import { createSendJob, createSendRaw, wireSendLifecycle } from "./send";
 
 export type ComposeApi = Pick<FlintApi,
-  "createDraft" | "getDraft" | "updateDraft" | "deleteDraft" | "listDrafts" | "addAttachment" | "removeAttachment" | "sendDraft" | "cancelSend" | "listScheduled" | "approveSend" | "listSignatures" | "saveSignature" | "deleteSignature" | "listTemplates" | "saveTemplate" | "deleteTemplate" | "listRules" | "saveRule" | "deleteRule" | "applyRules">;
+  "createDraft" | "getDraft" | "updateDraft" | "deleteDraft" | "listDrafts" | "openServerDraft" | "addAttachment" | "removeAttachment" | "sendDraft" | "cancelSend" | "listScheduled" | "approveSend" | "listSignatures" | "saveSignature" | "deleteSignature" | "listTemplates" | "saveTemplate" | "deleteTemplate" | "listRules" | "saveRule" | "deleteRule" | "applyRules">;
 
 /**
  * Drafts, sending, signatures, templates and rules. Also fills the context's compose hooks: the scheduler's

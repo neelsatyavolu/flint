@@ -130,5 +130,5 @@ export function queryThreads(state: MockState, q: ThreadQuery, now: number): Thr
   const end = start + slice.length;
   const nextCursor = end < list.length ? String(end) : null;
   const olderLeft = q.view === "inbox" && state.older.some((t) => (q.accountId ? t.accountId === q.accountId : true));
-  return { items: slice.map((t) => toListItem(state, t)), bundles: bundled, nextCursor, ...(nextCursor === null ? { olderOnServer: olderLeft } : {}) };
+  return { items: slice.map((t) => (q.view === "drafts" ? { ...toListItem(state, t), draft: { draftId: t.draftIds[0] ?? null, messageId: null } } : toListItem(state, t))), bundles: bundled, nextCursor, ...(nextCursor === null ? { olderOnServer: olderLeft } : {}) };
 }

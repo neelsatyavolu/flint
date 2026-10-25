@@ -80,7 +80,7 @@ describe("drafts, scheduled sends, reminders, library", () => {
     const s = seedImap(store);
     const d = store.createDraft({ accountId: s.account.id, from: "me@example.com", to: [person("Bo")], subject: "Hi", html: "<p>x</p>", inReplyTo: "p@x", references: ["a@x", "p@x"] }, 1000);
     expect(d).toMatchObject({ mode: "new", track: true, createdBy: "user", updatedAt: 1000, attachments: [], to: [person("Bo")] });
-    expect(store.getDraftMeta(d.id)).toEqual({ inReplyTo: "p@x", references: ["a@x", "p@x"], serverUid: null });
+    expect(store.getDraftMeta(d.id)).toEqual({ inReplyTo: "p@x", references: ["a@x", "p@x"], serverUid: null, serverMessageId: null });
     store.setDraftMeta(d.id, { serverUid: 12 });
     expect(store.getDraftMeta(d.id).serverUid).toBe(12);
     const u = store.updateDraft(d.id, { subject: "Hello", cc: [person("Cy")], track: false, remindAt: 99, attachments: [{ id: "a", filename: "f", contentType: "text/plain", size: 1, path: "/f" }] }, 2000);

@@ -80,6 +80,11 @@ export interface FlintApi {
   updateDraft(id: number, patch: DraftPatch): Promise<Draft>;
   deleteDraft(id: number): Promise<void>;
   listDrafts(): Promise<Draft[]>;
+  /**
+   * Opens a server Drafts copy that has no local draft (started in Gmail web or another app): creates a local draft from it,
+   * linked to the server copy so the next save replaces that copy. Returns the existing draft when one is already linked.
+   */
+  openServerDraft(messageId: MessageRowId): Promise<Draft>;
   addAttachment(draftId: number, filePath: string): Promise<Draft>;
   removeAttachment(draftId: number, attachmentId: string): Promise<Draft>;
   /** Queues the draft. Sends after the undo delay, or at `sendAt` for send-later. */
@@ -155,7 +160,7 @@ export const METHOD_TIERS: Record<FlintMethod, "read" | "modify" | "send" | "adm
   moveToFolder: "modify", moveToInbox: "modify", snooze: "modify", unsnooze: "modify", setMuted: "modify", undo: "modify",
   unsubscribe: "send",
   blockSender: "modify", unblockSender: "modify", listBlocked: "read",
-  createDraft: "modify", getDraft: "read", updateDraft: "modify", deleteDraft: "modify", listDrafts: "read",
+  createDraft: "modify", getDraft: "read", updateDraft: "modify", deleteDraft: "modify", listDrafts: "read", openServerDraft: "modify",
   addAttachment: "modify", removeAttachment: "modify",
   sendDraft: "send", cancelSend: "modify", listScheduled: "read", approveSend: "admin",
   listSignatures: "read", saveSignature: "admin", deleteSignature: "admin",

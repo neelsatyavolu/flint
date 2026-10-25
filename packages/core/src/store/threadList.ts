@@ -6,11 +6,13 @@ import { addresses, asCategory, lowerAddr } from "./mappers";
 import type { ReceiptsRepo } from "./receipts";
 import type { RulesRepo } from "./rulesRepo";
 import { bool, Sql, type Param } from "./sql";
+import { localDraftEntries } from "./draftList";
 import { categoryClause, viewPredicate } from "./threadViews";
 
 const log = logger("store.threads");
 export const DEFAULT_LIMIT = 50;
 export const MAX_LIMIT = 200;
+const DRAFTS_SCAN_LIMIT = 100_000;
 
 type Where = { sql: string; params: Param[] };
 type MsgRow = { id: number; thread_id: number; from_json: string; date: number; seen: number; draft: number; has_attachments: number; snippet: string };
@@ -37,6 +39,7 @@ export class ThreadListRepo {
   listThreads(query: ThreadQuery, now: number = Date.now()): ThreadPage {
     const empty: ThreadPage = { items: [], bundles: [], nextCursor: null };
     const limit = Math.max(1, Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT));
+    if (query.view === "drafts") return this.#listDrafts(query, limit, now);
     const where = this.#buildWhere(query, now);
     if (!where) return empty;
     try {
@@ -64,6 +67,41 @@ export class ThreadListRepo {
     const items = this.#hydrate(ids, where);
     const byId = new Map(items.map((i) => [i.id, i]));
     return ids.map((id) => byId.get(id)).filter((i): i is ThreadListItem => i !== undefined);
+  }
+
+  /**
+   * The Drafts view: every local draft plus the server Drafts copies no local draft stands behind, newest first. Drafts are few,
+   * so both sets are read whole, merged and paged here. Local rows without a thread carry the negative id of their draft.
+   */
+  #listDrafts(query: ThreadQuery, limit: number, now: number): ThreadPage {
+    const page: ThreadPage = { items: [], bundles: [], nextCursor: null };
+    if (query.unreadOnly) return page;
+    const server = this.#buildWhere({ ...query, cursor: undefined }, now);
+    const serverRows = server ? this.#pageRows(server, { ...query, cursor: undefined, unreadOnly: false }, DRAFTS_SCAN_LIMIT) : [];
+    const serverItems = new Map(
+      (server ? this.#hydrate(serverRows.map((r) => r.id), server) : []).map((i) => [i.id, this.#withServerDraft(i, server!)]),
+    );
+    const entries = [
+      ...localDraftEntries(this.q, query.accountId),
+      ...serverRows.flatMap((r) => { const item = serverItems.get(r.id); return item ? [{ key: r.k, id: r.id, item }] : []; }),
+    ];
+    const asc = query.sort === "oldest";
+    entries.sort((a, b) => (asc ? a.key - b.key || a.id - b.id : b.key - a.key || b.id - a.id));
+    const after = query.cursor ? decodeCursor(query.cursor) : null;
+    const rest = after ? entries.filter((e) => (asc ? e.key > after[0] || (e.key === after[0] && e.id > after[1]) : e.key < after[0] || (e.key === after[0] && e.id < after[1]))) : entries;
+    const shown = rest.slice(0, limit);
+    const last = shown[shown.length - 1];
+    return { ...page, items: shown.map((e) => e.item), nextCursor: rest.length > limit && last ? encodeCursor(last.key, last.id) : null };
+  }
+
+  /** A server draft row lists its recipients and names the message to open. */
+  #withServerDraft(item: ThreadListItem, where: Where): ThreadListItem {
+    const m = this.q.get<{ id: number; to_json: string; cc_json: string }>(
+      `SELECT m.id, m.to_json, m.cc_json FROM messages m JOIN threads t ON t.id = m.thread_id
+       WHERE m.thread_id = ? AND ${where.sql} ORDER BY m.date DESC, m.id DESC LIMIT 1`, item.id, ...where.params);
+    if (!m) return item;
+    const people = [...addresses(m.to_json), ...addresses(m.cc_json)];
+    return { ...item, participants: people, draft: { draftId: null, messageId: m.id } };
   }
 
   // ---- query building

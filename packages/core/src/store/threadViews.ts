@@ -19,6 +19,11 @@ export function blockedClause(patterns: ReadonlySet<string>): SqlFragment | null
   return { sql: `(${parts.join(" OR ")})`, params };
 }
 
+/** True for a server Drafts copy that a local draft stands behind (matched by Message-ID, or by UID in the Drafts folder). */
+export const COVERED_BY_LOCAL_DRAFT = `EXISTS (SELECT 1 FROM drafts xd WHERE xd.account_id = m.account_id AND (
+  (xd.server_message_id IS NOT NULL AND xd.server_message_id = m.message_id)
+  OR (xd.server_uid IS NOT NULL AND xd.server_uid = m.uid AND m.folder_id IN (SELECT xdf.id FROM folders xdf WHERE xdf.role = 'drafts'))))`;
+
 const notTrashOrSpam = `NOT ${roleMember("trash")} AND NOT ${roleMember("spam")}`;
 
 /** Base predicate for a view, without account, category, unread or search filters. Returns null when the view can never match anything. */
@@ -32,7 +37,7 @@ export function viewPredicate(query: ThreadQuery, now: number, blocked: Readonly
       return { sql: parts.join(" AND "), params };
     }
     case "sent": return { sql: roleMember("sent"), params: [] };
-    case "drafts": return { sql: roleMember("drafts"), params: [] };
+    case "drafts": return { sql: `${roleMember("drafts")} AND NOT ${COVERED_BY_LOCAL_DRAFT}`, params: [] };
     case "trash": return { sql: roleMember("trash"), params: [] };
     case "spam": return { sql: roleMember("spam"), params: [] };
     case "archive": return { sql: ARCHIVE_PREDICATE, params: [] };

@@ -1,6 +1,7 @@
 import { buildMime, newMessageId } from "../mail/compose";
 import { deleteDraftByUid, replaceDraft } from "../mail/send";
 import { logger } from "../log";
+import type { DraftMeta } from "../store";
 import type { ServiceContext } from "./context";
 import { draftMimeInput } from "./compose-mime";
 
@@ -26,6 +27,19 @@ export function createServerDrafts(ctx: ServiceContext, delayMs: number = SERVER
   const isBlank = (d: { to: unknown[]; cc: unknown[]; bcc: unknown[]; subject: string; html: string; attachments: unknown[] }): boolean =>
     d.to.length + d.cc.length + d.bcc.length + d.attachments.length === 0 && !d.subject.trim() && !d.html.replace(/<[^>]*>/g, "").trim();
 
+  /** The replaced copy is gone from the server; drop the local mirror of it now so the Drafts view never lists both until the next sync. */
+  function dropReplacedCopy(accountId: string, folderId: number, previous: DraftMeta, newUid: number | null): void {
+    const stale = [
+      ...(previous.serverMessageId ? store.findByMessageId(accountId, previous.serverMessageId) : []),
+      ...(previous.serverUid !== null ? [store.findByFolderUid(folderId, previous.serverUid)] : []),
+    ].filter((m): m is NonNullable<typeof m> => m !== null && m.draft && !(m.folderId === folderId && m.uid === newUid));
+    const threads = new Set<number>();
+    for (const folder of new Set(stale.map((m) => m.folderId))) {
+      for (const id of store.removeUids(folder, stale.filter((m) => m.folderId === folder).map((m) => m.uid))) threads.add(id);
+    }
+    if (threads.size) ctx.emit({ type: "mail_changed", accountId, threadIds: [...threads] });
+  }
+
   async function upload(draftId: number): Promise<void> {
     const draft = store.getDraft(draftId);
     if (!draft || isBlank(draft)) return;
@@ -35,9 +49,13 @@ export function createServerDrafts(ctx: ServiceContext, delayMs: number = SERVER
       const folder = store.ensureFolderByRole(account.id, "drafts");
       const meta = store.getDraftMeta(draftId);
       const input = draftMimeInput(store, draft, account, false);
-      const mime = await buildMime({ ...input, messageId: newMessageId(draft.from), keepBcc: true, date: new Date(ctx.now()) });
+      const messageId = newMessageId(draft.from);
+      const mime = await buildMime({ ...input, messageId, keepBcc: true, date: new Date(ctx.now()) });
       const uid = await replaceDraft(ctx.syncs.get(account.id), folder.path, meta.serverUid, mime);
-      if (store.getDraft(draftId)) store.setDraftMeta(draftId, { serverUid: uid });
+      if (store.getDraft(draftId)) {
+        store.setDraftMeta(draftId, { serverUid: uid, serverMessageId: messageId });
+        dropReplacedCopy(account.id, folder.id, meta, uid);
+      }
       else if (uid !== null) await deleteDraftByUid(ctx.syncs.get(account.id), folder.path, uid);
     } catch (error) {
       log.warn("could not save a draft to the server", { draftId, reason: (error as Error).message });
