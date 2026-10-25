@@ -127,6 +127,23 @@ describe("Proton Bridge", () => {
     expect(await screen.findByText(/IMAP 127\.0\.0\.1:1143 STARTTLS · SMTP 127\.0\.0\.1:1025 SSL/)).toBeTruthy();
   });
 
+  it("shows the Bridge servers before an address is typed, including under Edit servers", () => {
+    render(<AddAccount onDone={() => {}} />);
+    fireEvent.click(screen.getByText("Proton Mail (Bridge)"));
+    expect(screen.getByText(/IMAP 127\.0\.0\.1:1143 STARTTLS · SMTP 127\.0\.0\.1:1025 SSL/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Edit servers" }));
+    expect((screen.getByLabelText("IMAP server") as HTMLInputElement).value).toBe("127.0.0.1");
+    expect(screen.getAllByDisplayValue("1143")).toHaveLength(1);
+    expect(screen.getAllByDisplayValue("1025")).toHaveLength(1);
+  });
+
+  it("doesn't call empty placeholder servers found", () => {
+    render(<AddAccount onDone={() => {}} />);
+    fireEvent.click(screen.getByText("Other (IMAP)"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit servers" }));
+    expect(screen.queryByText("Servers found")).toBeNull();
+  });
+
   it("switches to the Bridge note when autoconfig reports the hint", async () => {
     vi.spyOn(flint, "autoconfig").mockResolvedValue({ imapHost: "127.0.0.1", imapPort: 1143, imapSecure: false, smtpHost: "127.0.0.1", smtpPort: 1025, smtpSecure: true, username: "neel@xanom.co", hint: "proton_bridge" } as never);
     render(<AddAccount onDone={() => {}} />);

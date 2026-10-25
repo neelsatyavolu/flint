@@ -22,8 +22,9 @@ export function ImapStep({ preset, onDone, reauth }: Props) {
   const [email, setEmail] = useState(reauth?.email ?? "");
   const [name, setName] = useState(reauth?.name ?? "");
   const [password, setPassword] = useState("");
-  const [server, setServer] = useState<ServerConfig | null>(reauth ?? null);
-  const [detect, setDetect] = useState<Detect>({ kind: "idle" });
+  // Presets with fixed servers (Proton Bridge, iCloud, ...) show them right away; the username follows the address.
+  const [server, setServer] = useState<ServerConfig | null>(reauth ?? (preset.servers ? preset.servers("") : null));
+  const [detect, setDetect] = useState<Detect>(preset.servers && !reauth ? { kind: "found" } : { kind: "idle" });
   const [editServers, setEditServers] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [problems, setProblems] = useState<string[]>([]);
@@ -126,7 +127,7 @@ export function ImapStep({ preset, onDone, reauth }: Props) {
 
       <div aria-live="polite">
         {detect.kind === "checking" ? <span className={styles.muted}>Looking up your mail servers…</span> : null}
-        {server && detect.kind !== "checking" && detect.kind !== "missing" ? (
+        {server && (reauth || detect.kind === "found") ? (
           <div className={styles.detected}>
             <span className={styles.ok}>{reauth ? "Using the saved servers" : "Servers found"}</span>
             <span className={styles.mono}>{describeServer(server)}</span>
