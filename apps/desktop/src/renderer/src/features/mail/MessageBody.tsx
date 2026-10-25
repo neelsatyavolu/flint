@@ -3,7 +3,7 @@ import clsx from "clsx";
 import type { MessageView } from "@flint/core";
 import { flint } from "../../lib/api";
 import { Button, MailFrame, Skeleton, useToast } from "../../ui";
-import { hasRemoteImages, splitQuoted } from "./quotedText";
+import { splitQuoted } from "./quotedText";
 import styles from "./Message.module.css";
 
 function PlainBody({ text }: { text: string }) {
@@ -26,7 +26,8 @@ export function MessageBody({ message, onUpdated }: { message: MessageView; onUp
   const toast = useToast();
   const [loaded, setLoaded] = useState(false);
   const allowed = message.remoteImages === "allowed" || loaded;
-  const blockedNotice = !allowed && hasRemoteImages(message.html);
+  // core strips blocked images from the html, so its remoteImages flag is the only reliable signal.
+  const blockedNotice = message.remoteImages === "blocked" && !loaded;
 
   const load = (always: boolean) =>
     void flint.allowRemoteImages(message.id, always).then(

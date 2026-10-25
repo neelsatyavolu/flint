@@ -183,7 +183,11 @@ export async function startAgentServer(opts: AgentServerOptions): Promise<AgentS
         agent, method: m,
         summary: summarize(m, params, result, { draft }),
         status: awaiting ? "awaiting_approval" : "ok",
-        detail: { params: redactParams(params) },
+        detail: {
+          params: redactParams(params),
+          ...(awaiting && typeof (result as { scheduledId?: unknown }).scheduledId === "number"
+            ? { scheduledId: (result as { scheduledId: number }).scheduledId } : {}),
+        },
       });
       sendJson(res, 200, { ok: true, result });
     } catch (e) {

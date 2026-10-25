@@ -7,7 +7,6 @@ const log = logger("service");
 
 export type BootstrapDeps = {
   platform: Platform;
-  isDev: boolean;
   forceMock: boolean;
   create: (platform: Platform, opts: ServiceOptions) => Promise<FlintService>;
 };
@@ -27,9 +26,8 @@ async function startReal(deps: BootstrapDeps): Promise<FlintService> {
 }
 
 /**
- * Builds and starts the service. FLINT_MOCK=1 uses the in-memory mock. In dev a
- * failing real service falls back to the mock; in production it is a fatal error
- * the caller shows in a dialog.
+ * Builds and starts the service. Only FLINT_MOCK=1 uses the in-memory mock; a failing real
+ * service is a fatal error the caller shows in a dialog.
  */
 export async function bootstrapService(deps: BootstrapDeps): Promise<BootstrapResult> {
   const useMock = async (): Promise<BootstrapResult> => {
@@ -42,10 +40,6 @@ export async function bootstrapService(deps: BootstrapDeps): Promise<BootstrapRe
     return { ok: true, service: await startReal(deps), mock: false };
   } catch (err) {
     log.error("service failed to start", { message: describe(err) });
-    if (deps.isDev) {
-      log.warn("falling back to the mock service");
-      return useMock();
-    }
     return { ok: false, message: describe(err) };
   }
 }

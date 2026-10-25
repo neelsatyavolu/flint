@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pin, BellOff } from "lucide-react";
 import clsx from "clsx";
 import type { ThreadDetail } from "@flint/core";
@@ -11,8 +11,7 @@ import { listStore } from "../../state/listStore";
 import { useNav } from "../../state/nav";
 import { scheduleMarkRead } from "../../state/readOnOpen";
 import { CATEGORY_TITLES } from "../../state/viewMeta";
-import { InlineReply } from "../compose/InlineReply";
-import { openComposer } from "../compose/composerStore";
+const InlineReply = lazy(() => import("../compose/InlineReply").then((m) => ({ default: m.InlineReply })));
 import { QuickReplies } from "../ai/QuickReplies";
 import { ThreadSummary } from "../ai/ThreadSummary";
 import { MessageItem } from "./MessageItem";
@@ -20,10 +19,6 @@ import { ReaderToolbar } from "./ReaderToolbar";
 import { initialExpanded, wordCount } from "./quotedText";
 import { useThread } from "./useThread";
 import styles from "./Reader.module.css";
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
 
 function ThreadHeader({ thread }: { thread: ThreadDetail }) {
   const { accounts } = useApp();
@@ -89,9 +84,7 @@ function ThreadBody({ thread, refetch }: { thread: ThreadDetail; refetch: () => 
   }, []);
 
   const firstExpandedId = thread.messages.find((m) => expanded.has(m.id))?.id;
-  const pickReply = (text: string) => {
-    if (target) openComposer({ mode: "reply", messageId: target.id, html: `<p>${escapeHtml(text)}</p>` });
-  };
+  const [seedText, setSeedText] = useState<string | undefined>(undefined);
 
   return (
     <>
@@ -106,8 +99,8 @@ function ThreadBody({ thread, refetch }: { thread: ThreadDetail; refetch: () => 
       </div>
       {target ? (
         <div className={styles.foot}>
-          <QuickReplies threadId={thread.id} onPick={pickReply} />
-          <InlineReply threadId={thread.id} messageId={target.id} />
+          <QuickReplies threadId={thread.id} onPick={setSeedText} />
+          <Suspense fallback={null}><InlineReply threadId={thread.id} messageId={target.id} seedText={seedText} /></Suspense>
         </div>
       ) : null}
     </>

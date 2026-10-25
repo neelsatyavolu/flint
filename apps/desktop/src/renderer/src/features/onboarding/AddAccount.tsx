@@ -59,8 +59,8 @@ export function AddAccount({ onDone, onCancel, welcome, reauth }: Props): JSX.El
 
 function Choices({ onPick }: { onPick: (c: Choice) => void }) {
   return (
-    <div className={styles.choices} role="list">
-      <button type="button" role="listitem" className={styles.choice} onClick={() => onPick("google")}>
+    <div className={styles.choices}>
+      <button type="button" className={styles.choice} onClick={() => onPick("google")}>
         <span className={styles.choiceIcon} aria-hidden><Mail size={18} strokeWidth={1.5} /></span>
         <span className={styles.choiceText}>
           <span className={styles.choiceTitle} style={{ display: "block" }}>Sign in with Google</span>
@@ -68,7 +68,7 @@ function Choices({ onPick }: { onPick: (c: Choice) => void }) {
         </span>
       </button>
       {PROVIDERS.map((p) => (
-        <button key={p.id} type="button" role="listitem" className={styles.choice} onClick={() => onPick(p.id)}>
+        <button key={p.id} type="button" className={styles.choice} onClick={() => onPick(p.id)}>
           <span className={styles.choiceIcon} aria-hidden><Mail size={18} strokeWidth={1.5} /></span>
           <span className={styles.choiceText}>
             <span className={styles.choiceTitle} style={{ display: "block" }}>{p.label}</span>

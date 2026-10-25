@@ -1,13 +1,11 @@
-import { useEffect, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, type CSSProperties } from "react";
 import clsx from "clsx";
 import { AskLauncher } from "../features/ai/AskLauncher";
 import { AgentActivityView } from "../features/agents/AgentActivityView";
-import { ComposerHost } from "../features/compose/ComposerHost";
 import { HomeView } from "../features/home/HomeView";
 import { MailView } from "../features/mail/MailView";
 import { ScheduledView } from "../features/mail/ScheduledView";
 import { ReceiptsView } from "../features/receipts/ReceiptsView";
-import { SettingsView } from "../features/settings/SettingsView";
 import { isMac } from "../lib/host";
 import { ResizeHandle, usePersistedSize } from "../ui";
 import { useApp } from "../state/AppContext";
@@ -18,6 +16,19 @@ import { useAppCommands } from "./useAppCommands";
 import { useGlobalShortcuts } from "./useGlobalShortcuts";
 import { useHostBridge } from "./useHostBridge";
 import styles from "./AppShell.module.css";
+
+// TipTap and the settings screens are large and not needed for the first inbox paint.
+const loadComposerHost = () => import("../features/compose/ComposerHost");
+const loadSettings = () => import("../features/settings/SettingsView");
+const ComposerHost = lazy(() => loadComposerHost().then((m) => ({ default: m.ComposerHost })));
+const SettingsView = lazy(() => loadSettings().then((m) => ({ default: m.SettingsView })));
+
+/** Warms the lazy chunks once the first paint is done, so opening them later is instant. */
+function warmChunks(): void {
+  const run = () => void Promise.all([loadComposerHost(), loadSettings(), import("../features/compose/InlineReply")]);
+  if (typeof requestIdleCallback === "function") requestIdleCallback(run, { timeout: 3000 });
+  else setTimeout(run, 1500);
+}
 
 export const SIDEBAR_MIN = 200;
 export const SIDEBAR_MAX = 320;
@@ -52,6 +63,13 @@ export function AppShell() {
   const rail = narrow;
   const lights = !isMac() ? 0 : hidden ? TRAFFIC_LIGHTS_CLEAR : rail ? RAIL_LIGHTS_CLEAR : 0;
 
+  const sidebarPx = hidden ? 0 : rail ? RAIL_WIDTH : width;
+  useEffect(() => warmChunks(), []);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty("--flint-sidebar-width", `${sidebarPx}px`);
+  }, [sidebarPx]);
+
   useEffect(() => {
     if (!narrow && narrowExpanded) navStore.getState().toggleSidebar(true);
   }, [narrow, narrowExpanded]);
@@ -78,13 +96,13 @@ export function AppShell() {
         {settingsOpen ? (
           <div className={styles.settings}>
             <div className={clsx(styles.dragStrip, "drag")} />
-            <SettingsView section={section} onClose={() => navStore.getState().closeSettings()} />
+            <Suspense fallback={null}><SettingsView section={section} onClose={() => navStore.getState().closeSettings()} /></Suspense>
           </div>
         ) : (
           <MainView />
         )}
       </main>
-      <ComposerHost />
+      <Suspense fallback={null}><ComposerHost /></Suspense>
       <AskLauncher />
       <Overlays cmds={cmds} />
     </div>

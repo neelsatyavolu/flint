@@ -1,6 +1,7 @@
 import { extname, join, normalize, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { net, protocol } from "electron";
+import { attachmentSchemeRegistration } from "./attachment-protocol";
 import { buildCsp } from "./csp";
 
 export const APP_SCHEME = "app";
@@ -11,6 +12,7 @@ export const APP_URL = `${APP_ORIGIN}/index.html`;
 export function registerAppScheme(): void {
   protocol.registerSchemesAsPrivileged([
     { scheme: APP_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true } },
+    { ...attachmentSchemeRegistration, privileges: { ...attachmentSchemeRegistration.privileges } },
   ]);
 }
 

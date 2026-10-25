@@ -26,7 +26,7 @@ describe("buildCsp", () => {
   it("is strict in production", () => {
     const csp = buildCsp({ dev: false });
     expect(csp).toContain("default-src 'self'");
-    expect(csp).toContain("img-src 'self' data: blob: https: cid:");
+    expect(csp).toContain("img-src 'self' data: blob: https: flint-attachment:");
     expect(csp).toContain("frame-src 'self' about: blob:");
     expect(csp).toContain("connect-src 'self'");
     expect(csp).not.toContain("unsafe-inline'; img");

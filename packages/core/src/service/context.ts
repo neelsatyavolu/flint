@@ -1,0 +1,123 @@
+import { join } from "node:path";
+import { createAiEngine, type AiEngine } from "../ai";
+import { currentAgent } from "../agent/context";
+import type { AgentServerHandle } from "../agent/server";
+import { openDb } from "../db/open";
+import { initLog, logger } from "../log";
+import type { Platform } from "../platform";
+import { ReceiptsClient } from "../receipts";
+import { Scheduler } from "../scheduler";
+import { Store } from "../store";
+import type { GoogleClient } from "../mail/connect";
+import type { Address, AccountId, DeepPartial, FlintEvent, MessageRowId, Settings } from "../types";
+import { buildAiContext } from "./aiContext";
+import { ensureBodies } from "./bodies";
+import { EventBus } from "./events";
+import { createOptimistic, type Optimistic } from "./optimistic";
+import { notifyUser } from "./scheduler-wiring";
+import type { ServiceOptions } from "./index";
+import { googleClientFrom, SyncManager } from "./syncManager";
+import { UndoRegistry } from "./undo";
+
+const log = logger("service");
+
+/**
+ * Hooks the compose engineer fills in (in service/compose.ts, when the method group is built).
+ * The backbone reads them lazily, so they can be assigned after the context exists.
+ */
+export type ComposeHooks = {
+  /** Sends a plain text message from an account without a draft (unsubscribe by mailto). */
+  sendRaw?: (input: { accountId: AccountId; to: Address[]; subject: string; text: string }) => Promise<void>;
+  /** Scheduler job: performs the SMTP send of a queued draft. Throw to trigger the retry backoff. */
+  sendJob?: (draftId: number, scheduledId: number) => Promise<{ messageId?: string } | void>;
+};
+
+export type ServiceContext = {
+  readonly platform: Platform;
+  readonly options: ServiceOptions;
+  readonly store: Store;
+  readonly bus: EventBus;
+  readonly emit: (event: FlintEvent) => void;
+  readonly now: () => number;
+  readonly fetch: typeof fetch;
+  /** Name of the agent behind the current call, or undefined when the UI called. */
+  readonly caller: () => string | undefined;
+  getSettings(): Settings;
+  /** Validates and stores a patch, then emits {type:'settings'}. */
+  updateSettings(patch: DeepPartial<Settings>): Settings;
+  googleClient(): GoogleClient | null;
+  /** Downloads missing bodies for these messages (best effort). */
+  ensureBodies(messageIds: MessageRowId[]): Promise<void>;
+  readonly syncs: SyncManager;
+  readonly undo: UndoRegistry;
+  readonly optimistic: Optimistic;
+  // Slots. Constructed here; their FlintApi methods live in the files of the engineers who own them.
+  readonly scheduler: Scheduler;
+  readonly receipts: ReceiptsClient;
+  readonly ai: AiEngine;
+  readonly compose: ComposeHooks;
+  readonly agent: { handle: AgentServerHandle | null };
+};
+
+export function createContext(platform: Platform, options: ServiceOptions = {}): ServiceContext {
+  initLog(platform.dataDir);
+  const store = new Store(openDb(options.dbPath ?? join(platform.dataDir, "flint.db")));
+  const bus = new EventBus();
+  const now = options.now ?? Date.now;
+  const fetchImpl: typeof fetch = options.fetch ?? ((input, init) => fetch(input, init));
+  const getSettings = (): Settings => store.getSettings();
+
+  const syncs = new SyncManager({
+    store, platform, getSettings, emit: bus.emit, fetch: fetchImpl, ...(options.sync ? { tuning: options.sync } : {}),
+  });
+  const undo = new UndoRegistry({ now });
+  const optimistic = createOptimistic({ store, emit: bus.emit, undo, actionsFor: (id) => syncs.get(id).actions, caller: currentAgent });
+
+  const compose: ComposeHooks = {};
+  const receipts = new ReceiptsClient({ store, secrets: platform.secrets, getSettings, fetch: (input, init) => fetchImpl(input, init as RequestInit), now, emit: bus.emit });
+
+  const scheduler = new Scheduler({
+    store,
+    now,
+    setTimer: (fn, ms) => { const h = setTimeout(fn, ms); h.unref(); return h; },
+    clearTimer: (h) => clearTimeout(h as NodeJS.Timeout),
+    emit: bus.emit,
+    jobs: {
+      sendDraft: (draftId, scheduledId) => {
+        if (!compose.sendJob) throw new Error("Sending is not wired yet.");
+        return compose.sendJob(draftId, scheduledId);
+      },
+      onSnoozeWake: async ({ threadId, subject, locations }) => {
+        notifyUser(platform, getSettings(), { title: "Back in your inbox", body: subject || "(no subject)", threadId });
+        // The woken thread's latest message is unread locally; make the server agree.
+        const byAccount = new Map<AccountId, typeof locations>();
+        for (const l of locations) byAccount.set(l.accountId, [...(byAccount.get(l.accountId) ?? []), l]);
+        for (const [accountId, locs] of byAccount) {
+          const report = await syncs.get(accountId).actions.setSeen(locs, false).catch((e: Error) => ({ ok: false, errors: [{ message: e.message }] }));
+          if (!report.ok) log.warn("could not mark a woken thread unread on the server", { accountId });
+        }
+      },
+      onReminder: ({ threadId, outcome, message }) => {
+        if (outcome === "fired") notifyUser(platform, getSettings(), { title: "Follow up", body: message, threadId });
+      },
+      receipts,
+    },
+  });
+
+  const ai = createAiEngine(buildAiContext({ store, syncs, platform, getSettings, now, fetch: fetchImpl }), {
+    onChange: () => bus.emit({ type: "settings", settings: getSettings() }),
+  });
+
+  return {
+    platform, options, store, bus, emit: bus.emit, now, fetch: fetchImpl, caller: currentAgent,
+    getSettings,
+    updateSettings(patch) {
+      const settings = store.updateSettings(patch);
+      bus.emit({ type: "settings", settings });
+      return settings;
+    },
+    googleClient: () => googleClientFrom(getSettings()),
+    ensureBodies: (ids) => ensureBodies(store, syncs, ids),
+    syncs, undo, optimistic, scheduler, receipts, ai, compose, agent: { handle: null },
+  };
+}

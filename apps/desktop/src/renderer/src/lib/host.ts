@@ -3,7 +3,9 @@ export type FlintHost = {
   platform: string;
   openExternal(url: string): Promise<void> | void;
   onOpenThread(cb: (threadId: number) => void): () => void;
-  onMenu(cb: (command: string) => void): () => void;
+  onMenu(cb: (action: string, arg?: string) => void): () => void;
+  /** Absolute path of a dropped or picked file (Electron removed File.path). */
+  getPathForFile?(file: File): string;
 };
 
 export function getHost(): FlintHost | undefined {

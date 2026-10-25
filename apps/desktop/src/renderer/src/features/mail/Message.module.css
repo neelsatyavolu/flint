@@ -6,9 +6,9 @@
 .fromName { flex: none; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fromAddr { color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .toLine { color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.headRight { display: flex; align-items: center; gap: 8px; flex: none; height: 20px; }
-.hoverActions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--dur-fast) var(--ease); }
-.head:hover .hoverActions, .hoverActions:focus-within { opacity: 1; }
+.headRight { display: flex; align-items: center; gap: 8px; flex: none; height: 20px; position: relative; }
+.hoverActions { display: flex; gap: 2px; position: absolute; right: 100%; top: -2px; margin-right: 6px; background: var(--plane-2); opacity: 0; pointer-events: none; transition: opacity var(--dur-fast) var(--ease); }
+.head:hover .hoverActions, .hoverActions:focus-within { opacity: 1; pointer-events: auto; }
 .time { color: var(--fg-3); white-space: nowrap; }
 
 .collapsed { display: flex; align-items: center; gap: 12px; width: 100%; height: 48px; padding: 0 24px; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; color: var(--fg-2); transition: background-color var(--dur-fast) var(--ease); }

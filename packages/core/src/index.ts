@@ -4,3 +4,8 @@ export { openDb, migrate, tx, type Db } from "./db/open";
 export * from "./platform";
 export { logger, initLog } from "./log";
 export { createFlintService, type FlintService, type ServiceOptions } from "./service/index";
+export { createAiEngine, type AiEngine, type AiContext } from "./ai/index";
+export { runAsAgent, currentAgent } from "./agent/context";
+export { agentPaths, defaultDataDir } from "./agent/paths";
+export { DEFAULT_SETTINGS, type Store } from "./store/index";
+export type * from "./store/types";

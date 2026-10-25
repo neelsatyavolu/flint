@@ -14,7 +14,7 @@ export const MAIL_FRAME_SANDBOX = "allow-same-origin allow-popups allow-popups-t
 
 export type SrcdocOptions = {
   html: string;
-  /** Remote https images load only when true (data: and cid: always work). */
+  /** Remote https images load only when true (data: and flint-attachment: always work). */
   allowRemoteImages: boolean;
   /** Plain text/AI prose follows the theme; HTML mail gets a white sheet. */
   colors?: { bg: string; fg: string; link: string };
@@ -24,7 +24,7 @@ export type SrcdocOptions = {
 const WHITE_SHEET = { bg: "#ffffff", fg: "#1a1a17", link: "#2f6fe0" };
 
 export function buildCsp(allowRemoteImages: boolean): string {
-  const img = allowRemoteImages ? "img-src data: cid: https:" : "img-src data: cid:";
+  const img = allowRemoteImages ? "img-src data: flint-attachment: https:" : "img-src data: flint-attachment:";
   const font = allowRemoteImages ? "font-src https: data:" : "font-src data:";
   return `default-src 'none'; ${img}; ${font}; style-src 'unsafe-inline'; media-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'`;
 }

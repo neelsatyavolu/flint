@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlintError } from "@flint/core/types";
 import type { Account, Draft, DraftAttachment, DraftPatch, SendResult, Signature } from "@flint/core";
 import { flint } from "../../lib/api";
+import { getHost } from "../../lib/host";
 import { useFlintQuery, useSettings } from "../../lib/hooks";
 import { createAutosaver, type Autosaver, type SaveState } from "./autosave";
 import { ensureDraft, setComposerMeta, type ComposerInit } from "./composerStore";
@@ -114,7 +115,7 @@ export function useComposerSession(key: SessionKey, options: { trackMeta?: boole
     let latest: Draft | null = null;
     const missing: string[] = [];
     for (const file of files) {
-      const path = (file as File & { path?: string }).path;
+      const path = getHost()?.getPathForFile?.(file) || (file as File & { path?: string }).path;
       if (!path) missing.push(file.name);
       try {
         latest = await flint.addAttachment(id, path || file.name);

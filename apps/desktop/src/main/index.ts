@@ -7,6 +7,7 @@ import type { BrowserWindow } from "electron";
 import { app, dialog, nativeTheme, session } from "electron";
 import { CHANNELS } from "../preload/channels";
 import { APP_ORIGIN, APP_URL, registerAppScheme, serveRenderer } from "./app-protocol";
+import { serveAttachments } from "./attachment-protocol";
 import { createBadgeUpdater } from "./badge";
 import { forwardEvents, registerIpc } from "./ipc";
 import { installMenu } from "./menu";
@@ -81,12 +82,12 @@ async function main(): Promise<void> {
   secureSession(session.defaultSession, { appOrigin, dev: isDev, filter });
   if (!devUrl) serveRenderer(fileURLToPath(new URL("../renderer", import.meta.url)));
 
+  serveAttachments(() => service, dataDir);
   registerIpc({ getWindow: () => mainWindow, getService: () => service, appOrigin });
   installMenu({ isMac, isDev, send: sendMenu });
 
   const result = await bootstrapService({
     platform,
-    isDev,
     forceMock: process.env.FLINT_MOCK === "1",
     create: createFlintService,
   });

@@ -16,27 +16,24 @@ const failing = async () => { throw new Error("FlintService is not implemented y
 describe("bootstrapService", () => {
   it("uses the mock when forced and never calls create", async () => {
     const create = vi.fn(failing);
-    const r = await bootstrapService({ platform, isDev: false, forceMock: true, create });
+    const r = await bootstrapService({ platform, forceMock: true, create });
     expect(r).toMatchObject({ ok: true, mock: true });
     expect(create).not.toHaveBeenCalled();
   });
-  it("falls back to the mock in dev", async () => {
-    expect(await bootstrapService({ platform, isDev: true, forceMock: false, create: failing })).toMatchObject({ ok: true, mock: true });
-  });
-  it("reports a fatal error in production", async () => {
-    expect(await bootstrapService({ platform, isDev: false, forceMock: false, create: failing })).toEqual({ ok: false, message: "FlintService is not implemented yet" });
+  it("reports a fatal error instead of falling back to the mock", async () => {
+    expect(await bootstrapService({ platform, forceMock: false, create: failing })).toEqual({ ok: false, message: "FlintService is not implemented yet" });
   });
   it("starts the real service when it works", async () => {
     const real = createMockService("/tmp");
     const start = vi.spyOn(real, "start");
-    const r = await bootstrapService({ platform, isDev: false, forceMock: false, create: async () => real });
+    const r = await bootstrapService({ platform, forceMock: false, create: async () => real });
     expect(r).toMatchObject({ ok: true, mock: false });
     expect(start).toHaveBeenCalled();
   });
   it("treats a start failure like a create failure", async () => {
     const real = createMockService("/tmp");
     real.start = async () => { throw new Error("db locked"); };
-    expect(await bootstrapService({ platform, isDev: false, forceMock: false, create: async () => real })).toEqual({ ok: false, message: "db locked" });
+    expect(await bootstrapService({ platform, forceMock: false, create: async () => real })).toEqual({ ok: false, message: "db locked" });
   });
 });
 

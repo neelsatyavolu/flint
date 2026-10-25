@@ -140,7 +140,7 @@ describe("agent server", () => {
     });
     const r = await ask.call({ method: "sendDraft", params: [1] });
     expect(r.status).toBe(200);
-    expect(ask.act.entries[0]).toMatchObject({ status: "awaiting_approval", summary: "Queued mail to cindy@example.com for approval" });
+    expect(ask.act.entries[0]).toMatchObject({ status: "awaiting_approval", summary: "Queued mail to cindy@example.com for approval", detail: { scheduledId: 5 } });
   });
 
   it("rejects everything when agents are disabled, and reads settings per call", async () => {

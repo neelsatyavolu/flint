@@ -4,11 +4,11 @@ import { MAIL_FRAME_SANDBOX, buildCsp, buildSrcdoc, interceptLinks, observeFrame
 describe("buildCsp", () => {
   it("blocks remote images by default", () => {
     const csp = buildCsp(false);
-    expect(csp).toContain("img-src data: cid:;");
+    expect(csp).toContain("img-src data: flint-attachment:;");
     expect(csp).not.toContain("https:");
     expect(csp).toContain("default-src 'none'");
   });
-  it("allows https images when asked", () => expect(buildCsp(true)).toContain("img-src data: cid: https:"));
+  it("allows https images when asked", () => expect(buildCsp(true)).toContain("img-src data: flint-attachment: https:"));
 });
 
 describe("buildSrcdoc", () => {

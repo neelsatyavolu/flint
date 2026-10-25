@@ -1,6 +1,6 @@
 import { FLINT_METHODS, type FlintApi } from "@flint/core/api";
 import type { FlintEvent } from "@flint/core/types";
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from "electron";
 import { CHANNELS } from "./channels";
 import type { FlintHost } from "./types";
 
@@ -26,16 +26,36 @@ const methods = Object.fromEntries(
   FLINT_METHODS.map((m) => [m, (...args: unknown[]) => call(m, args)]),
 );
 
-const flint = {
-  ...methods,
-  subscribe: (listener: (event: FlintEvent) => void) => listen<[FlintEvent]>(CHANNELS.event, listener),
-} as unknown as FlintApi;
+// Every component subscribes; one ipcRenderer listener fans out to all of them.
+const subscribers = new Set<(event: FlintEvent) => void>();
+let attached = false;
+function subscribe(listener: (event: FlintEvent) => void): () => void {
+  subscribers.add(listener);
+  if (!attached) {
+    attached = true;
+    ipcRenderer.on(CHANNELS.event, (_e, event: FlintEvent) => {
+      for (const s of [...subscribers]) s(event);
+    });
+  }
+  return () => {
+    subscribers.delete(listener);
+  };
+}
+
+const flint = { ...methods, subscribe } as unknown as FlintApi;
 
 const flintHost: FlintHost = {
   platform: process.platform,
   openExternal: (url) => ipcRenderer.invoke(CHANNELS.openExternal, url) as Promise<void>,
   onOpenThread: (cb) => listen<[number]>(CHANNELS.openThread, cb),
   onMenu: (cb) => listen<[string, string | undefined]>(CHANNELS.menu, cb),
+  getPathForFile: (file) => {
+    try {
+      return webUtils.getPathForFile(file);
+    } catch {
+      return "";
+    }
+  },
 };
 
 contextBridge.exposeInMainWorld("flint", flint);

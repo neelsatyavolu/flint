@@ -11,6 +11,8 @@ export interface FlintHost {
   onOpenThread(cb: (threadId: number) => void): () => void;
   /** Fires on native menu clicks and mailto links ("compose" with the address as arg). */
   onMenu(cb: (action: MenuAction, arg?: string) => void): () => void;
+  /** Absolute path of a dropped or picked file, or an empty string when it has none. */
+  getPathForFile(file: File): string;
 }
 
 declare global {
