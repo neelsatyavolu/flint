@@ -49,7 +49,7 @@
 .field { display: flex; flex-direction: column; gap: 4px; }
 .fieldLabel { color: var(--fg-3); }
 .fields { display: flex; flex-direction: column; gap: var(--s-3); }
-.condRow { display: grid; grid-template-columns: 150px 130px minmax(0, 1fr) 28px; gap: var(--s-2); align-items: center; }
+.condRow { display: grid; grid-template-columns: 150px 150px minmax(0, 1fr) 28px; gap: var(--s-2); align-items: center; }
 .actRow { display: grid; grid-template-columns: 150px minmax(0, 1fr) 28px; gap: var(--s-2); align-items: center; }
 .editor { border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--plane-2); }
 .editorBar { display: flex; align-items: center; gap: 2px; padding: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }

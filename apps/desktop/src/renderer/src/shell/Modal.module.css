@@ -1,0 +1,4 @@
+.overlay { z-index: var(--z-dialog); display: flex; justify-content: center; align-items: flex-start; padding-top: 14vh; background: color-mix(in srgb, var(--plane-0) 62%, transparent); animation: fade var(--dur-panel) var(--ease); }
+.panel { display: flex; flex-direction: column; max-width: calc(100vw - 32px); max-height: 62vh; background: var(--plane-3); border: 1px solid var(--line-strong); border-radius: var(--r-control); outline: none; animation: rise var(--dur-panel) var(--ease); }
+@keyframes fade { from { opacity: 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(4px); } }

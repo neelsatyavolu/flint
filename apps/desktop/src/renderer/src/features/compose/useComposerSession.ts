@@ -27,7 +27,7 @@ export const messageOf = (err: unknown): string =>
   err instanceof FlintError || err instanceof Error ? err.message : "Something went wrong. Try again.";
 
 /** Draft lifecycle for the full composer and the inline reply: load or create, autosave, attachments, send, discard. */
-export function useComposerSession(key: SessionKey, options: { trackMeta?: boolean } = {}) {
+export function useComposerSession(key: SessionKey, options: { trackMeta?: boolean; discardEmptyOnUnmount?: boolean } = {}) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [fields, setFields] = useState<Fields | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +37,9 @@ export function useComposerSession(key: SessionKey, options: { trackMeta?: boole
   const saverRef = useRef<Autosaver<DraftPatch> | null>(null);
   const fieldsRef = useRef<Fields | null>(null);
   fieldsRef.current = fields;
+  const sentRef = useRef(false);
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
   const accounts = useFlintQuery((api) => api.listAccounts(), []);
   const signatures = useFlintQuery((api) => api.listSignatures(), []);
@@ -60,6 +63,13 @@ export function useComposerSession(key: SessionKey, options: { trackMeta?: boole
     );
     return () => {
       alive = false;
+      const f = fieldsRef.current;
+      const id = draftIdRef.current;
+      if (optionsRef.current.discardEmptyOnUnmount && !sentRef.current && f && id !== null && isBodyEmpty(f.html) && f.attachments.length === 0) {
+        saverRef.current?.cancel();
+        void flint.deleteDraft(id).catch(() => undefined);
+        return;
+      }
       void saverRef.current?.flush().catch(() => undefined);
     };
     // The key is stable for the life of a composer.
@@ -134,6 +144,7 @@ export function useComposerSession(key: SessionKey, options: { trackMeta?: boole
       await saverRef.current?.flush();
       const result = await flint.sendDraft(id, opts);
       saverRef.current?.cancel();
+      sentRef.current = true;
       return { ok: true, draftId: id, result, scheduledFor: opts?.sendAt };
     } catch (err) {
       return { ok: false, message: messageOf(err) };
@@ -167,7 +178,7 @@ export function useComposerSession(key: SessionKey, options: { trackMeta?: boole
   }, []);
 
   return {
-    draft, fields, error, saveState, patch, fromOptions, chooseFrom, attach, removeAttachment, pathless,
+    draft, fields, getFields: () => fieldsRef.current, error, saveState, patch, fromOptions, chooseFrom, attach, removeAttachment, pathless,
     send, close, discard, settings, signatures: signatures.data ?? [], templates: templates.data ?? [], clearError: () => setError(null),
   };
 }

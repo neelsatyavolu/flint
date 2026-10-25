@@ -5,6 +5,8 @@ export type AppData = {
   settings: Settings;
   updateSettings: (patch: DeepPartial<Settings>) => Promise<unknown>;
   accounts: Account[];
+  /** Reload the account list after one is added or removed. */
+  refreshAccounts: () => void;
   sidebar: SidebarData | undefined;
   /** Window is narrower than the rail breakpoint. */
   narrow: boolean;

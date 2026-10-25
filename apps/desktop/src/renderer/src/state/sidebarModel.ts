@@ -55,3 +55,10 @@ export function moreFolders(folders: Folder[]): Folder[] {
 export function accountLabel(account: Account): string {
   return account.email;
 }
+
+export type NavMatch = { view: string; accountId?: AccountId; folderId?: number; category?: string };
+
+/** Whether a sidebar row for `target` is the active one. A row without an account matches only the unscoped list. */
+export function isActiveTarget(nav: NavMatch, target: { view: string; accountId?: AccountId; folderId?: number }): boolean {
+  return nav.view === target.view && nav.accountId === target.accountId && nav.folderId === target.folderId;
+}

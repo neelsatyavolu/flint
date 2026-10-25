@@ -159,9 +159,11 @@ export function sanitizeForDisplay(html: string, opts: SanitizeOptions): Sanitiz
         return out;
       },
     },
-    textFilter: (text, tagName) => (tagName === "style" ? cssFor(text) : text),
     exclusiveFilter: (frame) => frame.attribs["data-flint-drop"] === "1",
   });
 
-  return { html: clean, hasTrackers, hasRemoteImages };
+  // sanitize-html passes <style> text through untouched, so the blocks are cleaned here. The input is already
+  // sanitized markup, where a style block ends at the first closing tag, so the match cannot span other elements.
+  const withCleanStyles = clean.replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (_m, open: string, css: string, close: string) => `${open}${cssFor(css)}${close}`);
+  return { html: withCleanStyles, hasTrackers, hasRemoteImages };
 }

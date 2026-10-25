@@ -48,6 +48,11 @@ function signaturePos(editor: Editor): number | null {
   return pos;
 }
 
+/** The signature is an atom block; the cursor needs a paragraph above it to type into. */
+export function withLeadingParagraph(html: string): string {
+  return html.trimStart().startsWith("<p") ? html : `<p></p>${html}`;
+}
+
 function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -74,7 +79,7 @@ export function BodyEditor({ initialHtml, placeholder = "Enter text", onChange, 
   const editorRef = useRef<Editor | null>(null);
   const editor = useEditor({
     extensions,
-    content: initialHtml,
+    content: withLeadingParagraph(initialHtml),
     autofocus: autoFocus ? "start" : false,
     onUpdate: ({ editor: e }) => onChangeRef.current(e.getHTML()),
     editorProps: {
@@ -127,7 +132,7 @@ export function BodyEditor({ initialHtml, placeholder = "Enter text", onChange, 
       setSignature: (signature) => {
         const e = editorRef.current;
         if (!e) return;
-        e.commands.setContent(swapSignatureHtml(e.getHTML(), signature), { emitUpdate: true });
+        e.commands.setContent(withLeadingParagraph(swapSignatureHtml(e.getHTML(), signature)), { emitUpdate: true });
       },
     }),
     [],

@@ -1,0 +1,5 @@
+.header { display: flex; align-items: center; gap: 8px; flex: none; height: 56px; padding: 0 16px 0 max(16px, var(--lights-inset, 0px)); background: inherit; }
+.titles { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.titles h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subtitle { color: var(--fg-3); line-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.actions { display: flex; align-items: center; gap: 4px; margin-left: auto; flex: none; }

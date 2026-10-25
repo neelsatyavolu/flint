@@ -73,6 +73,11 @@ export function ensureDraft(entry: Pick<ComposerEntry, "id" | "init">): Promise<
   return created;
 }
 
+/** Forgets the cached draft of a composer that isn't in the store (inline replies). */
+export function releaseDraft(id: string): void {
+  drafts.delete(id);
+}
+
 export function useComposers(): ComposerEntry[] {
   return useSyncExternalStore(
     (cb) => {

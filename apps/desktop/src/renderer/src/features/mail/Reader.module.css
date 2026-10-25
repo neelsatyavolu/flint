@@ -1,0 +1,12 @@
+.reader { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--plane-2); }
+.toolbar { display: flex; align-items: center; gap: 8px; flex: none; height: var(--titlebar-h); padding: 0 12px; border-bottom: 1px solid var(--line); }
+.full .toolbar { padding-left: max(12px, var(--lights-inset, 0px)); }
+.cluster { display: flex; align-items: center; gap: 2px; }
+.grow { flex: 1; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.threadHead { padding: 24px 24px 16px; }
+.subject { overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
+.acctDot { width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; flex: none; }
+.messages { display: flex; flex-direction: column; }
+.foot { display: flex; flex-direction: column; gap: 12px; padding: 16px 24px 32px; border-top: 1px solid var(--line); }

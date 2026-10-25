@@ -35,5 +35,5 @@
 .flint-editor .flint-sig-body a { color: var(--accent); }
 .flint-editor .flint-sig-body img { max-width: 100%; height: auto; }
 /* Signatures are written for white mail; keep their own dark text legible on the dark plane. */
-.flint-editor .flint-sig-body, .flint-editor .flint-sig-body * { color: inherit; }
-.flint-editor .flint-sig-body a, .flint-editor .flint-sig-body a * { color: var(--accent); }
+.flint-editor .flint-sig-body, .flint-editor .flint-sig-body * { color: inherit !important; }
+.flint-editor .flint-sig-body a, .flint-editor .flint-sig-body a * { color: var(--accent) !important; }

@@ -1,0 +1,47 @@
+.message { padding: 16px 24px 20px; border-top: 1px solid var(--line); }
+.head { display: flex; align-items: flex-start; gap: 12px; }
+.headAvatar { margin-top: 1px; }
+.headText { flex: 1; min-width: 0; }
+.fromLine { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.fromName { flex: none; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fromAddr { color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toLine { color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.headRight { display: flex; align-items: center; gap: 8px; flex: none; height: 20px; }
+.hoverActions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--dur-fast) var(--ease); }
+.head:hover .hoverActions, .hoverActions:focus-within { opacity: 1; }
+.time { color: var(--fg-3); white-space: nowrap; }
+
+.collapsed { display: flex; align-items: center; gap: 12px; width: 100%; height: 48px; padding: 0 24px; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; color: var(--fg-2); transition: background-color var(--dur-fast) var(--ease); }
+.collapsed:hover { background: var(--hover); }
+.cName { flex: none; width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); font-weight: 500; }
+.unread .cName { font-weight: 600; }
+.cSnippet { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-3); }
+
+.bodyWrap { margin-top: 12px; }
+.sheet { border-radius: var(--r-control); overflow: hidden; background: #fff; }
+.notice { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; color: var(--fg-3); }
+.trackers { margin: 0 0 8px; color: var(--fg-3); }
+.skeleton { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.prose { color: var(--fg); }
+.pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.quoted { margin-top: 8px; color: var(--fg-3); }
+.quotePill { display: inline-flex; align-items: center; height: 18px; padding: 0 8px; margin-top: 8px; border: 0; border-radius: var(--r-control); background: var(--active); color: var(--fg-2); letter-spacing: 0.1em; }
+.quotePill:hover { background: var(--line-strong); }
+
+.tiles { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+.tile { display: flex; align-items: center; width: 200px; padding-right: 4px; border: 1px solid var(--line-strong); border-radius: var(--r-control); }
+.tile:hover { background: var(--hover); }
+.tileMain { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 10px; border: 0; background: transparent; text-align: left; }
+.tileText { display: flex; flex-direction: column; min-width: 0; }
+.tileName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.receipt { margin-top: 16px; padding: 12px 0 0; border-top: 1px solid var(--line); }
+.receiptHead { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.receiptFoot { display: flex; gap: 16px; margin-top: 10px; }
+.disclosure { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: transparent; color: var(--fg-3); }
+.disclosure:hover { color: var(--fg); }
+.turned { transform: rotate(90deg); }
+.timeline { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; padding-left: 16px; border-left: 1px solid var(--line); }
+.event { display: flex; gap: 12px; color: var(--fg-2); }
+.eventTime { flex: none; width: 96px; color: var(--fg-3); }
+.dim { color: var(--fg-3); }

@@ -1,8 +1,19 @@
-/** STUB: the shell engineer replaces this file. */
-export function App() {
+import type { JSX } from "react";
+import { AddAccount } from "./features/onboarding/AddAccount";
+import { AppDataProvider } from "./shell/AppDataProvider";
+import { AppShell } from "./shell/AppShell";
+import { useApp } from "./state/AppContext";
+
+function Routes(): JSX.Element {
+  const { accounts, refreshAccounts } = useApp();
+  if (accounts.length === 0) return <AddAccount welcome onDone={refreshAccounts} />;
+  return <AppShell />;
+}
+
+export function App(): JSX.Element {
   return (
-    <div style={{ height: "100%", display: "grid", placeItems: "center" }}>
-      <span className="t-title">Flint</span>
-    </div>
+    <AppDataProvider>
+      <Routes />
+    </AppDataProvider>
   );
 }

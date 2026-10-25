@@ -1,0 +1,34 @@
+.launcher {
+  position: fixed; right: 16px; z-index: 50; width: 320px; height: 40px;
+  display: flex; align-items: center; gap: var(--s-2); padding: 0 var(--s-3);
+  background: var(--plane-3); border: 1px solid var(--line-strong); border-radius: var(--r-control);
+  color: var(--accent);
+}
+.launcher:focus-within { border-color: var(--accent); }
+.field { flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: transparent; color: var(--fg); font: 400 var(--text-body) / 1 var(--font-ui); caret-color: var(--accent); -webkit-user-select: text; user-select: text; }
+.field::placeholder { color: var(--fg-3); }
+.panel {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 60; width: 380px;
+  display: flex; flex-direction: column; background: var(--plane-2); border-left: 1px solid var(--line);
+  animation: in var(--dur-panel) var(--ease);
+}
+@keyframes in { from { opacity: 0; transform: translateX(8px); } }
+.head { display: flex; align-items: center; justify-content: space-between; height: var(--titlebar-h); padding: 0 var(--s-3) 0 var(--s-4); flex: none; }
+.title { display: inline-flex; align-items: center; gap: var(--s-2); }
+.title svg { color: var(--accent); }
+.scroll { flex: 1; overflow-y: auto; padding: var(--s-2) var(--s-4) var(--s-4); }
+.turn { margin-bottom: var(--s-6); }
+.q { margin: 0 0 var(--s-2); color: var(--fg); font: 600 var(--text-body) / var(--lh-body) var(--font-ui); -webkit-user-select: text; user-select: text; }
+.note { color: var(--fg-3); }
+.caret { display: inline-block; width: 2px; height: 1em; margin-left: 2px; vertical-align: text-bottom; background: var(--accent); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.cites { display: flex; flex-direction: column; margin-top: var(--s-2); border-top: 1px solid var(--line); }
+.cite { display: flex; align-items: center; gap: var(--s-2); width: 100%; min-height: 36px; padding: 0 var(--s-1); border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--fg); text-align: left; font: 400 var(--text-body) / 1 var(--font-ui); }
+.cite:hover { background: var(--hover); }
+.cite:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
+.cite span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cite svg { flex: none; color: var(--fg-3); }
+.foot { flex: none; padding: var(--s-3) var(--s-4); border-top: 1px solid var(--line); display: flex; gap: var(--s-2); align-items: center; }
+.foot .field { height: 32px; padding: 0 var(--s-3); border: 1px solid var(--line-strong); border-radius: var(--r-control); }
+.foot .field:focus { border-color: var(--accent); }
+.empty { color: var(--fg-3); padding-top: var(--s-4); }

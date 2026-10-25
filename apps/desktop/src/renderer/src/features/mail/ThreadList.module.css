@@ -1,0 +1,6 @@
+.scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; background: var(--plane-1); contain: strict; }
+.fill { flex: 1; min-height: 0; height: 100%; background: var(--plane-1); }
+.canvas { position: relative; width: 100%; }
+.row, .label { position: absolute; top: 0; left: 0; width: 100%; }
+.label { display: flex; align-items: center; padding: 0 16px; background: var(--plane-1); }
+.sticky { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; height: 28px; margin-bottom: -28px; padding: 0 16px; background: var(--plane-1); border-bottom: 1px solid var(--line); }

@@ -1,0 +1,131 @@
+import { ImapFlow, type ImapFlowOptions } from "imapflow";
+import { createTransport } from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
+import { z } from "zod";
+import type { SecretStore } from "../platform";
+import { FlintError, type Account, type ServerConfig } from "../types";
+import { refreshGoogleToken, REFRESH_MARGIN_MS, type FetchLike } from "./google-oauth";
+
+export const secretSchema = z.union([
+  z.object({ password: z.string() }),
+  z.object({ accessToken: z.string(), refreshToken: z.string(), expiresAt: z.number() }),
+]);
+export type AccountSecret = z.infer<typeof secretSchema>;
+
+/** What the IMAP and SMTP clients log in with. */
+export type MailAuth = { user: string; pass: string } | { user: string; accessToken: string };
+
+export type GoogleClient = { clientId: string; clientSecret: string };
+
+export type AuthDeps = {
+  secrets: SecretStore;
+  google?: () => GoogleClient;
+  fetch?: FetchLike;
+  now?: () => number;
+};
+
+export const secretKey = (accountId: string): string => `account:${accountId}`;
+
+export async function readSecret(secrets: SecretStore, accountId: string): Promise<AccountSecret> {
+  const raw = await secrets.get(secretKey(accountId));
+  if (!raw) throw new FlintError("auth", "No saved sign-in for this account. Sign in again.");
+  try {
+    return secretSchema.parse(JSON.parse(raw));
+  } catch {
+    throw new FlintError("auth", "The saved sign-in for this account is unreadable. Sign in again.");
+  }
+}
+
+/**
+ * Credentials for an account. OAuth access tokens are refreshed when they expire within 5 minutes
+ * and the new token is written back to the secret store.
+ */
+export async function resolveAuth(account: Account, deps: AuthDeps): Promise<MailAuth> {
+  const secret = await readSecret(deps.secrets, account.id);
+  if ("password" in secret) return { user: account.username, pass: secret.password };
+  const now = (deps.now ?? Date.now)();
+  if (secret.expiresAt - now > REFRESH_MARGIN_MS) return { user: account.username, accessToken: secret.accessToken };
+  const google = deps.google?.();
+  if (!google?.clientId || !google.clientSecret) throw new FlintError("auth", "Add a Google client ID and secret in Settings, then sign in again.");
+  const next = await refreshGoogleToken({ ...google, refreshToken: secret.refreshToken, fetch: deps.fetch, now: deps.now });
+  await deps.secrets.set(secretKey(account.id), JSON.stringify(next));
+  return { user: account.username, accessToken: next.accessToken };
+}
+
+const isLoopback = (host: string): boolean => host === "127.0.0.1" || host === "localhost" || host === "::1";
+
+export function imapOptions(server: Pick<ServerConfig, "imapHost" | "imapPort" | "imapSecure">, auth: MailAuth): ImapFlowOptions {
+  return {
+    host: server.imapHost,
+    port: server.imapPort,
+    secure: server.imapSecure,
+    auth: "accessToken" in auth ? { user: auth.user, accessToken: auth.accessToken } : { user: auth.user, pass: auth.pass },
+    logger: false,
+    disableBinary: true,
+    connectionTimeout: 20_000,
+    greetingTimeout: 15_000,
+    // Plain connections upgrade with STARTTLS when offered; loopback hosts (Proton Bridge, local test servers) skip certificate checks.
+    ...(isLoopback(server.imapHost) ? { tls: { rejectUnauthorized: false } } : {}),
+  };
+}
+
+export function smtpOptions(server: Pick<ServerConfig, "smtpHost" | "smtpPort" | "smtpSecure">, auth: MailAuth): SMTPTransport.Options {
+  return {
+    host: server.smtpHost,
+    port: server.smtpPort,
+    secure: server.smtpSecure,
+    auth: "accessToken" in auth ? { type: "OAuth2", user: auth.user, accessToken: auth.accessToken } : { user: auth.user, pass: auth.pass },
+    connectionTimeout: 20_000,
+    greetingTimeout: 15_000,
+    socketTimeout: 60_000,
+    ...(isLoopback(server.smtpHost) ? { tls: { rejectUnauthorized: false } } : {}),
+  };
+}
+
+export function createImapClient(server: ServerConfig, auth: MailAuth): ImapFlow {
+  return new ImapFlow(imapOptions(server, auth));
+}
+
+/** Short, user-facing text for a connection failure. Never includes credentials. */
+export function describeConnectError(error: unknown, what: "IMAP" | "SMTP"): FlintError {
+  if (error instanceof FlintError) return error;
+  const e = error as { code?: string; authenticationFailed?: boolean; responseText?: string; message?: string };
+  const code = e.code ?? "";
+  if (e.authenticationFailed || /AUTH/i.test(code) || /auth|credentials|login/i.test(e.responseText ?? e.message ?? "")) {
+    return new FlintError("auth", "The server rejected the username or password. For Gmail and iCloud, use an app password.");
+  }
+  if (["ENOTFOUND", "EAI_AGAIN"].includes(code)) return new FlintError("network", `Could not find the ${what} server. Check the host name.`);
+  if (["ECONNREFUSED", "ETIMEDOUT", "CONNECT_TIMEOUT", "ECONNRESET", "ESOCKET", "EDNS"].includes(code) || /timeout|timed out/i.test(e.message ?? "")) {
+    return new FlintError("network", `Could not connect to the ${what} server. Check the host, port and encryption setting.`);
+  }
+  if (/certificate|self.signed|CERT_|SSL|TLS/i.test(code + (e.message ?? ""))) {
+    return new FlintError("network", `The ${what} server's security certificate was not accepted.`);
+  }
+  return new FlintError("network", `${what} connection failed.`);
+}
+
+export type TestConnectionResult = { imap: true; smtp: true; imapCapabilities: string[] };
+
+/** Logs in over IMAP and verifies SMTP. Throws a FlintError with a message fit for the add-account form. */
+export async function testConnection(server: ServerConfig, auth: MailAuth): Promise<TestConnectionResult> {
+  const client = createImapClient(server, auth);
+  client.on("error", () => undefined);
+  let imapCapabilities: string[] = [];
+  try {
+    await client.connect();
+    imapCapabilities = [...client.capabilities.keys()];
+    await client.logout();
+  } catch (error) {
+    client.close();
+    throw describeConnectError(error, "IMAP");
+  }
+  const transport = createTransport(smtpOptions(server, auth));
+  try {
+    await transport.verify();
+  } catch (error) {
+    throw describeConnectError(error, "SMTP");
+  } finally {
+    transport.close();
+  }
+  return { imap: true, smtp: true, imapCapabilities };
+}

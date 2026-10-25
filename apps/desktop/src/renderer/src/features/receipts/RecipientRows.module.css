@@ -1,0 +1,11 @@
+.list { display: flex; flex-direction: column; gap: 6px; }
+.row { display: flex; align-items: center; gap: 8px; min-height: 20px; }
+.name { flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status { display: inline-flex; align-items: center; gap: 6px; min-width: 0; margin-left: auto; }
+.text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.status { color: var(--fg-2); }
+.ok .dot { background: var(--ok); }
+.warn .dot { background: var(--warn); }
+.muted { color: var(--fg-3); }
+.muted .dot { background: var(--fg-4); }

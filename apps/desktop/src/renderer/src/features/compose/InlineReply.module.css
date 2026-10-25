@@ -1,0 +1,13 @@
+.collapsed { display: flex; align-items: center; width: 100%; height: 40px; padding: 0 var(--s-3); border: 1px solid var(--line-strong); border-radius: var(--r-control); background: transparent; color: var(--fg-3); text-align: left; font: 400 var(--text-body) / 1 var(--font-ui); transition: border-color var(--dur-fast) var(--ease); }
+.collapsed:hover { border-color: var(--fg-4); }
+.collapsed:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.open { border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--plane-2); padding: var(--s-2) var(--s-3) var(--s-2); }
+.open:focus-within { border-color: var(--accent); }
+.to { display: flex; align-items: center; gap: var(--s-2); width: 100%; min-height: 28px; border: 0; background: transparent; padding: 0; color: var(--fg-2); text-align: left; font: 400 var(--text-body) / var(--lh-body) var(--font-ui); }
+.to span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.to:focus-visible { outline: var(--focus-ring); }
+.label { color: var(--fg-3); }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); margin-top: var(--s-2); }
+.tools { display: flex; align-items: center; gap: 2px; }
+.err { color: var(--danger); margin-top: 4px; }
+.saved { margin-left: var(--s-2); color: var(--fg-3); }

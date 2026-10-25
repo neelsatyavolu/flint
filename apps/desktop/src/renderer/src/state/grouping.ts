@@ -44,3 +44,28 @@ export function groupByDate(entries: ListEntry[], now: number = Date.now()): Dis
   }
   return rows;
 }
+
+/** Thread id behind a row key ("t12"), or null for bundles. */
+export function threadIdOf(key: string | null): number | null {
+  if (!key?.startsWith("t")) return null;
+  const id = Number(key.slice(1));
+  return Number.isFinite(id) ? id : null;
+}
+
+/** Thread ids between two row keys, inclusive, in list order. Bundles are skipped. */
+export function rangeIds(entries: ListEntry[], fromKey: string | null, toKey: string): number[] {
+  const to = entries.findIndex((e) => e.key === toKey);
+  if (to === -1) return [];
+  const from = fromKey ? entries.findIndex((e) => e.key === fromKey) : -1;
+  const [a, b] = from === -1 ? [to, to] : [Math.min(from, to), Math.max(from, to)];
+  return entries.slice(a, b + 1).flatMap((e) => (e.kind === "thread" ? [e.item.id] : []));
+}
+
+/** The row key one step from `current` among thread rows (and bundles when `includeBundles`). Clamps at the ends. */
+export function stepKey(entries: ListEntry[], current: string | null, delta: 1 | -1, includeBundles = true): string | null {
+  const keys = entries.filter((e) => includeBundles || e.kind === "thread").map((e) => e.key);
+  if (keys.length === 0) return null;
+  const at = current ? keys.indexOf(current) : -1;
+  if (at === -1) return delta === 1 ? keys[0]! : keys[keys.length - 1]!;
+  return keys[Math.min(keys.length - 1, Math.max(0, at + delta))]!;
+}

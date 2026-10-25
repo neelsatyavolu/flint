@@ -1,0 +1,11 @@
+.boot { height: 100%; background: var(--plane-0); }
+.shell { position: relative; display: flex; width: 100%; height: 100%; overflow: hidden; background: var(--plane-2); }
+.sidebar { flex: none; min-width: 0; height: 100%; background: var(--plane-0); }
+.hairline { flex: none; width: 1px; background: var(--line); }
+.main { flex: 1; min-width: 0; display: flex; height: 100%; }
+.settings { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--plane-2); }
+.settings > :not(.dragStrip) { flex: 1; min-height: 0; }
+.dragStrip { position: absolute; top: 0; left: 0; right: 0; height: 14px; z-index: 1; }
+.backdrop { position: absolute; inset: 0; z-index: 40; background: color-mix(in srgb, var(--plane-0) 55%, transparent); }
+.overlay { position: absolute; top: 0; bottom: 0; left: 0; z-index: 41; background: var(--plane-0); border-right: 1px solid var(--line-strong); animation: slide var(--dur-panel) var(--ease); }
+@keyframes slide { from { opacity: 0; transform: translateX(-8px); } }
