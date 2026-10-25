@@ -11,7 +11,7 @@
     "web": "vite --config vite.web.config.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
-    "dist": "electron-vite build && electron-builder --mac --dir",
+    "dist": "electron-vite build && electron-builder --mac --config electron-builder.config.cjs",
     "e2e": "electron-vite build && node e2e/run.mts",
     "e2e:perf": "electron-vite build && vitest run --config e2e/vitest.config.mts",
     "e2e:packaged": "node e2e/packaged.mts"
