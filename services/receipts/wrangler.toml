@@ -9,8 +9,12 @@ crons = ["17 3 * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "flint-receipts"
-# Replace with the id printed by `wrangler d1 create flint-receipts`.
-database_id = "REPLACE_WITH_D1_ID"
+# Production database (account 5eac7df5…).
+database_id = "7589479c-5086-449d-8b9f-86abb810149e"
 migrations_dir = "migrations"
 
 # Secret, not a var. Set with: wrangler secret put FINGERPRINT_SALT
+
+[[routes]]
+pattern = "flintr.xanom.co"
+custom_domain = true
