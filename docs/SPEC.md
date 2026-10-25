@@ -147,7 +147,7 @@ Order of checks:
 
 ## 6b. Spark signature import
 
-`findSparkSignatures` locates Spark's local settings file (or a path the user picks) and lists its signatures; `importSparkSignatures` creates a Flint signature for each chosen one and can set it as the default for chosen accounts. The file is only read, on this computer. Each imported signature is remembered by its Spark id (kv `spark-signature:<id>`), so importing again does not duplicate it. If macOS blocks the read, the error tells the user which Privacy & Security permission to allow. Signature HTML carries the class `flint_signature`.
+`findSparkSignatures` locates Spark's local settings file (or a path the user picks) and lists its signatures; `importSparkSignatures` creates a Flint signature for each chosen one and can set it as the default for chosen accounts. The file is only read, on this computer. The HTML is kept as Spark wrote it (links, embedded images and its own `--` divider), minus anything unsafe. Each imported signature is remembered by its Spark id (kv `spark-signature:<id>`), so importing again does not duplicate it. If macOS blocks the read, the error tells the user which Privacy & Security permission to allow. Signature HTML carries the class `flint_signature`.
 
 ## 7. AI (`src/ai`)
 

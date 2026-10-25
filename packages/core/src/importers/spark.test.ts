@@ -37,7 +37,7 @@ describe("readSparkSignatures", () => {
     expect(out[1]!.accounts).toEqual(["neel@nenu.co", "sam.rivera@gmail.com"]);
     expect(out[0]!.name).toBe("Neel Satyavolu");
     expect(out[1]!.name).toBe("Thanks,");
-    expect(out[0]!.html.startsWith("<div>Neel Satyavolu</div>")).toBe(true);
+    expect(out[0]!.html.startsWith("<div>--</div><div>Neel Satyavolu</div>")).toBe(true);
     expect(out[0]!.html).toContain(PNG);
     expect(out[0]!.modifiedAt).toBe(Math.round((814470348.2 + 978307200) * 1000));
   });
@@ -77,9 +77,10 @@ describe("readSparkSignatures", () => {
 });
 
 describe("cleanSignatureHtml", () => {
-  it("drops the leading -- divider (Flint adds its own) and anything unsafe", () => {
+  it("keeps the -- divider as written and drops anything unsafe", () => {
     const out = cleanSignatureHtml(`<div>--</div><div onclick="x()">Name <script>alert(1)</script><a href="javascript:alert(1)">bad</a> <a href="https://northwind.example">Northwind</a></div><img src="http://tracker.example/p.gif"><img src="${PNG}">`);
-    expect(out).not.toMatch(/--|script|onclick|javascript|tracker\.example/);
+    expect(out.startsWith("<div>--</div>")).toBe(true);
+    expect(out).not.toMatch(/script|onclick|javascript|tracker\.example/);
     expect(out).toContain('<a href="https://northwind.example" target="_blank" rel="noopener">Northwind</a>');
     expect(out).toContain(PNG);
   });

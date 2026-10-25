@@ -23,7 +23,7 @@ function Layer({ variant, width, open, onClose, title, hideTitle, children, foot
   return (
     <FloatingPortal>
       <FloatingOverlay lockScroll className={clsx(styles.overlay, variant === "sheet" && styles.sheetOverlay)}>
-        <FloatingFocusManager context={context} initialFocus={0} returnFocus>
+        <FloatingFocusManager context={context} initialFocus={-1} returnFocus>
           <section
             ref={refs.setFloating}
             aria-label={title}

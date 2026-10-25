@@ -6,7 +6,8 @@ import { CORE_SIGNATURE_CLASS, SIGNATURE_CLASS } from "../signature";
 /**
  * The signature block. It is an atom to ProseMirror (so rich layouts such as tables survive) whose node view
  * contains its own editable region. The saved HTML is `<div class="flint_signature" data-signature-id="N">…</div>`,
- * the same shape the backend writes into new drafts. The "--" marker is view-only.
+ * the same shape the backend writes into new drafts. The hairline above it is view-only: the signature is sent
+ * exactly as written, so a "--" divider only appears when the signature itself has one (as Spark's do).
  */
 export const Signature = Node.create({
   name: "signature",
@@ -48,7 +49,7 @@ export const Signature = Node.create({
       dom.contentEditable = "false";
       const marker = document.createElement("div");
       marker.className = "flint-sig-marker";
-      marker.textContent = "--";
+      marker.setAttribute("aria-hidden", "true");
       const inner = document.createElement("div");
       inner.className = "flint-sig-body";
       inner.contentEditable = "true";

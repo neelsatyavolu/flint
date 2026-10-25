@@ -63,10 +63,9 @@ const bindings = z.record(z.string(), z.string());
 const APPLE_EPOCH_OFFSET_S = 978_307_200;
 const fromAppleTime = (s: number | undefined): number => (s === undefined ? 0 : Math.round((s + APPLE_EPOCH_OFFSET_S) * 1000));
 
-/** Signature-safe HTML: formatting, links and embedded or https images only. */
+/** Signature-safe HTML: formatting, links and embedded or https images only. A "--" divider is kept as written. */
 export function cleanSignatureHtml(html: string): string {
-  const withoutDivider = html.replace(/^\s*<(div|p)>\s*--\s*<\/\1>\s*/i, "");
-  return sanitizeHtml(withoutDivider, {
+  return sanitizeHtml(html, {
     allowedTags: ["a", "b", "br", "div", "em", "font", "i", "img", "li", "ol", "p", "s", "small", "span", "strong", "sub", "sup", "table", "tbody", "td", "th", "thead", "tr", "u", "ul", "hr", "blockquote"],
     allowedAttributes: {
       a: ["href", "title", "target", "rel"],

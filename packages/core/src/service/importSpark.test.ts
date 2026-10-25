@@ -96,7 +96,7 @@ describe("importSparkSignatures", () => {
     expect(out.map((s) => s.name)).toEqual(["Work", "Thanks,"]);
     expect(out.every((s) => s.accountId === null)).toBe(true);
     expect(out[0]!.html.length).toBeGreaterThan(80_000);
-    expect(out[0]!.html.startsWith("<div>Neel Satyavolu</div>")).toBe(true);
+    expect(out[0]!.html.startsWith("<div>--</div><div>Neel Satyavolu</div>")).toBe(true);
     expect(ctx.getSettings().compose.defaultSignatureByAccount).toEqual({ [xanom.id]: out[0]!.id, [nenu.id]: out[1]!.id });
     for (const mode of ["new", "reply"] as const) {
       expect(defaultSignature(ctx.store, ctx.getSettings(), xanom.id, mode)?.id).toBe(out[0]!.id);

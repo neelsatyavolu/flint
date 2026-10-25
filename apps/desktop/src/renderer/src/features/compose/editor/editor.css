@@ -30,7 +30,8 @@
 .flint-editor .flint-body ::selection { background: var(--accent-soft); }
 
 .flint-editor .flint-signature { margin-top: 16px; color: var(--fg-2); font-size: 13px; line-height: 19px; }
-.flint-editor .flint-sig-marker { font: 400 var(--text-data) / var(--lh-data) var(--font-mono); color: var(--fg-3); margin-bottom: 4px; -webkit-user-select: none; user-select: none; }
+/* Marks where the signature starts without adding text that won't be sent. */
+.flint-editor .flint-sig-marker { width: 48px; height: 0; border-top: 1px dashed var(--line-strong); margin: 4px 0 10px; -webkit-user-select: none; user-select: none; }
 .flint-editor .flint-sig-body { outline: none; -webkit-user-select: text; user-select: text; caret-color: var(--accent); }
 .flint-editor .flint-sig-body a { color: var(--accent); }
 .flint-editor .flint-sig-body img { max-width: 100%; height: auto; }
