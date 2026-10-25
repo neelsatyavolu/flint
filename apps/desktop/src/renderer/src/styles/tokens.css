@@ -92,6 +92,8 @@
   /* Radius */
   --r-0: 0;
   --r-control: 4px;
+  /* Message cards, the draft card and the reply dock. */
+  --r-card: 12px;
   --r-round: 999px;
 
   /* Control heights */

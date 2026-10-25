@@ -27,6 +27,13 @@ describe("list and search", () => {
     expect(r.out).toContain("ID");
     expect(r.out).toMatch(/7\s+\*\s*\+\s+09:00\s+Cindy\s+Invoice \(2\)/);
   });
+  it("sends no account without --account, so core leaves out accounts hidden from the unified inbox", async () => {
+    const f = fakeClient({ listThreads: page([item()]), listAccounts: [{ id: "a1", email: "me@x.co" }] });
+    await exec(["list"], f);
+    expect((f.calls.at(-1)?.params[0] as { accountId?: string }).accountId).toBeUndefined();
+    await exec(["list", "--account", "me@x.co"], f);
+    expect((f.calls.at(-1)?.params[0] as { accountId?: string }).accountId).toBe("a1");
+  });
   it("prints JSON and defaults the agent to cli", async () => {
     const f = fakeClient({ listThreads: page([item()]) });
     const r = await exec(["list", "--json"], f);

@@ -60,3 +60,9 @@ export function parseJson<T>(value: unknown, fallback: T): T {
 }
 
 export const bool = (v: unknown): boolean => v === 1 || v === true;
+
+/**
+ * Predicate for all-accounts views: leaves out accounts the user turned off for the unified inbox.
+ * `col` is the account id column of the query. Queries for one account never use it.
+ */
+export const inUnified = (col: string): string => `${col} NOT IN (SELECT id FROM accounts WHERE show_in_unified = 0)`;

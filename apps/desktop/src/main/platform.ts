@@ -3,6 +3,7 @@ import { logger } from "@flint/core/log";
 import type { Platform } from "@flint/core/platform";
 import { app, dialog, Notification, safeStorage, shell } from "electron";
 import { isSafeExternalUrl } from "./ipc-core";
+import { createNotifier, type NotifierHooks } from "./notify-actions";
 import { createSecretStore } from "./secret-store";
 
 const log = logger("platform");
@@ -10,6 +11,8 @@ const log = logger("platform");
 export type PlatformHooks = {
   /** Called when the user clicks a notification. */
   onNotificationClick: (threadId: number | undefined) => void;
+  /** Called when the user presses Archive or Mark as read on a notification (macOS). */
+  onNotificationAction: NotifierHooks["onAction"];
 };
 
 export function resolveDataDir(): string {
@@ -27,8 +30,13 @@ function warnKeychainUnavailable(): void {
 }
 
 export function createPlatform(dataDir: string, hooks: PlatformHooks): Platform {
-  // Notifications must stay referenced until clicked or closed, or they can be collected.
-  const live = new Set<Notification>();
+  const notify = createNotifier({
+    isSupported: () => Notification.isSupported(),
+    create: (options) => new Notification(options),
+    isMac: process.platform === "darwin",
+    hooks: { onClick: hooks.onNotificationClick, onAction: hooks.onNotificationAction },
+    warn: (message) => log.warn(message),
+  });
   return {
     dataDir,
     downloadsDir: app.getPath("downloads"),
@@ -46,16 +54,6 @@ export function createPlatform(dataDir: string, hooks: PlatformHooks): Platform 
       const error = await shell.openPath(path);
       if (error) throw new Error(error);
     },
-    notify({ title, body, threadId }) {
-      if (!Notification.isSupported()) {
-        log.warn("notifications are not supported on this system");
-        return;
-      }
-      const n = new Notification({ title, body });
-      live.add(n);
-      n.on("click", () => hooks.onNotificationClick(threadId));
-      n.on("close", () => live.delete(n));
-      n.show();
-    },
+    notify,
   };
 }

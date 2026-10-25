@@ -56,3 +56,28 @@ export function newsletterHtml(opts: { name: string; issue: string; headline: st
 export function notificationHtml(opts: { title: string; body: string; button?: string }): string {
   return `<div style="max-width:520px;margin:0 auto;font:15px/1.55 Helvetica,Arial,sans-serif;color:#1a1a17"><div style="font:600 20px/1.3 Helvetica,Arial,sans-serif;margin-bottom:12px">${esc(opts.title)}</div><p style="margin:0 0 16px;color:#3b3b36">${esc(opts.body)}</p>${opts.button ? `<a href="https://example.com/review" style="display:inline-block;border:1px solid #1a1a17;color:#1a1a17;padding:9px 18px;text-decoration:none;font-weight:600;font-size:14px">${esc(opts.button)}</a>` : ""}<p style="margin:24px 0 0;font-size:12px;color:#7a7a72">You received this email to let you know about important changes to your account.</p></div>`;
 }
+
+const SALE_BG = svgUri(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="260" viewBox="0 0 640 260"><rect width="640" height="260" fill="#f2e3c6"/><circle cx="520" cy="80" r="90" fill="#e8b96a"/><circle cx="110" cy="220" r="70" fill="#d98c4a"/></svg>`);
+
+/**
+ * A promo that dark mode cannot recolor safely: a background photo behind the headline, a pale body and a
+ * white-on-photo subtitle. Flint shows it on a light sheet.
+ */
+export function darkHostileNewsletterHtml(opts: { name: string; headline: string; blurb: string }): string {
+  return `<table width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff"><tr><td align="center" background="${SALE_BG}" style="background-image:url(${SALE_BG});background-size:cover;background-color:#f2e3c6;padding:56px 32px">` +
+    `<div style="font:600 12px/1 Helvetica,Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#7a3e00">${esc(opts.name)}</div>` +
+    `<h1 style="font:700 36px/1.15 Georgia,serif;color:#3a1d00;margin:14px 0 10px">${esc(opts.headline)}</h1>` +
+    `<p style="font:16px/1.5 Helvetica,Arial,sans-serif;color:#5a3512;margin:0 0 20px">${esc(opts.blurb)}</p>` +
+    `<a href="https://example.com/shop" style="display:inline-block;background:#3a1d00;color:#fff7e8;font:600 15px Helvetica,Arial,sans-serif;padding:12px 26px;text-decoration:none">Shop the sale</a></td></tr>` +
+    `<tr><td style="padding:24px 32px;font:14px/1.6 Helvetica,Arial,sans-serif;color:#444444;background:#fbf7ef">Free returns for 30 days. <a href="https://example.com/unsubscribe" style="color:#7a3e00">Unsubscribe</a></td></tr></table>`;
+}
+
+/** An Outlook desktop reply: MsoNormal paragraphs, Calibri, a colored first line, a pale separator and a quoted header block. */
+export function outlookReplyHtml(opts: { greeting: string; body: string; signoff: string; quoted: { from: string; sent: string; subject: string; text: string } }): string {
+  const q = opts.quoted;
+  return `<style>p.MsoNormal{margin:0in;font-size:11.0pt;font-family:Calibri,sans-serif;color:black}a:link,span.MsoHyperlink{color:#0563C1;text-decoration:underline}</style>` +
+    `<div class="WordSection1"><p class="MsoNormal"><span style="color:#1F3864">${esc(opts.greeting)}</span></p><p class="MsoNormal">&nbsp;</p>` +
+    `<p class="MsoNormal"><font color="#444444" face="Arial">${esc(opts.body)}</font></p><p class="MsoNormal">&nbsp;</p><p class="MsoNormal">${esc(opts.signoff)}</p><p class="MsoNormal">&nbsp;</p>` +
+    `<div style="border:none;border-top:solid #E1E1E1 1.0pt;padding:3.0pt 0in 0in 0in"><p class="MsoNormal"><b>From:</b> ${esc(q.from)}<br><b>Sent:</b> ${esc(q.sent)}<br><b>Subject:</b> ${esc(q.subject)}</p></div>` +
+    `<p class="MsoNormal" style="color:#595959">${esc(q.text)}</p></div>`;
+}

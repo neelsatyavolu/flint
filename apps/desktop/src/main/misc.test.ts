@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createBadgeUpdater } from "./badge";
+import { badgeCount, createBadgeUpdater } from "./badge";
 import { buildCsp } from "./csp";
 import { mergeDeep, MOCK_DEFAULT_SETTINGS } from "./default-settings";
 import { parseMailto } from "./mailto";
@@ -113,5 +113,20 @@ describe("mergeDeep", () => {
     expect(next.inbox.blockTrackers).toBe(false);
     expect(next.inbox.focused).toBe(true);
     expect(MOCK_DEFAULT_SETTINGS.inbox.blockTrackers).toBe(true);
+  });
+});
+
+describe("badgeCount", () => {
+  const page = (n: number, next: string | null = null) => ({ items: Array.from({ length: n }, (_, i) => ({ id: i })), bundles: [], nextCursor: next });
+  it("uses the unified inbox count, zero when off, and counts unread people threads across pages", async () => {
+    const getSidebar = vi.fn(async () => ({ counts: { inbox: 4 } }));
+    const listThreads = vi.fn()
+      .mockResolvedValueOnce(page(200, "c1"))
+      .mockResolvedValueOnce(page(3));
+    const api = { getSidebar, listThreads } as never;
+    expect(await badgeCount("unified_unread", api)).toBe(4);
+    expect(await badgeCount("off", api)).toBe(0);
+    expect(await badgeCount("people_unread", api)).toBe(203);
+    expect(listThreads).toHaveBeenLastCalledWith(expect.objectContaining({ view: "inbox", focused: true, unreadOnly: true, cursor: "c1" }));
   });
 });

@@ -5,7 +5,7 @@ import type { AccountsRepo } from "./accounts";
 import type { FoldersRepo } from "./folders";
 import type { ReceiptsRepo } from "./receipts";
 import type { RulesRepo } from "./rulesRepo";
-import type { Sql } from "./sql";
+import { inUnified, type Sql } from "./sql";
 import type { ThreadListRepo } from "./threadList";
 import { viewPredicate } from "./threadViews";
 
@@ -36,7 +36,8 @@ export class DashboardRepo {
          WHERE (${inboxWhere.sql}) AND m.seen = 0 AND m.draft = 0 GROUP BY m.account_id`, ...inboxWhere.params,
       ).map((r) => [r.account_id, r.n]),
     );
-    const enabled = new Set(accounts.filter((a) => a.enabled).map((a) => a.id));
+    // All-accounts counts leave out disabled accounts and accounts hidden from the unified inbox.
+    const enabled = new Set(accounts.filter((a) => a.enabled && a.showInUnified).map((a) => a.id));
     const sidebarAccounts = accounts.map((account) => ({ account, inboxUnread: unread.get(account.id) ?? 0, folders: sidebarFolders(this.folders.listFolders(account.id)) }));
     const serverDrafts = viewPredicate({ view: "drafts" }, now, new Set())!;
     const one = (sql: string, ...p: (string | number)[]) => this.q.get<{ n: number }>(sql, ...p)?.n ?? 0;
@@ -51,8 +52,8 @@ export class DashboardRepo {
     return {
       accounts: sidebarAccounts,
       counts: {
-        inbox: onEnabled(unread), pinned, drafts: one("SELECT COUNT(*) AS n FROM drafts")
-          + one(`SELECT COUNT(DISTINCT m.thread_id) AS n FROM messages m JOIN threads t ON t.id = m.thread_id WHERE ${serverDrafts.sql}`, ...serverDrafts.params), snoozed,
+        inbox: onEnabled(unread), pinned, drafts: one(`SELECT COUNT(*) AS n FROM drafts WHERE ${inUnified("account_id")}`)
+          + one(`SELECT COUNT(DISTINCT m.thread_id) AS n FROM messages m JOIN threads t ON t.id = m.thread_id WHERE ${serverDrafts.sql} AND ${inUnified("m.account_id")}`, ...serverDrafts.params), snoozed,
         scheduled: one("SELECT COUNT(*) AS n FROM scheduled_sends WHERE status IN ('pending','sending')"),
         awaitingApproval: one("SELECT COUNT(*) AS n FROM scheduled_sends WHERE status = 'awaiting_approval'"), spam,
       },
@@ -65,6 +66,7 @@ export class DashboardRepo {
     const name = first ? (first.name.trim().split(/\s+/)[0] || first.email.split("@")[0] || "") : "";
     const endOfDay = new Date(now);
     endOfDay.setHours(23, 59, 59, 999);
+    const hidden = new Set(this.accounts.listAccounts().filter((a) => !a.showInUnified).map((a) => a.id));
     const awaitingIds = this.q.all<{ thread_id: number }>(
       "SELECT DISTINCT thread_id FROM reminders WHERE status = 'pending' AND thread_id IS NOT NULL ORDER BY remind_at LIMIT 5",
     ).map((r) => r.thread_id);
@@ -72,9 +74,9 @@ export class DashboardRepo {
       greetingName: name,
       unreadPeople: this.lists.listThreads({ view: "inbox", focused: true, unreadOnly: true, limit: 5 }, now).items,
       pinned: this.lists.listThreads({ view: "pinned", limit: 5 }, now).items,
-      awaitingReply: this.lists.itemsForThreads(awaitingIds),
+      awaitingReply: this.lists.itemsForThreads(awaitingIds).filter((i) => !hidden.has(i.accountId)),
       recentReceipts: this.receipts.listTracked({ limit: 5 }),
-      snoozedToday: this.q.get<{ n: number }>("SELECT COUNT(*) AS n FROM threads WHERE snoozed_until > ? AND snoozed_until <= ?", now, endOfDay.getTime())?.n ?? 0,
+      snoozedToday: this.q.get<{ n: number }>(`SELECT COUNT(*) AS n FROM threads WHERE snoozed_until > ? AND snoozed_until <= ? AND ${inUnified("account_id")}`, now, endOfDay.getTime())?.n ?? 0,
       scheduledCount: this.q.get<{ n: number }>("SELECT COUNT(*) AS n FROM scheduled_sends WHERE status IN ('pending','awaiting_approval')")?.n ?? 0,
     };
   }

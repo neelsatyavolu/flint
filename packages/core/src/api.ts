@@ -2,7 +2,7 @@ import type {
   AutoconfigResult,
   Account, AccountId, AddAccountInput, AgentActivity, AgentSkillStatus, AiProvider, AiRun, AiStatus, AiTask, Contact,
   DeepPartial, Draft, DraftInit, DraftPatch, FlintEvent, Folder, FolderId, HomeData, MessageRowId,
-  MessageView, ReceiptDetail, Rule, ScheduledSend, SendResult, ServerConfig, Settings, SidebarData,
+  MessageView, ReceiptDetail, Rule, ScheduledSend, SendResult, ServerConfig, Settings, SidebarData, AvatarRef,
   Signature, SyncStatus, Template, ThreadDetail, ThreadId, ThreadPage, ThreadQuery, LoadOlderResult, ServerSearchResult, TrackedMessage,
 } from "./types";
 
@@ -30,8 +30,17 @@ export interface FlintApi {
   addAccount(input: AddAccountInput): Promise<Account>;
   /** Opens the system browser for Google sign-in and resolves once the loopback callback lands. */
   addGoogleAccount(): Promise<Account>;
-  updateAccount(id: AccountId, patch: Partial<Pick<Account, "name" | "color" | "sortOrder" | "enabled" | "aliases">>): Promise<Account>;
+  updateAccount(id: AccountId, patch: Partial<Pick<Account, "name" | "color" | "sortOrder" | "enabled" | "aliases" | "showInUnified">>): Promise<Account>;
   removeAccount(id: AccountId): Promise<void>;
+  /** Sets (a square PNG or JPEG data URL, already cropped and resized by the UI) or removes (null) the account's own profile picture. */
+  setAccountAvatar(id: AccountId, image: string | null): Promise<Account>;
+  /**
+   * Profile pictures as data URLs, keyed by avatarKey(ref); null = none, show initials. Account refs resolve from the
+   * stored picture. Sender refs resolve from the on-disk cache and Gravatar / sender logos (fetched by core, never by
+   * the renderer), honoring settings.appearance.senderPhotos and senderLogos. Mail from the user's own addresses resolves
+   * to that account's picture.
+   */
+  getAvatars(refs: AvatarRef[]): Promise<Record<string, string | null>>;
 
   // Sync
   syncNow(accountId?: AccountId): Promise<void>;
@@ -144,6 +153,9 @@ export interface FlintApi {
   getSettings(): Promise<Settings>;
   updateSettings(patch: DeepPartial<Settings>): Promise<Settings>;
 
+  /** Shows a notification with the current notification settings so the user can try them. */
+  sendTestNotification(): Promise<void>;
+
   // Events. Over IPC this is a subscription; over the agent API it is an SSE stream.
   subscribe(listener: (event: FlintEvent) => void): () => void;
 }
@@ -158,7 +170,7 @@ export type FlintMethod = Exclude<keyof FlintApi, "subscribe">;
  */
 export const METHOD_TIERS: Record<FlintMethod, "read" | "modify" | "send" | "admin"> = {
   listAccounts: "read", autoconfig: "read", testConnection: "admin", addAccount: "admin", addGoogleAccount: "admin",
-  updateAccount: "admin", removeAccount: "admin",
+  updateAccount: "admin", removeAccount: "admin", setAccountAvatar: "admin", getAvatars: "admin",
   syncNow: "read", getSyncStatus: "read",
   getSidebar: "read", getHome: "read", listThreads: "read", loadOlder: "read", searchServer: "read", getThread: "read", getMessage: "read",
   allowRemoteImages: "modify", listFolders: "read", saveAttachment: "read", openAttachment: "admin", suggestContacts: "read",
@@ -178,7 +190,7 @@ export const METHOD_TIERS: Record<FlintMethod, "read" | "modify" | "send" | "adm
   aiRun: "read", aiRunToText: "read", aiCancel: "read",
   listAgentActivity: "read", agentInfo: "admin", installCli: "admin",
   agentSkillStatus: "admin", installAgentSkill: "admin", removeAgentSkill: "admin",
-  getSettings: "admin", updateSettings: "admin",
+  getSettings: "admin", updateSettings: "admin", sendTestNotification: "admin",
 };
 
 export const FLINT_METHODS = Object.keys(METHOD_TIERS) as FlintMethod[];

@@ -5,7 +5,7 @@ import type { AccountsRepo } from "./accounts";
 import { addresses, asCategory, lowerAddr } from "./mappers";
 import type { ReceiptsRepo } from "./receipts";
 import type { RulesRepo } from "./rulesRepo";
-import { bool, Sql, type Param } from "./sql";
+import { bool, inUnified, Sql, type Param } from "./sql";
 import { localDraftEntries } from "./draftList";
 import { categoryClause, viewPredicate } from "./threadViews";
 
@@ -81,8 +81,9 @@ export class ThreadListRepo {
     const serverItems = new Map(
       (server ? this.#hydrate(serverRows.map((r) => r.id), server) : []).map((i) => [i.id, this.#withServerDraft(i, server!)]),
     );
+    const hidden = query.accountId ? new Set<string>() : new Set(this.accounts.listAccounts().filter((a) => !a.showInUnified).map((a) => a.id));
     const entries = [
-      ...localDraftEntries(this.q, query.accountId),
+      ...localDraftEntries(this.q, query.accountId).filter((e) => !hidden.has(e.item.accountId)),
       ...serverRows.flatMap((r) => { const item = serverItems.get(r.id); return item ? [{ key: r.k, id: r.id, item }] : []; }),
     ];
     const asc = query.sort === "oldest";
@@ -120,6 +121,7 @@ export class ThreadListRepo {
       if (s.excludeTrashSpam) parts.push(`NOT ${roleMember("trash")} AND NOT ${roleMember("spam")}`);
     }
     if (query.accountId) { parts.push("m.account_id = ?"); params.push(query.accountId); }
+    else if (query.view !== "folder" && query.view !== "blocked") parts.push(inUnified("m.account_id"));
     const cat = categoryClause(query);
     if (cat) { parts.push("t.category = ?"); params.push(cat.category); }
     return { sql: parts.map((p) => `(${p})`).join(" AND "), params };

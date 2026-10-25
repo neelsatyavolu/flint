@@ -25,7 +25,7 @@ const SettingsView = lazy(() => loadSettings().then((m) => ({ default: m.Setting
 
 /** Warms the lazy chunks once the first paint is done, so opening them later is instant. */
 function warmChunks(): void {
-  const run = () => void Promise.all([loadComposerHost(), loadSettings(), import("../features/compose/InlineReply")]);
+  const run = () => void Promise.all([loadComposerHost(), loadSettings(), import("../features/compose/InlineReplyDock")]);
   if (typeof requestIdleCallback === "function") requestIdleCallback(run, { timeout: 3000 });
   else setTimeout(run, 1500);
 }

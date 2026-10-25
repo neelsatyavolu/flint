@@ -503,7 +503,7 @@ export class AccountSync implements ImapRunner {
       if (batch.evaluated) {
         const touched = await applyOutcomeActions({ store, accountId, actions: this.actions, emit }, batch.outcomes);
         this.#emitChanged(touched);
-        for (const event of newMailEvents({ store, accountId }, batch, inboxPath)) emit(event);
+        for (const event of newMailEvents({ store, accountId }, batch, inboxPath, this.#now())) emit(event);
       }
     }
   }

@@ -5,7 +5,7 @@ import { rowToAccount, type AccountRow } from "./mappers";
 import type { Sql } from "./sql";
 
 export type NewAccount = Pick<Account, "email" | "provider" | "authKind" | "imapHost" | "imapPort" | "imapSecure" | "smtpHost" | "smtpPort" | "smtpSecure" | "username"> &
-  Partial<Pick<Account, "id" | "name" | "color" | "sortOrder" | "enabled" | "aliases" | "createdAt">>;
+  Partial<Pick<Account, "id" | "name" | "color" | "sortOrder" | "enabled" | "aliases" | "createdAt" | "showInUnified">>;
 
 export type AccountPatch = Partial<Omit<Account, "id" | "createdAt">>;
 
@@ -14,6 +14,7 @@ const COLUMNS: Record<keyof AccountPatch, string> = {
   imapHost: "imap_host", imapPort: "imap_port", imapSecure: "imap_secure",
   smtpHost: "smtp_host", smtpPort: "smtp_port", smtpSecure: "smtp_secure",
   username: "username", color: "color", sortOrder: "sort_order", enabled: "enabled", aliases: "aliases",
+  showInUnified: "show_in_unified", avatarSource: "avatar_source", avatarUpdatedAt: "avatar_updated_at",
 };
 
 export class AccountsRepo {
@@ -29,12 +30,12 @@ export class AccountsRepo {
     const sortOrder = input.sortOrder ?? (this.q.get<{ n: number }>("SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM accounts")?.n ?? 0);
     try {
       this.q.run(
-        `INSERT INTO accounts (id, email, name, provider, auth_kind, imap_host, imap_port, imap_secure, smtp_host, smtp_port, smtp_secure, username, color, sort_order, enabled, aliases, created_at)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        `INSERT INTO accounts (id, email, name, provider, auth_kind, imap_host, imap_port, imap_secure, smtp_host, smtp_port, smtp_secure, username, color, sort_order, enabled, aliases, created_at, show_in_unified)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         id, input.email.trim().toLowerCase(), input.name ?? "", input.provider, input.authKind,
         input.imapHost, input.imapPort, input.imapSecure, input.smtpHost, input.smtpPort, input.smtpSecure,
         input.username, input.color ?? null, sortOrder, input.enabled ?? true,
-        JSON.stringify((input.aliases ?? []).map((a) => a.toLowerCase())), input.createdAt ?? Date.now(),
+        JSON.stringify((input.aliases ?? []).map((a) => a.toLowerCase())), input.createdAt ?? Date.now(), input.showInUnified ?? true,
       );
     } catch (error) {
       if (String((error as Error).message).includes("UNIQUE")) throw new FlintError("conflict", "That account is already added.");

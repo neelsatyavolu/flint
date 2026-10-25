@@ -77,22 +77,36 @@ export async function applyOutcomeActions(d: OutcomeDeps, outcomes: IngestOutcom
   return [...touched];
 }
 
-/** new_mail events: inbox mail from someone else that is unread, in the people category or asked for by a rule, in a thread that is not muted and that no rule moved out of the inbox. */
-export function newMailEvents(d: Pick<OutcomeDeps, "store" | "accountId">, batch: Batch, inboxPath: string | null): FlintEvent[] {
+/** Mail older than this when it first shows up is not "new": it was found late (a long gap, a server move), not delivered now. */
+export const NEW_MAIL_MAX_AGE_MS = 3 * 24 * 3600 * 1000;
+
+/**
+ * new_mail events: unread inbox mail from someone else, of any category, in a thread that is not muted and that no rule moved
+ * out of the inbox. Never for initial sync or history (those batches are not evaluated), mail you sent, blocked senders, spam,
+ * drafts, or mail older than three days. `category` and `forced` (a rule asked for an alert) let the notification policy
+ * decide which of these alert.
+ */
+export function newMailEvents(d: Pick<OutcomeDeps, "store" | "accountId">, batch: Batch, inboxPath: string | null, now: number = Date.now()): FlintEvent[] {
   const events: FlintEvent[] = [];
+  if (batch.folder.role === "spam" || batch.folder.role === "trash" || batch.folder.role === "sent" || batch.folder.role === "drafts") return events;
   const byUid = new Map(batch.items.map((i) => [i.uid, i]));
   for (const o of batch.outcomes) {
     const item = byUid.get(o.uid);
     if (!item || !o.isNew || o.fromMe || o.blocked || item.flags.seen || item.flags.draft) continue;
+    if (item.date < now - NEW_MAIL_MAX_AGE_MS) continue;
     const inInbox = item.gmLabels ? inboxPath !== null && item.gmLabels.includes(inboxPath) : batch.folder.role === "inbox";
     if (!inInbox) continue;
     const notify = o.ruleActions.find((a): a is Extract<RuleAction, { type: "notify" }> => a.type === "notify");
     if (notify?.enabled === false) continue;
-    if (o.category !== "people" && !notify?.enabled) continue;
     if (o.ruleActions.some((a) => a.type === "mute" || a.type === "archive" || a.type === "trash" || a.type === "move")) continue;
-    if (d.store.itemsForThreads([o.threadId])[0]?.muted) continue;
+    const thread = d.store.itemsForThreads([o.threadId])[0];
+    if (thread?.muted) continue;
     const from = item.from[0] ?? { name: "", address: "" };
-    events.push({ type: "new_mail", accountId: d.accountId, threadId: o.threadId, from, subject: item.subject, category: o.category });
+    const snippet = (thread?.snippet ?? item.snippet ?? "").trim();
+    events.push({
+      type: "new_mail", accountId: d.accountId, threadId: o.threadId, from, subject: item.subject, category: o.category,
+      ...(snippet ? { snippet } : {}), ...(notify?.enabled ? { forced: true } : {}),
+    });
   }
   return events;
 }

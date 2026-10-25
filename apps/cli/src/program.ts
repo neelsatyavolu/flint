@@ -97,7 +97,7 @@ export function buildProgram(deps: Deps, jsonMode = false): Command {
 
   command("list", "List threads")
     .option("--view <view>", "inbox, pinned, sent, drafts, archive, trash, spam or snoozed", "inbox")
-    .option("--account <email>", "only this account")
+    .option("--account <email>", "only this account (without it, accounts hidden from the unified inbox are left out)")
     .option("--unread", "only unread threads")
     .option("--focused", "inbox only: people threads, others folded away")
     .option("--category <name>", "inbox only: people, notifications or newsletters")

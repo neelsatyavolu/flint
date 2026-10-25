@@ -1,5 +1,5 @@
 import { agentPaths } from "@flint/core/agent/paths";
-import { FlintError } from "@flint/core/types";
+import { avatarKey, FlintError } from "@flint/core/types";
 import type {
   Draft, FlintEvent, HomeData, MessageRowId, Settings, SidebarData, SyncStatus, ThreadPage,
 } from "@flint/core/types";
@@ -56,6 +56,10 @@ export function createMockService(dataDir: string): FlintService {
     async addGoogleAccount() { throw new FlintError("invalid", "Accounts are unavailable in mock mode"); },
     async updateAccount() { throw notFound("Account"); },
     async removeAccount() {},
+    async setAccountAvatar() { throw notFound("Account"); },
+    async getAvatars(refs) { return Object.fromEntries(refs.map((r) => [avatarKey(r), null])); },
+
+    async sendTestNotification() {},
 
     async syncNow() {},
     async getSyncStatus() { return syncStatus; },

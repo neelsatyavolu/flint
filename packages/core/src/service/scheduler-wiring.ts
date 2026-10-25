@@ -2,6 +2,7 @@ import { logger } from "../log";
 import type { Platform } from "../platform";
 import type { ReceiptStatus, Settings } from "../types";
 import type { ServiceContext } from "./context";
+import { soundFor } from "./notifyPolicy";
 
 const log = logger("service.scheduler");
 
@@ -11,7 +12,7 @@ const log = logger("service.scheduler");
  */
 export function notifyUser(platform: Platform, settings: Settings, n: { title: string; body: string; threadId?: number }): void {
   if (!settings.notifications.enabled || settings.notifications.scope === "none") return;
-  platform.notify(n);
+  platform.notify({ ...n, sound: soundFor(settings.notifications) });
 }
 
 const keyOf = (trackedId: number, email: string): string => `${trackedId}|${email}`;

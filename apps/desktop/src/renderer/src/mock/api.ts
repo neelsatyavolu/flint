@@ -6,10 +6,11 @@ import type {
 import { streamFakeAi, fakeAiText } from "./ai";
 import { approveSend, cancelSend, createDraft, deleteDraft, getDraft, sendDraft, updateDraft, type Ctx } from "./compose";
 import { ALL_CONTACTS } from "./people";
+import { mockAvatarApi } from "./avatars";
 import { mockSparkApi } from "./spark";
 import { buildState } from "./seed";
 import { deepMerge, liveDrafts, nextId, type MThread, type MockState } from "./state";
-import { matchesSearch, parseSearch, queryThreads, sortedOlder, unreadCount } from "./threads";
+import { hiddenAccounts, matchesSearch, parseSearch, queryThreads, sortedOlder, unreadCount } from "./threads";
 
 export type MockOptions = { now?: number; seed?: number; latencyMs?: number };
 
@@ -108,7 +109,7 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
       const cfg = input.server ?? (await api.autoconfig(input.email)) ?? { imapHost: "", imapPort: 993, imapSecure: true, smtpHost: "", smtpPort: 587, smtpSecure: false, username: input.email };
       const account: Account = {
         ...cfg, id: `acc_${nextId(state, "account")}x`, email: input.email, name: input.name, provider: input.provider ?? "imap", authKind: "password", color: "#8f7fb5",
-        sortOrder: state.accounts.length, enabled: true, aliases: [], createdAt: now(),
+        sortOrder: state.accounts.length, enabled: true, aliases: [], createdAt: now(), showInUnified: true, avatarSource: null, avatarUpdatedAt: null,
       };
       state.accounts = [...state.accounts, account];
       const roles = [["inbox", "Inbox"], ["sent", "Sent"], ["drafts", "Drafts"], ["archive", "Archive"], ["trash", "Trash"], ["spam", "Spam"]] as const;
@@ -150,6 +151,8 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
     async getSidebar(): Promise<SidebarData> {
       await delay();
       const inboxThreads = state.threads.filter((t) => t.location === "inbox" && !t.blocked && !(t.snoozedUntil && t.snoozedUntil > now()));
+      const hidden = hiddenAccounts(state);
+      const shown = (t: { accountId: string }) => !hidden.has(t.accountId);
       const accounts = [...state.accounts].sort((a, b) => a.sortOrder - b.sortOrder).map((account) => ({
         account,
         inboxUnread: inboxThreads.filter((t) => t.accountId === account.id && unreadCount(t) > 0).length,
@@ -159,13 +162,13 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
       return {
         accounts,
         counts: {
-          inbox: inboxThreads.filter((t) => unreadCount(t) > 0).length,
-          pinned: state.threads.filter((t) => t.pinned && t.location !== "trash").length,
-          drafts: liveDrafts(state).length,
-          snoozed: state.threads.filter((t) => t.snoozedUntil && t.snoozedUntil > now()).length,
+          inbox: inboxThreads.filter((t) => shown(t) && unreadCount(t) > 0).length,
+          pinned: state.threads.filter((t) => shown(t) && t.pinned && t.location !== "trash").length,
+          drafts: liveDrafts(state).filter(shown).length,
+          snoozed: state.threads.filter((t) => shown(t) && t.snoozedUntil && t.snoozedUntil > now()).length,
           scheduled: state.scheduled.filter((s) => s.status === "pending" || s.status === "awaiting_approval").length,
           awaitingApproval: state.scheduled.filter((s) => s.status === "awaiting_approval").length,
-          spam: state.threads.filter((t) => t.location === "spam").length,
+          spam: state.threads.filter((t) => shown(t) && t.location === "spam").length,
         },
       };
     },
@@ -173,13 +176,14 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
       await delay();
       const q = (view: ThreadQuery["view"], extra: Partial<ThreadQuery> = {}) => queryThreads(state, { view, limit: 5, ...extra }, now()).items;
       const awaiting = queryThreads(state, { view: "sent", limit: 40 }, now()).items.filter((i) => i.receipt && i.receipt.status !== "replied").slice(0, 5);
+      const hidden = hiddenAccounts(state);
       return {
         greetingName: "Alex",
         unreadPeople: q("inbox", { focused: true, unreadOnly: true }),
         pinned: q("pinned"),
         awaitingReply: awaiting,
         recentReceipts: [...state.tracked].sort((a, b) => b.sentAt - a.sentAt).slice(0, 5),
-        snoozedToday: state.threads.filter((t) => t.snoozedUntil && t.snoozedUntil > now() && t.snoozedUntil < now() + DAY).length,
+        snoozedToday: state.threads.filter((t) => !hidden.has(t.accountId) && t.snoozedUntil && t.snoozedUntil > now() && t.snoozedUntil < now() + DAY).length,
         scheduledCount: state.scheduled.filter((s) => s.status === "pending" || s.status === "awaiting_approval").length,
       };
     },
@@ -313,6 +317,8 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
       return saved;
     },
     async deleteSignature(id) { state.signatures = state.signatures.filter((s) => s.id !== id); },
+    ...mockAvatarApi(state, emit),
+    async sendTestNotification() { emit({ type: "toast", level: "info", message: "Test notification sent." }); },
     ...mockSparkApi(state, now, () => nextId(state, "sig") + 100, emit),
     async listTemplates() { return state.templates; },
     async saveTemplate(t) {

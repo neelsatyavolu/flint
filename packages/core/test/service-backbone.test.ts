@@ -288,7 +288,8 @@ describe.skipIf(!gm)("FlintService backbone against GreenMail", { timeout: 60_00
     await gm!.deliver({ to: `svc@${TEST_DOMAIN}`, from: "Zed <zed@remote.example>", subject: "Fresh arrival", text: "hi" });
     await waitFor(() => rig.events.some((e) => e.type === "new_mail" && e.subject === "Fresh arrival"), "new_mail event");
     expect(rig.events.some((e) => e.type === "settings")).toBe(true);
-    expect(rig.notified).toContain("Zed");
+    // Mail arriving together is one alert, so the title is the sender or a "N new messages" summary.
+    await waitFor(() => rig.notified.length > 0, "notification after the burst window");
   });
 
   it("explains a missing Google client", async () => {

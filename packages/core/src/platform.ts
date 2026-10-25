@@ -5,13 +5,26 @@ export interface SecretStore {
   delete(key: string): Promise<void>;
 }
 
+/** One OS alert. The host maps it to a native notification; `group` alerts with the same key replace each other. */
+export type NotifyRequest = {
+  title: string;
+  body: string;
+  threadId?: number;
+  /** macOS system sound name; null = silent; omitted = the system default. */
+  sound?: string | null;
+  /** Alerts sharing a group key replace one another (used for the "3 new messages" summary). */
+  group?: string;
+  /** Show Archive / Mark as read buttons that act on `threadId`. */
+  actions?: boolean;
+};
+
 export interface Platform {
   dataDir: string;
   downloadsDir: string;
   secrets: SecretStore;
   openExternal(url: string): Promise<void>;
   openPath(path: string): Promise<void>;
-  notify(n: { title: string; body: string; threadId?: number }): void;
+  notify(n: NotifyRequest): void;
   appVersion: string;
 }
 

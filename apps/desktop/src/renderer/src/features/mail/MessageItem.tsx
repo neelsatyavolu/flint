@@ -3,13 +3,16 @@ import { Forward, MoreHorizontal, Reply, ReplyAll } from "lucide-react";
 import clsx from "clsx";
 import type { MessageView } from "@flint/core";
 import { flint } from "../../lib/api";
-import { displayName, formatFullDate, formatListTime, formatRecipients } from "../../lib/format";
+import { displayName, formatFullDate, formatListTime } from "../../lib/format";
 import { Avatar, IconButton, Menu, useToast } from "../../ui";
 import type { MenuItem } from "../../ui";
-import { composeFor } from "../../state/compose";
+import { useInlineReply } from "../../state/inlineReply";
+import type { InlineReplyMode } from "../compose/inlineReplyTypes";
 import { AttachmentTiles } from "./AttachmentTiles";
 import { MessageBody } from "./MessageBody";
+import { useMailAppearance } from "./mailAppearance";
 import { ReceiptPanel } from "./ReceiptPanel";
+import { RecipientsLine } from "./RecipientsPopover";
 import styles from "./Message.module.css";
 
 type Props = {
@@ -25,15 +28,24 @@ function senderOf(m: MessageView) {
   return m.from[0] ?? { name: "", address: "" };
 }
 
+/** True when a reply would go to one person, so a plain Reply is shown next to Reply all. */
+export function hasSingleRecipient(m: MessageView, selfAddresses: string[]): boolean {
+  const selves = new Set(selfAddresses.map((s) => s.toLowerCase()));
+  const others = new Set([...m.from, ...m.to, ...m.cc].map((a) => a.address.toLowerCase()).filter((a) => !selves.has(a)));
+  return others.size <= 1;
+}
+
 function MessageItemImpl({ message: m, expanded, selfAddresses, onToggle, onUpdated, now }: Props) {
   const toast = useToast();
+  const appearance = useMailAppearance(m);
   const sender = senderOf(m);
   const name = m.isFromMe ? "me" : displayName(sender);
+  const avatar = m.isFromMe ? { accountId: m.accountId } : {};
 
   if (!expanded) {
     return (
       <button type="button" className={clsx(styles.collapsed, !m.seen && styles.unread)} aria-expanded={false} onClick={() => onToggle(m.id)}>
-        <Avatar address={sender.address} name={sender.name} size={24} />
+        <Avatar address={sender.address} name={sender.name} size={24} {...avatar} />
         <span className={styles.cName}>{name}</span>
         <span className={styles.cSnippet}>{m.snippet}</span>
         <span className={clsx("t-data", styles.time)}>{formatListTime(m.date, now)}</span>
@@ -41,11 +53,24 @@ function MessageItemImpl({ message: m, expanded, selfAddresses, onToggle, onUpda
     );
   }
 
-  const cc = m.cc.length ? `, cc ${m.cc.map((a) => displayName(a)).join(", ")}` : "";
-  const moreItems: MenuItem[] = [
-    ...(m.unsubscribe
-      ? [{ id: "unsub", label: "Unsubscribe", onSelect: () => void unsubscribe() } as MenuItem]
+  const reply = (mode: InlineReplyMode) => useInlineReply.getState().open({ threadId: m.threadId, messageId: m.id, mode });
+  const single = hasSingleRecipient(m, selfAddresses);
+
+  const menu: MenuItem[] = [
+    { id: "reply", label: "Reply", shortcut: "r", onSelect: () => reply("reply") },
+    { id: "replyAll", label: "Reply all", shortcut: "a", onSelect: () => reply("replyAll") },
+    { id: "forward", label: "Forward", shortcut: "f", onSelect: () => reply("forward") },
+    { type: "separator", id: "s1" },
+    ...(appearance.canToggle
+      ? [{ id: "original", label: appearance.showingOriginal ? "Use adapted colors" : "Show original", onSelect: appearance.toggleOriginal } as MenuItem]
       : []),
+    {
+      id: "unread",
+      label: "Mark thread unread",
+      onSelect: () =>
+        void flint.markRead([m.threadId], false).then(onUpdated, () => toast.show({ message: "Couldn't mark it unread. Try again.", level: "error" })),
+    },
+    ...(m.unsubscribe ? [{ id: "unsub", label: "Unsubscribe", onSelect: () => void unsubscribe() } as MenuItem] : []),
     ...(!m.isFromMe && sender.address
       ? [{
           id: "block",
@@ -71,31 +96,26 @@ function MessageItemImpl({ message: m, expanded, selfAddresses, onToggle, onUpda
 
   const act = (e: React.MouseEvent) => e.stopPropagation();
   return (
-    <article className={styles.message} aria-label={`Message from ${name}`}>
+    <article className={clsx(styles.card, styles.message)} aria-label={`Message from ${name}`} data-message-card>
       <header className={styles.head} onClick={() => onToggle(m.id)}>
-        <Avatar address={sender.address} name={sender.name} size={32} className={styles.headAvatar} />
+        <Avatar address={sender.address} name={sender.name} size={32} className={styles.headAvatar} {...avatar} />
         <div className={styles.headText}>
-          <div className={styles.fromLine}>
-            <span className={clsx("t-strong", styles.fromName)}>{name}</span>
-            {!m.isFromMe && sender.address ? <span className={styles.fromAddr}>{sender.address}</span> : null}
-          </div>
-          <div className={styles.toLine}>{formatRecipients(m.to, selfAddresses)}{cc}</div>
+          <span className={clsx("t-strong", styles.fromName)} title={m.isFromMe ? undefined : sender.address}>{name}</span>
+          <RecipientsLine message={m} selfAddresses={selfAddresses} />
         </div>
         <div className={styles.headRight} onClick={act}>
-          <span className={styles.hoverActions}>
-            <IconButton size={24} label="Reply" shortcut="r" onClick={() => composeFor(m, "reply")}><Reply size={14} strokeWidth={1.5} /></IconButton>
-            <IconButton size={24} label="Reply all" shortcut="a" onClick={() => composeFor(m, "replyAll")}><ReplyAll size={14} strokeWidth={1.5} /></IconButton>
-            <IconButton size={24} label="Forward" shortcut="f" onClick={() => composeFor(m, "forward")}><Forward size={14} strokeWidth={1.5} /></IconButton>
-            {moreItems.length ? (
-              <Menu items={moreItems} placement="bottom-end" trigger={<IconButton size={24} label="More"><MoreHorizontal size={14} strokeWidth={1.5} /></IconButton>} />
-            ) : null}
-          </span>
           <time className={clsx("t-data", styles.time)} dateTime={new Date(m.date).toISOString()}>{formatFullDate(m.date)}</time>
+          <Menu items={menu} placement="bottom-end" trigger={<IconButton size={24} label="More"><MoreHorizontal size={14} strokeWidth={1.5} /></IconButton>} />
         </div>
       </header>
       <MessageBody message={m} onUpdated={onUpdated} />
       <AttachmentTiles attachments={m.attachments} />
       {m.receipt ? <ReceiptPanel receipt={m.receipt} /> : null}
+      <footer className={styles.cardFoot}>
+        {single ? <IconButton size={28} label="Reply" shortcut="r" onClick={() => reply("reply")}><Reply size={16} strokeWidth={1.5} /></IconButton> : null}
+        <IconButton size={28} label="Reply all" shortcut="a" onClick={() => reply("replyAll")}><ReplyAll size={16} strokeWidth={1.5} /></IconButton>
+        <IconButton size={28} label="Forward" shortcut="f" onClick={() => reply("forward")}><Forward size={16} strokeWidth={1.5} /></IconButton>
+      </footer>
     </article>
   );
 }

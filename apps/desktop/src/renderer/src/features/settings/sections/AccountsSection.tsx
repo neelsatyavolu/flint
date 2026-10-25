@@ -67,13 +67,14 @@ export function AccountsSection() {
                   style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", border: 0, background: "transparent", color: "inherit", textAlign: "left", padding: 0 }}
                 >
                   {isOpen ? <ChevronDown size={14} strokeWidth={1.5} color="var(--fg-3)" aria-hidden /> : <ChevronRight size={14} strokeWidth={1.5} color="var(--fg-3)" aria-hidden />}
-                  <Avatar address={a.email} name={a.name} size={32} />
+                  <Avatar address={a.email} name={a.name} accountId={a.id} size={32} />
                   <span className={styles.rowGrow}>
                     <span className={styles.rowTitle} style={{ display: "block" }}>{a.email}</span>
                     <span className={`${styles.mono} ${styles[status.tone]}`} style={{ display: "block" }}>{a.name} · {status.text}</span>
                   </span>
                   <span className={styles.dot} style={{ background: a.color ?? "var(--line-strong)" }} aria-hidden />
                 </button>
+                <span className={`t-data ${styles.muted}`} aria-hidden>Sync</span>
                 <Toggle checked={a.enabled} label={`Sync ${a.email}`} onChange={(enabled) => void patch(a.id, { enabled })} />
               </div>
               {isOpen ? (
@@ -83,6 +84,7 @@ export function AccountsSection() {
                   onPatch={(p) => void patch(a.id, p)}
                   onRemove={() => remove(a.id)}
                   onSignIn={() => signIn(a)}
+                  onChanged={refetch}
                 />
               ) : null}
             </div>

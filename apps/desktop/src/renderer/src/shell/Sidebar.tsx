@@ -1,10 +1,10 @@
 import { useMemo, type ReactNode } from "react";
-import { Activity, Archive, Ban, CalendarClock, Clock, Eye, FileText, Folder, Home, Inbox, MoreHorizontal, PanelLeft, Pin, Send, Settings, Sparkles, Trash2 } from "lucide-react";
+import { Activity, Archive, Ban, CalendarClock, Clock, Eye, FileText, Folder, Home, Inbox, MoreHorizontal, PanelLeft, Pin, Send, Settings, ShieldAlert, Sparkles, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import type { Account } from "@flint/core";
 import { avatarColor, initials } from "../lib/avatar";
 import { isMac } from "../lib/host";
-import { IconButton } from "../ui";
+import { Avatar, IconButton } from "../ui";
 import { useApp } from "../state/AppContext";
 import { navStore, useNav, type NavTarget } from "../state/nav";
 import { isActiveTarget, moreFolders, sidebarCounts, syncSummary } from "../state/sidebarModel";
@@ -14,12 +14,9 @@ import styles from "./Sidebar.module.css";
 
 const ICON = { size: 16, strokeWidth: 1.5 } as const;
 
+/** The account's picture, or its generated avatar when it has none (the same source as Settings, Accounts). */
 function AccountChip({ account }: { account: Account }) {
-  return (
-    <span className={styles.chip} style={{ background: account.color ?? avatarColor(account.email) }} aria-hidden>
-      {initials(account.name, account.email).slice(0, 1)}
-    </span>
-  );
+  return <Avatar address={account.email} name={account.name} accountId={account.id} size={16} />;
 }
 
 function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
@@ -130,6 +127,7 @@ export function Sidebar({ rail, onNavigated }: Props) {
             rail={rail}
           />
           {showTrashChildren ? accountChildren("trash", false) : null}
+          {item("spam", "Spam", <ShieldAlert {...ICON} />, counts.spam)}
         </div>
 
         {rail ? <div className={styles.railRule} /> : null}

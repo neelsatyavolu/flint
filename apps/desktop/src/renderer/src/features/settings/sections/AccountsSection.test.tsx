@@ -25,6 +25,16 @@ describe("AccountsSection", () => {
     await waitFor(() => expect(remove).toHaveBeenCalledTimes(1));
   });
 
+  it("turns an account's unified inbox switch off and on", async () => {
+    const update = vi.spyOn(flint, "updateAccount");
+    wrap(<AccountsSection />);
+    fireEvent.click((await screen.findAllByRole("button", { expanded: false }))[0]!);
+    const toggle = await screen.findByRole("switch", { name: /in the unified inbox/ });
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(toggle);
+    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.any(String), { showInUnified: false }));
+  });
+
   it("offers Sign in again for an expired account and Google accounts use addGoogleAccount", async () => {
     const accounts = await flint.listAccounts();
     const g = { ...accounts[0]!, authKind: "oauth_google" as const };

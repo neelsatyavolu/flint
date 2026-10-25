@@ -116,8 +116,13 @@ function bundles(state: MockState, threads: MThread[]): Bundle[] {
 export const sortedOlder = (state: MockState, accountId?: string): MThread[] =>
   state.older.filter((t) => (accountId ? t.accountId === accountId : true)).sort((a, b) => lastDate(state, b) - lastDate(state, a));
 
+/** Accounts the user turned off for the unified inbox. All-accounts views leave their mail out. */
+export const hiddenAccounts = (state: MockState): Set<string> => new Set(state.accounts.filter((a) => !a.showInUnified).map((a) => a.id));
+
 export function queryThreads(state: MockState, q: ThreadQuery, now: number): ThreadPage {
-  let list = state.threads.filter((t) => (q.accountId ? t.accountId === q.accountId : true) && inView(state, t, q, now));
+  const hidden = hiddenAccounts(state);
+  const allAccounts = !q.accountId && q.view !== "folder" && q.view !== "blocked";
+  let list = state.threads.filter((t) => (q.accountId ? t.accountId === q.accountId : true) && !(allAccounts && hidden.has(t.accountId)) && inView(state, t, q, now));
   const bundled = q.view === "inbox" && q.focused ? bundles(state, list) : [];
   if (q.view === "inbox" && q.category) list = list.filter((t) => t.category === q.category);
   else if (q.view === "inbox" && q.focused) list = list.filter((t) => t.category === "people");

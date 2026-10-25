@@ -4,7 +4,7 @@ import { flint } from "../../lib/api";
 import { useFlintQuery } from "../../lib/hooks";
 import { useToast } from "../../ui";
 
-export type AccountPatch = Partial<Pick<Account, "name" | "color" | "sortOrder" | "enabled" | "aliases">>;
+export type AccountPatch = Partial<Pick<Account, "name" | "color" | "sortOrder" | "enabled" | "showInUnified" | "aliases">>;
 
 export function errorText(err: unknown, fallback: string): string {
   return err instanceof Error && err.message ? err.message : fallback;

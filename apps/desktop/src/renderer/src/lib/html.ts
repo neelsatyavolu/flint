@@ -16,12 +16,14 @@ export type SrcdocOptions = {
   html: string;
   /** Remote https images load only when true (data: and flint-attachment: always work). */
   allowRemoteImages: boolean;
-  /** Plain text/AI prose follows the theme; HTML mail gets a white sheet. */
-  colors?: { bg: string; fg: string; link: string };
+  /** Plain text/AI prose follows the theme; HTML mail gets a white sheet. `line` colors blockquote rules. */
+  colors?: { bg: string; fg: string; link: string; line?: string };
+  /** "dark" tells the frame to use dark scrollbars and form controls. Defaults to light, like the white sheet. */
+  scheme?: "light" | "dark";
   padding?: number;
 };
 
-const WHITE_SHEET = { bg: "#ffffff", fg: "#1a1a17", link: "#2f6fe0" };
+const WHITE_SHEET: NonNullable<SrcdocOptions["colors"]> = { bg: "#ffffff", fg: "#1a1a17", link: "#2f6fe0" };
 
 export function buildCsp(allowRemoteImages: boolean): string {
   const img = allowRemoteImages ? "img-src data: flint-attachment: https:" : "img-src data: flint-attachment:";
@@ -72,14 +74,15 @@ export function buildSrcdoc(opts: SrcdocOptions): string {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <base target="_blank">
 <style>
-html{background:${c.bg};color-scheme:light}
+html{background:${c.bg};color-scheme:${opts.scheme ?? "light"}}
 body{margin:0;padding:${pad}px;background:${c.bg};color:${c.fg};font:14.5px/1.5 "Geist Variable",ui-sans-serif,-apple-system,"Helvetica Neue",Arial,sans-serif;overflow-wrap:anywhere;word-break:normal;-webkit-font-smoothing:antialiased}
 a{color:${c.link}}
 img{max-width:100%;height:auto}
 .flint-blocked-img{display:inline-block;box-sizing:border-box;width:100%;max-width:100%;min-height:48px;background:rgba(128,128,128,.12);border-radius:2px;vertical-align:top}
 table{max-width:100%}
-blockquote{margin:0 0 0 4px;padding-left:12px;border-left:2px solid rgba(128,128,128,.35);color:inherit;opacity:.85}
+blockquote{margin:0 0 0 4px;padding-left:12px;border-left:2px solid ${c.line ?? "rgba(128,128,128,.35)"};color:inherit;opacity:.85}
 pre{white-space:pre-wrap}
+body>:last-child{margin-bottom:0}
 </style></head><body>${html}</body></html>`;
 }
 
@@ -99,6 +102,20 @@ export function textToHtml(text: string): string {
 }
 
 /**
+ * The height of the mail's own content. documentElement.scrollHeight is never smaller than the iframe's current
+ * height, so a short message in a tall frame would never shrink. The body's content height can.
+ */
+export function contentHeight(doc: Document): number {
+  const body = doc.body;
+  if (body && body.scrollHeight > 0) {
+    const cs = doc.defaultView?.getComputedStyle(body);
+    const margins = (Number.parseFloat(cs?.marginTop ?? "0") || 0) + (Number.parseFloat(cs?.marginBottom ?? "0") || 0);
+    return Math.ceil(body.scrollHeight + margins);
+  }
+  return Math.ceil(doc.documentElement.scrollHeight);
+}
+
+/**
  * Keeps `onHeight` current with the document height. Reads from the parent: the frame is
  * same-origin and script-free. Returns a dispose function.
  */
@@ -109,7 +126,7 @@ export function observeFrameHeight(frame: HTMLIFrameElement, onHeight: (px: numb
   const measure = () => {
     const doc = frame.contentDocument;
     if (!doc) return;
-    const h = Math.ceil(Math.max(doc.documentElement.scrollHeight, doc.body?.scrollHeight ?? 0));
+    const h = contentHeight(doc);
     if (h !== last) {
       last = h;
       onHeight(h);

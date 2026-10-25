@@ -28,6 +28,19 @@ describe("blocked images", () => {
   });
 });
 
+describe("buildSrcdoc scheme", () => {
+  it("defaults to a light color scheme and the neutral quote rule", () => {
+    const doc = buildSrcdoc({ html: "x", allowRemoteImages: false });
+    expect(doc).toContain("color-scheme:light");
+    expect(doc).toContain("border-left:2px solid rgba(128,128,128,.35)");
+  });
+  it("takes a dark scheme and a themed quote rule", () => {
+    const doc = buildSrcdoc({ html: "x", allowRemoteImages: false, scheme: "dark", colors: { bg: "#232321", fg: "#edebe5", link: "#4c8dff", line: "rgba(237, 235, 229, 0.18)" } });
+    expect(doc).toContain("color-scheme:dark");
+    expect(doc).toContain("border-left:2px solid rgba(237, 235, 229, 0.18)");
+  });
+});
+
 describe("buildSrcdoc", () => {
   it("embeds CSP, base target, body and the white sheet by default", () => {
     const doc = buildSrcdoc({ html: "<p>Hello</p>", allowRemoteImages: false });
@@ -76,6 +89,17 @@ describe("interceptLinks", () => {
 });
 
 describe("observeFrameHeight", () => {
+  it("shrinks to the body when the document is clamped to a taller frame", () => {
+    const frame = frameWith("<p>hi</p>");
+    const doc = frame.contentDocument!;
+    Object.defineProperty(doc.documentElement, "scrollHeight", { configurable: true, value: 120 });
+    Object.defineProperty(doc.body, "scrollHeight", { configurable: true, value: 44 });
+    const heights: number[] = [];
+    const stop = observeFrameHeight(frame, (h) => heights.push(h));
+    expect(heights).toEqual([44]);
+    stop();
+    frame.remove();
+  });
   it("reports the document height once ready and on load", () => {
     const frame = frameWith("<p>hi</p>");
     const doc = frame.contentDocument!;

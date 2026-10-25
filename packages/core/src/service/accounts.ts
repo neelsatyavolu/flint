@@ -10,6 +10,7 @@ import { safeFilename } from "../mail/sync/attachments";
 import { FlintError, type Account, type AddAccountInput, type AutoconfigResult, type Provider, type ServerConfig } from "../types";
 import { checkConnection, checkGoogleMailbox } from "./connectionCheck";
 import type { ServiceContext } from "./context";
+import { avatarStoreFor, fetchGoogleAccountPhoto } from "./avatars";
 
 const log = logger("service.accounts");
 
@@ -34,6 +35,7 @@ const patchSchema = z.object({
   color: z.string().max(40).nullable(),
   sortOrder: z.number().int(),
   enabled: z.boolean(),
+  showInUnified: z.boolean(),
   aliases: z.array(emailSchema).max(50),
 }).partial().strict();
 
@@ -133,6 +135,8 @@ export function accountsApi(ctx: ServiceContext): AccountsApi {
         });
         await saveCredentials(account.id, secret);
       }
+      // Best effort: the picture is nice to have and must never fail a sign-in.
+      account = await fetchGoogleAccountPhoto(ctx, account, signIn.picture).catch((e: Error) => { log.warn("profile picture failed", { reason: e.message }); return account; });
       await ctx.syncs.restart(account.id);
       changed(account.id);
       return account;
@@ -152,6 +156,7 @@ export function accountsApi(ctx: ServiceContext): AccountsApi {
       await ctx.syncs.forget(id);
       await platform.secrets.delete(secretKey(id));
       store.deleteAccount(id);
+      await avatarStoreFor(ctx).removeAccount(id).catch(() => undefined);
       await rm(join(platform.dataDir, "attachments", safeFilename(id, "account")), { recursive: true, force: true });
       ctx.scheduler.poke();
       changed(id);

@@ -1,16 +1,16 @@
 import { z } from "zod";
 import { logger } from "../log";
-import { FlintError, type DeepPartial, type Settings } from "../types";
+import { FlintError, NOTIFICATION_SOUNDS, type DeepPartial, type Settings } from "../types";
 import type { Sql } from "./sql";
 
 const log = logger("store.settings");
 
 export const DEFAULT_SETTINGS: Settings = {
-  appearance: { layout: "split", theme: "system", avatars: "everywhere", senderLogos: true, previewLines: 1, density: "comfortable", accountColors: true },
+  appearance: { layout: "split", theme: "system", avatars: "everywhere", senderLogos: true, senderPhotos: false, emailAppearance: "match", previewLines: 1, density: "comfortable", accountColors: true },
   inbox: { focused: true, sort: "newest", markReadOnOpen: "instant", afterArchive: "next", blockTrackers: true, remoteImages: "known_senders" },
   compose: { undoSendSeconds: 10, defaultSignatureByAccount: {}, plainTextOnly: false },
   receipts: { enabled: true, defaultOn: true, endpoint: "", notifyOnOpen: true },
-  notifications: { enabled: true, scope: "people", sound: true },
+  notifications: { enabled: true, scope: "people", sound: true, soundName: "default", preview: "sender_subject", badge: "unified_unread", disabledAccounts: [] },
   ai: { enabled: true, provider: null, model: null, autoSummarize: true, smartReplies: true, autoCategorize: false, writingStyle: "", replyLanguage: "" },
   agents: { enabled: true, modify: "allow", send: "ask" },
   sync: { initialDays: 90, bodiesForRecentDays: 14 },
@@ -20,7 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
 const sections = {
   appearance: z.object({
     layout: z.enum(["split", "full"]), theme: z.enum(["system", "dark", "light"]), avatars: z.enum(["everywhere", "list", "off"]),
-    senderLogos: z.boolean(), previewLines: z.union([z.literal(0), z.literal(1), z.literal(2)]), density: z.enum(["comfortable", "compact"]), accountColors: z.boolean(),
+    senderLogos: z.boolean(), senderPhotos: z.boolean(), emailAppearance: z.enum(["match", "light"]), previewLines: z.union([z.literal(0), z.literal(1), z.literal(2)]), density: z.enum(["comfortable", "compact"]), accountColors: z.boolean(),
   }),
   inbox: z.object({
     focused: z.boolean(), sort: z.enum(["newest", "oldest"]), markReadOnOpen: z.enum(["instant", "delay", "never"]),
@@ -31,7 +31,11 @@ const sections = {
     defaultSignatureByAccount: z.record(z.string(), z.number().int().nullable()), plainTextOnly: z.boolean(),
   }),
   receipts: z.object({ enabled: z.boolean(), defaultOn: z.boolean(), endpoint: z.string().max(500), notifyOnOpen: z.boolean() }),
-  notifications: z.object({ enabled: z.boolean(), scope: z.enum(["people", "all", "none"]), sound: z.boolean() }),
+  notifications: z.object({
+    enabled: z.boolean(), scope: z.enum(["people", "all", "none"]), sound: z.boolean(), soundName: z.enum(NOTIFICATION_SOUNDS),
+    preview: z.enum(["sender_subject", "sender_subject_line", "none"]), badge: z.enum(["unified_unread", "people_unread", "off"]),
+    disabledAccounts: z.array(z.string().max(100)).max(200),
+  }),
   ai: z.object({
     enabled: z.boolean(), provider: z.enum(["codex", "grok"]).nullable(), model: z.string().max(200).nullable(), autoSummarize: z.boolean(),
     smartReplies: z.boolean(), autoCategorize: z.boolean(), writingStyle: z.string().max(4000), replyLanguage: z.string().max(100),

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import type { Account, SyncStatus } from "@flint/core";
-import { Button, Dialog } from "../../../ui";
+import { Button, Dialog, SettingsRow, Toggle } from "../../../ui";
 import { ColorSwatches } from "../ColorSwatches";
 import { DebouncedText } from "../fields";
 import styles from "../settings.module.css";
 import type { AccountPatch } from "../useAccounts";
+import { AccountPhoto } from "./AccountPhoto";
 import { AliasEditor } from "./AliasEditor";
 import { describeStatus } from "./accountStatus";
 
@@ -14,10 +15,12 @@ type Props = {
   onPatch: (patch: AccountPatch) => void;
   onRemove: () => Promise<void>;
   onSignIn: () => Promise<void>;
+  /** Called after something outside onPatch changed the account (its photo). */
+  onChanged?: () => void;
 };
 
-/** Edit panel under an account row: name, aliases, color, sign in again, remove. */
-export function AccountDetail({ account, sync, onPatch, onRemove, onSignIn }: Props) {
+/** Edit panel under an account row: name, photo, aliases, color, unified inbox, sign in again, remove. */
+export function AccountDetail({ account, sync, onPatch, onRemove, onSignIn, onChanged }: Props) {
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const status = describeStatus(sync, account.enabled);
@@ -28,11 +31,22 @@ export function AccountDetail({ account, sync, onPatch, onRemove, onSignIn }: Pr
   };
 
   return (
-    <div className={styles.fields} style={{ padding: "var(--s-4) 0 var(--s-5)" }}>
+    <div className={styles.fields} style={{ padding: "var(--s-4) 0 var(--s-5)", gap: "var(--s-5)" }}>
       <label className={styles.field}>
         <span className={`t-label ${styles.fieldLabel}`}>Name</span>
         <DebouncedText label="Account name" value={account.name} onCommit={(name) => name.trim() !== "" && onPatch({ name: name.trim() })} />
       </label>
+      <AccountPhoto account={account} onChanged={() => onChanged?.()} />
+      <SettingsRow
+        title="Show in unified inbox"
+        description={
+          account.showInUnified
+            ? "Mail from this account appears in All accounts, Home and the dock badge."
+            : "Mail from this account is left out of All accounts, Home and the dock badge. Open the account in the sidebar to read it."
+        }
+      >
+        <Toggle checked={account.showInUnified} label={`Show ${account.email} in the unified inbox`} onChange={(showInUnified) => onPatch({ showInUnified })} />
+      </SettingsRow>
       <div className={styles.field}>
         <span className={`t-label ${styles.fieldLabel}`}>Aliases</span>
         <AliasEditor own={account.email} aliases={account.aliases} onChange={(aliases) => onPatch({ aliases })} />

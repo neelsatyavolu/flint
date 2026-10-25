@@ -1,3 +1,27 @@
+import type { FlintApi } from "@flint/core/api";
+import type { Settings } from "@flint/core/types";
+
+const PAGE = 200;
+const MAX_PAGES = 25;
+
+/**
+ * The number the dock badge shows: unread threads in the unified inbox, unread people threads there, or nothing.
+ * Both counts leave out accounts hidden from the unified inbox.
+ */
+export async function badgeCount(mode: Settings["notifications"]["badge"], api: Pick<FlintApi, "getSidebar" | "listThreads">): Promise<number> {
+  if (mode === "off") return 0;
+  if (mode === "unified_unread") return (await api.getSidebar()).counts.inbox;
+  let total = 0;
+  let cursor: string | undefined;
+  for (let i = 0; i < MAX_PAGES; i++) {
+    const page = await api.listThreads({ view: "inbox", focused: true, unreadOnly: true, limit: PAGE, ...(cursor ? { cursor } : {}) });
+    total += page.items.length;
+    if (!page.nextCursor) break;
+    cursor = page.nextCursor;
+  }
+  return total;
+}
+
 export type BadgeDeps = {
   getUnread: () => Promise<number>;
   setBadge: (count: number) => void;

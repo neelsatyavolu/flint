@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { shortcuts } from "../../lib/shortcuts";
 import { ToastProvider } from "../../ui";
 import { SettingsView } from "./SettingsView";
@@ -58,7 +58,10 @@ describe("SettingsView", () => {
 describe("Agents: skill for AI agents", () => {
   it("adds the flint skill to every agent found and lists where it went", async () => {
     mount({ section: "agents" });
-    fireEvent.click(await screen.findByRole("button", { name: "Add to all agents" }));
+    // The button exists before the skill status loads but stays disabled until then; clicking early does nothing.
+    const add = await screen.findByRole("button", { name: "Add to all agents" });
+    await waitFor(() => expect((add as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(add);
     expect(await screen.findByText(/Added for Claude Code; Codex, Gemini CLI, Copilot CLI and OpenCode; Grok\./)).toBeTruthy();
     expect(screen.getAllByText("Added")).toHaveLength(3);
     expect(screen.getAllByText("Not on this Mac")).toHaveLength(3);

@@ -34,7 +34,19 @@ export type Account = ServerConfig & {
   enabled: boolean;
   aliases: string[];
   createdAt: number;
+  /** False: this account's mail is left out of every all-accounts view (unified Inbox, Home, counts, badge, bundles). Its own inbox still works. */
+  showInUnified: boolean;
+  /** Where the account's profile picture came from: the Google sign-in, a photo the user picked, or none (initials). */
+  avatarSource: "google" | "custom" | null;
+  /** Epoch ms the picture last changed; null with no picture. Lets the UI drop cached copies. */
+  avatarUpdatedAt: number | null;
 };
+
+/** What getAvatars is asked for: one of the user's accounts, or a sender's address. */
+export type AvatarRef = { kind: "account"; accountId: AccountId } | { kind: "sender"; address: string };
+/** Key of an AvatarRef in the getAvatars result: "account:<id>" or "sender:<lowercased address>". */
+export const avatarKey = (ref: AvatarRef): string =>
+  ref.kind === "account" ? `account:${ref.accountId}` : `sender:${ref.address.trim().toLowerCase()}`;
 
 /** Password / app password accounts. Gmail app passwords use provider 'gmail'. */
 export type AddAccountInput = {
@@ -366,6 +378,9 @@ export type Settings = {
     theme: "system" | "dark" | "light";
     avatars: "everywhere" | "list" | "off";
     senderLogos: boolean;         // fetch domain icons for non-person senders
+    senderPhotos: boolean;        // look up sender photos on Gravatar (off by default; the address is hashed, which Gravatar can still match)
+    /** HTML mail in dark mode: 'match' adapts colors to the theme, 'light' always shows the original white sheet. */
+    emailAppearance: "match" | "light";
     previewLines: 0 | 1 | 2;
     density: "comfortable" | "compact";
     accountColors: boolean;
@@ -389,7 +404,15 @@ export type Settings = {
     endpoint: string;             // receipts service base URL; '' = not configured
     notifyOnOpen: boolean;
   };
-  notifications: { enabled: boolean; scope: "people" | "all" | "none"; sound: boolean };
+  notifications: {
+    enabled: boolean;
+    scope: "people" | "all" | "none"; // which new mail alerts: everything, the focused "people" category, or nothing
+    sound: boolean;
+    soundName: (typeof NOTIFICATION_SOUNDS)[number]; // a macOS system sound from NOTIFICATION_SOUNDS ("default" = the system alert sound)
+    preview: "sender_subject" | "sender_subject_line" | "none"; // what the alert shows
+    badge: "unified_unread" | "people_unread" | "off"; // what the dock badge counts
+    disabledAccounts: AccountId[]; // accounts that never alert
+  };
   ai: {
     enabled: boolean;
     provider: AiProvider | null;
@@ -418,13 +441,16 @@ export type DeepPartial<T> = { [K in keyof T]?: T[K] extends Record<string, unkn
 export type FlintEvent =
   | { type: "sync"; status: SyncStatus }
   | { type: "mail_changed"; accountId: AccountId; threadIds: ThreadId[] } // list/sidebar should refetch
-  | { type: "new_mail"; accountId: AccountId; threadId: ThreadId; from: Address; subject: string; category: Category }
+  | { type: "new_mail"; accountId: AccountId; threadId: ThreadId; from: Address; subject: string; category: Category; snippet?: string; forced?: boolean } // snippet: first line of the body when known; forced: a rule asked for an alert
   | { type: "receipt"; trackedId: number; email: string; status: ReceiptStatus; at: number }
   | { type: "send"; scheduled: ScheduledSend }
   | { type: "ai"; chunk: AiChunk }
   | { type: "agent_activity"; activity: AgentActivity }
   | { type: "settings"; settings: Settings }
   | { type: "toast"; level: "info" | "error"; message: string; undoToken?: string };
+
+/** macOS system sounds offered for alerts. "default" lets the system pick. */
+export const NOTIFICATION_SOUNDS = ["default", "Basso", "Blow", "Bottle", "Frog", "Funk", "Glass", "Hero", "Morse", "Ping", "Pop", "Purr", "Sosumi", "Submarine", "Tink"] as const;
 
 export class FlintError extends Error {
   constructor(public code: "not_found" | "invalid" | "auth" | "network" | "permission" | "conflict" | "ai_not_connected" | "internal", message: string) {

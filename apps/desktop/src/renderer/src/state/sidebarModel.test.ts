@@ -40,9 +40,9 @@ describe("sidebarModel", () => {
     expect(syncSummary(data([acct("a1", 0, "error")])).problems[0]?.message).toBe("Sync failed");
   });
 
-  it("lists user folders and spare roles under More", () => {
-    const list = moreFolders([folder(1, "Inbox", "inbox"), folder(2, "Spam", "spam"), folder(3, "Zed", null), folder(4, "Alpha", null), folder(5, "Sent", "sent")]);
-    expect(list.map((f) => f.name)).toEqual(["Spam", "Alpha", "Zed"]);
+  it("lists user folders and spare roles under More, leaving out roles with their own row", () => {
+    const list = moreFolders([folder(1, "Inbox", "inbox"), folder(2, "Spam", "spam"), folder(3, "Zed", null), folder(4, "Alpha", null), folder(5, "Sent", "sent"), folder(6, "Starred", "flagged")]);
+    expect(list.map((f) => f.name)).toEqual(["Starred", "Alpha", "Zed"]);
   });
 
   it("matches a sidebar row to navigation", () => {

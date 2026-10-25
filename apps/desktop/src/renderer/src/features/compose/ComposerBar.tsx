@@ -44,20 +44,7 @@ type Props = {
 /** Composer top bar: close and minimize on the left, tools, From and Send on the right. */
 export function ComposerBar(p: Props): JSX.Element {
   const { fields } = p;
-  const now = Date.now();
-  const templateItems: MenuItem[] = p.templates.length
-    ? [{ type: "label", label: "Insert template" }, ...p.templates.map((t) => ({ id: `t${t.id}`, label: t.name, onSelect: () => p.onTemplate(t) }))]
-    : [{ id: "none", label: "No templates yet", disabled: true, onSelect: () => undefined }];
-  const sigs = signaturesForAccount(p.signatures, fields.accountId);
-  const moreItems: MenuItem[] = [
-    { type: "label", label: "Signature" },
-    { id: "sig-none", label: "None", checked: fields.signatureId === null, onSelect: () => p.onSignature(null) },
-    ...sigs.map((s) => ({ id: `sig${s.id}`, label: s.name, checked: fields.signatureId === s.id, onSelect: () => p.onSignature(s) })),
-    { type: "separator" },
-    { id: "discard", label: "Discard draft", danger: true, onSelect: p.onDiscard },
-  ];
-  const remindLabel = fields.remindAt ? `Reminder: ${formatPresetTime(fields.remindAt, now)}` : "Remind me if no reply";
-
+  const moreItems = moreMenuItems({ fields, signatures: p.signatures, onSignature: p.onSignature, onDiscard: p.onDiscard });
   return (
     <div className={`${styles.bar} drag`}>
       <div className={`${styles.group} no-drag`}>
@@ -66,9 +53,47 @@ export function ComposerBar(p: Props): JSX.Element {
         <span className={`t-data ${styles.saved}`} role="status" aria-live="polite">{SAVE_LABEL[p.saveState]}</span>
       </div>
       <div className={`${styles.group} no-drag`}>
+        <ComposerTools
+          fields={fields}
+          templates={p.templates}
+          receiptsBlockedReason={p.receiptsBlockedReason}
+          aiOpen={p.aiOpen}
+          onToggleAi={p.onToggleAi}
+          onAttach={p.onAttach}
+          onTemplate={p.onTemplate}
+          onRemind={p.onRemind}
+          onSendLater={p.onSendLater}
+          onToggleTrack={p.onToggleTrack}
+        />
+        <Menu items={moreItems} placement="bottom-end" trigger={<IconButton label="More"><MoreHorizontal size={18} strokeWidth={1.5} /></IconButton>} />
+        <span className={styles.sep} aria-hidden />
+        <FromSelector value={fields.from} options={p.fromOptions} accountId={fields.accountId} onChange={p.onFrom} />
+        <IconButton label="Send" shortcut="mod+Enter" size={32} tone="accent" filled disabled={p.sending} onClick={p.onSend}>
+          <SendHorizontal size={18} strokeWidth={1.5} />
+        </IconButton>
+      </div>
+    </div>
+  );
+}
+
+type ToolsProps = Pick<Props, "fields" | "templates" | "receiptsBlockedReason" | "aiOpen" | "onToggleAi" | "onAttach" | "onTemplate" | "onRemind" | "onSendLater" | "onToggleTrack"> & {
+  /** Where menus and pickers open. The docked reply sits at the bottom of the window, so it passes "top-start". */
+  placement?: "bottom-start" | "top-start";
+};
+
+/** +AI, attach, templates, reminder, send later and the receipt toggle. Shared by the full composer bar and the docked reply. */
+export function ComposerTools(p: ToolsProps): JSX.Element {
+  const { fields } = p;
+  const now = Date.now();
+  const templateItems: MenuItem[] = p.templates.length
+    ? [{ type: "label", label: "Insert template" }, ...p.templates.map((t) => ({ id: `t${t.id}`, label: t.name, onSelect: () => p.onTemplate(t) }))]
+    : [{ id: "none", label: "No templates yet", disabled: true, onSelect: () => undefined }];
+  const remindLabel = fields.remindAt ? `Reminder: ${formatPresetTime(fields.remindAt, now)}` : "Remind me if no reply";
+  return (
+    <>
         <IconButton label="+AI" tone="accent" pressed={p.aiOpen} onClick={p.onToggleAi}><Sparkles size={18} strokeWidth={1.5} /></IconButton>
         <IconButton label="Attach files" onClick={p.onAttach}><Paperclip size={18} strokeWidth={1.5} /></IconButton>
-        <Menu items={templateItems} placement="bottom-end" trigger={<IconButton label="Templates"><FileText size={18} strokeWidth={1.5} /></IconButton>} />
+        <Menu items={templateItems} placement={p.placement === "top-start" ? "top-start" : "bottom-end"} trigger={<IconButton label="Templates"><FileText size={18} strokeWidth={1.5} /></IconButton>} />
         <ReminderPicker
           value={fields.remindAt}
           onPick={p.onRemind}
@@ -84,13 +109,18 @@ export function ComposerBar(p: Props): JSX.Element {
             {fields.track ? <Eye size={18} strokeWidth={1.5} /> : <EyeOff size={18} strokeWidth={1.5} />}
           </IconButton>
         )}
-        <Menu items={moreItems} placement="bottom-end" trigger={<IconButton label="More"><MoreHorizontal size={18} strokeWidth={1.5} /></IconButton>} />
-        <span className={styles.sep} aria-hidden />
-        <FromSelector value={fields.from} options={p.fromOptions} onChange={p.onFrom} />
-        <IconButton label="Send" shortcut="mod+Enter" size={32} tone="accent" filled disabled={p.sending} onClick={p.onSend}>
-          <SendHorizontal size={18} strokeWidth={1.5} />
-        </IconButton>
-      </div>
-    </div>
+    </>
   );
+}
+
+/** The signature and discard items of the More menu. */
+export function moreMenuItems(p: { fields: Fields; signatures: Signature[]; onSignature: (s: Signature | null) => void; onDiscard: () => void }): MenuItem[] {
+  const sigs = signaturesForAccount(p.signatures, p.fields.accountId);
+  return [
+    { type: "label", label: "Signature" },
+    { id: "sig-none", label: "None", checked: p.fields.signatureId === null, onSelect: () => p.onSignature(null) },
+    ...sigs.map((s) => ({ id: `sig${s.id}`, label: s.name, checked: p.fields.signatureId === s.id, onSelect: () => p.onSignature(s) })),
+    { type: "separator" },
+    { id: "discard", label: "Discard draft", danger: true, onSelect: p.onDiscard },
+  ];
 }

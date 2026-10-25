@@ -39,6 +39,7 @@ export function useComposerSession(key: SessionKey, options: { trackMeta?: boole
   const fieldsRef = useRef<Fields | null>(null);
   fieldsRef.current = fields;
   const sentRef = useRef(false);
+  const keepRef = useRef(false);
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
@@ -66,7 +67,7 @@ export function useComposerSession(key: SessionKey, options: { trackMeta?: boole
       alive = false;
       const f = fieldsRef.current;
       const id = draftIdRef.current;
-      if (optionsRef.current.discardEmptyOnUnmount && !sentRef.current && f && id !== null && isBodyEmpty(f.html) && f.attachments.length === 0) {
+      if (optionsRef.current.discardEmptyOnUnmount && !sentRef.current && !keepRef.current && f && id !== null && isBodyEmpty(f.html) && f.attachments.length === 0) {
         saverRef.current?.cancel();
         void flint.deleteDraft(id).catch(() => undefined);
         return;
@@ -180,6 +181,6 @@ export function useComposerSession(key: SessionKey, options: { trackMeta?: boole
 
   return {
     draft, fields, getFields: () => fieldsRef.current, error, saveState, patch, fromOptions, chooseFrom, attach, removeAttachment, pathless,
-    send, close, discard, settings, signatures: signatures.data ?? [], templates: templates.data ?? [], clearError: () => setError(null),
+    send, close, discard, keep: () => { keepRef.current = true; }, flush: () => saverRef.current?.flush() ?? Promise.resolve(), settings, signatures: signatures.data ?? [], templates: templates.data ?? [], clearError: () => setError(null),
   };
 }

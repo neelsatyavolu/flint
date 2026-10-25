@@ -6,7 +6,9 @@ import type { MenuItem } from "../../ui";
 import { useApp } from "../../state/AppContext";
 import { navStore, useNav } from "../../state/nav";
 import { useThreadActions } from "../../state/useActions";
-import { replyTarget, composeFor, type ReplyMode } from "../../state/compose";
+import { replyTarget } from "../../state/compose";
+import { useInlineReply } from "../../state/inlineReply";
+import type { InlineReplyMode } from "../compose/inlineReplyTypes";
 import { openMovePicker, openSnooze } from "./mailCommands";
 import styles from "./Reader.module.css";
 
@@ -22,7 +24,7 @@ export function ReaderToolbar({ thread }: { thread: ThreadDetail | undefined }) 
   const id = thread?.id;
   const ids = id === undefined ? [] : [id];
   const target = thread ? replyTarget(thread.messages) : undefined;
-  const reply = (mode: ReplyMode) => target && composeFor(target, mode);
+  const reply = (mode: InlineReplyMode) => target && useInlineReply.getState().open({ threadId: target.threadId, messageId: target.id, mode });
   const leaveInbox = OUT_OF_INBOX.has(view);
   const sender = thread?.messages.findLast((m) => !m.isFromMe)?.from[0];
 

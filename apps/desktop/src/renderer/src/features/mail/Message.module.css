@@ -1,32 +1,54 @@
-.message { padding: 16px 24px 20px; border-top: 1px solid var(--line); }
-.head { display: flex; align-items: flex-start; gap: 12px; }
-.headAvatar { margin-top: 1px; }
-.headText { flex: 1; min-width: 0; }
-.fromLine { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.fromName { flex: none; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fromAddr { color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.toLine { color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.headRight { display: flex; align-items: center; gap: 8px; flex: none; height: 20px; position: relative; }
-.hoverActions { display: flex; gap: 2px; position: absolute; right: 100%; top: -2px; margin-right: 6px; background: var(--plane-2); opacity: 0; pointer-events: none; transition: opacity var(--dur-fast) var(--ease); }
-.head:hover .hoverActions, .hoverActions:focus-within { opacity: 1; pointer-events: auto; }
+/* One rounded card per message (DESIGN.md, Reader). */
+.card { background: var(--plane-3); border: 1px solid var(--line); border-radius: var(--r-card); }
+.message { padding: 16px 20px 12px; }
+.head { display: flex; align-items: center; gap: 12px; }
+.headAvatar { flex: none; }
+.headText { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; }
+.fromName { flex: none; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.toWord, .toPlain { color: var(--fg-3); white-space: nowrap; }
+.toButton { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; border: 0; background: transparent; color: var(--accent); cursor: pointer; }
+.toButton:hover { text-decoration: underline; }
+.toAccent { color: var(--accent); }
+.headRight { display: flex; align-items: center; gap: 4px; flex: none; }
 .time { color: var(--fg-3); white-space: nowrap; }
+.cardFoot { display: flex; justify-content: flex-end; gap: 4px; margin-top: 8px; }
+.grow { flex: 1; }
 
-.collapsed { display: flex; align-items: center; gap: 12px; width: 100%; height: 48px; padding: 0 24px; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; color: var(--fg-2); transition: background-color var(--dur-fast) var(--ease); }
+.recipPopover { min-width: 260px; max-width: 360px; padding: 8px 12px; }
+.recipGroup { padding: 4px 0; }
+.recipTitle { color: var(--fg-3); margin-bottom: 2px; }
+.recipRow { display: flex; flex-wrap: wrap; gap: 6px; }
+.recipName { color: var(--fg); }
+.recipAddr { color: var(--fg-3); overflow-wrap: anywhere; }
+
+.draft { padding: 12px 20px 16px; }
+.draftHead { display: flex; align-items: center; gap: 10px; }
+.draftTag { flex: none; padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: var(--r-control); color: var(--fg-2); letter-spacing: 0.04em; }
+.draftTo { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.draftActions { display: flex; align-items: center; gap: 4px; flex: none; }
+.draftDivider { width: 1px; height: 16px; margin: 0 4px; background: var(--line-strong); }
+.draftDelete:hover:not(:disabled) { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.draftText { margin-top: 12px; max-height: 14em; overflow: hidden; color: var(--fg-2); }
+
+.collapsed { display: flex; align-items: center; gap: 12px; width: 100%; height: 48px; padding: 0 20px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--plane-3); text-align: left; color: var(--fg-2); transition: background-color var(--dur-fast) var(--ease); }
 .collapsed:hover { background: var(--hover); }
 .cName { flex: none; width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); font-weight: 500; }
 .unread .cName { font-weight: 600; }
 .cSnippet { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-3); }
 
 .bodyWrap { margin-top: 12px; }
-.sheet { border-radius: var(--r-control); overflow: hidden; background: #fff; }
+.sheet { overflow: hidden; }
+.sheet + .quotePill { margin-top: 4px; }
+.quotedFrame { margin-top: 8px; }
 .notice { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; color: var(--fg-3); }
 .trackers { margin: 0 0 8px; color: var(--fg-3); }
 .skeleton { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.messageText { font: 400 14.5px / 1.5 var(--font-ui); max-width: none; }
 .prose { color: var(--fg); }
 .pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .quoted { margin-top: 8px; color: var(--fg-3); }
-.quotePill { display: inline-flex; align-items: center; height: 18px; padding: 0 8px; margin-top: 8px; border: 0; border-radius: var(--r-control); background: var(--active); color: var(--fg-2); letter-spacing: 0.1em; }
-.quotePill:hover { background: var(--line-strong); }
+.quotePill { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 22px; margin-top: 8px; padding: 0; border: 0; border-radius: var(--r-round); background: var(--active); color: var(--fg-2); }
+.quotePill:hover { background: var(--line-strong); color: var(--fg); }
 
 .tiles { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
 .tile { display: flex; align-items: center; width: 200px; padding-right: 4px; border: 1px solid var(--line-strong); border-radius: var(--r-control); }

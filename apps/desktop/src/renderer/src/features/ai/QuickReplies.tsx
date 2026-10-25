@@ -1,5 +1,6 @@
 import { useEffect, type JSX } from "react";
 import { useSettings } from "../../lib/hooks";
+import { useInlineReply } from "../../state/inlineReply";
 import { Skeleton } from "../../ui/Skeleton";
 import { parseQuickReplies } from "./quickRepliesParse";
 import { useAiAvailability, useAiRun } from "./useAiRun";
@@ -10,8 +11,16 @@ export const QUICK_REPLIES_DWELL_MS = 1500;
 
 const cache = new Map<string, string[]>();
 
-/** Three short reply options for the last message. `cacheKey` must change when the newest message does. Clicking one hands its text to onPick. */
-export function QuickReplies({ threadId, cacheKey: key, onPick }: { threadId: number; cacheKey?: string; onPick: (text: string) => void }): JSX.Element | null {
+type Props = {
+  threadId: number;
+  cacheKey?: string;
+  /** The message the reply answers. With it, picking an option opens the docked reply seeded with the text. */
+  messageId?: number;
+  onPick?: (text: string) => void;
+};
+
+/** Three short reply options for the last message. `cacheKey` must change when the newest message does. Clicking one opens the docked reply with its text. */
+export function QuickReplies({ threadId, cacheKey: key, messageId, onPick }: Props): JSX.Element | null {
   const cacheKey = key ?? String(threadId);
   const ai = useAiAvailability();
   const { settings } = useSettings();
@@ -34,6 +43,11 @@ export function QuickReplies({ threadId, cacheKey: key, onPick }: { threadId: nu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.status, state.text]);
 
+  const pick = (text: string) => {
+    if (messageId !== undefined) useInlineReply.getState().open({ threadId, messageId, mode: "reply", seedText: text });
+    onPick?.(text);
+  };
+
   if (!wanted || state.status === "error") return null;
   const replies = cached ?? parsed;
   if (replies.length === 0) {
@@ -48,7 +62,7 @@ export function QuickReplies({ threadId, cacheKey: key, onPick }: { threadId: nu
   return (
     <div className={styles.row} role="group" aria-label="Quick replies">
       {replies.map((r) => (
-        <button key={r} type="button" className={styles.chip} title={r} onClick={() => onPick(r)}>{r}</button>
+        <button key={r} type="button" className={styles.chip} title={r} onClick={() => pick(r)}>{r}</button>
       ))}
     </div>
   );

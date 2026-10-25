@@ -6,7 +6,7 @@ import type { AcctKey } from "./seedTypes";
 export const ACCOUNT_IDS: Record<AcctKey, string> = { northwind: "acc_northwind", orbit: "acc_orbit", gmail: "acc_gmail" };
 
 export function makeAccounts(now: number): Account[] {
-  const base = { imapPort: 993, imapSecure: true, smtpSecure: true, enabled: true, aliases: [] as string[], createdAt: now - 200 * 86400_000 };
+  const base = { imapPort: 993, imapSecure: true, smtpSecure: true, enabled: true, aliases: [] as string[], createdAt: now - 200 * 86400_000, showInUnified: true, avatarSource: null, avatarUpdatedAt: null };
   return [
     { ...base, id: ACCOUNT_IDS.northwind, email: ME.northwind, name: ME_NAME, provider: "gmail", authKind: "oauth_google", color: "#5f8fb5", sortOrder: 0, imapHost: "imap.gmail.com", smtpHost: "smtp.gmail.com", smtpPort: 465, username: ME.northwind, aliases: ["hello@northwind.dev"] },
     { ...base, id: ACCOUNT_IDS.orbit, email: ME.orbit, name: ME_NAME, provider: "imap", authKind: "password", color: "#b58a5f", sortOrder: 1, imapHost: "imap.studio-orbit.com", smtpHost: "smtp.studio-orbit.com", smtpPort: 587, smtpSecure: false, username: ME.orbit },
@@ -15,11 +15,11 @@ export function makeAccounts(now: number): Account[] {
 }
 
 export const defaultSettings = (): Settings => ({
-  appearance: { layout: "split", theme: "system", avatars: "everywhere", senderLogos: false, previewLines: 1, density: "comfortable", accountColors: true },
+  appearance: { layout: "split", theme: "system", avatars: "everywhere", senderLogos: false, senderPhotos: false, emailAppearance: "match", previewLines: 1, density: "comfortable", accountColors: true },
   inbox: { focused: true, sort: "newest", markReadOnOpen: "instant", afterArchive: "next", blockTrackers: true, remoteImages: "known_senders" },
   compose: { undoSendSeconds: 10, defaultSignatureByAccount: { [ACCOUNT_IDS.northwind]: 2, [ACCOUNT_IDS.orbit]: 3, [ACCOUNT_IDS.gmail]: 1 }, plainTextOnly: false },
   receipts: { enabled: true, defaultOn: true, endpoint: "https://receipts.flint.example", notifyOnOpen: true },
-  notifications: { enabled: true, scope: "people", sound: false },
+  notifications: { enabled: true, scope: "people", sound: false, soundName: "default", preview: "sender_subject", badge: "unified_unread", disabledAccounts: [] },
   ai: { enabled: true, provider: "codex", model: "gpt-5.5", autoSummarize: true, smartReplies: true, autoCategorize: false, writingStyle: "Short, warm, direct. No filler.", replyLanguage: "" },
   agents: { enabled: true, modify: "allow", send: "ask" },
   sync: { initialDays: 90, bodiesForRecentDays: 14 },

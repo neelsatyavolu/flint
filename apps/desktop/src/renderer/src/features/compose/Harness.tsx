@@ -4,14 +4,15 @@ import { AskLauncher } from "../ai/AskLauncher";
 import { QuickReplies } from "../ai/QuickReplies";
 import { ThreadSummary } from "../ai/ThreadSummary";
 import { ComposerHost } from "./ComposerHost";
-import { InlineReply } from "./InlineReply";
+import { InlineReplyDock } from "./InlineReplyDock";
+import { useInlineReply } from "../../state/inlineReply";
 import { openComposer } from "./composerStore";
 import { flint } from "../../lib/api";
 
 /** Dev harness for the composer and AI surfaces (web preview only). Route with ?harness=compose. */
 export function Harness(): JSX.Element {
   const [thread, setThread] = useState<{ id: number; messageId: number; count: number } | null>(null);
-  const [seed, setSeed] = useState<string | undefined>();
+  const request = useInlineReply((s) => s.request);
 
   const load = async () => {
     const page = await flint.listThreads({ view: "inbox", limit: 50 });
@@ -41,8 +42,9 @@ export function Harness(): JSX.Element {
         {thread ? (
           <div style={{ maxWidth: 680, display: "flex", flexDirection: "column", gap: 16 }}>
             <ThreadSummary threadId={thread.id} messageCount={thread.count} wordCount={400} />
-            <QuickReplies threadId={thread.id} onPick={setSeed} />
-            <InlineReply threadId={thread.id} messageId={thread.messageId} seedText={seed} />
+            <QuickReplies threadId={thread.id} messageId={thread.messageId} />
+            <Button variant="secondary" onClick={() => useInlineReply.getState().open({ threadId: thread.id, messageId: thread.messageId, mode: "reply" })}>Reply</Button>
+            {request ? <InlineReplyDock request={request} onClose={() => useInlineReply.getState().close()} /> : null}
           </div>
         ) : null}
       </main>

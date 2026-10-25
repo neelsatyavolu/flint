@@ -20,7 +20,7 @@
 .icon { display: inline-flex; flex: none; color: var(--fg-2); }
 .icon svg { display: block; }
 .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.label:has(.labelHead) { display: flex; overflow: hidden; }
+.label:has(.labelHead) { display: flex; overflow: hidden; text-overflow: clip; }
 .labelHead { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .labelTail { flex: none; white-space: nowrap; }
 .itemMain:focus-visible, .railItem:focus-visible { outline: 1px solid var(--accent-ring); outline-offset: -1px; }

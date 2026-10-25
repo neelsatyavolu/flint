@@ -56,6 +56,9 @@
       <p>To tell real opens apart from Apple Mail Privacy Protection and security scanners, the service also looks at the network the request comes from at the moment it arrives. The network name is not stored.</p>
       <p>The service never receives the message, its subject or any email address. Records are deleted after 180 days. You can turn receipts off for one message in the composer or for all mail in Settings, and you can point Flint at a receipts service you run yourself.</p>
 
+      <h2>Profile pictures</h2>
+      <p>Flint shows your Google profile picture for a Google account you sign in with, downloaded from Google when you sign in, and any photo you choose yourself for an account. Both are stored on your computer. For senders, only if you turn on Sender photos in Settings (it is off by default), Flint asks gravatar.com whether a public photo exists. That request contains a SHA-256 hash of the sender's address, which Gravatar can match to a known address, sent without cookies or a referrer, and Gravatar also sees your IP address. Photos found, and the fact that none exists, are kept on your computer for up to 7 days. Turn Sender photos off and Flint makes no such requests.</p>
+
       <h2>Local agents</h2>
       <p>Flint can let programs on your computer, such as coding agents, use your mail through the <code>flint</code> command. This works only on your computer, through a private socket protected by a token file. You can turn it off, limit what agents may do, and require your approval before an agent sends mail. Every agent action is listed in Agent Activity.</p>
 

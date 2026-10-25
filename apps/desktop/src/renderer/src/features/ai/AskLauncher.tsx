@@ -1,6 +1,7 @@
 import { useEffect, useState, type JSX } from "react";
 import { Sparkles } from "lucide-react";
 import { useComposers } from "../compose/composerStore";
+import { useInlineReply } from "../../state/inlineReply";
 import { AskPanel } from "./AskPanel";
 import { OPEN_ASK_EVENT } from "./events";
 import { useAsk } from "./useAsk";
@@ -14,7 +15,9 @@ export function AskLauncher(): JSX.Element | null {
   const [text, setText] = useState("");
   const composers = useComposers();
   const minimized = composers.filter((c) => c.minimized).length;
-  const covered = composers.some((c) => !c.minimized);
+  // A full composer or the docked inline reply owns the bottom of the window.
+  const replying = useInlineReply((s) => s.request !== null);
+  const covered = replying || composers.some((c) => !c.minimized);
 
   useEffect(() => {
     const onOpen = (e: Event) => {

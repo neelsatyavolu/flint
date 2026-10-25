@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import type { FlintApi, Settings } from "@flint/core";
 
 import { readStored, writeStored } from "./storage";
@@ -89,5 +90,35 @@ export function startThemeSync(api: Pick<FlintApi, "getSettings" | "subscribe">)
     disposed = true;
     unsub();
     unwatch();
+  };
+}
+
+/** Follows data-theme on <html>, so components re-render when the theme setting or the OS appearance flips it. */
+export function useResolvedTheme(): ResolvedTheme {
+  return useSyncExternalStore(subscribeTheme, () => getResolvedTheme(), () => "dark");
+}
+
+function subscribeTheme(onChange: () => void): () => void {
+  if (typeof MutationObserver === "undefined" || typeof document === "undefined") return () => undefined;
+  const mo = new MutationObserver(onChange);
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => mo.disconnect();
+}
+
+export type FrameColors = { bg: string; fg: string; link: string; line: string };
+
+/** Mail-frame colors from the live tokens (the iframe cannot read CSS variables itself). Falls back to the Graphite/Paper values. */
+export function readFrameColors(theme: ResolvedTheme): FrameColors {
+  const fallback: FrameColors = theme === "dark"
+    ? { bg: "#232321", fg: "#edebe5", link: "#4c8dff", line: "rgba(237,235,229,0.18)" }
+    : { bg: "#ffffff", fg: "#1a1a17", link: "#2f6fe0", line: "rgba(26,26,23,0.2)" };
+  if (typeof document === "undefined" || typeof getComputedStyle !== "function") return fallback;
+  const cs = getComputedStyle(document.documentElement);
+  const pick = (name: string, fb: string) => cs.getPropertyValue(name).trim() || fb;
+  return {
+    bg: theme === "dark" ? pick("--plane-3", fallback.bg) : fallback.bg,
+    fg: pick("--fg", fallback.fg),
+    link: pick("--accent", fallback.link),
+    line: pick("--line-strong", fallback.line),
   };
 }

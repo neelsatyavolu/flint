@@ -13,7 +13,7 @@ export const REFRESH_MARGIN_MS = 5 * 60 * 1000;
 export type FetchLike = (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
 export type GoogleTokens = { accessToken: string; refreshToken: string; expiresAt: number };
-export type GoogleSignIn = GoogleTokens & { email: string; name: string };
+export type GoogleSignIn = GoogleTokens & { email: string; name: string; /** Profile picture URL from the ID token, when Google sent one. */ picture?: string };
 
 export type GoogleAuthOptions = {
   clientId: string;
@@ -50,13 +50,13 @@ export function buildAuthUrl(p: { clientId: string; redirectUri: string; challen
   return `${GOOGLE_AUTH_URL}?${q.toString()}`;
 }
 
-/** Reads email and name from the ID token payload. The token came straight from Google's token endpoint over TLS. */
-export function parseIdToken(idToken: string): { email: string; name: string } {
+/** Reads email, name and picture URL from the ID token payload. The token came straight from Google's token endpoint over TLS. */
+export function parseIdToken(idToken: string): { email: string; name: string; picture?: string } {
   const payload = idToken.split(".")[1];
   if (!payload) throw new FlintError("auth", "Google did not return account details. Try signing in again.");
   try {
-    const claims = z.object({ email: z.string(), name: z.string().optional() }).parse(JSON.parse(Buffer.from(payload, "base64url").toString("utf8")));
-    return { email: claims.email.toLowerCase(), name: claims.name ?? "" };
+    const claims = z.object({ email: z.string(), name: z.string().optional(), picture: z.string().optional() }).parse(JSON.parse(Buffer.from(payload, "base64url").toString("utf8")));
+    return { email: claims.email.toLowerCase(), name: claims.name ?? "", ...(claims.picture ? { picture: claims.picture } : {}) };
   } catch {
     throw new FlintError("auth", "Google did not return account details. Try signing in again.");
   }

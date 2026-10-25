@@ -302,4 +302,9 @@ export const MIGRATIONS: readonly string[] = [
         local draft behind it (on Gmail the copy is synced from All Mail under another UID). */ `
   ALTER TABLE drafts ADD COLUMN server_message_id TEXT;
   `,
+  /* 7: per-account "show in unified inbox" and the account's profile picture (the image file lives in the data dir) */ `
+  ALTER TABLE accounts ADD COLUMN show_in_unified INTEGER NOT NULL DEFAULT 1;
+  ALTER TABLE accounts ADD COLUMN avatar_source TEXT;           -- 'google' | 'custom' | NULL
+  ALTER TABLE accounts ADD COLUMN avatar_updated_at INTEGER;
+  `,
 ];

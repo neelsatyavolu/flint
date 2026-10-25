@@ -7,16 +7,18 @@ export type SidebarCounts = {
   snoozed: number;
   scheduled: number;
   awaitingApproval: number;
+  /** Threads with unread spam. */
+  spam: number;
   byAccount: Record<AccountId, number>;
 };
 
 export function sidebarCounts(data: SidebarData | undefined): SidebarCounts {
-  const empty: SidebarCounts = { inbox: 0, pinned: 0, drafts: 0, snoozed: 0, scheduled: 0, awaitingApproval: 0, byAccount: {} };
+  const empty: SidebarCounts = { inbox: 0, pinned: 0, drafts: 0, snoozed: 0, scheduled: 0, awaitingApproval: 0, spam: 0, byAccount: {} };
   if (!data) return empty;
   const byAccount: Record<AccountId, number> = {};
   for (const a of data.accounts) byAccount[a.account.id] = a.inboxUnread;
-  const { inbox, pinned, drafts, snoozed, scheduled, awaitingApproval } = data.counts;
-  return { inbox, pinned, drafts, snoozed, scheduled, awaitingApproval, byAccount };
+  const { inbox, pinned, drafts, snoozed, scheduled, awaitingApproval, spam } = data.counts;
+  return { inbox, pinned, drafts, snoozed, scheduled, awaitingApproval, spam, byAccount };
 }
 
 export type SyncSummary = {
@@ -46,7 +48,7 @@ export function syncSummary(data: SidebarData | undefined): SyncSummary {
 
 /** Folders shown under "More" for one account: user folders and roles without their own sidebar row. */
 export function moreFolders(folders: Folder[]): Folder[] {
-  const own = new Set(["inbox", "sent", "drafts", "trash", "archive"]);
+  const own = new Set(["inbox", "sent", "drafts", "trash", "spam", "archive"]);
   return folders
     .filter((f) => !f.role || !own.has(f.role))
     .sort((a, b) => Number(b.role !== null) - Number(a.role !== null) || a.name.localeCompare(b.name));

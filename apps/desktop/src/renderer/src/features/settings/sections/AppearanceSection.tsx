@@ -1,4 +1,4 @@
-import { Columns2, Palette, UserRound, Globe, AlignLeft, Rows3, Brush } from "lucide-react";
+import { Columns2, Palette, UserRound, Globe, AlignLeft, Rows3, Brush, Image, Moon } from "lucide-react";
 import { useAccounts, useUpdateAccount } from "../useAccounts";
 import { Avatar, SectionLabel, SettingsRow } from "../../../ui";
 import { ColorSwatches } from "../ColorSwatches";
@@ -38,9 +38,24 @@ export function AppearanceSection() {
       <ToggleRow
         icon={<Globe size={18} strokeWidth={1.5} />}
         title="Sender logos"
-        description="Fetch the website icon for senders that are not people. This contacts the sender's domain."
+        description="Website icons for senders that are not people. Flint does not fetch these yet, so this setting does nothing for now."
         checked={a.senderLogos}
         onChange={(v) => void save({ appearance: { senderLogos: v } })}
+      />
+      <ToggleRow
+        icon={<Image size={18} strokeWidth={1.5} />}
+        title="Sender photos"
+        description="Off by default. When on, Flint asks gravatar.com for a photo for each sender it shows, sending a SHA-256 hash of their address (Gravatar can match that hash to a known address) and your IP address. Photos are kept on this computer for 7 days."
+        checked={a.senderPhotos}
+        onChange={(v) => void save({ appearance: { senderPhotos: v } })}
+      />
+      <SelectRow
+        icon={<Moon size={18} strokeWidth={1.5} />}
+        title="Email in dark mode"
+        description="Match adapts the colors of HTML mail to the dark theme. Light always shows the original white page."
+        value={a.emailAppearance}
+        choices={[{ value: "match", label: "Match the theme" }, { value: "light", label: "Always original" }]}
+        onChange={(v) => void save({ appearance: { emailAppearance: v } })}
       />
       <SelectRow
         icon={<AlignLeft size={18} strokeWidth={1.5} />}
@@ -67,7 +82,7 @@ export function AppearanceSection() {
         <div className={styles.group}>
           <SectionLabel className={styles.groupLabel}>Account colors</SectionLabel>
           {accounts.map((acc) => (
-            <SettingsRow key={acc.id} icon={<Avatar address={acc.email} name={acc.name} size={24} />} title={acc.email} description={acc.name}>
+            <SettingsRow key={acc.id} icon={<Avatar address={acc.email} name={acc.name} accountId={acc.id} size={24} />} title={acc.email} description={acc.name}>
               <ColorSwatches
                 value={acc.color}
                 label={`Color for ${acc.email}`}

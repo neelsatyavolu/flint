@@ -5,13 +5,14 @@ import { createFlintService } from "@flint/core";
 import { refreshSkill } from "@flint/core/agent/skill";
 import { initLog, logger } from "@flint/core/log";
 import type { FlintService } from "@flint/core/service/index";
+import type { Settings } from "@flint/core/types";
 import type { BrowserWindow } from "electron";
 import { app, dialog, nativeTheme, session } from "electron";
 import electronUpdater from "electron-updater";
 import { CHANNELS } from "../preload/channels";
 import { APP_ORIGIN, APP_URL, registerAppScheme, serveRenderer } from "./app-protocol";
 import { serveAttachments } from "./attachment-protocol";
-import { createBadgeUpdater } from "./badge";
+import { badgeCount, createBadgeUpdater } from "./badge";
 import { forwardEvents, registerIpc } from "./ipc";
 import { installMenu } from "./menu";
 import { parseMailto } from "./mailto";
@@ -93,6 +94,10 @@ async function main(): Promise<void> {
       focusWindow(mainWindow);
       if (threadId !== undefined) sendToRenderer(CHANNELS.openThread, threadId);
     },
+    onNotificationAction: (action, threadId) => {
+      const run = action === "archive" ? service?.archive([threadId]) : service?.markRead([threadId], true);
+      run?.catch((err: unknown) => log.warn("notification action failed", { action, message: String(err) }));
+    },
   });
 
   const filter = createRequestFilter();
@@ -145,8 +150,9 @@ async function main(): Promise<void> {
     }
   }
 
+  let badgeMode: Settings["notifications"]["badge"] = (await service.getSettings()).notifications.badge;
   const badge = createBadgeUpdater({
-    getUnread: async () => (await service!.getSidebar()).counts.inbox,
+    getUnread: async () => badgeCount(badgeMode, service!),
     setBadge: (n) => app.setBadgeCount(n),
   });
   const applySettings = (s: { receipts: { endpoint: string }; inbox: { blockTrackers: boolean }; appearance: { theme: "system" | "dark" | "light" } }): void => {
@@ -156,7 +162,13 @@ async function main(): Promise<void> {
   applySettings(await service.getSettings());
 
   service.subscribe((e) => {
-    if (e.type === "settings") applySettings(e.settings);
+    if (e.type === "settings") {
+      applySettings(e.settings);
+      if (e.settings.notifications.badge !== badgeMode) {
+        badgeMode = e.settings.notifications.badge;
+        badge.request();
+      }
+    }
     if (e.type === "mail_changed" || e.type === "sync") badge.request();
   });
   forwardEvents(service, () => mainWindow);

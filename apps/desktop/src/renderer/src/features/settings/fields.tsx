@@ -15,10 +15,10 @@ export function SectionPage({ title, description, children }: { title: string; d
   );
 }
 
-export function ToggleRow({ icon, title, description, checked, onChange, disabled }: { icon?: ReactNode; title: string; description?: ReactNode; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+export function ToggleRow({ icon, title, label, description, checked, onChange, disabled }: { icon?: ReactNode; title: string; label?: string; description?: ReactNode; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <SettingsRow icon={icon} title={title} description={description}>
-      <Toggle checked={checked} onChange={onChange} label={title} disabled={disabled} />
+      <Toggle checked={checked} onChange={onChange} label={label ?? title} disabled={disabled} />
     </SettingsRow>
   );
 }

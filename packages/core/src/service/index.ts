@@ -8,7 +8,8 @@ import { startAgentWiring, stopAgentWiring } from "./agents-wiring";
 import { aiApi } from "./ai";
 import { composeApi } from "./compose";
 import { createContext } from "./context";
-import { wireNotifications } from "./notify";
+import { avatarsApi } from "./avatars";
+import { notifyApi, wireNotifications } from "./notify";
 import { recategorizeIfStale, refreshHeadersIfStale } from "./recategorize";
 import { historyApi } from "./history";
 import { importSparkApi } from "./importSpark";
@@ -65,6 +66,8 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
   const ctx = createContext(platform, opts);
   const api: FlintApi = {
     ...accountsApi(ctx),
+    ...avatarsApi(ctx),
+    ...notifyApi(ctx),
     ...syncApi(ctx),
     ...readingApi(ctx),
     ...historyApi(ctx),

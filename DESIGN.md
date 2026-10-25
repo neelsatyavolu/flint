@@ -1,14 +1,14 @@
 # Flint design system: "Graphite & Spark"
 
-Flint is a mail client people sit in for hours, so the interface stays quiet: warm graphite planes, hairlines instead of boxes, one blue spark for whatever is live or selected. It takes Spark's three-pane layout and keeps its structure, but the surface is our own. Mail chrome is set in a grotesque, machine data (times, counts, labels) in a monospace, and words people wrote to you (plain-text mail, AI summaries) in a serif.
+Flint is a mail client people sit in for hours, so the interface stays quiet: warm graphite planes, hairlines instead of boxes, one blue spark for whatever is live or selected. It takes Spark's three-pane layout and keeps its structure, but the surface is our own. Mail chrome is set in a grotesque, machine data (times, counts, labels) in a monospace, and AI summaries and answers in a serif. Message bodies, plain text or HTML, share one sans face so a thread reads evenly.
 
-This file wins over `~/DESIGN.md` for this project. It is derived from that system ("Machine & Ink") and changes three things for a long-session app: planes instead of a single canvas, a 4px control radius, and muted avatar tints.
+This file wins over `~/DESIGN.md` for this project. It is derived from that system ("Machine & Ink") and changes three things for a long-session app: planes instead of a single canvas, a 4px control radius (plus a 12px card radius for message cards), and muted avatar tints.
 
 ## 1. Principles
 
 1. **Planes, not cards.** Depth comes from three stacked warm-gray planes (sidebar, list, reader) separated by 1px hairlines. No drop shadows, gradients, blur or glass anywhere.
 2. **One accent.** Spark blue `#4C8DFF` marks the current selection, focus, unread dots, links, the caret and the single primary action in view. Keep it under about 3% of a screen.
-3. **Three type roles.** Geist for UI. Geist Mono for data: times, counts, group labels, shortcuts, status words. Newsreader for prose people or the AI wrote.
+3. **Three type roles.** Geist for UI. Geist Mono for data: times, counts, group labels, shortcuts, status words. Newsreader for prose the AI wrote (summaries, answers).
 4. **Calm density.** Every row has room to breathe. Nothing jumps on hover; only background shifts.
 5. **Speed is a feature.** Every action responds within one frame (optimistic UI). Loading states are hairline progress or skeleton rows, never spinners over content.
 6. **Honest states.** Read receipts, sync and AI show exactly what is known. "Opened" only when it was opened.
@@ -56,7 +56,8 @@ Fonts are bundled (`@fontsource`), never loaded from the network.
 | Compose subject | Geist | 24 / 32 | 600 | Subject field in composer |
 | Data | Geist Mono | 11.5 / 16 | 400 | Times, counts, badges, shortcut hints |
 | Label | Geist Mono | 11 / 16 | 500 | UPPERCASE, tracking `0.08em`, `--fg-3`: date groups ("TODAY"), section heads |
-| Prose | Newsreader | 16.5 / 26 | 400 | Plain-text mail bodies, AI summaries and answers, max 68ch |
+| Prose | Newsreader | 16.5 / 26 | 400 | AI summaries and answers, max 68ch |
+| Message | Geist | 14.5 / 22 | 400 | Plain-text mail bodies and draft previews, matching HTML mail |
 
 Numbers use `font-variant-numeric: tabular-nums`. Italics appear only in prose.
 
@@ -77,7 +78,7 @@ macOS window with `titleBarStyle: hiddenInset`. Traffic lights sit over the side
 - Sidebar collapses with the toggle in its header or `⌘\`. Under 1100px window width the sidebar auto-collapses to a 56px icon rail.
 - **Full Screen layout** (Settings → Appearance → Layout): the list takes the whole content area; opening a thread replaces it, Esc returns.
 - 4px base grid. Spacing steps: 4 · 8 · 12 · 16 · 20 · 24 · 32 · 48.
-- Radius: `0` for planes, rows and panes. `4px` for controls (buttons, inputs, selects, chips, badges, menus, popovers, toasts, composer window). Circles only for avatars, unread dots and toggles.
+- Radius: `0` for planes, rows and panes. `4px` for controls (buttons, inputs, selects, chips, badges, menus, popovers, toasts, composer window). `12px` (`--r-card`) for message cards, draft cards and the reply dock only: they are the one place a surface holds a document. Circles and pills (`999px`) only for avatars, unread dots, toggles and the small quote pill.
 
 ## 5. Components
 
@@ -104,11 +105,15 @@ macOS window with `titleBarStyle: hiddenInset`. Traffic lights sit over the side
 - Toolbar (38px, draggable background): Archive, Trash, Move, Snooze, Pin, Mark unread, then a spacer, then Reply, Reply all, Forward, More. 28px icon buttons, `--fg-2`, hover `--hover`, tooltip with shortcut in Data.
 - Thread header: subject (Thread subject style), then a chip row for category and account color.
 - AI summary card (when AI is on and the thread has 3+ messages or 300+ words): no box, a 2px `--accent` rule on the left, label "SUMMARY" in Label style, text in Prose. Collapsible.
-- Message: collapsed messages are 48px rows (avatar 24, sender, snippet, time). The latest unread and the last message are expanded. Expanded header: avatar 32, sender name 600 + address `--fg-3`, recipients line "to me, Carla" in `--fg-3`, time in Data, per-message actions on hover.
-- Body: HTML mail renders in a sandboxed iframe that auto-sizes to its content. The frame background is `#FFFFFF` with 16px padding by default for HTML mail (most mail is designed for white) and follows the theme for plain text. A 4px-radius container keeps the white sheet from touching the pane edge. Plain-text mail uses Prose style.
+- Thread body: a column of cards on `--plane-2`, 16px side gutters, 12px between cards. Each message is its own card: `--plane-3` fill, 1px `--line` border, `--r-card` radius, no shadow. Collapsed messages are 48px card rows (avatar 24, sender, snippet, time); the latest unread and the last message are expanded.
+- Expanded card header: avatar 32, sender name 600, "to" in `--fg-3` followed by the first recipient and "+N" in `--accent` (click opens a popover listing From, To, Cc and Bcc with addresses), date in Data at right, and a ... menu (Reply, Reply all, Forward, Show original when the mail was adapted, Mark thread unread, Unsubscribe, Block sender). Reply all and Forward icon buttons (plus Reply when the mail has a single other party) sit at the bottom right of the card and are always visible.
+- Quoted history ("On ... wrote:", Gmail, Apple Mail and Outlook quotes) is collapsed behind a small `•••` pill (32 x 18, `--active`, fully rounded) under the message; clicking expands it inline.
+- Draft card: same card, 12px 20px padding, a DRAFT tag (Data, 1px `--line-strong` border, 4px radius), "to Name" with the name in `--accent`, and Delete, Edit, Send ghost buttons at right. The text is a plain preview, never the draft HTML.
+- Scroll: opening a thread scrolls the newest message card fully into view (or to its top if taller than the pane). After the last card or the reply dock there is always `--ask-clearance` of empty space (floating field height plus gaps) so nothing sits behind the Ask field.
+- Body: HTML mail renders in a sandboxed iframe that auto-sizes to its content. The frame background is `#FFFFFF` with 16px padding by default for HTML mail (most mail is designed for white) and follows the theme for plain text. Mail adapted to the theme has no frame padding, so its text lines up with the avatar and header. On the light theme the card is already white, so HTML mail has no frame padding there either. A light sheet inside a card gets an 8px-radius inset so it never touches the card edge (the dark-mail adaptation can instead put the mail directly on the card). Plain-text mail uses the Message style.
 - Remote images blocked notice: a single line above the body, `--fg-3`, with "Load images" and "Always for this sender".
 - Attachments: 4px-radius tiles, 200px wide, file glyph, name, size in Data.
-- Inline quick reply at the bottom: a one-line field "Reply to Cindy…" that expands into the inline composer.
+- Reply: the reply dock card (`--r-card`) mounts at the bottom of the thread, below the last card and any draft cards, with the same bottom clearance. Quick-reply chips above it seed the dock.
 - Empty state: the Flint mark at 96px in `--fg-4`, centred, nothing else.
 
 ### Composer
@@ -159,6 +164,6 @@ Plain and short. Buttons say what happens: "Send", "Archive", "Load images", "Co
 - No drop shadows, gradients, glassmorphism, glow.
 - No second accent; avatar tints are not accents.
 - No Inter, no system-ui as the main face.
-- No rounded corners above 4px except avatars, dots and toggles.
+- No rounded corners above 4px except message, draft and dock cards (`--r-card`), the quote pill, avatars, dots and toggles.
 - No spinners over content, no layout shift when data arrives.
 - No centered-everything layouts.
