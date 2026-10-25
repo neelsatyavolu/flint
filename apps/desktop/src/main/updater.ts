@@ -33,8 +33,14 @@ const describe = (err: unknown): string => {
  * Sparkle-style updates from GitHub Releases: check on launch and every few hours, download in the
  * background, then offer to restart. "Later" installs the update the next time Flint quits.
  */
-export function createUpdateController(deps: { updater: UpdaterLike; ask: Ask; currentVersion: string }): UpdateController {
-  const { updater, ask, currentVersion } = deps;
+export function createUpdateController(deps: {
+  updater: UpdaterLike;
+  ask: Ask;
+  currentVersion: string;
+  /** Runs before Restart Now hands over to the installer (the app stops its service so nothing blocks the quit). */
+  beforeInstall?: () => Promise<void>;
+}): UpdateController {
+  const { updater, ask, currentVersion, beforeInstall } = deps;
   const log = logger("updates");
   let reportNext = false;
   let checking = false;
@@ -50,7 +56,13 @@ export function createUpdateController(deps: { updater: UpdaterLike; ask: Ask; c
       detail: `You have ${currentVersion}. Restart Flint to finish updating, or choose Later and it installs the next time you quit.`,
       buttons: ["Restart Now", "Later"],
     });
-    if (choice === 0) updater.quitAndInstall();
+    if (choice !== 0) return;
+    try {
+      await beforeInstall?.();
+    } catch (err) {
+      log.warn("preparing to install failed", { message: describe(err) });
+    }
+    updater.quitAndInstall();
   };
 
   updater.on("update-available", ((info: { version: string }) => {

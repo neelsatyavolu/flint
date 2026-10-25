@@ -55,6 +55,16 @@ describe("createUpdateController", () => {
     expect(updater.quitAndInstall).toHaveBeenCalledOnce();
   });
 
+  it("lets the app shut down before handing over to the installer", async () => {
+    const { updater, emit } = fakeUpdater();
+    const order: string[] = [];
+    updater.quitAndInstall.mockImplementation(() => { order.push("install"); });
+    createUpdateController({ updater, ask: async () => 0, currentVersion: "0.1.0", beforeInstall: async () => { order.push("stop"); } });
+    emit("update-downloaded", { version: "0.2.0" });
+    await flush(); await flush();
+    expect(order).toEqual(["stop", "install"]);
+  });
+
   it("leaves the update for the next quit on Later, and offers it again from the menu", async () => {
     const { updater, emit } = fakeUpdater();
     const ask = vi.fn(async () => 1);

@@ -106,6 +106,11 @@ async function main(): Promise<void> {
     ? createUpdateController({
         updater: electronUpdater.autoUpdater,
         currentVersion: app.getVersion(),
+        // Stop the service first so the before-quit handler doesn't hold up the installer's quit and relaunch.
+        beforeInstall: async () => {
+          quitting = true;
+          await service?.stop().catch((err: unknown) => logger("main").error("service stop failed", { message: String(err) }));
+        },
         ask: async (box) => {
           const opts = { type: "info" as const, ...box, defaultId: 0, cancelId: box.buttons.length - 1 };
           const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
