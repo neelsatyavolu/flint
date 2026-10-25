@@ -16,16 +16,16 @@ describe("categorize", () => {
 
   it("list headers mean newsletters", () => {
     expect(run("news@brand.com", { "list-unsubscribe": "<mailto:u@brand.com>" })).toBe("newsletters");
-    expect(run("a@b.com", { "list-id": "<announce.b.com>" })).toBe("newsletters");
+    expect(run("a@b.com", { "list-id": "<announce.b.com>", precedence: "list" })).toBe("newsletters");
     expect(run("noreply@brand.com", { "list-unsubscribe": "<https://x>" })).toBe("newsletters");
   });
 
-  it.each(["noreply", "no-reply", "no_reply", "donotreply", "do-not-reply", "notifications", "notification", "alerts", "update", "updates", "mailer-daemon", "bounce", "bounces", "info", "support", "team", "hello", "NoReply", "no-reply+abc123", "notifications-1"])(
+  it.each(["noreply", "no-reply", "no_reply", "donotreply", "do-not-reply", "notifications", "notification", "alerts", "update", "updates", "mailer-daemon", "bounce", "bounces", "receipts", "billing", "invoice", "service", "dse", "calendar-notification", "shipment-tracking", "NoReply", "no-reply+abc123", "notifications-1"])(
     "automated local part %s is notifications",
     (local) => expect(run(`${local}@example.com`)).toBe("notifications"),
   );
 
-  it.each(["infoman", "helloween", "teammate", "supportive", "alertsmith"])("person-like local part %s stays people", (local) => {
+  it.each(["info", "support", "team", "hello", "infoman", "helloween", "teammate", "supportive", "alertsmith"])("person-like local part %s stays people", (local) => {
     expect(run(`${local}@example.com`)).toBe("people");
   });
 
@@ -41,6 +41,20 @@ describe("categorize", () => {
     expect(run("a@b.com", { precedence: "List" })).toBe("notifications");
     expect(run("a@b.com", { precedence: "junk" })).toBe("notifications");
     expect(run("a@b.com", { precedence: "first-class" })).toBe("people");
+  });
+
+  it("classifies realistic notification mail", () => {
+    expect(run("notifications@github.com", { "list-id": "<repo.github.com>", precedence: "list", "list-unsubscribe": "<https://x>" })).toBe("notifications");
+    expect(run("notifications@linear.app", { "list-unsubscribe": "<https://x>" })).toBe("notifications");
+    expect(run("a@b.com", { "x-github-reason": "mention" })).toBe("notifications");
+    expect(run("calendar-notification@google.com")).toBe("notifications");
+    expect(run("receipts+acct@stripe.com")).toBe("notifications");
+    expect(run("invoice+statements@mail.stripe.com")).toBe("notifications");
+    expect(run("shipment-tracking@amazon.com")).toBe("notifications");
+    expect(run("service@paypal.com")).toBe("notifications");
+    expect(run("dse@docusign.net")).toBe("notifications");
+    expect(run("billing@openai.com")).toBe("notifications");
+    expect(run("hello@founder.com")).toBe("people");
   });
 
   it("handles a missing sender", () => {

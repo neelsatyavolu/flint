@@ -109,6 +109,8 @@ export type StoredMessage = {
 
 export type StoredThreadMessage = StoredMessage & {
   isFromMe: boolean;
+  /** True when the message sits in a Sent folder (or carries the Sent label), so a "from me" header on it is believable. */
+  inSent: boolean;
   attachments: AttachmentInfo[];
   unsubscribe: { url?: string; mailto?: string; oneClick: boolean } | null;
 };

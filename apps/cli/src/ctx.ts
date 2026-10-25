@@ -9,6 +9,9 @@ export type Ctx = {
   client: CliClient;
   json: boolean;
   out(line: string): void;
+  /** Notes for the person or agent that must not pollute stdout (JSON stays parseable). */
+  warn(line: string): void;
+  sleep(ms: number): Promise<void>;
   now: Date;
   style: Style;
   width: number;

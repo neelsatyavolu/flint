@@ -18,7 +18,7 @@ vi.mock("../../lib/api", () => ({
   },
 }));
 
-import { QuickReplies } from "./QuickReplies";
+import { QUICK_REPLIES_DWELL_MS, QuickReplies } from "./QuickReplies";
 import { ThreadSummary } from "./ThreadSummary";
 
 beforeEach(() => {
@@ -31,10 +31,19 @@ describe("QuickReplies", () => {
   it("shows three chips from the stream and reports the pick", async () => {
     const onPick = vi.fn();
     render(<QuickReplies threadId={101} onPick={onPick} />);
-    await waitFor(() => expect(aiRun).toHaveBeenCalledWith({ kind: "quickReplies", threadId: 101 }));
+    await waitFor(() => expect(aiRun).toHaveBeenCalledWith({ kind: "quickReplies", threadId: 101 }), { timeout: 3000 });
     emit({ type: "ai", chunk: { runId: "r1", type: "done", text: '["Yes.","No.","Later."]' } });
     fireEvent.click(await screen.findByRole("button", { name: "No." }));
     expect(onPick).toHaveBeenCalledWith("No.");
+  });
+
+  it("does not call the model when the thread is closed before the dwell time", async () => {
+    const { unmount } = render(<QuickReplies threadId={202} onPick={vi.fn()} />);
+    await waitFor(() => expect(aiStatus).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 100));
+    unmount();
+    await new Promise((r) => setTimeout(r, QUICK_REPLIES_DWELL_MS + 100));
+    expect(aiRun).not.toHaveBeenCalled();
   });
 
   it("renders nothing when AI is not connected", async () => {

@@ -23,8 +23,9 @@ app.setName("Flint");
 app.setPath("userData", process.env.FLINT_DATA_DIR?.trim() || join(app.getPath("appData"), "Flint"));
 registerAppScheme();
 
-const devUrl = process.env.ELECTRON_RENDERER_URL;
 const isDev = !app.isPackaged;
+// Packaged builds never honor environment overrides for the renderer URL or the mock service.
+const devUrl = isDev ? process.env.ELECTRON_RENDERER_URL : undefined;
 const appUrl = devUrl ?? APP_URL;
 const appOrigin = devUrl ? new URL(devUrl).origin : APP_ORIGIN;
 
@@ -96,7 +97,7 @@ async function main(): Promise<void> {
 
   const result = await bootstrapService({
     platform,
-    forceMock: process.env.FLINT_MOCK === "1",
+    forceMock: isDev && process.env.FLINT_MOCK === "1",
     create: createFlintService,
     options: { cliPath: bundledCliPath() },
   });

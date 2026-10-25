@@ -1,4 +1,4 @@
-import { chmod, mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { access, chmod, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { SecretStore } from "@flint/core/platform";
 import { logger } from "@flint/core/log";
@@ -18,9 +18,20 @@ type Blob = Record<string, string>;
 /**
  * One encrypted JSON blob (secrets.bin). First byte tags the format: 0x01 is
  * safeStorage ciphertext, 0x00 is plain JSON used only when safeStorage is not
- * available (dev). Writes are atomic (temp file + rename) and serialized.
+ * available and `allowPlain` is set (dev only). Packaged builds pass allowPlain false, so without
+ * a keychain they refuse to store secrets. Once an encrypted blob has been written a `.sealed`
+ * marker is left beside it and a plain blob is never accepted again; a plain blob found while
+ * encryption is available and no marker exists is a legacy file and is re-encrypted at once.
+ * Writes are atomic (temp file + rename) and serialized.
  */
-export function createSecretStore(file: string, safeStorage: SafeStorageLike): SecretStore {
+export function createSecretStore(
+  file: string,
+  safeStorage: SafeStorageLike,
+  options: { allowPlain?: boolean } = {},
+): SecretStore {
+  const allowPlain = options.allowPlain ?? false;
+  const sealedFile = `${file}.sealed`;
+  const isSealed = (): Promise<boolean> => access(sealedFile).then(() => true, () => false);
   let cache: Blob | null = null;
   let queue: Promise<unknown> = Promise.resolve();
 
@@ -43,17 +54,26 @@ export function createSecretStore(file: string, safeStorage: SafeStorageLike): S
     const tag = raw[0];
     const body = raw.subarray(1);
     let json: string;
+    let migrate = false;
     if (tag === TAG_ENCRYPTED) {
       if (!safeStorage.isEncryptionAvailable()) {
         throw new Error("Saved credentials are encrypted and the system keychain is not available.");
       }
       json = safeStorage.decryptString(body);
     } else if (tag === TAG_PLAIN) {
+      if (safeStorage.isEncryptionAvailable()) {
+        if (await isSealed()) throw new Error("Saved credentials file was modified and was not trusted.");
+        migrate = true;
+      } else if (!allowPlain) {
+        throw new Error("Flint can't read saved credentials because the system keychain is not available.");
+      }
       json = body.toString("utf8");
     } else {
       throw new Error("Saved credentials file is not readable.");
     }
-    cache = JSON.parse(json) as Blob;
+    const parsed = JSON.parse(json) as Blob;
+    if (migrate) await persist(parsed);
+    cache = parsed;
     return cache;
   }
 
@@ -63,6 +83,9 @@ export function createSecretStore(file: string, safeStorage: SafeStorageLike): S
     if (safeStorage.isEncryptionAvailable()) {
       payload = Buffer.concat([Buffer.from([TAG_ENCRYPTED]), safeStorage.encryptString(json)]);
     } else {
+      if (!allowPlain) {
+        throw new Error("Flint can't save credentials because the system keychain is not available.");
+      }
       log.warn("safeStorage unavailable; storing secrets in a plain 0600 file");
       payload = Buffer.concat([Buffer.from([TAG_PLAIN]), Buffer.from(json, "utf8")]);
     }
@@ -71,6 +94,7 @@ export function createSecretStore(file: string, safeStorage: SafeStorageLike): S
     await writeFile(tmp, payload, { mode: 0o600 });
     await chmod(tmp, 0o600);
     await rename(tmp, file);
+    if (payload[0] === TAG_ENCRYPTED) await writeFile(sealedFile, "", { mode: 0o600 });
     cache = next;
   }
 

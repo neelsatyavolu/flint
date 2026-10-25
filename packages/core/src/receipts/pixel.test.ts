@@ -33,6 +33,8 @@ describe("pixel", () => {
   it("normalizes endpoints", () => {
     expect(normalizeEndpoint(" https://r.example/ ")).toBe("https://r.example");
     expect(normalizeEndpoint("")).toBeNull();
+    expect(normalizeEndpoint("http://r.example")).toBeNull();
+    expect(normalizeEndpoint("http://localhost:8787/")).toBe("http://localhost:8787");
     expect(normalizeEndpoint("not a url")).toBeNull();
     expect(normalizeEndpoint("ftp://r.example")).toBeNull();
     expect(pixelUrlFor("https://r.example", "tok")).toBe("https://r.example/i/tok.gif");

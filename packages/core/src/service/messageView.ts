@@ -29,7 +29,7 @@ const stripCid = (cid: string): string => cid.replace(/^<|>$/g, "").toLowerCase(
 
 /** Builds the renderer's MessageView: sanitized HTML with the image policy applied, trackers removed, receipt attached. */
 export function toMessageView(env: ViewEnv, m: StoredThreadMessage, pinned = m.flagged): MessageView {
-  const allow = env.policy.allowed(m.id, m.from, m.isFromMe);
+  const allow = env.policy.allowed(m.id, m.from, { isFromMe: m.isFromMe, inSent: m.inSent, headers: m.headers });
   const cids = new Map(m.attachments.filter((a) => a.contentId).map((a) => [stripCid(a.contentId!), a.id]));
   const clean = m.rawHtml
     ? sanitizeForDisplay(m.rawHtml, {

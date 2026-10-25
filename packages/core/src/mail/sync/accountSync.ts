@@ -36,6 +36,11 @@ const GMAIL_SYNC_ROLES: MailboxRole[] = ["trash", "spam", "all"]; // All Mail la
 const isAuthError = (e: unknown): boolean => e instanceof FlintError && e.code === "auth";
 const isNetworkError = (e: unknown): boolean => e instanceof FlintError && e.code === "network";
 
+/** Consecutive auth failures tolerated before the account is marked as needing a new sign-in. */
+const AUTH_RETRIES = 2;
+/** Messages whose bodies are prefetched per mailbox lock. */
+const PREFETCH_CHUNK = 5;
+
 /**
  * Keeps one account's local store in step with its IMAP server: initial and incremental sync, IDLE,
  * reconnect with backoff, on-demand bodies and attachments. Also the account's ImapRunner for server actions.
@@ -167,16 +172,28 @@ export class AccountSync implements ImapRunner {
   async #runLoop(): Promise<void> {
     const backoff = this.#o.backoff ?? { minMs: 5000, maxMs: 5 * 60 * 1000 };
     let delay = backoff.minMs;
+    let authFailures = 0;
     while (!this.#stopped) {
       try {
         await this.syncNow();
         delay = backoff.minMs;
+        authFailures = 0;
         await this.#startIdle();
         await this.#sleepUntilWake(this.#idleClient ? (this.#o.idlePollMs ?? 10 * 60 * 1000) : (this.#o.pollMs ?? 2 * 60 * 1000));
       } catch (error) {
         if (this.#stopped) break;
         this.#closeClients();
+        // A rejected login may be a transient refusal (Gmail connection limits, a Google 5xx), so retry a couple of
+        // times with backoff before telling the user to sign in again.
+        if (isAuthError(error) && ++authFailures <= AUTH_RETRIES) {
+          log.warn("sign-in rejected, retrying", { account: this.#o.accountId, attempt: authFailures, reason: (error as Error).message });
+          this.#setStatus({ state: "error", error: (error as Error).message, progress: undefined });
+          await this.#sleepUntilWake(delay);
+          delay = Math.min(delay * 2, backoff.maxMs);
+          continue;
+        }
         if (isAuthError(error)) {
+          log.warn("sign-in rejected", { account: this.#o.accountId, reason: (error as Error).message });
           this.#setStatus({ state: "auth_error", error: "Sign in again.", progress: undefined });
           return;
         }
@@ -304,13 +321,23 @@ export class AccountSync implements ImapRunner {
   async #syncCycle(): Promise<void> {
     const client = await this.#ensureClient();
     this.#setStatus({ state: "syncing", error: undefined });
-    const gmail = this.#isGmail(client);
     const folders = this.#discoverFolders(await client.list());
+    // Gmail sync reads All Mail. When the user hides it from IMAP there is nothing to read the inbox from, so fall
+    // back to the generic folder set (INBOX, Sent, ...) instead of syncing an empty mailbox without any error.
+    const gmail = this.#isGmail(client) && folders.some((f) => f.role === "all");
+    if (this.#isGmail(client) && !gmail) log.warn("Gmail hides All Mail from IMAP; syncing folders directly", { account: this.#o.accountId });
     const targets = this.#targets(folders, gmail);
     const pending: Batch[] = [];
-    for (const folder of targets) await this.#syncOneFolder(client, folder, gmail, pending);
-    this.#cycles += 1;
-    for (const folder of targets) await this.#reconcile(client, folder);
+    try {
+      for (const folder of targets) await this.#syncOneFolder(client, folder, gmail, pending);
+      this.#cycles += 1;
+      for (const folder of targets) await this.#reconcile(client, folder);
+    } catch (error) {
+      // A dropped connection mid-sync must not lose the follow-up work for batches that were already ingested
+      // (their rows exist, so a retry would not collect them again).
+      await this.#afterBatches(pending, gmail).catch((e: Error) => log.warn("follow-up after interrupted sync failed", { reason: e.message }));
+      throw error;
+    }
     await this.#afterBatches(pending, gmail);
     this.#setStatus({ state: "idle", error: undefined, progress: undefined, lastSyncAt: this.#now() });
   }
@@ -372,23 +399,29 @@ export class AccountSync implements ImapRunner {
       return gmail ? Boolean(item.gmLabels && inboxPath && item.gmLabels.includes(inboxPath)) : batch.folder.role === "inbox";
     });
     if (wanted.length === 0) return;
-    try {
-      await this.run((c) => withMailbox(c, batch.folder.path, async () => {
-        const changed: ThreadId[] = [];
-        for (const o of wanted) {
-          try {
-            const body = await loadBody(c, o.uid, batch.structures.get(o.uid));
-            if (!body) continue;
-            this.#o.store.setBody(o.messageRowId, { text: body.text, html: body.html });
-            changed.push(o.threadId);
-          } catch (error) {
-            log.debug("body prefetch skipped a message", { reason: (error as Error).message });
+    // Small chunks, each under its own mailbox lock, so thread opens, attachment downloads and server actions
+    // queued on the same connection are served between chunks instead of waiting for the whole batch.
+    for (let i = 0; i < wanted.length; i += PREFETCH_CHUNK) {
+      const chunk = wanted.slice(i, i + PREFETCH_CHUNK);
+      try {
+        await this.run((c) => withMailbox(c, batch.folder.path, async () => {
+          const changed: ThreadId[] = [];
+          for (const o of chunk) {
+            try {
+              const body = await loadBody(c, o.uid, batch.structures.get(o.uid));
+              if (!body) continue;
+              this.#o.store.setBody(o.messageRowId, { text: body.text, html: body.html });
+              changed.push(o.threadId);
+            } catch (error) {
+              log.debug("body prefetch skipped a message", { reason: (error as Error).message });
+            }
           }
-        }
-        this.#emitChanged(changed);
-      }, true));
-    } catch (error) {
-      log.warn("body prefetch failed", { reason: (error as Error).message });
+          this.#emitChanged(changed);
+        }, true));
+      } catch (error) {
+        log.warn("body prefetch failed", { reason: (error as Error).message });
+        return;
+      }
     }
   }
 }

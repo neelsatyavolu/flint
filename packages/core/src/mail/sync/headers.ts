@@ -1,6 +1,7 @@
 /** Headers requested with every envelope fetch. */
 export const FETCH_HEADERS = [
   "references", "list-unsubscribe", "list-unsubscribe-post", "list-id", "precedence", "auto-submitted", "x-flint-ref",
+  "x-github-reason", "x-auto-response-suppress", "feedback-id",
 ] as const;
 
 /** Parses raw header lines (with folding) into lowercase names. Repeated headers keep the first value. */

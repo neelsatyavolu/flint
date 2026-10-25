@@ -2,6 +2,7 @@ import type { Category, ThreadListItem, ThreadQuery } from "@flint/core/types";
 import { FlintError } from "@flint/core/types";
 import { emit, parseId, parseLimit, plural, resolveAccountId, type Ctx } from "../ctx";
 import { renderTable } from "../table";
+import { parseSearch } from "@flint/core/search/parse";
 import { formatAddresses, messageBody } from "../text";
 import { formatFull, formatShort } from "../time";
 
@@ -45,7 +46,19 @@ export async function list(ctx: Ctx, opts: ListOpts): Promise<void> {
   emit(ctx, page, (p) => threadTable(ctx, p.items));
 }
 
+const OPERATORS = "from:, to:, cc:, subject:, in:, account:, has:attachment, is:unread|read|pinned|snoozed, before:YYYY-MM-DD, after:YYYY-MM-DD";
+
+/** Bare words that look like operators the search does not understand, so an agent can tell "no match" from "ignored". */
+export function unrecognizedOperators(query: string): string[] {
+  return parseSearch(query).terms
+    .filter((t) => !t.phrase && /^[a-z][a-z-]*:[^/\s]/i.test(t.text))
+    .map((t) => `${t.negated ? "-" : ""}${t.text}`);
+}
+
 export async function search(ctx: Ctx, query: string, opts: { limit?: string }): Promise<void> {
+  if (!query.trim()) throw new FlintError("invalid", `Give a search query. Supported: ${OPERATORS}.`);
+  const unknown = unrecognizedOperators(query);
+  if (unknown.length) ctx.warn(`Warning: not a search operator, treated as plain text: ${unknown.join(", ")}. Supported: ${OPERATORS}.`);
   const page = await ctx.client.listThreads({ view: "search", search: query, limit: parseLimit(opts.limit, 25) });
   emit(ctx, page, (p) => threadTable(ctx, p.items));
 }
@@ -55,10 +68,10 @@ export async function read(ctx: Ctx, idRaw: string, opts: { raw?: boolean }): Pr
   emit(ctx, thread, (t) => {
     const parts = [ctx.style.bold(t.subject || "(no subject)"), ctx.style.dim(`thread ${t.id}, ${plural(t.messages.length, "message")}`)];
     for (const m of t.messages) {
-      const head = [`From: ${formatAddresses(m.from)}`, `To: ${formatAddresses(m.to)}`];
+      const head = [`Message ${m.id}`, `From: ${formatAddresses(m.from)}`, `To: ${formatAddresses(m.to)}`];
       if (m.cc.length) head.push(`Cc: ${formatAddresses(m.cc)}`);
       head.push(`Date: ${formatFull(m.date)}`);
-      if (m.attachments.length) head.push(`Attachments: ${m.attachments.map((a) => `${a.filename} (${Math.max(1, Math.round(a.size / 1024))} KB)`).join(", ")}`);
+      if (m.attachments.length) head.push(`Attachments: ${m.attachments.map((a) => `${a.filename} (${Math.max(1, Math.round(a.size / 1024))} KB, attachment ${a.id})`).join(", ")}`);
       parts.push("", ctx.style.dim("-".repeat(Math.min(ctx.width, 60))), head.join("\n"), "", messageBody(m, opts.raw === true));
     }
     return parts.join("\n");

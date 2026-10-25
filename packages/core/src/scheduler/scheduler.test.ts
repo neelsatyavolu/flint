@@ -200,6 +200,7 @@ describe("receipts cadence", () => {
     const e2 = build({ receipts });
     track(e2, T0);
     await e2.scheduler.start();
+    await e2.clock.advance(0);
     expect(receipts.pollEvents).toHaveBeenCalledTimes(1);
     expect(receipts.seenPing).toHaveBeenCalledTimes(1);
     await e2.clock.advance(60_000);
@@ -215,6 +216,17 @@ describe("receipts cadence", () => {
     await e2.clock.advance(3600_000);
     expect(receipts.pollEvents.mock.calls.length).toBe(done);
     expect(e2.clock.timers.size).toBe(0);
+  });
+
+  it("start() returns without waiting for a hung receipts poll; the timer runs it right after", async () => {
+    const receipts = { pollEvents: vi.fn(() => new Promise<number>(() => undefined)), seenPing: vi.fn(async () => true) };
+    const env = build({ receipts });
+    track(env, T0);
+    await env.scheduler.start();
+    expect(receipts.pollEvents).not.toHaveBeenCalled();
+    expect(env.clock.armedIn).toBe(0);
+    await env.clock.advance(0);
+    expect(receipts.pollEvents).toHaveBeenCalledTimes(1);
   });
 
   it("keeps going when polling and pinging throw", async () => {

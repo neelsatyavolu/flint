@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { MAX_TOKENS_PER_INSTALL } from "./env";
 import { purge } from "./cron";
 import worker from "./index";
 import { install, setup, T0, TOKEN_A, TOKEN_B } from "./test/helpers";
@@ -246,5 +247,39 @@ describe("cron", () => {
     const s = setup();
     const r = await worker.fetch(new Request("https://r.test/nope"), s.env, { waitUntil() {} } as unknown as ExecutionContext);
     expect(r.status).toBe(404);
+  });
+});
+
+describe("abuse limits", () => {
+  it("rate limits /v1/seen per install", async () => {
+    const s = setup();
+    const auth = await install(s.call);
+    for (let i = 0; i < 120; i++) expect((await s.call("/v1/seen", { method: "POST", auth })).status).toBe(200);
+    expect((await s.call("/v1/seen", { method: "POST", auth })).status).toBe(429);
+  });
+  it("rate limits /v1/messages per install", async () => {
+    const s = setup();
+    const auth = await install(s.call);
+    const tok = (i: number) => String(i).padStart(22, "A");
+    for (let i = 0; i < 300; i++) {
+      expect((await s.call("/v1/messages", { ...post({ ref: `m${i}`, recipients: [{ token: tok(i) }] }), auth })).status).toBe(201);
+    }
+    expect((await s.call("/v1/messages", { ...post({ ref: "x", recipients: [{ token: tok(999) }] }), auth })).status).toBe(429);
+  });
+  it("caps live tokens per install", async () => {
+    const s = setup();
+    const auth = await install(s.call);
+    const id = auth.split(".")[0]!;
+    s.raw.prepare("INSERT INTO messages (install_id, ref, registered_at) VALUES (?, 'big', 1)").run(id);
+    const ins = s.raw.prepare("INSERT INTO tokens (token, install_id, ref, registered_at) VALUES (?, ?, 'big', 1)");
+    for (let i = 0; i < MAX_TOKENS_PER_INSTALL; i++) ins.run(`t${i}`, id);
+    const res = await s.call("/v1/messages", { ...post({ ref: "m1", recipients: [{ token: TOKEN_A }] }), auth });
+    expect(res.status).toBe(429);
+  });
+  it("returns 400 for a malformed ref escape on DELETE", async () => {
+    const s = setup();
+    const auth = await install(s.call);
+    const res = await s.call("/v1/messages/%E0%A4%A", { method: "DELETE", auth });
+    expect(res.status).toBe(400);
   });
 });

@@ -7,6 +7,7 @@ import { formatPresetTime } from "../../lib/time";
 import { Badge, Button, EmptyState, Skeleton, useToast } from "../../ui";
 import { useApp } from "../../state/AppContext";
 import { replyTarget } from "../../state/compose";
+import { quickRepliesEligible, quickRepliesKey } from "../../state/quickRepliesGate";
 import { listStore } from "../../state/listStore";
 import { useNav } from "../../state/nav";
 import { scheduleMarkRead } from "../../state/readOnOpen";
@@ -99,7 +100,9 @@ function ThreadBody({ thread, refetch }: { thread: ThreadDetail; refetch: () => 
       </div>
       {target ? (
         <div className={styles.foot}>
-          <QuickReplies threadId={thread.id} onPick={setSeedText} />
+          {quickRepliesEligible(thread.category, thread.messages) ? (
+            <QuickReplies threadId={thread.id} cacheKey={quickRepliesKey(thread.id, thread.messages)} onPick={setSeedText} />
+          ) : null}
           <Suspense fallback={null}><InlineReply threadId={thread.id} messageId={target.id} seedText={seedText} /></Suspense>
         </div>
       ) : null}

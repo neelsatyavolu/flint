@@ -32,6 +32,7 @@ function groupByFolder(locs: MessageLocation[]): Group[] {
 
 const uidSet = (g: Group): string => g.locs.map((l) => l.uid).join(",");
 const isGmail = (l: MessageLocation): boolean => l.provider === "gmail";
+const inTrashOrSpam = (l: MessageLocation): boolean => l.folderRole === "trash" || l.folderRole === "spam";
 const staysPut = (l: MessageLocation): boolean => l.folderRole === "sent" || l.folderRole === "drafts";
 
 /**
@@ -58,8 +59,9 @@ export class ServerActions {
     const errors: ActionError[] = [];
     const gmail = locs.filter(isGmail);
     const generic = locs.filter((l) => !isGmail(l) && !staysPut(l) && l.folderRole !== "archive");
-    await this.#each(groupByFolder(gmail.filter((l) => l.folderRole !== "trash" && l.folderRole !== "spam")), "archive", errors, (c, g) =>
+    await this.#each(groupByFolder(gmail.filter((l) => !inTrashOrSpam(l))), "archive", errors, (c, g) =>
       c.messageFlagsRemove(uidSet(g), [GMAIL_INBOX_LABEL], { uid: true, useLabels: true }));
+    await this.#restoreFromTrash(gmail.filter(inTrashOrSpam), null, "archive", errors);
     if (generic.length) {
       const target = this.#roleTarget(generic[0]!.accountId, "archive", errors, generic, "archive");
       if (target) await this.#move(generic, target, "archive", errors);
@@ -104,8 +106,9 @@ export class ServerActions {
     if (folder.role === "archive" || folder.role === "all") return this.archive(locs);
     if (folder.role === "inbox") return this.moveToInbox(locs);
     const gmail = locs.filter(isGmail);
+    await this.#restoreFromTrash(gmail.filter(inTrashOrSpam), folder.path, "moveToFolder", errors);
     // A Gmail label: apply it and take the message out of the inbox.
-    await this.#each(groupByFolder(gmail), "moveToFolder", errors, async (c, g) => {
+    await this.#each(groupByFolder(gmail.filter((l) => !inTrashOrSpam(l))), "moveToFolder", errors, async (c, g) => {
       await c.messageFlagsAdd(uidSet(g), [folder.path], { uid: true, useLabels: true });
       return c.messageFlagsRemove(uidSet(g), [GMAIL_INBOX_LABEL], { uid: true, useLabels: true });
     });
@@ -115,6 +118,34 @@ export class ServerActions {
   }
 
   // ---- internals
+
+  /**
+   * Gmail keeps trashed and spam mail out of All Mail, so labels cannot be edited in place. Move it to the inbox,
+   * then (using the new UIDs) add the target label and drop \\Inbox. Failing to learn the new UIDs is reported, never
+   * swallowed: the mail is then safe in the inbox but not where the caller asked.
+   */
+  async #restoreFromTrash(locs: MessageLocation[], label: string | null, op: string, errors: ActionError[]): Promise<void> {
+    for (const g of groupByFolder(locs)) {
+      if (g.locs.some((l) => l.accountId !== this.accountId)) {
+        pushAll(errors, g.locs, op, "That message belongs to another account.");
+        continue;
+      }
+      try {
+        // Two separate lock scopes: imapflow queues mailbox locks, so INBOX cannot be opened while Trash is held.
+        const res = await this.runner.run((c) => withMailbox(c, g.path, () => c.messageMove(uidSet(g), "INBOX", { uid: true })));
+        if (!res || !res.uidMap || res.uidMap.size === 0) throw new Error("The server restored the message to the inbox but did not report where it went.");
+        const moved = [...res.uidMap.values()].join(",");
+        await this.runner.run((c) => withMailbox(c, "INBOX", async () => {
+          if (label) await c.messageFlagsAdd(moved, [label], { uid: true, useLabels: true });
+          await c.messageFlagsRemove(moved, [GMAIL_INBOX_LABEL], { uid: true, useLabels: true });
+        }));
+      } catch (error) {
+        const message = (error as Error).message || "The server refused the change.";
+        log.warn("restore from trash failed", { op, folder: g.path, reason: message });
+        pushAll(errors, g.locs, op, message);
+      }
+    }
+  }
 
   async #toRole(locs: MessageLocation[], role: "trash" | "spam"): Promise<ActionReport> {
     const errors: ActionError[] = [];

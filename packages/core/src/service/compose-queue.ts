@@ -62,6 +62,8 @@ export function queueApi(ctx: ServiceContext): QueueApi {
       const row = store.requireScheduled(parse(id, scheduledId));
       if (row.status === "sending") throw new FlintError("conflict", "It's already on its way and can't be cancelled.");
       if (row.status === "sent") throw new FlintError("conflict", "That message was already sent.");
+      const agent = ctx.caller();
+      if (agent && row.requestedBy !== `agent:${agent}`) throw new FlintError("permission", "Agents can only cancel sends they queued themselves.");
       const draft = store.requireDraft(row.draftId);
       if (row.status === "pending" || row.status === "awaiting_approval") {
         const cancelled = store.updateScheduled(row.id, { status: "cancelled", error: null });

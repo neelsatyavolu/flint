@@ -1,6 +1,7 @@
 import type { AiTask } from "../types";
+import { formatToday } from "./context";
 import { askPrompt } from "./prompts";
-import { buildAskContext, citedThreads, extractQueries, retrieve, type Hit } from "./ask";
+import { buildAskContext, citedThreads, extractQueries, retrieve, stripDateFilters, type Hit } from "./ask";
 import type { AiContext } from "./ports";
 import type { TaskPlan } from "./tasks";
 
@@ -11,9 +12,14 @@ type AskTask = Extract<AiTask, { kind: "ask" }>;
 
 export async function planAsk(task: AskTask, ctx: AiContext): Promise<{ plan: TaskPlan; hits: Hit[] }> {
   const history = task.history ?? [];
-  const queries = extractQueries(task.question, history);
-  const hits = queries.length ? await retrieve(ctx, queries) : [];
-  const today = new Date(ctx.now()).toISOString().slice(0, 10);
+  const queries = extractQueries(task.question, history, ctx.now(), ctx.timeZone);
+  let hits = queries.length ? await retrieve(ctx, queries) : [];
+  if (hits.length === 0 && queries.length) {
+    // A date filter that was guessed wrong should not hide everything.
+    const undated = queries.map(stripDateFilters).filter((q, i) => q !== queries[i] && q);
+    if (undated.length) hits = await retrieve(ctx, undated);
+  }
+  const today = formatToday(ctx.now(), ctx.timeZone);
   if (hits.length === 0) {
     return { hits, plan: { system: "", messages: [], effort: "medium", streamText: true, immediate: NO_MATCH } };
   }

@@ -80,12 +80,47 @@ async function deleteUids(runner: ImapRunner, path: string, uids: number[]): Pro
   await runner.run((c) => withMailbox(c, path, async () => { await c.messageDelete(uids.join(","), { uid: true }); }));
 }
 
+/** True when a Gmail message also carries the Inbox label, i.e. it is the copy the user received (self or Bcc-self sends). */
+async function gmailInboxCopies(runner: ImapRunner, path: string, uids: number[]): Promise<Set<number>> {
+  const out = new Set<number>();
+  if (uids.length === 0) return out;
+  const rows = await runner.run((c) => withMailbox(c, path, () => c.fetchAll(uids.join(","), { uid: true, labels: true }, { uid: true }), true));
+  for (const r of rows || []) {
+    if ([...(r.labels ?? [])].some((l) => /^\\?inbox$/i.test(String(l)))) out.add(r.uid);
+  }
+  return out;
+}
+
+/** Removes server-saved copies. On Gmail, mail that also has the Inbox label is the user's received copy and is never deleted. */
+async function removeServerCopies(runner: ImapRunner, folders: SentFolders, sentPath: string, found: number[], messageId: string): Promise<number[]> {
+  if (found.length === 0) return [];
+  const gmail = folders.provider === "gmail";
+  const trash = gmail ? (folders.trashPath ?? (await specialUsePath(runner, "\\Trash"))) : null;
+  if (!(gmail && trash)) {
+    await deleteUids(runner, sentPath, found);
+    return [];
+  }
+  const keep = await gmailInboxCopies(runner, sentPath, found);
+  const doomed = found.filter((u) => !keep.has(u));
+  if (doomed.length > 0) {
+    // Gmail keeps expunged mail in All Mail; moving to Trash and deleting there removes it for good.
+    const moved = await runner.run((c) => withMailbox(c, sentPath, async () => c.messageMove(doomed.join(","), trash, { uid: true })));
+    const trashed = moved && moved.uidMap ? [...moved.uidMap.values()] : await findUids(runner, trash, messageId);
+    await deleteUids(runner, trash, trashed);
+  }
+  return [...keep];
+}
+
 /**
  * Leaves exactly one clean copy of a sent message in Sent: finds copies by Message-ID (the server may have saved
- * one with a tracking pixel), deletes them, then APPENDs the clean copy with \Seen.
- * Returns the UID of the appended copy when the server reports it.
+ * one with a tracking pixel), deletes them, then APPENDs the clean copy with \Seen. A second search after the APPEND
+ * removes a copy the server filed late. When serverCopyIsClean (nothing was tracked) the server's own copy is kept.
+ * On Gmail a copy that is also in the Inbox (the user was a recipient) is never deleted and no second copy is appended.
+ * Returns the UID of the copy that remains in Sent when known.
  */
-export async function fileSentCopy(runner: ImapRunner, folders: SentFolders, messageId: string, cleanMime: Buffer): Promise<{ path: string; uid: number | null }> {
+export async function fileSentCopy(
+  runner: ImapRunner, folders: SentFolders, messageId: string, cleanMime: Buffer, opts: { serverCopyIsClean?: boolean } = {},
+): Promise<{ path: string; uid: number | null }> {
   const sentPath = folders.sentPath ?? (await specialUsePath(runner, "\\Sent"));
   if (!sentPath) throw new FlintError("not_found", "This account has no Sent folder to save the message in.");
   const gmail = folders.provider === "gmail";
@@ -98,19 +133,27 @@ export async function fileSentCopy(runner: ImapRunner, folders: SentFolders, mes
     found = await findUids(runner, sentPath, messageId);
     if (found.length > 0) break;
   }
-  if (found.length > 0) {
-    const trash = gmail ? (folders.trashPath ?? (await specialUsePath(runner, "\\Trash"))) : null;
-    if (gmail && trash) {
-      // Gmail keeps expunged mail in All Mail; moving to Trash and deleting there removes it for good.
-      const moved = await runner.run((c) => withMailbox(c, sentPath, async () => c.messageMove(found.join(","), trash, { uid: true })));
-      const trashed = moved && moved.uidMap ? [...moved.uidMap.values()] : await findUids(runner, trash, messageId);
-      await deleteUids(runner, trash, trashed);
-    } else {
-      await deleteUids(runner, sentPath, found);
-    }
-  }
+  if (opts.serverCopyIsClean && found.length > 0) return { path: sentPath, uid: found[0] ?? null };
+
+  const kept = await removeServerCopies(runner, folders, sentPath, found, messageId);
+  if (kept.length > 0) return { path: sentPath, uid: kept[0] ?? null };
   const appended = await runner.run((c) => appendCreating(c, sentPath, cleanMime, ["\\Seen"]));
-  return { path: sentPath, uid: appended.uid ?? null };
+  const ours = appended.uid ?? null;
+
+  // Servers such as Exchange file their own copy a few seconds after SMTP. Look again and drop any copy that is not ours.
+  // With the default schedule this runs in the background so sending does not wait for it; an explicit schedule runs inline.
+  const recheck = async (): Promise<void> => {
+    try {
+      if (!folders.delaysMs) await sleep(2500);
+      const late = (await findUids(runner, sentPath, messageId)).filter((u) => u !== ours);
+      if (ours !== null && late.length > 0) await removeServerCopies(runner, folders, sentPath, late, messageId);
+    } catch (error) {
+      log.warn("sent copy re-check failed", { reason: (error as Error).message });
+    }
+  };
+  if (folders.delaysMs) await recheck();
+  else void recheck();
+  return { path: sentPath, uid: ours };
 }
 
 // ---------- Tracked and untracked sends ----------
@@ -140,11 +183,11 @@ export type SendOutcome = {
   sent: { path: string; uid: number | null } | null;
 };
 
-async function fileCopy(input: SendInput, messageId: string): Promise<SendOutcome["sent"]> {
+async function fileCopy(input: SendInput, messageId: string, serverCopyIsClean = false): Promise<SendOutcome["sent"]> {
   if (!input.runner) return null;
   try {
     const clean = await buildMime({ ...input.message, messageId, keepBcc: true });
-    return await fileSentCopy(input.runner, input.folders, messageId, clean);
+    return await fileSentCopy(input.runner, input.folders, messageId, clean, { serverCopyIsClean });
   } catch (error) {
     log.warn("could not file the sent copy", { reason: (error as Error).message });
     return null;
@@ -160,7 +203,7 @@ export async function sendUntracked(transport: Smtp, input: SendInput): Promise<
   const messageId = input.message.messageId ?? newMessageId(input.message.from.address);
   const mime = await buildMime({ ...input.message, messageId, keepBcc: false });
   await sendMessage(transport, mime, { from: input.message.from.address, to: allRecipients(input.message) });
-  return { messageId, copies: 1, failed: [], sent: await fileCopy(input, messageId) };
+  return { messageId, copies: 1, failed: [], sent: await fileCopy(input, messageId, true) };
 }
 
 /**
@@ -193,7 +236,7 @@ export async function sendTracked(transport: Smtp, input: SendTrackedInput): Pro
     }
   }
   if (copies === 0) throw new FlintError("network", failed[0]?.error ?? "The message could not be sent.");
-  return { messageId, copies, failed, sent: await fileCopy(input, messageId) };
+  return { messageId, copies, failed, sent: await fileCopy(input, messageId, input.tracked.length === 0) };
 }
 
 // ---------- Server drafts ----------

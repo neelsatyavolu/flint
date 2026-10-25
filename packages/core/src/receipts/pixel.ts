@@ -5,13 +5,14 @@ export function newToken(): string {
   return randomBytes(16).toString("base64url");
 }
 
-/** Normalizes the configured endpoint to an origin-style base URL, or null when it is not a usable http(s) URL. */
+/** Normalizes the configured endpoint to an origin-style base URL, or null when it is not a usable https URL (http only for loopback, so the bearer secret never travels in cleartext). */
 export function normalizeEndpoint(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
   try {
     const url = new URL(trimmed);
-    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    const loopback = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
+    if (url.protocol !== "https:" && !(url.protocol === "http:" && loopback)) return null;
     return url.toString().replace(/\/+$/, "");
   } catch {
     return null;

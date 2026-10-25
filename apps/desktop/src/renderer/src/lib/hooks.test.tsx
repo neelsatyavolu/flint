@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import type { FlintEvent } from "@flint/core";
 import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { flint } from "./api";
-import { useFlintEvent, useFlintQuery, useSettings } from "./hooks";
+import { REFETCH_DEBOUNCE_MS, useFlintEvent, useFlintQuery, useSettings } from "./hooks";
 
 describe("lazy api in a browser", () => {
   it("falls back to the mock when window.flint is absent", async () => {
@@ -28,6 +29,25 @@ describe("useFlintQuery", () => {
     await waitFor(() => expect(result.current.error).toBeDefined());
     expect(result.current.error!.message).toMatch(/no longer exists/);
     expect(result.current.loading).toBe(false);
+  });
+
+  it("coalesces bursts of events, filters by thread and skips unchanged data", async () => {
+    const listeners: Array<(e: FlintEvent) => void> = [];
+    vi.spyOn(flint, "subscribe").mockImplementation((l) => { listeners.push(l); return () => undefined; });
+    let calls = 0;
+    const same = { n: 1 };
+    const { result } = renderHook(() => useFlintQuery(async () => { calls++; return { ...same }; }, [], { threadId: 7 }));
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    const first = result.current.data;
+    const emit = (threadIds: number[]) => act(() => listeners.forEach((l) => l({ type: "mail_changed", accountId: "a1", threadIds })));
+    emit([9]);
+    await new Promise((r) => setTimeout(r, REFETCH_DEBOUNCE_MS + 60));
+    expect(calls).toBe(1);
+    emit([7]); emit([7]); emit([7, 8]);
+    await new Promise((r) => setTimeout(r, REFETCH_DEBOUNCE_MS + 60));
+    expect(calls).toBe(2);
+    expect(result.current.data).toBe(first);
+    vi.restoreAllMocks();
   });
 
   it("does not fetch when disabled", async () => {

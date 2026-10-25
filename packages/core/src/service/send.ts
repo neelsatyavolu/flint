@@ -39,7 +39,15 @@ async function discardTracking(ctx: ServiceContext, ref: string): Promise<void> 
   ctx.store.db.prepare("DELETE FROM tracked_messages WHERE id = ?").run(id);
 }
 
-type Delivery = { outcome: SendOutcome; ref: string | null };
+/** `untrackedReason` is set when the draft asked for read receipts but the mail went out without them. */
+type Delivery = { outcome: SendOutcome; ref: string | null; untrackedReason: string | null };
+
+function whyUntracked(ctx: ServiceContext, plain: boolean): string | null {
+  if (plain) return "plain text only is on, and a read receipt needs a tiny image";
+  const r = ctx.getSettings().receipts;
+  if (!r.enabled) return "read receipts are switched off in Settings";
+  return r.endpoint.trim() ? null : "no receipts address is set in Settings";
+}
 
 async function deliver(ctx: ServiceContext, account: Account, draft: Draft, messageId: string): Promise<Delivery> {
   const settings = ctx.getSettings();
@@ -51,7 +59,8 @@ async function deliver(ctx: ServiceContext, account: Account, draft: Draft, mess
   let ref: string | null = null;
   try {
     if (!draft.track || plain || !ctx.receipts.isConfigured()) {
-      return { outcome: await sendUntracked(transport, { message: base, folders, runner }), ref };
+      const untrackedReason = draft.track ? (whyUntracked(ctx, plain) ?? "read receipts aren't available right now") : null;
+      return { outcome: await sendUntracked(transport, { message: base, folders, runner }), ref, untrackedReason };
     }
     const recipients: Address[] = [...draft.to, ...draft.cc, ...draft.bcc];
     const prepared = await ctx.receipts.prepareTracked({
@@ -59,7 +68,14 @@ async function deliver(ctx: ServiceContext, account: Account, draft: Draft, mess
     });
     ref = prepared.ref;
     const message = { ...base, headers: { "X-Flint-Ref": prepared.ref } };
-    if (prepared.perRecipient.length === 0) return { outcome: await sendUntracked(transport, { message, folders, runner }), ref };
+    if (prepared.perRecipient.length === 0) {
+      const own = new Set(ctx.store.ownAddresses());
+      const toSelfOnly = recipients.every((r) => own.has(r.address.toLowerCase()));
+      return {
+        outcome: await sendUntracked(transport, { message, folders, runner }), ref,
+        untrackedReason: toSelfOnly ? null : "the receipts service couldn't be reached",
+      };
+    }
     const pixels = new Map(prepared.perRecipient.map((r) => [r.token, r.pixelUrl]));
     const outcome = await sendTracked(transport, {
       message, folders, runner,
@@ -67,7 +83,7 @@ async function deliver(ctx: ServiceContext, account: Account, draft: Draft, mess
       untracked: prepared.untracked.map((a) => a.address),
       injectPixel: (html, token) => injectPixel(html, pixels.get(token) ?? ""),
     });
-    return { outcome, ref };
+    return { outcome, ref, untrackedReason: null };
   } catch (error) {
     if (ref) await discardTracking(ctx, ref);
     throw error;
@@ -95,6 +111,9 @@ async function afterSend(ctx: ServiceContext, account: Account, draft: Draft, de
     if (outcome.failed.length > 0) {
       const names = outcome.failed.map((f) => f.address).join(", ");
       ctx.emit({ type: "toast", level: "error", message: `Couldn't deliver "${draft.subject || "(no subject)"}" to ${names}. The other recipients got it.` });
+    }
+    if (delivery.untrackedReason) {
+      ctx.emit({ type: "toast", level: "error", message: `Sent "${draft.subject || "(no subject)"}" without read receipts: ${delivery.untrackedReason}.` });
     }
     ctx.emit({ type: "mail_changed", accountId: account.id, threadIds: draft.threadId === null ? [] : [draft.threadId] });
     // Pull the Sent copy in so the thread, and the tracked row's thread link, show up now.

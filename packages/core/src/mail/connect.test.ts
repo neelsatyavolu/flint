@@ -63,6 +63,35 @@ describe("client options", () => {
   });
 });
 
+describe("STARTTLS", () => {
+  const plain = { imapHost: "imap.example.org", imapPort: 143, imapSecure: false, smtpHost: "smtp.example.org", smtpPort: 587, smtpSecure: false };
+  it("fails closed on remote plain ports", () => {
+    expect(imapOptions(plain, { user: "u", pass: "p" })).toMatchObject({ doSTARTTLS: true });
+    expect(smtpOptions(plain, { user: "u", pass: "p" })).toMatchObject({ requireTLS: true });
+  });
+  it("leaves implicit TLS and loopback alone", () => {
+    expect(imapOptions(server, { user: "u", pass: "p" }).doSTARTTLS).toBeUndefined();
+    expect(imapOptions({ ...plain, imapHost: "127.0.0.1" }, { user: "u", pass: "p" }).doSTARTTLS).toBeUndefined();
+    expect(smtpOptions({ ...plain, smtpHost: "localhost" }, { user: "u", pass: "p" }).requireTLS).toBeUndefined();
+  });
+});
+
+describe("transient failures", () => {
+  it("does not call a temporary Gmail refusal an auth error", () => {
+    expect(describeConnectError({ authenticationFailed: true, serverResponseCode: "UNAVAILABLE", responseText: "Temporary System Error" }, "IMAP")).toMatchObject({ code: "network" });
+    expect(describeConnectError({ authenticationFailed: true, responseText: "[ALERT] Too many simultaneous connections. (Failure)" }, "IMAP")).toMatchObject({ code: "network" });
+    expect(describeConnectError({ code: "EAUTH", responseCode: 454, message: "Temporary authentication failure" }, "SMTP")).toMatchObject({ code: "network" });
+    expect(describeConnectError({ authenticationFailed: true, serverResponseCode: "AUTHENTICATIONFAILED", responseText: "Invalid credentials" }, "IMAP")).toMatchObject({ code: "auth" });
+  });
+  it("treats a Google 503 or 429 on refresh as a network error", async () => {
+    const secrets = memorySecrets({ "account:acc1": JSON.stringify({ accessToken: "OLD", refreshToken: "RT", expiresAt: 0 }) });
+    for (const status of [503, 429]) {
+      const fetch: FetchLike = async () => ({ ok: false, status, json: async () => ({}) });
+      await expect(resolveAuth(account, { secrets, fetch, now: () => 1, google: () => ({ clientId: "c", clientSecret: "s" }) })).rejects.toMatchObject({ code: "network" });
+    }
+  });
+});
+
 describe("describeConnectError", () => {
   it("turns low-level errors into plain messages", () => {
     expect(describeConnectError({ authenticationFailed: true }, "IMAP")).toMatchObject({ code: "auth" });

@@ -49,7 +49,20 @@ export type ReplyTarget = { threadId: ThreadId } | { accountId: string; messageI
 const storedCredentials = z.object({ installId: z.string(), secret: z.string(), endpoint: z.string().optional() });
 type Credentials = z.infer<typeof storedCredentials>;
 
-const lower = (a: Address): string => a.address.trim().toLowerCase();
+/** Mailbox identity: lowercase, and for Gmail strip +tag and dots and unify googlemail.com. */
+export function canonicalAddress(raw: string): string {
+  const addr = raw.trim().toLowerCase();
+  const at = addr.lastIndexOf("@");
+  if (at < 1) return addr;
+  let local = addr.slice(0, at);
+  let domain = addr.slice(at + 1);
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    domain = "gmail.com";
+    local = local.split("+")[0]!.replace(/\./g, "");
+  }
+  return `${local}@${domain}`;
+}
+const lower = (a: Address): string => canonicalAddress(a.address);
 const stripBrackets = (id: string): string => id.replace(/^<+|>+$/g, "");
 
 export class ReceiptsClient {
@@ -106,7 +119,7 @@ export class ReceiptsClient {
    */
   async prepareTracked(input: PrepareTrackedInput): Promise<PreparedTracking> {
     const ref = newToken();
-    const own = new Set(input.selfAddresses.map((a) => a.trim().toLowerCase()));
+    const own = new Set(input.selfAddresses.map(canonicalAddress));
     const seen = new Set<string>();
     const candidates: Address[] = [];
     const untracked: Address[] = [];

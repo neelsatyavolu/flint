@@ -38,11 +38,11 @@ Auth: `Authorization: Bearer <installId>.<secret>`, compared in constant time ag
 Order: self, prefetch, scanner, bot, duplicate, open. Only `open` counts. Ambiguous hits are marked non-open on purpose.
 
 - self: fingerprint matches a sender fingerprint (registration or `/v1/seen`) from the last 24h.
-- prefetch: IP inside Apple's egress list, Apple ASN 714 or 6185, or a bare `Mozilla/5.0` user agent on a Private Relay host network (Akamai 36183/20940, Cloudflare 13335, Fastly 54113).
+- prefetch: IP inside Apple's egress list, Apple ASN 714 or 6185, or a bare `Mozilla/5.0` user agent from any network (no real mail client sends it; Apple's ranges drift, so the network is not required).
 - scanner: HEAD; known scanner user agents; security-vendor organizations at any time (Proofpoint, Mimecast, Barracuda, IronPort, Trend Micro, Sophos, Fortinet, Forcepoint, Symantec/Broadcom, Zscaler and others); Google network without the `GoogleImageProxy` marker; Microsoft network without an Outlook client UA within 60s; hosting networks within 60s; the frozen Chrome 42 / Edge 12 user agent.
 - bot: empty UA, HTTP libraries, headless browsers, link-preview bots, hosting networks after 60s, spoofed `GoogleImageProxy` UA.
 - duplicate: same client and same fingerprint (any proxy IP for Gmail/Yahoo) within 10s of a counted open.
-- open: everything else. `client` is Gmail, Yahoo Mail, Outlook, Outlook.com, Thunderbird, Apple Mail, Spark, Superhuman and so on. Proxy clients (Gmail, Yahoo, Outlook.com) store no country or city because that is the proxy's location.
+- open: everything else. `client` is Gmail, Yahoo Mail, Outlook, Thunderbird, Apple Mail, Spark, Superhuman and so on. Proxy clients (Gmail, Yahoo) store no country or city because that is the proxy's location.
 - `possiblyForwarded`: a counted open whose fingerprint and client both differ from the first counted open and arrives more than 1h later.
 
 ### Apple range data
@@ -64,7 +64,7 @@ Verified against sources:
 Not verified (treat as heuristics, tuned conservatively):
 
 - The `Chrome/42.0.2311.135 ... Edge/12.246` frozen user agent is attributed to machine fetchers by two practitioner posts (https://dev.to/hyehugh/your-open-rate-is-inflated-by-three-machines-here-is-how-to-prove-it-d25 , https://pay.trytoolboxpro.com/blog/why-gmail-open-rates-are-inflated ) that disagree on whether it is Apple or Google. Either way it is not a reader, so it is never counted.
-- Outlook.com / Microsoft 365 web image proxying: no authoritative source found for its exact user agent. Flint counts a Microsoft-network hit without an Outlook UA as `Outlook.com` only after the 60s scanner window. This is the least certain rule; if it produces false opens in practice, make it a scanner.
+- Outlook.com / Microsoft 365 web image proxying: no authoritative source for its user agent. A Microsoft-network hit without a recognized Outlook UA is always a scanner, at any delay, so an M365 recipient reading in a browser may be missed rather than risk a false open.
 - Outlook desktop UAs (`Microsoft Office/16.0 ... Microsoft Outlook`) are recalled from experience, not from a fetched source.
 - Apple Mail without MPP is recognized as WebKit without a Safari token; other apps embedding WebKit may be labeled Apple Mail.
 - A recipient on the same network as the sender within 24h of a ping is marked `self` (shared office NAT), which hides that real open.

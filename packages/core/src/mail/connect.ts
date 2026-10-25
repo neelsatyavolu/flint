@@ -5,6 +5,9 @@ import { z } from "zod";
 import type { SecretStore } from "../platform";
 import { FlintError, type Account, type ServerConfig } from "../types";
 import { refreshGoogleToken, REFRESH_MARGIN_MS, type FetchLike } from "./google-oauth";
+import { logger } from "../log";
+
+const log = logger("mail.connect");
 
 export const secretSchema = z.union([
   z.object({ password: z.string() }),
@@ -64,8 +67,9 @@ export function imapOptions(server: Pick<ServerConfig, "imapHost" | "imapPort" |
     disableBinary: true,
     connectionTimeout: 20_000,
     greetingTimeout: 15_000,
-    // Plain connections upgrade with STARTTLS when offered; loopback hosts (Proton Bridge, local test servers) skip certificate checks.
-    ...(isLoopback(server.imapHost) ? { tls: { rejectUnauthorized: false } } : {}),
+    // Remote plain connections must upgrade with STARTTLS or fail, so a network attacker cannot strip it and read the
+    // password. Loopback hosts (Proton Bridge, local test servers) skip certificate checks and may stay plain.
+    ...(isLoopback(server.imapHost) ? { tls: { rejectUnauthorized: false } } : server.imapSecure ? {} : { doSTARTTLS: true }),
   };
 }
 
@@ -78,7 +82,7 @@ export function smtpOptions(server: Pick<ServerConfig, "smtpHost" | "smtpPort" |
     connectionTimeout: 20_000,
     greetingTimeout: 15_000,
     socketTimeout: 60_000,
-    ...(isLoopback(server.smtpHost) ? { tls: { rejectUnauthorized: false } } : {}),
+    ...(isLoopback(server.smtpHost) ? { tls: { rejectUnauthorized: false } } : server.smtpSecure ? {} : { requireTLS: true }),
   };
 }
 
@@ -89,8 +93,16 @@ export function createImapClient(server: ServerConfig, auth: MailAuth): ImapFlow
 /** Short, user-facing text for a connection failure. Never includes credentials. */
 export function describeConnectError(error: unknown, what: "IMAP" | "SMTP"): FlintError {
   if (error instanceof FlintError) return error;
-  const e = error as { code?: string; authenticationFailed?: boolean; responseText?: string; message?: string };
+  const e = error as { code?: string; authenticationFailed?: boolean; responseText?: string; message?: string; serverResponseCode?: string; responseCode?: number };
   const code = e.code ?? "";
+  const text = e.responseText ?? e.message ?? "";
+  // Server responses (e.g. Gmail's "[AUTHENTICATIONFAILED] Invalid credentials") carry no secrets and explain failures.
+  log.warn("connection failed", { what, code, response: (e.responseText ?? e.message ?? "").slice(0, 300) });
+  // Temporary refusals arrive as login failures too; they must not look like a wrong password.
+  const transient = /^(UNAVAILABLE|OVERQUOTA|INUSE|LIMIT)$/i.test(e.serverResponseCode ?? "")
+    || /too many (simultaneous )?connections|temporar|try again|unavailable|overquota|rate limit/i.test(text)
+    || (typeof e.responseCode === "number" && e.responseCode >= 400 && e.responseCode < 500);
+  if (transient) return new FlintError("network", `The ${what} server is busy or temporarily unavailable. Flint will try again.`);
   if (e.authenticationFailed || /AUTH/i.test(code) || /auth|credentials|login/i.test(e.responseText ?? e.message ?? "")) {
     return new FlintError("auth", "The server rejected the username or password. For Gmail and iCloud, use an app password.");
   }

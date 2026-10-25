@@ -163,3 +163,19 @@ describe("buildReplyDraft", () => {
     expect(html.quotedHtml).not.toMatch(/script|onclick|mailtrack/);
   });
 });
+
+describe("quoted body hygiene", () => {
+  const base = { from: [{ name: "A", address: "a@x.com" }], to: [{ name: "", address: "me@x.com" }], cc: [], replyTo: [], subject: "S", date: 0, messageId: "m1", references: [], text: null };
+  it("never quotes a receipts pixel, on any host", () => {
+    const rawHtml = '<p>hi</p><img src="https://flintr.xanom.co/i/AAAAAAAAAAAAAAAAAAAAAA.gif"><img src="https://other.example/i/BBBBBBBBBBBBBBBBBBBBBB.gif" width="1">';
+    for (const mode of ["reply", "forward"] as const) {
+      const r = buildReplyDraft({ ...base, rawHtml }, mode, ["me@x.com"]);
+      expect(r.quotedHtml).not.toMatch(/\/i\/[A-Za-z0-9_-]{22}\.gif/);
+      expect(r.quotedHtml).toContain("hi");
+    }
+  });
+  it("keeps inline cid images when their data is supplied", () => {
+    const r = buildReplyDraft({ ...base, rawHtml: '<img src="cid:shot1@x">' }, "forward", [], { inlineImages: { "shot1@x": { contentType: "image/png", data: Uint8Array.from([1, 2, 3]) } } });
+    expect(r.quotedHtml).toContain("data:image/png;base64,AQID");
+  });
+});

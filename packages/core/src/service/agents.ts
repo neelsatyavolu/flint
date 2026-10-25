@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, lstatSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { FlintApi } from "../api";
@@ -75,8 +75,18 @@ export function agentsApi(ctx: ServiceContext): AgentsApi {
         const path = join(dir, "flint");
         try {
           mkdirSync(dir, { recursive: true });
-          writeFileSync(path, body, { mode: 0o755 });
-          chmodSync(path, 0o755);
+          if (lstatSync(path, { throwIfNoEntry: false })?.isSymbolicLink()) {
+            throw new Error(`${path} is a symbolic link; refusing to overwrite it`);
+          }
+          const tmp = `${path}.${process.pid}.tmp`;
+          try {
+            writeFileSync(tmp, body, { mode: 0o755, flag: "wx" });
+            chmodSync(tmp, 0o755);
+            renameSync(tmp, path);
+          } catch (error) {
+            try { unlinkSync(tmp); } catch { /* nothing to clean */ }
+            throw error;
+          }
           log.info("installed the flint command", { path });
           return { path };
         } catch (error) {

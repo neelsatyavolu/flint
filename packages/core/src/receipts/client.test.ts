@@ -85,6 +85,16 @@ describe("prepareTracked", () => {
     expect(out.untracked.map((a) => a.address)).toEqual(["me@example.com"]);
   });
 
+  it("treats Gmail dot, plus and googlemail variants of the user's own address as own", async () => {
+    const s = setup();
+    const out = await s.client.prepareTracked({
+      ...input(s, [carla, { name: "", address: "first.last+x@googlemail.com" }, { name: "", address: "me+news@example.com" }]),
+      selfAddresses: ["firstlast@gmail.com", "me@example.com"],
+    });
+    expect(out.perRecipient).toHaveLength(2);
+    expect(out.untracked.map((a) => a.address)).toEqual(["first.last+x@googlemail.com"]);
+  });
+
   it("returns everyone untracked when the service is offline and marks the row unregistered", async () => {
     const s = setup();
     s.service.offline = true;

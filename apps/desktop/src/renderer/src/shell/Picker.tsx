@@ -27,7 +27,7 @@ export function Picker({ label, placeholder, items, onPick, onClose, emptyText =
   const at = Math.min(active, Math.max(0, shown.length - 1));
 
   useEffect(() => {
-    list.current?.querySelector<HTMLElement>('[data-active="true"]')?.scrollIntoView({ block: "nearest" });
+    list.current?.querySelector<HTMLElement>('[data-active="true"]')?.scrollIntoView?.({ block: "nearest" });
   }, [at, shown]);
 
   const onKeyDown = (e: KeyboardEvent) => {

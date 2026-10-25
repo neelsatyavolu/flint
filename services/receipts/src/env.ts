@@ -9,3 +9,6 @@ export const RETENTION_MS = 180 * DAY_MS;
 export const SENDER_FINGERPRINT_TTL_MS = DAY_MS;
 export const INSTALL_LIMIT_PER_HOUR = 10;
 export const MAX_EVENTS_PER_TOKEN = 300;
+export const REGISTER_LIMIT_PER_HOUR = 300;
+export const SEEN_LIMIT_PER_HOUR = 120;
+export const MAX_TOKENS_PER_INSTALL = 50_000;

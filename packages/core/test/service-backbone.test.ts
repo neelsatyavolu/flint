@@ -38,6 +38,7 @@ async function boot(extra: { agentServer?: boolean } = {}): Promise<Rig> {
   const base = makePlatform();
   const service = await createFlintService(base.platform, {
     ...extra,
+    resolveHost: async () => ["93.184.216.34"],
     sync: { pollMs: 500, idlePollMs: 5_000, backoff: { minMs: 200, maxMs: 1000 } },
     fetch: (async (url: string | URL | Request, init?: RequestInit) => {
       base.fetches.push({ url: String(url), ...(init?.method ? { method: init.method } : {}), ...(typeof init?.body === "string" ? { body: init.body } : {}) });

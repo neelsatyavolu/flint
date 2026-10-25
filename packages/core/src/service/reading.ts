@@ -13,6 +13,9 @@ export type ReadingApi = Pick<FlintApi,
   "getSidebar" | "getHome" | "listThreads" | "getThread" | "getMessage" | "allowRemoteImages" | "listFolders" |
   "saveAttachment" | "openAttachment" | "suggestContacts">;
 
+/** How long opening a thread waits for missing bodies before showing what it has. */
+export const BODY_WAIT_MS = 1_500;
+
 const id = z.number().int().positive();
 
 export function readingApi(ctx: ServiceContext): ReadingApi {
@@ -34,11 +37,29 @@ export function readingApi(ctx: ServiceContext): ReadingApi {
     }
   }
 
+  /**
+   * The thread with the bodies it has. Missing ones are fetched; the UI waits a moment for quick fetches but never
+   * for a slow or dead connection: the rest arrive later and a mail_changed event tells the reader to refresh.
+   * Agents get the full bodies (they have no skeleton to show).
+   */
   async function loadThread(threadId: ThreadId) {
     const first = store.getThreadRows(threadId);
     if (!first) throw new FlintError("not_found", "That conversation no longer exists.");
     if (!first.messages.some((m) => !m.bodyLoaded)) return first;
-    await ctx.ensureBodies(first.messages.map((m) => m.id));
+    const fetching = ctx.ensureBodies(first.messages.filter((m) => !m.bodyLoaded).map((m) => m.id));
+    if (ctx.caller()) {
+      await fetching;
+    } else {
+      let timer: NodeJS.Timeout | undefined;
+      const settled = await Promise.race([
+        fetching.then(() => true),
+        new Promise<boolean>((resolve) => { timer = setTimeout(() => resolve(false), BODY_WAIT_MS); timer.unref(); }),
+      ]);
+      clearTimeout(timer);
+      if (!settled) {
+        void fetching.then(() => ctx.emit({ type: "mail_changed", accountId: first.accountId, threadIds: [threadId] }));
+      }
+    }
     return store.getThreadRows(threadId) ?? first;
   }
 

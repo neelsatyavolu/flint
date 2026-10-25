@@ -9,7 +9,7 @@ const thread = { subject: "Lunch", messages: [
   { from: a, to: [me], date: 100, text: "Lunch Friday?" },
   { from: me, to: [a], date: 200, text: "Maybe.\n\nOn Mon Ana <ana@x.com> wrote:\n> Lunch Friday?" },
 ] };
-const withThread = (over = {}) => makeContext({ getThreadForAi: async (id) => (id === 1 ? thread : null), ...over });
+const withThread = (over = {}) => makeContext({ timeZone: "UTC", getThreadForAi: async (id) => (id === 1 ? thread : null), ...over });
 
 describe("parseTask", () => {
   it("accepts valid tasks and rejects bad ones with FlintError invalid", () => {
@@ -44,6 +44,20 @@ describe("planTask", () => {
     expect(content).toContain("Maybe.");
     expect(content).not.toContain("> Lunch");
     expect(plan.system).toContain("Action needed:");
+  });
+  it("tells the model who the user is and marks their messages", async () => {
+    const me = { name: "Neel S", address: "neel@x.com" };
+    const ctx = makeContext({
+      getThreadForAi: async () => ({
+        subject: "S", self: { name: "Neel S", addresses: ["neel@x.com", "n@alias.com"] },
+        messages: [{ from: me, to: [], date: 1, text: "Sure", fromMe: true }],
+      }),
+    });
+    for (const kind of ["summarize", "reply", "quickReplies"] as const) {
+      const plan = await planTask({ kind, threadId: 1 }, ctx);
+      expect(plan.system).toContain("Neel S <neel@x.com, n@alias.com>");
+      expect(plan.messages[0]!.content).toContain("(you)");
+    }
   });
   it("throws not_found for a missing thread", async () => {
     await expect(planTask({ kind: "reply", threadId: 9 }, withThread())).rejects.toMatchObject({ code: "not_found" });
@@ -92,7 +106,7 @@ describe("planTask", () => {
     const plan = await planTask({ kind: "ask", question: "when is lunch with Ana?", history: [{ role: "user", content: "hi" }, { role: "assistant", content: "hello" }] }, ctx);
     expect(plan.messages).toHaveLength(3);
     expect(plan.messages[2]!.content).toContain("[1] Subject: Lunch");
-    expect(plan.system).toContain("Today is 2023-11-14");
+    expect(plan.system).toContain("Today is Tuesday 2023-11-14");
     expect(plan.citations!("Friday [1].")).toEqual([{ threadId: 1, subject: "Lunch" }]);
   });
   it("treats instructions inside mail as material", async () => {

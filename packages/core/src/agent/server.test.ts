@@ -229,12 +229,48 @@ describe("agent server", () => {
       expect(subs).toEqual([true, false]);
     });
 
+    it("ends open streams when agents are turned off", async () => {
+      const api = fakeApi();
+      const cfg = { value: settings() };
+      const dir = tempDir();
+      handle = await startAgentServer({ api, socketPath: join(dir, "s"), tokenPath: join(dir, "t"), getSettings: () => cfg.value, logActivity: () => {}, keepaliveMs: 1000 });
+      const ended = new Promise<void>((resolve) => {
+        const req = request({ socketPath: handle!.socketPath, method: "GET", path: "/v1/events", headers: { authorization: `Bearer ${handle!.token}` } }, (res) => {
+          res.resume();
+          res.on("end", resolve);
+          res.on("close", resolve);
+        });
+        req.on("error", () => {});
+        req.end();
+      });
+      await wait(30);
+      cfg.value = settings({ enabled: false });
+      api.emit({ type: "toast", level: "info", message: "after off" });
+      await Promise.race([ended, wait(500).then(() => { throw new Error("stream stayed open"); })]);
+      await wait(20);
+      expect(api.listeners).toBe(0);
+    });
+
     it("requires auth and enabled agents", async () => {
       const { h, cfg } = await boot();
       expect((await open(h, "nope")).status).toBe(401);
       cfg.value = settings({ enabled: false });
       expect((await open(h)).status).toBe(403);
     });
+  });
+
+  it("refuses unsubscribe for agents when sending needs approval", async () => {
+    const ask = await boot({ settings: settings({ send: "ask" }) });
+    const r = await ask.call({ method: "unsubscribe", params: [5] });
+    expect(r.status).toBe(403);
+    expect(ask.api.calls).toHaveLength(0);
+    expect(ask.act.entries[0]).toMatchObject({ status: "denied" });
+    await ask.h.close();
+    const allow = await boot({ api: fakeApi({ unsubscribe: () => ({ method: "one_click" }) }), settings: settings({ send: "allow" }) });
+    expect((await allow.call({ method: "unsubscribe", params: [5] })).status).toBe(200);
+    await allow.h.close();
+    const deny = await boot({ settings: settings({ send: "deny" }) });
+    expect((await deny.call({ method: "unsubscribe", params: [5] })).status).toBe(403);
   });
 
   it("removes the socket on close", async () => {

@@ -1,6 +1,8 @@
 import { Command } from "commander";
 import { collect, type CliClient, type Ctx } from "./ctx";
 import { act, move, snooze, VERBS } from "./commands/actions";
+import { attachment, block, blocked, cancel, contacts, deleteDraft, drafts, folders, queue, undo, unsubscribe } from "./commands/manage";
+import { AGENT_GUIDE } from "./agent-guide";
 import { draft, forward, reply, send } from "./commands/compose";
 import { list, read, search } from "./commands/read";
 import { accounts, activity, ask, receipts, status, summarize, watch } from "./commands/misc";
@@ -15,6 +17,7 @@ export type Deps = {
   now(): Date;
   env: Record<string, string | undefined>;
   readFile(path: string): Promise<string>;
+  sleep(ms: number): Promise<void>;
 };
 
 const EXAMPLES: Record<string, string> = {
@@ -39,22 +42,31 @@ const EXAMPLES: Record<string, string> = {
   receipts: "flint receipts\n  flint receipts 7",
   summarize: "flint summarize 1234",
   ask: 'flint ask "What did Carla say about the invoice?"',
-  watch: "flint watch | while read -r line; do echo \"$line\"; done",
   activity: "flint activity --limit 50",
+  attachment: "flint read 1234          # shows 'attachment 12'\n  flint attachment 12",
+  cancel: "flint cancel 3",
+  undo: "flint undo <token printed after an action>",
+  unsubscribe: "flint unsubscribe 70   # message id from flint read",
+  block: "flint block spammer@example.com\n  flint block '*@junk.example'",
+  unblock: "flint unblock spammer@example.com",
+  folders: "flint folders\n  flint folders --account me@example.com",
+  contacts: "flint contacts cin\n  flint contacts cin --limit 5",
+  watch: "flint watch --type new_mail,receipt --reconnect",
 };
 
 const VERB_HELP: Record<string, string> = {
   archive: "Archive threads", trash: "Move threads to trash", pin: "Pin threads", unpin: "Unpin threads",
   "mark-read": "Mark threads read (flint read prints a thread)", unread: "Mark threads unread", spam: "Mark threads as spam",
+  mute: "Mute threads (new replies skip the inbox)", unmute: "Unmute threads", unsnooze: "Bring snoozed threads back now",
 };
 
-export function buildProgram(deps: Deps): Command {
+export function buildProgram(deps: Deps, jsonMode = false): Command {
   const program = new Command("flint")
     .description("Read and act on your Flint mail from the terminal. Flint must be running.")
     .option("--json", "print JSON instead of text")
     .option("--as <agent>", "name shown in Agent Activity (default: $FLINT_AGENT or cli)")
     .exitOverride() // before subcommands are added so they inherit it
-    .configureOutput({ writeOut: deps.stdout, writeErr: deps.stderr })
+    .configureOutput({ writeOut: deps.stdout, writeErr: jsonMode ? () => {} : deps.stderr }) // with --json, run() prints the error as JSON
     .showHelpAfterError("Run flint --help for the command list.");
 
   const ctxFor = (cmd: Command): Ctx => {
@@ -64,6 +76,8 @@ export function buildProgram(deps: Deps): Command {
       client: deps.connect(agent),
       json: o.json === true,
       out: (line) => deps.stdout(`${line}\n`),
+      warn: (line) => deps.stderr(`${line}\n`),
+      sleep: deps.sleep,
       now: deps.now(),
       style: makeStyle(deps.isTTY && o.json !== true),
       width: Math.max(60, deps.columns),
@@ -131,6 +145,27 @@ export function buildProgram(deps: Deps): Command {
   command("move", "Move a thread to a folder by name, path or role")
     .argument("<threadId>").argument("<folder>")
     .action(async (id: string, folder: string, _o, cmd: Command) => move(ctxFor(cmd), id, folder));
+  command("attachment", "Save an attachment to the downloads folder and print its path")
+    .argument("<attachmentId>").action(async (id: string, _o, cmd: Command) => attachment(ctxFor(cmd), id));
+  command("cancel", "Cancel a queued send (it stays a draft)")
+    .argument("<scheduledId>").action(async (id: string, _o, cmd: Command) => cancel(ctxFor(cmd), id));
+  command("undo", "Undo an action using the token printed after it")
+    .argument("<token>").action(async (t: string, _o, cmd: Command) => undo(ctxFor(cmd), t));
+  command("unsubscribe", "Unsubscribe from the sender of a message (not allowed while sending needs approval)")
+    .argument("<messageId>").action(async (id: string, _o, cmd: Command) => unsubscribe(ctxFor(cmd), id));
+  command("block", "Block a sender address or pattern")
+    .argument("<pattern>").action(async (p: string, _o, cmd: Command) => block(ctxFor(cmd), p, true));
+  command("unblock", "Unblock a sender address or pattern")
+    .argument("<pattern>").action(async (p: string, _o, cmd: Command) => block(ctxFor(cmd), p, false));
+  command("blocked", "List blocked senders").action(async (_o, cmd: Command) => blocked(ctxFor(cmd)));
+  command("folders", "List folders (use a name with flint move)")
+    .option("--account <email>", "only this account").action(async (o, cmd: Command) => folders(ctxFor(cmd), o));
+  command("drafts", "List drafts").action(async (_o, cmd: Command) => drafts(ctxFor(cmd)));
+  command("draft-delete", "Delete a draft").argument("<draftId>").action(async (id: string, _o, cmd: Command) => deleteDraft(ctxFor(cmd), id));
+  command("queue", "List queued, scheduled and awaiting-approval sends").action(async (_o, cmd: Command) => queue(ctxFor(cmd)));
+  command("contacts", "Find contacts by name or address prefix")
+    .argument("<prefix>").option("--limit <n>", "how many (1 to 200)", "10")
+    .action(async (p: string, o, cmd: Command) => contacts(ctxFor(cmd), p, o));
   command("receipts", "List tracked mail, or show one tracked message's recipients")
     .argument("[trackedId]").option("--limit <n>", "how many (1 to 200)", "25")
     .action(async (id: string | undefined, o, cmd: Command) => receipts(ctxFor(cmd), id, o));
@@ -138,11 +173,17 @@ export function buildProgram(deps: Deps): Command {
     .argument("<threadId>").action(async (id: string, _o, cmd: Command) => summarize(ctxFor(cmd), id));
   command("ask", "Ask a question about your mail with your connected AI")
     .argument("<question>").action(async (q: string, _o, cmd: Command) => ask(ctxFor(cmd), q));
-  command("watch", "Stream Flint events as JSON lines until interrupted")
-    .action(async (_o, cmd: Command) => watch(ctxFor(cmd)));
+  command("watch", "Stream Flint events as JSON lines until interrupted (exit 2 if Flint goes away)")
+    .option("--type <types>", "only these event types, comma-separated (new_mail, receipt, send, mail_changed, sync, ...)", collect, [])
+    .option("--reconnect", "keep retrying with backoff when Flint goes away")
+    .action(async (o, cmd: Command) => watch(ctxFor(cmd), o));
   command("activity", "Show recent agent activity")
     .option("--limit <n>", "how many (1 to 200)", "20")
     .action(async (o, cmd: Command) => activity(ctxFor(cmd), o));
+
+  program.command("agents").description("Guide for scripts and AI agents: IDs, JSON, exit codes, approval flow")
+    .addHelpText("after", `\n${AGENT_GUIDE}`)
+    .action(() => deps.stdout(AGENT_GUIDE));
 
   return program;
 }

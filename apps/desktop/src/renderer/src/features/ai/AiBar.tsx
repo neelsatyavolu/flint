@@ -14,12 +14,20 @@ import { ProseText } from "./ProseText";
 import { useAiAvailability, useAiRun } from "./useAiRun";
 import styles from "./AiBar.module.css";
 
-type Props = { body: RefObject<BodyEditorHandle | null>; threadId: number | null; draftId: number; onClose: () => void };
+type Props = {
+  body: RefObject<BodyEditorHandle | null>;
+  threadId: number | null;
+  draftId: number;
+  /** Recipients and subject, sent along when composing from scratch. */
+  to?: string;
+  subject?: string;
+  onClose: () => void;
+};
 
 const NEEDS_TEXT = "Write something or select text first.";
 
 /** The +AI prompt bar under the composer toolbar. Streams into a preview; the user inserts, replaces or discards. */
-export function AiBar({ body, threadId, draftId, onClose }: Props): JSX.Element {
+export function AiBar({ body, threadId, draftId, to, subject, onClose }: Props): JSX.Element {
   const ai = useAiAvailability();
   const { state, start, cancel, reset } = useAiRun();
   const [prompt, setPrompt] = useState("");
@@ -29,7 +37,7 @@ export function AiBar({ body, threadId, draftId, onClose }: Props): JSX.Element 
 
   const run = (build: (ctx: BarContext) => AiTask | null) => {
     const snapshot = body.current?.snapshot() ?? { text: "", from: 0, to: 0, scope: "body" as const };
-    const task = build({ threadId, draftId, text: snapshot.text });
+    const task = build({ threadId, draftId, text: snapshot.text, scope: snapshot.scope, to, subject });
     if (!task) {
       setHint(NEEDS_TEXT);
       return;

@@ -86,3 +86,13 @@ describe("parseIspdb", () => {
     expect(parseIspdb(xml().replace(/<outgoingServer[\s\S]*<\/outgoingServer>/, ""), "a@b.c")).toBeNull();
   });
 });
+
+describe("parseIspdb encryption", () => {
+  const xml = (socket: string, host = "imap.example.org") => `<clientConfig><emailProvider><incomingServer type="imap"><hostname>${host}</hostname><port>143</port><socketType>${socket}</socketType><username>%EMAILADDRESS%</username></incomingServer><outgoingServer type="smtp"><hostname>smtp.example.org</hostname><port>587</port><socketType>STARTTLS</socketType><username>%EMAILADDRESS%</username></outgoingServer></emailProvider></clientConfig>`;
+  it("ignores servers that offer no encryption", () => {
+    expect(parseIspdb(xml("plain"), "a@example.org")).toBeNull();
+  });
+  it("detects Gmail from the IMAP host", () => {
+    expect(parseIspdb(xml("STARTTLS", "imap.gmail.com"), "a@corp.example")?.provider).toBe("gmail");
+  });
+});

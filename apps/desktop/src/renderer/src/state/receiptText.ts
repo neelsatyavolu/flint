@@ -39,7 +39,7 @@ export function firstCountedOpen(detail: ReceiptDetail | null | undefined, email
 /**
  * One status line per recipient. Only states the service can back up:
  * "Opened 3:52 PM · Gmail · San Jose", "Can't confirm opens: Apple Mail Privacy Protection",
- * "Replied", "Not opened yet".
+ * "Replied", "No open detected".
  */
 export function recipientStatusLine(r: ReceiptRecipient, detail?: ReceiptDetail | null, now: number = Date.now()): string {
   switch (r.status) {
@@ -56,7 +56,7 @@ export function recipientStatusLine(r: ReceiptRecipient, detail?: ReceiptDetail 
     case "unknowable":
       return "Can't confirm opens: Apple Mail Privacy Protection";
     case "sent":
-      return "Not opened yet";
+      return "No open detected";
     case "untracked":
       return "Receipts unavailable for this message";
     default:

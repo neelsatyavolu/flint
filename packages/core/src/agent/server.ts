@@ -107,7 +107,7 @@ function authorized(req: IncomingMessage, token: string): boolean {
 
 type Gate = { ok: true } | { ok: false; message: string };
 
-function gate(tier: (typeof METHOD_TIERS)[FlintMethod], settings: Settings): Gate {
+function gate(tier: (typeof METHOD_TIERS)[FlintMethod], settings: Settings, method?: FlintMethod): Gate {
   const a = settings.agents;
   if (!a.enabled) return { ok: false, message: "Agent access is off. Turn it on in Settings, Agents." };
   if (tier === "admin") return { ok: false, message: "Agents can't do this. It's only available in the Flint app." };
@@ -116,6 +116,10 @@ function gate(tier: (typeof METHOD_TIERS)[FlintMethod], settings: Settings): Gat
   }
   if (tier === "send" && a.send === "deny") {
     return { ok: false, message: "Agents can't send mail right now. Allow sending in Settings, Agents." };
+  }
+  // unsubscribe can send mail straight from the account (mailto), and only sendDraft knows how to wait for approval.
+  if (method === "unsubscribe" && a.send === "ask") {
+    return { ok: false, message: "Agents can't unsubscribe while sending needs your approval. Unsubscribe in the Flint app, or allow sending in Settings, Agents." };
   }
   return { ok: true };
 }
@@ -158,7 +162,7 @@ export async function startAgentServer(opts: AgentServerOptions): Promise<AgentS
     const m = method as FlintMethod;
 
     const settings = await getSettings();
-    const allowed = gate(METHOD_TIERS[m], settings);
+    const allowed = gate(METHOD_TIERS[m], settings, m);
     if (!allowed.ok) {
       if (settings.agents.enabled) {
         await record({ agent, method: m, summary: `Blocked: ${summarize(m, params, undefined)}`, status: "denied", detail: { params: redactParams(params) } });
@@ -216,20 +220,36 @@ export async function startAgentServer(opts: AgentServerOptions): Promise<AgentS
     res.write(": connected\n\n");
     streams.add(res);
     opts.onEventSubscribe?.({ agent, open: true });
+    let closed = false;
+    // Re-check access per event so turning agents off ends open streams; the chain keeps events in order.
+    let pending: Promise<void> = Promise.resolve();
     const unsubscribe = api.subscribe((event) => {
-      if (allowEvent(event)) res.write(`data: ${JSON.stringify(event)}\n\n`);
+      const disabled = event.type === "settings" && !event.settings.agents.enabled;
+      if (!disabled && !allowEvent(event)) return;
+      pending = pending.then(async () => {
+        if (closed) return;
+        let stillAllowed = !disabled;
+        if (stillAllowed) {
+          try { stillAllowed = gate("read", await getSettings()).ok; } catch { stillAllowed = false; }
+        }
+        if (!stillAllowed) {
+          res.end();
+          cleanup();
+          return;
+        }
+        res.write(`data: ${JSON.stringify(event)}\n\n`);
+      });
     });
     const timer = setInterval(() => res.write(": keepalive\n\n"), keepaliveMs);
     timer.unref();
-    let closed = false;
-    const cleanup = () => {
+    function cleanup(): void {
       if (closed) return;
       closed = true;
       clearInterval(timer);
       unsubscribe();
       streams.delete(res);
       opts.onEventSubscribe?.({ agent, open: false });
-    };
+    }
     req.on("close", cleanup);
     res.on("close", cleanup);
   }

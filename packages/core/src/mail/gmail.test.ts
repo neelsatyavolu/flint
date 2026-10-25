@@ -120,6 +120,15 @@ describe("Gmail sync with a scripted server", () => {
     expect(rows.messages.map((m) => m.subject)).toEqual(["Roadmap", "Re: Roadmap"]);
   });
 
+  it("falls back to syncing INBOX directly when All Mail is hidden from IMAP", async () => {
+    const { server, sync } = gmailSync();
+    server.boxes = server.boxes.filter((b) => b.path !== "[Gmail]/All Mail");
+    server.boxes.push({ path: "INBOX", uidValidity: 3, messages: [] });
+    await sync.syncNow();
+    expect(server.locks).toContain("INBOX");
+    expect(server.locks).not.toContain("[Gmail]/All Mail");
+  });
+
   it("follows label changes and removals on later syncs", async () => {
     const { store, server, sync } = gmailSync();
     await sync.syncNow();
@@ -203,6 +212,31 @@ describe("Gmail server actions", () => {
     expect((await actions.moveToFolder(r.locations, label.id)).ok).toBe(true);
     expect(calls).toContainEqual({ method: "add", args: ["5", ["Work"], { uid: true, useLabels: true }] });
     expect(calls).toContainEqual({ method: "remove", args: ["5", ["\\Inbox"], { uid: true, useLabels: true }] });
+  });
+
+  it("archiving mail that sits in Trash restores it through the inbox instead of doing nothing", async () => {
+    const { store, threadId, calls, actions } = setup();
+    const t = store.moveThreads([threadId], { kind: "trash" });
+    await actions.trash(t.locations);
+    calls.length = 0;
+    const a = store.moveThreads([threadId], { kind: "archive" });
+    const rep = await actions.archive(a.locations);
+    expect(rep.ok).toBe(true);
+    expect(calls).toContainEqual({ method: "move", args: ["105", "INBOX"] });
+    expect(calls).toContainEqual({ method: "remove", args: ["205", ["\\Inbox"], { uid: true, useLabels: true }] });
+  });
+
+  it("moving Trash mail to a label restores it, labels it and drops the Inbox label", async () => {
+    const { store, seed, threadId, calls, actions } = setup();
+    const t = store.moveThreads([threadId], { kind: "trash" });
+    await actions.trash(t.locations);
+    calls.length = 0;
+    const label = store.upsertFolder(seed.account.id, { path: "Work" });
+    const r = store.moveThreads([threadId], { kind: "folder", folderId: label.id });
+    expect((await actions.moveToFolder(r.locations, label.id)).ok).toBe(true);
+    expect(calls).toContainEqual({ method: "move", args: ["105", "INBOX"] });
+    expect(calls).toContainEqual({ method: "add", args: ["205", ["Work"], { uid: true, useLabels: true }] });
+    expect(calls).toContainEqual({ method: "remove", args: ["205", ["\\Inbox"], { uid: true, useLabels: true }] });
   });
 
   it("refuses locations from another account", async () => {

@@ -1,6 +1,6 @@
 import { authenticate } from "./auth";
 import { parseJsonBody } from "./body";
-import { INSTALL_LIMIT_PER_HOUR, type Env } from "./env";
+import { INSTALL_LIMIT_PER_HOUR, MAX_TOKENS_PER_INSTALL, REGISTER_LIMIT_PER_HOUR, SEEN_LIMIT_PER_HOUR, type Env } from "./env";
 import { fingerprintIp, installFingerprint, sha256Hex } from "./fingerprint";
 import { HttpError, json } from "./http";
 import { EventsQuerySchema, RegisterMessageRequestSchema, type EventsResponse, type InstallResponse } from "./protocol";
@@ -9,6 +9,14 @@ import { requestIp } from "./request";
 function randomB64Url(bytes: number): string {
   const buf = crypto.getRandomValues(new Uint8Array(bytes));
   return btoa(String.fromCharCode(...buf)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function hitRateLimit(env: Env, key: string, limit: number, now: number): Promise<void> {
+  const windowStart = now - (now % 3_600_000);
+  const row = await env.DB.prepare(
+    "INSERT INTO rate_limits (key, window_start, count) VALUES (?, ?, 1) ON CONFLICT(key, window_start) DO UPDATE SET count = count + 1 RETURNING count",
+  ).bind(key, windowStart).first<{ count: number }>();
+  if ((row?.count ?? 1) > limit) throw new HttpError("rate_limited", "Too many requests. Try again later.");
 }
 
 export async function handleInstall(request: Request, env: Env, now: number): Promise<Response> {
@@ -34,6 +42,7 @@ async function recordSender(env: Env, installId: string, fingerprint: string, no
 
 export async function handleRegister(request: Request, env: Env, now: number): Promise<Response> {
   const installId = await authenticate(request, env);
+  await hitRateLimit(env, `register:${installId}`, REGISTER_LIMIT_PER_HOUR, now);
   const body = await parseJsonBody(request, RegisterMessageRequestSchema);
   const tokens = body.recipients.map((r) => r.token);
   if (new Set(tokens).size !== tokens.length) throw new HttpError("bad_request", "Duplicate tokens in request.");
@@ -42,6 +51,11 @@ export async function handleRegister(request: Request, env: Env, now: number): P
     .bind(...tokens).all<{ token: string; install_id: string; ref: string }>();
   if (taken.results.some((t) => t.install_id !== installId || t.ref !== body.ref)) throw new HttpError("conflict", "A token is already in use.");
   const known = new Set(taken.results.map((t) => t.token));
+  const fresh = tokens.filter((t) => !known.has(t)).length;
+  if (fresh > 0) {
+    const live = await env.DB.prepare("SELECT COUNT(*) AS n FROM tokens WHERE install_id = ?").bind(installId).first<{ n: number }>();
+    if ((live?.n ?? 0) + fresh > MAX_TOKENS_PER_INSTALL) throw new HttpError("rate_limited", "Too many live tokens for this install.");
+  }
   const existing = await env.DB.prepare("SELECT registered_at FROM messages WHERE install_id = ? AND ref = ?").bind(installId, body.ref).first<{ registered_at: number }>();
   const registeredAt = existing?.registered_at ?? now;
   const stmts = [
@@ -56,7 +70,12 @@ export async function handleRegister(request: Request, env: Env, now: number): P
 
 export async function handleDeleteMessage(request: Request, env: Env, ref: string): Promise<Response> {
   const installId = await authenticate(request, env);
-  const decoded = decodeURIComponent(ref);
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(ref);
+  } catch {
+    throw new HttpError("bad_request", "Malformed message ref.");
+  }
   await env.DB.batch([
     env.DB.prepare("DELETE FROM events WHERE token IN (SELECT token FROM tokens WHERE install_id = ? AND ref = ?)").bind(installId, decoded),
     env.DB.prepare("DELETE FROM tokens WHERE install_id = ? AND ref = ?").bind(installId, decoded),
@@ -67,6 +86,7 @@ export async function handleDeleteMessage(request: Request, env: Env, ref: strin
 
 export async function handleSeen(request: Request, env: Env, now: number): Promise<Response> {
   const installId = await authenticate(request, env);
+  await hitRateLimit(env, `seen:${installId}`, SEEN_LIMIT_PER_HOUR, now);
   await recordSender(env, installId, await fingerprintIp(env.FINGERPRINT_SALT, requestIp(request)), now);
   return json({ ok: true });
 }

@@ -51,6 +51,20 @@ export function draftsApi(ctx: ServiceContext, serverDrafts: ServerDrafts): Draf
   const creator = (): string => { const agent = ctx.caller(); return agent ? `agent:${agent}` : "user"; };
   const changed = (d: Pick<Draft, "accountId" | "threadId">): void =>
     ctx.emit({ type: "mail_changed", accountId: d.accountId, threadIds: d.threadId === null ? [] : [d.threadId] });
+  /**
+   * An agent may not touch a draft that is queued to send: the person approved (or is about to approve) the mail
+   * as it was when it was queued. They must cancel the send first. Agents also only delete drafts they made.
+   */
+  function assertAgentMayChange(draft: Draft, deleting = false): void {
+    const agent = ctx.caller();
+    if (!agent) return;
+    if (deleting && draft.createdBy !== `agent:${agent}`) {
+      throw new FlintError("permission", "Agents can only delete drafts they created.");
+    }
+    if (store.findOpenScheduledForDraft(draft.id)) {
+      throw new FlintError("conflict", "This draft is queued to send. Cancel the send before changing it.");
+    }
+  }
   const trackDefault = (): boolean => { const r = ctx.getSettings().receipts; return r.enabled && r.defaultOn; };
 
   function firstAccount(): Account {
@@ -148,6 +162,7 @@ export function draftsApi(ctx: ServiceContext, serverDrafts: ServerDrafts): Draf
     async updateDraft(id, rawPatch) {
       const patch = parse(patchSchema, rawPatch);
       const draft = store.requireDraft(parse(z.number().int().positive(), id));
+      assertAgentMayChange(draft);
       const sender = resolveSender(draft, patch);
       const accountChanged = sender.account.id !== draft.accountId;
 
@@ -172,6 +187,7 @@ export function draftsApi(ctx: ServiceContext, serverDrafts: ServerDrafts): Draf
     async deleteDraft(id) {
       const draft = store.getDraft(parse(z.number().int().positive(), id));
       if (!draft) return;
+      assertAgentMayChange(draft, true);
       if (store.findOpenScheduledForDraft(draft.id)?.status === "sending") {
         throw new FlintError("conflict", "This message is being sent right now.");
       }
@@ -194,6 +210,7 @@ export function draftsApi(ctx: ServiceContext, serverDrafts: ServerDrafts): Draf
 
     async removeAttachment(draftId, attachmentId) {
       const draft = store.requireDraft(parse(z.number().int().positive(), draftId));
+      assertAgentMayChange(draft);
       const target = draft.attachments.find((a) => a.id === attachmentId);
       if (!target) return draft;
       const updated = store.updateDraft(draft.id, { attachments: draft.attachments.filter((a) => a.id !== attachmentId) }, ctx.now());

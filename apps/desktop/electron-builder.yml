@@ -5,6 +5,14 @@ directories:
   output: release
   buildResources: build
 asar: true
+# runAsNode stays on: the flint command wrapper runs the bundled CLI with ELECTRON_RUN_AS_NODE.
+electronFuses:
+  runAsNode: true
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
 # The main process bundle includes every dependency, so no node_modules ship.
 files:
   - out/**

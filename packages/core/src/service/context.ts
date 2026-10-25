@@ -20,6 +20,8 @@ import { googleClientFrom, SyncManager } from "./syncManager";
 import { UndoRegistry } from "./undo";
 
 const log = logger("service");
+/** A slow receipts service must not hold up a send (install + register run before SMTP) or the first poll. */
+const RECEIPTS_TIMEOUT_MS = 3_000;
 
 /**
  * Hooks the compose engineer fills in (in service/compose.ts, when the method group is built).
@@ -74,7 +76,7 @@ export function createContext(platform: Platform, options: ServiceOptions = {}):
   const optimistic = createOptimistic({ store, emit: bus.emit, undo, actionsFor: (id) => syncs.get(id).actions, caller: currentAgent });
 
   const compose: ComposeHooks = {};
-  const receipts = new ReceiptsClient({ store, secrets: platform.secrets, getSettings, fetch: (input, init) => fetchImpl(input, init as RequestInit), now, emit: bus.emit });
+  const receipts = new ReceiptsClient({ store, secrets: platform.secrets, getSettings, fetch: (input, init) => fetchImpl(input, init as RequestInit), now, emit: bus.emit, timeoutMs: RECEIPTS_TIMEOUT_MS });
 
   const scheduler = new Scheduler({
     store,

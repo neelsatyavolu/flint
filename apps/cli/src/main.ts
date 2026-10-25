@@ -12,6 +12,7 @@ const deps: Deps = {
   now: () => new Date(),
   env: process.env,
   readFile: (p) => readFile(p, "utf8"),
+  sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
 
 run(process.argv.slice(2), deps).then((code) => { process.exitCode = code; });

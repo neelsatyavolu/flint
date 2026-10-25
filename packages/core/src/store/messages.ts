@@ -75,9 +75,14 @@ export class MessagesRepo {
     const atts = this.q.all<AttachmentRow>("SELECT a.* FROM attachments a JOIN messages m ON m.id = a.message_id WHERE m.thread_id = ? ORDER BY a.id", threadId);
     const byMsg = new Map<number, AttachmentInfo[]>();
     for (const a of atts) byMsg.set(a.message_id, [...(byMsg.get(a.message_id) ?? []), this.#toInfo(a)]);
+    const sentIds = new Set(this.q.all<{ id: number }>(
+      `SELECT m.id FROM messages m JOIN folders f ON f.id = m.folder_id WHERE m.thread_id = ? AND f.role = 'sent'
+       UNION SELECT mf.message_id FROM message_folders mf JOIN folders f ON f.id = mf.folder_id JOIN messages m ON m.id = mf.message_id
+       WHERE m.thread_id = ? AND f.role = 'sent'`, threadId, threadId,
+    ).map((r) => r.id));
     const messages: StoredThreadMessage[] = rows.map((r) => {
       const m = rowToStored(r);
-      return { ...m, isFromMe: m.from.some((a) => own.has(lowerAddr(a))), attachments: byMsg.get(m.id) ?? [], unsubscribe: parseUnsubscribe(m.headers) };
+      return { ...m, isFromMe: m.from.some((a) => own.has(lowerAddr(a))), inSent: sentIds.has(m.id), attachments: byMsg.get(m.id) ?? [], unsubscribe: parseUnsubscribe(m.headers) };
     });
     const draftIds = this.q.all<{ id: number }>("SELECT id FROM drafts WHERE thread_id = ? ORDER BY id", threadId).map((d) => d.id);
     return {

@@ -67,11 +67,29 @@ export function formatAddress(a: Address): string {
   return a.name && a.name !== a.address ? `${a.name} <${a.address}>` : a.address;
 }
 
-export function formatDate(ms: number): string {
-  return new Date(ms).toISOString().slice(0, 16).replace("T", " ") + " UTC";
+export function systemTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 }
 
-export type AiMessage = { from: Address; to: Address[]; date: number; text: string };
+/** "YYYY-MM-DD HH:mm UTC-07:00" in the given zone (default: the system zone). */
+export function formatDate(ms: number, timeZone: string = systemTimeZone()): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", timeZoneName: "longOffset",
+  }).formatToParts(new Date(ms));
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  const offset = get("timeZoneName").replace(/^GMT/, "").replace(/^[+-]00:00$/, "");
+  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")} UTC${offset}`;
+}
+
+/** "Friday 2024-05-03 (UTC-07:00)" for the system prompt. */
+export function formatToday(ms: number, timeZone: string = systemTimeZone()): string {
+  const weekday = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "long" }).format(new Date(ms));
+  const stamp = formatDate(ms, timeZone);
+  return `${weekday} ${stamp.slice(0, 10)}, local time zone ${timeZone} (${stamp.slice(17)})`;
+}
+
+export type AiMessage = { from: Address; to: Address[]; date: number; text: string; fromMe?: boolean };
 
 function truncate(text: string, max: number): string {
   return text.length <= max ? text : text.slice(0, max).trimEnd() + "\n[message truncated]";
@@ -86,7 +104,7 @@ export function neutralizeTags(text: string): string {
  * Formats the newest messages that fit the budget, oldest first.
  * Returns the text and how many older messages were left out.
  */
-export function buildThreadContext(messages: AiMessage[], maxChars = MAX_CONTEXT_CHARS): { text: string; omitted: number } {
+export function buildThreadContext(messages: AiMessage[], maxChars = MAX_CONTEXT_CHARS, timeZone?: string): { text: string; omitted: number } {
   const blocks: string[] = [];
   let used = 0;
   let included = 0;
@@ -94,7 +112,7 @@ export function buildThreadContext(messages: AiMessage[], maxChars = MAX_CONTEXT
     const m = messages[i];
     if (!m) continue;
     const body = truncate(stripQuotedAndSignature(m.text), MAX_MESSAGE_CHARS) || "(no text)";
-    const block = `From: ${formatAddress(m.from)}\nTo: ${m.to.map(formatAddress).join(", ") || "(none)"}\nDate: ${formatDate(m.date)}\n\n${body}`;
+    const block = `From: ${formatAddress(m.from)}${m.fromMe ? " (you)" : ""}\nTo: ${m.to.map(formatAddress).join(", ") || "(none)"}\nDate: ${formatDate(m.date, timeZone)}\n\n${body}`;
     if (included > 0 && used + block.length > maxChars) break;
     blocks.unshift(block);
     used += block.length;

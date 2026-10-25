@@ -5,26 +5,32 @@ import { parseQuickReplies } from "./quickRepliesParse";
 import { useAiAvailability, useAiRun } from "./useAiRun";
 import styles from "./QuickReplies.module.css";
 
+/** A thread must stay open this long before a model call starts, so skimming with j/k costs nothing. */
+export const QUICK_REPLIES_DWELL_MS = 600;
+
 const cache = new Map<string, string[]>();
 
-/** Three short reply options for the last message. Clicking one hands its text to onPick. */
-export function QuickReplies({ threadId, onPick }: { threadId: number; onPick: (text: string) => void }): JSX.Element | null {
+/** Three short reply options for the last message. `cacheKey` must change when the newest message does. Clicking one hands its text to onPick. */
+export function QuickReplies({ threadId, cacheKey: key, onPick }: { threadId: number; cacheKey?: string; onPick: (text: string) => void }): JSX.Element | null {
+  const cacheKey = key ?? String(threadId);
   const ai = useAiAvailability();
   const { settings } = useSettings();
   const { state, start, reset } = useAiRun();
   const wanted = ai.ready && settings !== undefined && settings.ai.smartReplies !== false;
-  const cached = cache.get(String(threadId));
+  const cached = cache.get(cacheKey);
 
   useEffect(() => {
     reset();
-    if (wanted && !cache.has(String(threadId))) void start({ kind: "quickReplies", threadId });
+    if (!wanted || cache.has(cacheKey)) return;
+    const timer = setTimeout(() => void start({ kind: "quickReplies", threadId }), QUICK_REPLIES_DWELL_MS);
+    return () => clearTimeout(timer);
     // start and reset are stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadId, wanted]);
+  }, [cacheKey, wanted]);
 
   const parsed = state.status === "done" ? parseQuickReplies(state.text) : [];
   useEffect(() => {
-    if (parsed.length) cache.set(String(threadId), parsed);
+    if (parsed.length) cache.set(cacheKey, parsed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.status, state.text]);
 

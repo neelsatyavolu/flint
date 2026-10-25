@@ -106,9 +106,9 @@ export async function planTask(task: AiTask, ctx: AiContext): Promise<TaskPlan> 
     case "summarize": {
       const thread = await loadThread(ctx, task.threadId);
       const latest = Math.max(...thread.messages.map((m) => m.date));
-      const { text: body } = buildThreadContext(thread.messages);
+      const { text: body } = buildThreadContext(thread.messages, undefined, ctx.timeZone);
       return {
-        system: summarizePrompt(),
+        system: summarizePrompt(thread.self),
         messages: [{ role: "user", content: `${threadMaterial(thread.subject, body)}\n\nSummarize this thread.` }],
         effort: "low",
         streamText: true,
@@ -118,12 +118,12 @@ export async function planTask(task: AiTask, ctx: AiContext): Promise<TaskPlan> 
     }
     case "reply": {
       const thread = await loadThread(ctx, task.threadId);
-      const { text: body } = buildThreadContext(thread.messages);
+      const { text: body } = buildThreadContext(thread.messages, undefined, ctx.timeZone);
       const extra = task.instructions?.trim()
         ? `The user's instructions for this reply: ${task.instructions.trim()}`
         : "No special instructions. Write the most useful reply.";
       return {
-        system: replyPrompt(voice),
+        system: replyPrompt(voice, thread.self),
         messages: [{ role: "user", content: `${threadMaterial(thread.subject, body)}\n\n${extra}\n\nWrite the reply.` }],
         effort: "medium",
         streamText: true,
@@ -131,9 +131,9 @@ export async function planTask(task: AiTask, ctx: AiContext): Promise<TaskPlan> 
     }
     case "quickReplies": {
       const thread = await loadThread(ctx, task.threadId);
-      const { text: body } = buildThreadContext(thread.messages, 16_000);
+      const { text: body } = buildThreadContext(thread.messages, 16_000, ctx.timeZone);
       return {
-        system: quickRepliesPrompt(voice),
+        system: quickRepliesPrompt(voice, thread.self),
         messages: [{ role: "user", content: `${threadMaterial(thread.subject, body)}\n\nGive the 3 quick replies.` }],
         effort: "low",
         streamText: false,
@@ -163,7 +163,7 @@ export async function planTask(task: AiTask, ctx: AiContext): Promise<TaskPlan> 
     case "translate": {
       if (task.threadId) {
         const thread = await loadThread(ctx, task.threadId);
-        const { text: body } = buildThreadContext(thread.messages);
+        const { text: body } = buildThreadContext(thread.messages, undefined, ctx.timeZone);
         return {
           system: translatePrompt(task.language, true),
           messages: [{ role: "user", content: `${threadMaterial(thread.subject, body)}\n\nTranslate into ${task.language}.` }],

@@ -41,7 +41,7 @@ describe("receipt status text", () => {
 
   it("states the other cases plainly", () => {
     expect(recipientStatusLine(recipient("unknowable"), null, NOW)).toBe("Can't confirm opens: Apple Mail Privacy Protection");
-    expect(recipientStatusLine(recipient("sent"), null, NOW)).toBe("Not opened yet");
+    expect(recipientStatusLine(recipient("sent"), null, NOW)).toBe("No open detected");
     expect(recipientStatusLine(recipient("replied"), null, NOW)).toBe("Replied");
     expect(recipientStatusLine(recipient("replied", { repliedAt: at(10, 4) }), null, NOW)).toBe("Replied 10:04 AM");
     expect(recipientStatusLine(recipient("untracked"), null, NOW)).toBe("Receipts unavailable for this message");

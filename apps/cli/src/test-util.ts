@@ -31,7 +31,7 @@ export async function exec(argv: string[], fake: Fake, over: Partial<Deps> = {})
   const code = await run(argv, {
     connect: (a) => { agents.push(a); return fake.client; },
     stdout: (t) => { out += t; }, stderr: (t) => { err += t; },
-    isTTY: false, columns: 100, now: () => NOW, env: {}, readFile: async () => "file body",
+    isTTY: false, columns: 100, now: () => NOW, env: {}, readFile: async () => "file body", sleep: async () => {},
     ...over,
   });
   return { code, out, err, agents };

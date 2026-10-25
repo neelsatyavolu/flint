@@ -15,7 +15,7 @@ export function RecipientRows({ recipients, detail }: { recipients: ReceiptRecip
         <li key={r.email} className={styles.row}>
           <Avatar address={r.email} name={r.name} size={16} />
           <span className={styles.name}>{displayName({ name: r.name, address: r.email })}</span>
-          <span className={clsx("t-data", styles.status, TONE[receiptTone(r.status)])}>
+          <span className={clsx("t-data", styles.status, TONE[receiptTone(r.status)])} title={r.status === "sent" ? "Images may be blocked or cached (Gmail, Outlook), so an open can go undetected." : undefined}>
             <span className={styles.dot} aria-hidden />
             <span className={styles.text}>{recipientStatusLine(r, detail)}</span>
           </span>

@@ -32,6 +32,8 @@ export type ServiceOptions = {
   now?: () => number;
   /** fetch override for network calls made by the service (one-click unsubscribe, token refresh, receipts). */
   fetch?: typeof fetch;
+  /** Resolves a hostname to its addresses for the one-click unsubscribe SSRF check (tests; default is the system resolver). */
+  resolveHost?: (host: string) => Promise<string[]>;
   /** Sync loop timing (tests shorten the poll interval). */
   sync?: SyncTuning;
   /** Absolute path of the bundled CLI script (apps/cli/dist/flint.js). installCli wraps it. */

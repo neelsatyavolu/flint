@@ -34,39 +34,49 @@ function styleRule(voice: Voice): string {
     : "Write in a plain, natural, courteous voice. Do not use filler such as \"I hope this email finds you well\".";
 }
 
-export function summarizePrompt(): string {
+/** Tells the model who the user is; messages from the user are marked "(you)". */
+export function selfLine(self: { name: string; addresses: string[] } | undefined): string {
+  if (!self || self.addresses.length === 0) return "";
+  const who = self.name.trim() ? `${self.name.trim().replace(/[<>\n]/g, "")} ` : "";
+  return `The user (the owner of the inbox) is ${who}<${self.addresses.join(", ")}>. Messages the user wrote are marked "(you)" in the From line. Asks aimed at other recipients are not the user's.`;
+}
+
+export function summarizePrompt(self?: { name: string; addresses: string[] }): string {
   return [
     "You summarize an email thread for the person who owns the inbox.",
+    selfLine(self),
     UNTRUSTED,
     "Write 2 to 4 sentences of plain prose that say what the thread is about, what has been decided, and where it stands now. Start with the substance. Do not begin with \"This thread\" or \"The email\", and do not mention greetings or signatures.",
     "Keep dates, times, amounts and names exactly as written in the thread.",
     "Only if the newest messages contain real asks, questions or deadlines directed at the user, add a blank line, then the line \"Action needed:\" followed by one line per item, each starting with \"- \". Include the date or deadline in the item when there is one. If there are no real asks, omit the \"Action needed:\" section entirely.",
     TRUTH,
     "Write the summary in the language of the thread. No markdown other than the \"- \" bullets.",
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 }
 
-export function replyPrompt(voice: Voice): string {
+export function replyPrompt(voice: Voice, self?: { name: string; addresses: string[] }): string {
   return [
     "You write an email reply on behalf of the user, who owns the inbox and is the person addressed by the newest message. If the newest message was written by the user, write a short follow-up instead.",
+    selfLine(self),
     UNTRUSTED,
     "Answer what the other person asked or said, in order of importance. Do not restate their message. If the message needs a decision the user has not given you, do not make it: use a bracketed placeholder or ask the one question needed.",
     TRUTH,
     styleRule(voice),
     languageRule(voice, "the newest message from the other person"),
     PLAIN_DRAFT,
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 }
 
-export function quickRepliesPrompt(voice: Voice): string {
+export function quickRepliesPrompt(voice: Voice, self?: { name: string; addresses: string[] }): string {
   return [
-    "You suggest three short replies the user could send to the newest message in an email thread. The user owns the inbox and is the person addressed.",
+    "You suggest three short replies the user could send to the newest message in an email thread. The user owns the inbox and is the person addressed. If the newest message is marked \"(you)\", suggest three short follow-ups the user could send instead.",
+    selfLine(self),
     UNTRUSTED,
     "Each reply is a complete sentence or two the user could send as is, at most 12 words, written in the first person. The three must differ in intent, for example agree, decline or defer, ask a question. Do not promise specific dates, amounts or actions the thread does not already contain. No greetings, no sign-offs.",
     styleRule(voice),
     languageRule(voice, "the newest message from the other person"),
     "Respond with only a JSON array of exactly 3 strings, for example [\"Sounds good, see you then.\",\"Can we move it to Friday?\",\"I can't make it this week.\"]. No code fences, no other text.",
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 }
 
 export function composePrompt(voice: Voice, hasDraft: boolean): string {
@@ -80,7 +90,7 @@ export function composePrompt(voice: Voice, hasDraft: boolean): string {
     styleRule(voice),
     voice.replyLanguage.trim() ? languageRule(voice, "") : "Write in the language the instructions are written in, unless they ask for another language.",
     PLAIN_DRAFT,
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 }
 
 const REWRITE_STYLES: Record<RewriteStyle, string> = {
@@ -106,7 +116,7 @@ export function rewritePrompt(style: string): string {
     instruction,
     "Keep the meaning, names, numbers, dates and links. Keep the language of the original unless the instruction says otherwise. Keep paragraph breaks.",
     "Output only the rewritten text, as plain text with paragraphs separated by one blank line. No markdown, no preface, no quotation marks around it.",
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 }
 
 export function translatePrompt(language: string, isThread: boolean): string {
@@ -118,16 +128,16 @@ export function translatePrompt(language: string, isThread: boolean): string {
       : "Translate the text.",
     "Keep names, numbers, dates, links and paragraph breaks. Do not add, omit or explain anything. If the text is already in the target language, return it unchanged.",
     "Output only the translation, as plain text with paragraphs separated by one blank line. No markdown, no preface.",
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 }
 
-export function askPrompt(todayIso: string): string {
+export function askPrompt(today: string): string {
   return [
-    `You answer the user's question about their own email, using only the mail excerpts provided. Today is ${todayIso}.`,
+    `You answer the user's question about their own email, using only the mail excerpts provided. Today is ${today}. Dates in the excerpts use the same time zone.`,
     UNTRUSTED,
     "Each excerpt is numbered [1], [2] and so on. After every statement that comes from an excerpt, cite it with its number in square brackets, for example \"The invoice is due on 3 May [2].\" Cite only numbers that exist. Use separate brackets for several sources: [1][4].",
     "If the excerpts do not contain the answer, say so plainly and say what is missing. Do not guess and do not use outside knowledge about the user's mail.",
     "Resolve relative dates such as \"last week\" against today's date and give absolute dates in the answer. Keep dates, amounts and names exactly as they appear.",
     "Answer in the language of the question. Be brief: plain prose in short paragraphs separated by blank lines, or a short list with \"- \" lines when the question asks for several items. No markdown headings or bold.",
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 }

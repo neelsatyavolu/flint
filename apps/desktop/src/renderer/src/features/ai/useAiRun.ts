@@ -57,7 +57,7 @@ export type AiAvailability = { status: AiStatus | undefined; loading: boolean; c
 
 /** Whether AI features should show: a provider is connected and the user hasn't turned AI off. */
 export function useAiAvailability(): AiAvailability {
-  const q = useFlintQuery((api) => api.aiStatus(), [], { refetchOn: ["settings"] });
+  const q = useFlintQuery((api) => api.aiStatus(), [], { refetchOn: ["settings"], mail: false });
   const connected = q.data?.connected === true;
   const enabled = q.data?.enabled === true;
   return { status: q.data, loading: q.loading && !q.data, connected, enabled, ready: connected && enabled };

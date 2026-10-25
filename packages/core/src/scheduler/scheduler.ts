@@ -27,12 +27,16 @@ export class Scheduler {
     this.#receipts = new ReceiptsCadence(this.#ctx);
   }
 
-  /** Recovers interrupted sends, runs anything already due and arms the timer. */
+  /**
+   * Recovers interrupted sends, runs the local jobs that are already due and arms the timer. The receipts poll and
+   * ping are network calls with long timeouts, so they are left to the timer (it fires right after start returns);
+   * the app's window never waits for them.
+   */
   async start(): Promise<void> {
     if (this.#started) return;
     this.#started = true;
     recoverInterruptedSends(this.#ctx);
-    await this.tick();
+    await this.#runOnce(false);
   }
 
   stop(): void {
@@ -56,16 +60,20 @@ export class Scheduler {
 
   /** Runs everything due now, then re-arms. Overlapping calls share the run in progress. */
   tick(): Promise<void> {
+    return this.#runOnce(true);
+  }
+
+  #runOnce(withReceipts: boolean): Promise<void> {
     if (this.#inFlight) return this.#inFlight;
-    this.#inFlight = this.#tick().finally(() => { this.#inFlight = null; });
+    this.#inFlight = this.#tick(withReceipts).finally(() => { this.#inFlight = null; });
     return this.#inFlight;
   }
 
-  async #tick(): Promise<void> {
+  async #tick(withReceipts: boolean): Promise<void> {
     this.#disarm();
     this.#running = true;
     try {
-      await Promise.all([runSends(this.#ctx), runSnoozes(this.#ctx), runReminders(this.#ctx), this.#receipts.run()].map((p) =>
+      await Promise.all([runSends(this.#ctx), runSnoozes(this.#ctx), runReminders(this.#ctx), withReceipts ? this.#receipts.run() : Promise.resolve()].map((p) =>
         p.catch((err: unknown) => log.error("job failed", { error: err instanceof Error ? err.message : String(err) }))));
     } finally {
       this.#running = false;

@@ -66,13 +66,24 @@ describe("startGoogleAuth", () => {
     expect(createHash("sha256").update(call.form.get("code_verifier")!).digest("base64url")).toBe(challenge);
   });
 
-  it("rejects a callback with the wrong state and does not call Google", async () => {
-    const g = fakeGoogle(() => json(200, {}));
-    await expect(startGoogleAuth({
+  it("ignores a callback with the wrong state and keeps waiting for the real one", async () => {
+    const g = fakeGoogle(() => json(200, { access_token: "AT", refresh_token: "RT", expires_in: 3600, id_token: idToken({ email: "me@gmail.com" }) }));
+    let forgedBody = "";
+    const result = await startGoogleAuth({
       clientId: "c", clientSecret: "s", fetch: g.fetch,
-      openExternal: async (url) => { void fetch(`${new URL(url).searchParams.get("redirect_uri")}?code=x&state=forged`); },
-    })).rejects.toMatchObject({ code: "auth", message: expect.stringContaining("could not be verified") });
-    expect(g.calls).toHaveLength(0);
+      openExternal: async (url) => {
+        const u = new URL(url);
+        const cb = u.searchParams.get("redirect_uri");
+        void (async () => {
+          const r = await fetch(`${cb}?error=%3Cscript%3E&state=forged`);
+          forgedBody = await r.text();
+          await fetch(`${cb}?code=x&state=${u.searchParams.get("state")}`);
+        })();
+      },
+    });
+    expect(result.email).toBe("me@gmail.com");
+    expect(forgedBody).not.toContain("<script>");
+    expect(g.calls).toHaveLength(1);
   });
 
   it("reports a cancelled consent screen", async () => {

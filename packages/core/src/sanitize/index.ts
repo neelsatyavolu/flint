@@ -38,6 +38,9 @@ const ALLOWED_TAGS = [
 
 const NON_TEXT_TAGS = ["script", "textarea", "option", "noscript", "title", "template", "iframe", "noembed", "noframes", "xmp", "object", "embed"];
 
+/** Bodies larger than this are rendered as plain text; it bounds main-thread sanitizing time. */
+export const MAX_HTML_LENGTH = 3 * 1024 * 1024;
+
 const GLOBAL_ATTRS = ["class", "id", "style", "dir", "lang", "title", "align", "valign", "width", "height", "bgcolor", "color", "border", "role", "data-flint-drop"];
 const TABLE_ATTRS = ["cellpadding", "cellspacing", "colspan", "rowspan", "background", "nowrap", "scope", "span"];
 
@@ -73,6 +76,11 @@ function isRemote(src: string): boolean {
  * and external stylesheets are removed. Inline styles and style blocks stay.
  */
 export function sanitizeForDisplay(html: string, opts: SanitizeOptions): SanitizeResult {
+  if (html.length > MAX_HTML_LENGTH) {
+    // Oversized markup is shown as escaped plain text rather than parsed on the main thread.
+    const text = htmlToText(html.slice(0, MAX_HTML_LENGTH));
+    return { html: `<pre style="white-space:pre-wrap">${sanitizeHtml(text, { allowedTags: [], allowedAttributes: {} })}</pre>`, hasTrackers: false, hasRemoteImages: false };
+  }
   let hasTrackers = false;
   let hasRemoteImages = false;
   const blockTrackers = opts.blockTrackers !== false;

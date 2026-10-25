@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { AGENT_GUIDE } from "./agent-guide";
 import { FlintError } from "@flint/core/types";
 import { AppNotRunningError } from "@flint/core/agent/client";
 import { exec, fakeClient, NOW } from "./test-util";
@@ -11,7 +14,7 @@ const item = (over: Record<string, unknown> = {}) => ({
 const page = (items: unknown[]) => ({ items, bundles: [], nextCursor: null });
 const message = (over: Record<string, unknown> = {}) => ({
   id: 70, from: [addr("Cindy", "c@x.co")], to: [addr("", "me@x.co")], cc: [], date: NOW.getTime(), text: "Hello there", html: null, snippet: "", bodyLoaded: true,
-  attachments: [{ filename: "a.pdf", size: 4096 }], isFromMe: false, ...over,
+  attachments: [{ id: 12, filename: "a.pdf", size: 4096 }], isFromMe: false, ...over,
 });
 const thread = { id: 7, accountId: "a1", subject: "Invoice", messages: [message({ id: 69, isFromMe: true }), message()] };
 
@@ -44,6 +47,20 @@ describe("list and search", () => {
     expect((await exec(["list", "--category", "x"], f)).err).toMatch(/Unknown category/);
     expect((await exec(["list", "--limit", "0"], f)).code).toBe(1);
   });
+  it("rejects an empty query and warns about unsupported operators", async () => {
+    const f = fakeClient({ listThreads: page([]) });
+    const empty = await exec(["search", "  "], f);
+    expect(empty.code).toBe(1);
+    expect(empty.err).toMatch(/Give a search query/);
+    expect(f.calls).toHaveLength(0);
+    const r = await exec(["search", "filename:menu.pdf label:foo from:cindy after:nope", "--json"], f);
+    expect(r.code).toBe(0);
+    expect(r.err).toContain("filename:menu.pdf, label:foo");
+    expect(r.err).not.toContain("from:cindy,");
+    expect(r.err).toContain("after:nope");
+    expect(JSON.parse(r.out).items).toEqual([]);
+    expect((await exec(["search", "from:cindy has:attachment http://x.co"], f)).err).toBe("");
+  });
   it("searches", async () => {
     const f = fakeClient({ listThreads: page([item()]) });
     await exec(["search", "from:cindy", "--limit", "3"], f);
@@ -57,13 +74,23 @@ describe("read", () => {
     const r = await exec(["read", "7"], f);
     expect(r.out).toContain("Invoice");
     expect(r.out).toContain("From: Cindy <c@x.co>");
-    expect(r.out).toContain("Attachments: a.pdf (4 KB)");
+    expect(r.out).toContain("Attachments: a.pdf (4 KB, attachment 12)");
+    expect(r.out).toContain("Message 70");
     expect(r.out).toContain("Hello there");
   });
   it("converts html and honors --raw", async () => {
     const f = fakeClient({ getThread: { ...thread, messages: [message({ text: null, html: "<p>Hi <b>you</b></p>" })] } });
     expect((await exec(["read", "7"], f)).out).toContain("Hi you");
     expect((await exec(["read", "7", "--raw"], f)).out).toContain("<p>Hi <b>you</b></p>");
+  });
+  it("keeps heading case and separates table cells in HTML mail", async () => {
+    const html = "<h1>Hi There</h1><table><tr><td>a</td><td>b</td></tr><tr><td>Total</td><td>$5</td></tr></table>";
+    const f = fakeClient({ getThread: { ...thread, messages: [message({ text: null, html })] } });
+    const out = (await exec(["read", "7"], f)).out;
+    expect(out).toContain("Hi There");
+    expect(out).not.toContain("HI THERE");
+    expect(out).toMatch(/a\s{2,}b/);
+    expect(out).toMatch(/Total\s{2,}\$5/);
   });
   it("rejects a bad id", async () => {
     expect((await exec(["read", "abc"], fakeClient())).err).toMatch(/isn't a thread id/);
@@ -141,17 +168,27 @@ describe("actions", () => {
     const r = await exec([cmd, "1", "2"], f);
     expect(f.calls[0]).toEqual({ method, params });
     expect(r.out).toContain("2 threads");
+    expect(r.out).toContain("Undo: flint undo u");
+  });
+  it.each([
+    ["mute", "setMuted", [[1, 2], true]],
+    ["unmute", "setMuted", [[1, 2], false]],
+    ["unsnooze", "unsnooze", [[1, 2]]],
+  ])("%s", async (cmd, method, params) => {
+    const f = fakeClient({ [method]: { undoToken: "u" } });
+    await exec([cmd, "1", "2"], f);
+    expect(f.calls[0]).toEqual({ method, params });
   });
   it("snoozes", async () => {
     const f = fakeClient({ snooze: { undoToken: "u" } });
     const r = await exec(["snooze", "5", "tomorrow"], f);
     expect(f.calls[0]).toEqual({ method: "snooze", params: [[5], new Date(2026, 9, 26, 8).getTime()] });
-    expect(r.out).toBe("Snoozed thread 5 until 2026-10-26 08:00.\n");
+    expect(r.out).toBe("Snoozed thread 5 until 2026-10-26 08:00. Undo: flint undo u\n");
     expect((await exec(["snooze", "5", "yesterday"], f)).code).toBe(1);
   });
   it("moves to a folder, by name or inbox", async () => {
     const f = fakeClient({ getThread: thread, listFolders: [{ id: 4, name: "Receipts", path: "Receipts", role: null }, { id: 5, name: "Archive", path: "A", role: "archive" }], moveToFolder: { undoToken: "u" }, moveToInbox: { undoToken: "u" } });
-    expect((await exec(["move", "7", "receipts"], f)).out).toBe("Moved thread 7 to Receipts.\n");
+    expect((await exec(["move", "7", "receipts"], f)).out).toBe("Moved thread 7 to Receipts. Undo: flint undo u\n");
     expect(f.calls.at(-1)).toEqual({ method: "moveToFolder", params: [[7], 4] });
     await exec(["move", "7", "archive"], f);
     expect(f.calls.at(-1)?.params).toEqual([[7], 5]);
@@ -192,10 +229,35 @@ describe("misc commands", () => {
     expect((await exec(["ask", "who?"], f)).out).toBe("Answer\n");
     expect((await exec(["activity"], f)).out).toMatch(/1\s+10:00\s+cli\s+ok\s+Archived 3 threads/);
   });
-  it("watch prints JSON lines", async () => {
+  it("watch prints JSON lines and exits 2 when the stream ends", async () => {
     const ev = { type: "toast", level: "info", message: "x" } as const;
     const r = await exec(["watch"], fakeClient({}, [ev, ev]));
     expect(r.out.trim().split("\n").map((l) => JSON.parse(l))).toEqual([ev, ev]);
+    expect(r.code).toBe(2);
+  });
+  it("watch filters by type", async () => {
+    const toast = { type: "toast", level: "info", message: "x" } as const;
+    const mail = { type: "new_mail", accountId: "a", threadId: 1, from: { name: "", address: "a@b.co" }, subject: "s", category: "people" } as const;
+    const r = await exec(["watch", "--type", "new_mail"], fakeClient({}, [toast, mail]));
+    expect(r.out.trim().split("\n").map((l) => JSON.parse(l).type)).toEqual(["new_mail"]);
+    expect((await exec(["watch", "--type", "nope"], fakeClient())).err).toMatch(/Unknown event type nope/);
+  });
+  it("watch --reconnect retries with backoff until a real error", async () => {
+    const toast = { type: "toast", level: "info", message: "x" } as const;
+    let n = 0;
+    const f = fakeClient();
+    (f.client as unknown as { events: () => AsyncIterable<unknown> }).events = async function* () {
+      n++;
+      if (n === 1) yield toast;
+      else if (n === 2) throw new AppNotRunningError();
+      else if (n === 3) yield toast;
+      else throw new FlintError("auth", "bad token");
+    };
+    const sleeps: number[] = [];
+    const r = await exec(["watch", "--reconnect"], f, { sleep: async (ms) => { sleeps.push(ms); } });
+    expect(r.out.trim().split("\n")).toHaveLength(2);
+    expect(sleeps).toEqual([500, 1000, 500]);
+    expect(r.code).toBe(1);
   });
 });
 
@@ -214,11 +276,64 @@ describe("errors and exit codes", () => {
     const g = fakeClient({ getThread: () => { throw new Error("boom"); } });
     expect((await exec(["read", "1"], g)).err).toBe("Something went wrong. Try again.\n");
   });
-  it("prints help with examples and exits 0; unknown command exits 1", async () => {
+  it("usage errors exit 64 and honor --json", async () => {
+    const plain = await exec(["bogus"], fakeClient());
+    expect(plain.code).toBe(64);
+    expect(plain.err).toMatch(/unknown command/);
+    const json = await exec(["list", "--nope", "--json"], fakeClient());
+    expect(json.code).toBe(64);
+    expect(JSON.parse(json.err)).toMatchObject({ ok: false, error: { code: "usage" } });
+    expect(json.err.trim().split("\n")).toHaveLength(1);
+  });
+  it("prints help with examples and exits 0", async () => {
     const h = await exec(["help", "send"], fakeClient());
     expect(h.code).toBe(0);
     expect(h.out).toContain("Examples:");
     expect((await exec(["--help"], fakeClient())).out).toContain("Usage: flint");
-    expect((await exec(["bogus"], fakeClient())).code).toBe(1);
+  });
+  it("prints the agent guide", async () => {
+    const r = await exec(["help", "agents"], fakeClient());
+    expect(r.code).toBe(0);
+    expect(r.out).toContain("Exit codes");
+    expect((await exec(["agents"], fakeClient())).out).toBe(AGENT_GUIDE);
+    expect(readFileSync(join(import.meta.dirname, "../../../docs/AGENTS.md"), "utf8")).toContain(AGENT_GUIDE);
+  });
+});
+
+describe("management commands", () => {
+  it("saves an attachment and prints the path", async () => {
+    const f = fakeClient({ saveAttachment: "/Users/me/Downloads/a.pdf" });
+    expect((await exec(["attachment", "12"], f)).out).toBe("Saved to /Users/me/Downloads/a.pdf\n");
+    expect(f.calls[0]).toEqual({ method: "saveAttachment", params: [12] });
+  });
+  it("cancels, undoes and unsubscribes", async () => {
+    const f = fakeClient({ cancelSend: { id: 9 }, undo: undefined, unsubscribe: { method: "one_click" } });
+    expect((await exec(["cancel", "3"], f)).out).toContain("Cancelled send 3. Draft 9 is kept");
+    expect((await exec(["undo", "tok"], f)).out).toBe("Undone.\n");
+    expect((await exec(["unsubscribe", "70"], f)).out).toContain("one-click");
+    expect(f.calls.map((c) => c.method)).toEqual(["cancelSend", "undo", "unsubscribe"]);
+    expect(f.calls[2]?.params).toEqual([70]);
+  });
+  it("blocks, unblocks and lists blocked senders", async () => {
+    const f = fakeClient({ listBlocked: [{ pattern: "a@b.co", createdAt: NOW.getTime() }] });
+    expect((await exec(["block", "a@b.co"], f)).out).toBe("Blocked a@b.co.\n");
+    expect((await exec(["unblock", "a@b.co"], f)).out).toBe("Unblocked a@b.co.\n");
+    expect((await exec(["blocked"], f)).out).toMatch(/a@b.co\s+10:00/);
+  });
+  it("lists folders, drafts, the queue and contacts", async () => {
+    const f = fakeClient({
+      listAccounts: [{ id: "a1", email: "me@x.co" }],
+      listFolders: [{ id: 4, name: "Receipts", role: null, unread: 2 }],
+      listDrafts: [{ id: 12, to: [addr("", "a@b.co")], subject: "Hi" }],
+      listScheduled: [{ id: 3, draftId: 12, subject: "Hi", to: [addr("", "a@b.co")], sendAt: NOW.getTime(), status: "pending" }],
+      suggestContacts: [{ email: "c@x.co", name: "Cindy", score: 1 }],
+      deleteDraft: undefined,
+    });
+    expect((await exec(["folders"], f)).out).toMatch(/4\s+me@x.co\s+Receipts\s+2/);
+    expect((await exec(["drafts"], f)).out).toMatch(/12\s+a@b.co\s+Hi/);
+    expect((await exec(["queue"], f)).out).toMatch(/3\s+12\s+2026-10-25 10:00\s+pending/);
+    expect((await exec(["contacts", "cin", "--limit", "5"], f)).out).toMatch(/c@x.co\s+Cindy/);
+    expect(f.calls.at(-1)?.params).toEqual(["cin", 5]);
+    expect((await exec(["draft-delete", "12"], f)).out).toBe("Deleted draft 12.\n");
   });
 });

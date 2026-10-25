@@ -1,6 +1,6 @@
 .home { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--plane-2); }
-.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 32px 48px; }
-.column { max-width: 720px; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 32px 80px; }
+.column { max-width: 720px; margin-inline: auto; }
 .date { margin-top: 4px; color: var(--fg-3); }
 .skeletons { display: flex; flex-direction: column; gap: 14px; margin-top: 32px; }
 .block { margin-top: 32px; }

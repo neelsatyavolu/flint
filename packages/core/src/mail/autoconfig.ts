@@ -68,7 +68,7 @@ export function parseIspdb(xml: string, email: string): Known & { username: stri
       const socket = (tag(body, "socketType") ?? "").toUpperCase();
       return host && port ? { host, port, secure: socket === "SSL", socket, username: expandUsername(tag(body, "username"), email) } : null;
     }).filter((c): c is NonNullable<typeof c> => c !== null);
-    return candidates.find((c) => c.socket === "SSL") ?? candidates.find((c) => c.socket === "STARTTLS") ?? candidates[0] ?? null;
+    return candidates.find((c) => c.socket === "SSL") ?? candidates.find((c) => c.socket === "STARTTLS") ?? null;
   };
   const imap = pick("imap");
   const smtp = pick("smtp");
@@ -76,7 +76,7 @@ export function parseIspdb(xml: string, email: string): Known & { username: stri
   return {
     imapHost: imap.host, imapPort: imap.port, imapSecure: imap.secure,
     smtpHost: smtp.host, smtpPort: smtp.port, smtpSecure: smtp.secure,
-    provider: "imap", oauthGoogle: false, username: imap.username,
+    provider: /(^|\.)(gmail|googlemail)\.com$/i.test(imap.host) ? "gmail" : "imap", oauthGoogle: false, username: imap.username,
   };
 }
 

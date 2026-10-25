@@ -77,14 +77,17 @@ async function postToken(f: FetchLike, params: Record<string, string>): Promise<
   if (!res.ok) {
     const err = errorResponse.safeParse(data);
     const code = err.success ? err.data.error : undefined;
+    if (res.status >= 500 || res.status === 429) throw new FlintError("network", "Google is temporarily unavailable. Flint will try again.");
     if (code === "invalid_grant") throw new FlintError("auth", "Google sign-in expired. Sign in again.");
     throw new FlintError("auth", `Google rejected the sign-in${code ? ` (${code})` : ""}.`);
   }
   return tokenResponse.parse(data);
 }
 
+const escapeHtml = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
 const PAGE = (msg: string): string =>
-  `<!doctype html><meta charset="utf-8"><title>Flint</title><body style="font:16px system-ui;margin:4rem auto;max-width:28rem;color:#222"><p>${msg}</p></body>`;
+  `<!doctype html><meta charset="utf-8"><title>Flint</title><body style="font:16px system-ui;margin:4rem auto;max-width:28rem;color:#222"><p>${escapeHtml(msg)}</p></body>`;
 
 function waitForCode(server: Server, state: string, timeoutMs: number): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -97,13 +100,18 @@ function waitForCode(server: Server, state: string, timeoutMs: number): Promise<
       }
       const error = url.searchParams.get("error");
       const code = url.searchParams.get("code");
+      // A request without our state is not Google's redirect (a stray page or a port scan): answer it and keep waiting.
+      if (url.searchParams.get("state") !== state) {
+        res.writeHead(400, { "content-type": "text/html" }).end(PAGE("This request could not be verified."));
+        return;
+      }
       const fail = (message: string) => {
         res.writeHead(400, { "content-type": "text/html" }).end(PAGE(message));
         clearTimeout(timer);
         reject(new FlintError("auth", message));
       };
-      if (error) return fail(error === "access_denied" ? "Google sign-in was cancelled." : `Google sign-in failed (${error}).`);
-      if (url.searchParams.get("state") !== state || !code) return fail("Google sign-in could not be verified. Try again.");
+      if (error) return fail(error === "access_denied" ? "Google sign-in was cancelled." : "Google sign-in failed.");
+      if (!code) return fail("Google sign-in could not be verified. Try again.");
       res.writeHead(200, { "content-type": "text/html" }).end(PAGE("Signed in. You can close this tab and return to Flint."));
       clearTimeout(timer);
       resolve(code);

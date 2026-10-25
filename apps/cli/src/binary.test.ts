@@ -50,7 +50,7 @@ describe("built binary", () => {
     it("round-trips a command and logs it under --as", async () => {
       const r = await flint(["archive", "1", "2", "3", "--as", "claude"], { FLINT_DATA_DIR: dir });
       expect(r.status).toBe(0);
-      expect(r.stdout).toBe("Archived 3 threads.\n");
+      expect(r.stdout).toBe("Archived 3 threads. Undo: flint undo u\n");
       expect(activity).toContain("claude|Archived 3 threads|ok");
     });
     it("lists accounts and labels activity from FLINT_AGENT", async () => {

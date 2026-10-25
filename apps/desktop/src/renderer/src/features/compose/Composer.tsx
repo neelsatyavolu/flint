@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent, type JSX, type KeyboardEvent } from "react";
 import type { Signature, Template } from "@flint/core";
+import { formatRecipients } from "../../lib/format";
 import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
 import { AiBar } from "../ai/AiBar";
@@ -56,6 +57,9 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       void flow.attempt();
+    } else if (e.key === "Escape" && !e.defaultPrevented && !hidden && e.currentTarget.contains(e.target as Node) && !document.querySelector("[role=menu],[role=listbox]")) {
+      e.preventDefault();
+      void close();
     }
   };
   const onDrop = (e: DragEvent) => {
@@ -128,7 +132,7 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
           {showBcc || fields.bcc.length ? <RecipientField label="Bcc" value={fields.bcc} autoFocus={showBcc && fields.bcc.length === 0} onChange={(bcc) => patch({ bcc })} /> : null}
           {sendProblem ? <div className={`t-data ${styles.error}`} role="alert">{sendProblem}</div> : null}
           {session.error ? <div className={`t-data ${styles.error}`} role="alert">{session.error}</div> : null}
-          {aiOpen ? <AiBar body={body} threadId={draft.threadId} draftId={draft.id} onClose={() => setAiOpen(false)} /> : null}
+          {aiOpen ? <AiBar body={body} threadId={draft.threadId} draftId={draft.id} to={formatRecipients(fields.to)} subject={fields.subject} onClose={() => setAiOpen(false)} /> : null}
           <AttachmentChips attachments={fields.attachments} pathless={session.pathless} onRemove={(a) => void session.removeAttachment(a)} />
           <div className={styles.body}>
             <BodyEditor

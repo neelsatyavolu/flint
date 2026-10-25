@@ -114,7 +114,14 @@ export type ReplyOptions = {
   /** Attachments of the original, already saved to disk by the caller. Carried over for forwards only. */
   forwardAttachments?: DraftAttachment[];
   timeZone?: string;
+  /** Receipts endpoint host currently configured. Its pixels are always removed from quotes, along with the default host. */
+  receiptsHost?: string;
+  /** Inline (cid:) image parts of the original by Content-ID, so quoted and forwarded bodies keep their pictures. */
+  inlineImages?: Record<string, { contentType: string; data: Uint8Array }>;
 };
+
+const DEFAULT_RECEIPTS_HOST = "flintr.xanom.co";
+const RECEIPTS_PIXEL_PATH = /\/i\/[A-Za-z0-9_-]{22}\.gif(?:[?#"'\s]|$)/;
 
 const escapeHtml = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -149,8 +156,20 @@ function formatWhen(ms: number, timeZone?: string): string {
   return `${date} at ${time}`;
 }
 
-function originalBodyHtml(src: ReplySource): string {
-  if (src.rawHtml) return sanitizeForDisplay(src.rawHtml, { allowRemoteImages: true }).html;
+/** Quoted mail must never carry a receipts pixel, whatever endpoint it points at: it would count other people's opens. */
+function stripReceiptsPixels(html: string): string {
+  return html.replace(/<img\b[^>]*>/gi, (tag) => (RECEIPTS_PIXEL_PATH.test(tag) ? "" : tag));
+}
+
+function originalBodyHtml(src: ReplySource, opts: ReplyOptions): string {
+  if (src.rawHtml) {
+    const cidResolver = (cid: string): string | null => {
+      const part = opts.inlineImages?.[cid];
+      return part ? `data:${part.contentType};base64,${Buffer.from(part.data).toString("base64")}` : null;
+    };
+    const clean = sanitizeForDisplay(src.rawHtml, { allowRemoteImages: true, receiptsHost: opts.receiptsHost ?? DEFAULT_RECEIPTS_HOST, cidResolver });
+    return stripReceiptsPixels(clean.html);
+  }
   return `<div style="white-space:pre-wrap">${escapeHtml(src.text ?? "")}</div>`;
 }
 
@@ -163,7 +182,7 @@ export function buildReplyDraft(message: ReplySource, mode: Exclude<ComposeMode,
   const sender = message.from[0];
   const fromMe = sender ? own.has(sender.address.toLowerCase()) : false;
   const subject = prefixedSubject(message.subject, mode);
-  const body = originalBodyHtml(message);
+  const body = originalBodyHtml(message, opts);
 
   if (mode === "forward") {
     const lines = [

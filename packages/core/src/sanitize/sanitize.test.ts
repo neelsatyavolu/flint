@@ -259,3 +259,27 @@ describe("sanitizeForDisplay: CSS remote urls", () => {
     expect(blocked.hasRemoteImages).toBe(true);
   });
 });
+
+describe("css hardening", () => {
+  it("handles unclosed url( floods in linear time", () => {
+    const style = "background:" + "url(//a/".repeat(60000);
+    const t = Date.now();
+    const r = sanitizeForDisplay(`<div style="${style}">x</div>`, { allowRemoteImages: false });
+    expect(Date.now() - t).toBeLessThan(1500);
+    expect(r.html).not.toContain("url(//a/");
+    const t2 = Date.now();
+    sanitizeForDisplay(`<style>a{x:${"/*a".repeat(100000)}</style>`, { allowRemoteImages: false });
+    expect(Date.now() - t2).toBeLessThan(1500);
+  });
+  it("renders oversized html as plain text", () => {
+    const r = sanitizeForDisplay("<p>hi</p>" + "x".repeat(4 * 1024 * 1024), { allowRemoteImages: false });
+    expect(r.html.startsWith("<pre")).toBe(true);
+  });
+  it("catches escaped url( and image-set", () => {
+    for (const css of ["background:\\75rl(https://evil/a.png)", "background:u\\72l(https://evil/a.png)", "background:url(\\68ttps://evil/a.png)", "background:image-set('https://evil/a.png' 1x)"]) {
+      const r = sanitizeForDisplay(`<div style="${css}">x</div>`, { allowRemoteImages: false });
+      expect(r.html).not.toContain("evil");
+      expect(r.hasRemoteImages).toBe(true);
+    }
+  });
+});

@@ -22,7 +22,7 @@ export function createPlatform(dataDir: string, hooks: PlatformHooks): Platform 
   return {
     dataDir,
     downloadsDir: app.getPath("downloads"),
-    secrets: createSecretStore(join(dataDir, "secrets.bin"), safeStorage),
+    secrets: createSecretStore(join(dataDir, "secrets.bin"), safeStorage, { allowPlain: !app.isPackaged }),
     appVersion: app.getVersion(),
     async openExternal(url) {
       if (!isSafeExternalUrl(url)) throw new Error("Only http, https and mailto links can be opened.");

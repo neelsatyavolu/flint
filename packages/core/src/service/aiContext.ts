@@ -30,9 +30,13 @@ export function buildAiContext(d: AiContextDeps): AiContext {
       if (!first) return null;
       await ensureBodies(store, d.syncs, first.messages.map((m) => m.id));
       const rows = store.getThreadRows(threadId) ?? first;
+      const account = store.getAccount(rows.accountId);
+      const addresses = account ? [...new Set([account.email, ...account.aliases])] : [];
       return {
         subject: rows.subject,
+        ...(account ? { self: { name: account.name, addresses } } : {}),
         messages: rows.messages.filter((m) => !m.draft).map((m) => ({
+          fromMe: m.isFromMe,
           from: m.from[0] ?? NOBODY,
           to: m.to,
           date: m.date,

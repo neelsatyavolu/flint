@@ -1,3 +1,5 @@
+import { AppNotRunningError } from "@flint/core/agent/client";
+import { FlintError, type FlintEvent } from "@flint/core/types";
 import { emit, parseId, parseLimit, type Ctx } from "../ctx";
 import { renderTable } from "../table";
 import { formatFull, formatShort } from "../time";
@@ -56,8 +58,32 @@ export async function ask(ctx: Ctx, question: string): Promise<void> {
   emit(ctx, r, (x) => x.text);
 }
 
-export async function watch(ctx: Ctx): Promise<void> {
-  for await (const event of ctx.client.events()) ctx.out(JSON.stringify(event));
+export const EVENT_TYPES: FlintEvent["type"][] = ["sync", "mail_changed", "new_mail", "receipt", "send", "ai", "agent_activity", "settings", "toast"];
+const RECONNECT_START_MS = 500;
+const RECONNECT_MAX_MS = 15_000;
+
+const isGone = (e: unknown): boolean => e instanceof AppNotRunningError || (e instanceof FlintError && e.code === "network");
+
+/** Streams events as JSON lines. A dropped stream means Flint went away: exit 2, or with --reconnect retry with backoff. */
+export async function watch(ctx: Ctx, opts: { type?: string[]; reconnect?: boolean }): Promise<void> {
+  const bad = (opts.type ?? []).filter((t) => !(EVENT_TYPES as string[]).includes(t));
+  if (bad.length) throw new FlintError("invalid", `Unknown event type ${bad.join(", ")}. Use ${EVENT_TYPES.join(", ")}.`);
+  const wanted = new Set<string>(opts.type ?? []);
+  let delay = RECONNECT_START_MS;
+  for (;;) {
+    try {
+      for await (const event of ctx.client.events()) {
+        delay = RECONNECT_START_MS;
+        if (wanted.size === 0 || wanted.has(event.type)) ctx.out(JSON.stringify(event));
+      }
+    } catch (e) {
+      if (!opts.reconnect || !isGone(e)) throw e;
+    }
+    if (!opts.reconnect) throw new AppNotRunningError();
+    ctx.warn("Flint went away. Reconnecting...");
+    await ctx.sleep(delay);
+    delay = Math.min(delay * 2, RECONNECT_MAX_MS);
+  }
 }
 
 export async function activity(ctx: Ctx, opts: { limit?: string }): Promise<void> {

@@ -62,7 +62,8 @@ export function classify(hit: Hit, ctx: ClassifyContext): Classification {
   const appleNet = hit.appleEgress || (asn !== null && APPLE_ASNS.has(asn)) || APPLE_ORG_RE.test(org);
   const relayHost = asn !== null && RELAY_HOST_ASNS.has(asn);
   if (appleNet) return result("prefetch", "apple-network", { client: "Apple Mail Privacy Protection" });
-  if (relayHost && BARE_MOZILLA_RE.test(ua)) return result("prefetch", "apple-ua-on-relay-host", { client: "Apple Mail Privacy Protection" });
+  // No real mail client sends a bare "Mozilla/5.0"; Apple's egress ranges change over time, so do not require a known network.
+  if (BARE_MOZILLA_RE.test(ua)) return result("prefetch", relayHost ? "apple-ua-on-relay-host" : "bare-mozilla-ua", { client: "Apple Mail Privacy Protection" });
 
   // 3. scanner
   if (hit.method.toUpperCase() === "HEAD") return result("scanner", "head-request");
@@ -81,10 +82,10 @@ export function classify(hit: Hit, ctx: ClassifyContext): Classification {
   if (googleNet && !gmailProxy) return result("scanner", "google-without-proxy-ua");
   // Spoofed proxy UA from elsewhere.
   if (GOOGLE_PROXY_UA_RE.test(ua) && !gmailProxy) return result("bot", "spoofed-gmail-proxy-ua");
-  // Microsoft datacenter without an Outlook client: Safe Links / EOP detonation shortly after delivery.
-  if (microsoftNet && !outlookClient && early) return result("scanner", "microsoft-without-outlook-ua");
+  // Microsoft datacenter without an Outlook client: Safe Links / EOP detonation, at any delay (greylisting, quarantine release, serial sends).
+  if (microsoftNet && !outlookClient) return result("scanner", "microsoft-without-outlook-ua");
   // Other hosting networks within the window.
-  if (!proxy && !outlookClient && !microsoftNet && HOSTING_ORG_RE.test(org)) {
+  if (!proxy && !outlookClient && HOSTING_ORG_RE.test(org)) {
     return result(early ? "scanner" : "bot", early ? "hosting-early" : "hosting-late");
   }
 
@@ -119,6 +120,6 @@ export function classify(hit: Hit, ctx: ClassifyContext): Classification {
     first.fingerprint !== hit.fingerprint &&
     first.client !== client &&
     (ctx.now - first.at) / 1000 > FORWARD_GAP_SECONDS;
-  const locationReliable = !proxy && !(microsoftNet && !outlookClient);
+  const locationReliable = !proxy;
   return result("open", proxy ? "proxy-open" : "direct-open", { client, device, locationReliable, possiblyForwarded });
 }

@@ -7,7 +7,8 @@ export function htmlToReadable(html: string): string {
     selectors: [
       { selector: "img", format: "skip" },
       { selector: "a", options: { ignoreHref: false, hideLinkHrefIfSameAsText: true } },
-      { selector: "table", options: { uppercaseHeaderCells: false } },
+      ...["h1", "h2", "h3", "h4", "h5", "h6"].map((selector) => ({ selector, options: { uppercase: false } })),
+      { selector: "table", format: "dataTable", options: { uppercaseHeaderCells: false, colSpacing: 3 } },
     ],
   }).replace(/\n{3,}/g, "\n\n").trim();
 }
