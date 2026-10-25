@@ -216,7 +216,8 @@ describe("receipts cadence", () => {
     await e2.clock.advance(3600_000);
     expect(receipts.pollEvents.mock.calls.length).toBe(done);
     expect(e2.clock.timers.size).toBe(0);
-  });
+    // Steps a fake clock through 30 days of 60 s polls: about 1 s alone, several under the parallel release run.
+  }, 20_000);
 
   it("start() returns without waiting for a hung receipts poll; the timer runs it right after", async () => {
     const receipts = { pollEvents: vi.fn(() => new Promise<number>(() => undefined)), seenPing: vi.fn(async () => true) };
