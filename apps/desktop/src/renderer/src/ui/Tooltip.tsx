@@ -27,7 +27,8 @@ export function Tooltip({ label, shortcut, placement = "bottom", delay = 450, ch
   const { getReferenceProps, getFloatingProps } = useInteractions([
     useHover(context, { move: false, delay: { open: delay, close: 0 }, handleClose: safePolygon() }),
     useFocus(context, { visibleOnly: true }),
-    useDismiss(context, { referencePress: true }),
+    // Escape closes the tooltip and still reaches the dialog or composer behind it (one press, not two).
+    useDismiss(context, { referencePress: true, bubbles: { escapeKey: true } }),
     useRole(context, { role: "tooltip" }),
   ]);
   const ref = useMergeRefs([refs.setReference, children.props.ref ?? null]);

@@ -9,7 +9,7 @@ import styles from "../settings.module.css";
 
 export function BlockedSection() {
   const toast = useToast();
-  const blocked = useFlintQuery((api) => api.listBlocked(), []);
+  const blocked = useFlintQuery((api) => api.listBlocked(), [], { mail: false });
   const unblock = async (pattern: string) => {
     try {
       await flint.unblockSender(pattern);

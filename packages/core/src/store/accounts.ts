@@ -19,6 +19,11 @@ const COLUMNS: Record<keyof AccountPatch, string> = {
 export class AccountsRepo {
   constructor(protected q: Sql) {}
 
+  /** True once any message of the account is stored. */
+  accountHasMessages(id: AccountId): boolean {
+    return this.q.get("SELECT 1 AS x FROM messages WHERE account_id = ? LIMIT 1", id) !== undefined;
+  }
+
   createAccount(input: NewAccount): Account {
     const id = input.id ?? nanoid(12);
     const sortOrder = input.sortOrder ?? (this.q.get<{ n: number }>("SELECT COALESCE(MAX(sort_order), -1) + 1 AS n FROM accounts")?.n ?? 0);

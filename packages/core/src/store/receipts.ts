@@ -7,6 +7,8 @@ import type { ReceiptChange } from "./types";
 export type NewTracked = {
   accountId: string; ref: string; messageId: string; threadId: ThreadId | null; subject: string; sentAt: number;
   state?: "active" | "unregistered" | "stopped";
+  /** Why the mail went out without tracking, e.g. "Receipts off: plain-text mode". Shown as the recipients' note. */
+  untrackedReason?: string;
   recipients: { email: string; name?: string; token: string }[];
 };
 
@@ -15,7 +17,7 @@ export type ReceiptEventInput = {
   client?: string | null; device?: string | null; location?: string | null; fingerprint?: string | null;
 };
 
-type TrackedRow = { id: number; account_id: string; ref: string; message_id: string; thread_id: number | null; subject: string; sent_at: number; state: string };
+type TrackedRow = { untracked_reason?: string | null; id: number; account_id: string; ref: string; message_id: string; thread_id: number | null; subject: string; sent_at: number; state: string };
 type RecipientRow = {
   id: number; tracked_id: number; email: string; name: string; status: string; first_open_at: number | null;
   last_open_at: number | null; open_count: number; replied_at: number | null; note: string | null;
@@ -28,12 +30,13 @@ export class ReceiptsRepo {
   createTracked(input: NewTracked): number {
     return tx(this.q.db, () => {
       const id = this.q.run(
-        "INSERT INTO tracked_messages (account_id, ref, message_id, thread_id, subject, sent_at, state) VALUES (?,?,?,?,?,?,?)",
-        input.accountId, input.ref, input.messageId, input.threadId, input.subject, input.sentAt, input.state ?? "active",
+        "INSERT INTO tracked_messages (account_id, ref, message_id, thread_id, subject, sent_at, state, untracked_reason) VALUES (?,?,?,?,?,?,?,?)",
+        input.accountId, input.ref, input.messageId, input.threadId, input.subject, input.sentAt, input.state ?? "active", input.untrackedReason ?? null,
       ).lastInsertRowid;
       for (const r of input.recipients) {
-        this.q.run("INSERT INTO tracked_recipients (tracked_id, email, name, token, status) VALUES (?,?,?,?,?)",
-          id, r.email.toLowerCase(), r.name ?? "", r.token, input.state === "unregistered" ? "untracked" : "sent");
+        const unregistered = input.state === "unregistered";
+        this.q.run("INSERT INTO tracked_recipients (tracked_id, email, name, token, status, note) VALUES (?,?,?,?,?,?)",
+          id, r.email.toLowerCase(), r.name ?? "", r.token, unregistered ? "untracked" : "sent", unregistered ? input.untrackedReason ?? null : null);
       }
       return id;
     });
@@ -122,8 +125,8 @@ export class ReceiptsRepo {
 
   /** SPEC section 6 app-side status: replied > opened > unknowable > sent. Returns a change record when status or open count moved. */
   recomputeRecipient(recipientId: number, now = Date.now()): ReceiptChange | null {
-    const rec = this.q.get<RecipientRow & { thread_id: number | null; sent_at: number; state: string }>(
-      "SELECT r.*, t.thread_id, t.sent_at, t.state FROM tracked_recipients r JOIN tracked_messages t ON t.id = r.tracked_id WHERE r.id = ?", recipientId,
+    const rec = this.q.get<RecipientRow & { thread_id: number | null; sent_at: number; state: string; untracked_reason: string | null }>(
+      "SELECT r.*, t.thread_id, t.sent_at, t.state, t.untracked_reason FROM tracked_recipients r JOIN tracked_messages t ON t.id = r.tracked_id WHERE r.id = ?", recipientId,
     );
     if (!rec) return null;
     const events = this.q.all<EventRow>("SELECT * FROM receipt_events WHERE recipient_id = ? ORDER BY at, id", recipientId);
@@ -139,7 +142,7 @@ export class ReceiptsRepo {
     const status = recipientStatus({ openCount: counted.length, repliedAt, sawPrefetch: events.some((e) => e.kind === "prefetch"), registered });
     const first = counted[0]?.at ?? null;
     const last = counted.length ? counted[counted.length - 1]!.at : null;
-    const note = recipientNote(status, registered);
+    const note = recipientNote(status, registered, rec.untracked_reason);
     this.q.run("UPDATE tracked_recipients SET status = ?, first_open_at = ?, last_open_at = ?, open_count = ?, replied_at = ?, note = ? WHERE id = ?",
       status, first, last, counted.length, repliedAt, note, recipientId);
     if (status === rec.status && counted.length === rec.open_count) return null;

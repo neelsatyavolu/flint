@@ -53,6 +53,8 @@ export function useAppCommands() {
 
     return {
       inMailView,
+      /** True when a thread is open, checked or under the cursor, so thread actions have something to act on. */
+      hasTarget: () => targets().length > 0,
       compose,
       undo,
       step,

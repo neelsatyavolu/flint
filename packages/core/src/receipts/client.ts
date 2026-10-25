@@ -156,6 +156,30 @@ export class ReceiptsClient {
   }
 
   /**
+   * Records a message the user asked to track but that went out without tracking, so the Receipts list shows it as
+   * untracked with the reason ("Receipts off: plain-text mode") instead of leaving no trace. Nothing is registered with
+   * the service and no pixel is added. Recipients who are the user themselves are skipped; returns null when none remain.
+   */
+  recordUntracked(input: { accountId: string; subject: string; messageId: string; recipients: Address[]; selfAddresses: string[]; reason: string }): string | null {
+    const own = new Set(input.selfAddresses.map(canonicalAddress));
+    const seen = new Set<string>();
+    const recipients: { email: string; name: string; token: string }[] = [];
+    for (const r of input.recipients) {
+      const key = lower(r);
+      if (!key || seen.has(key) || own.has(key) || recipients.length >= MAX_RECIPIENTS) continue;
+      seen.add(key);
+      recipients.push({ email: r.address, name: r.name, token: newToken() });
+    }
+    if (recipients.length === 0) return null;
+    const ref = newToken();
+    this.#store.createTracked({
+      accountId: input.accountId, ref, messageId: stripBrackets(input.messageId), threadId: null, subject: input.subject,
+      sentAt: this.#now(), state: "unregistered", untrackedReason: input.reason, recipients,
+    });
+    return ref;
+  }
+
+  /**
    * Fetches new events, stores them (idempotent on the service event id), recomputes recipient status
    * and emits 'receipt' events for status changes when notifyOnOpen is on. Returns how many new counted opens arrived.
    */

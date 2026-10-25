@@ -23,6 +23,7 @@ type Props = {
   fromOptions: FromOption[];
   templates: Template[];
   signatures: Signature[];
+  /** False when a receipt cannot be tracked; the Composer then explains why instead. */
   receiptsAvailable: boolean;
   aiOpen: boolean;
   sending: boolean;

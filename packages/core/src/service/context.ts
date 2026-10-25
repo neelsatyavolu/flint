@@ -16,6 +16,7 @@ import { EventBus } from "./events";
 import { createOptimistic, type Optimistic } from "./optimistic";
 import { notifyUser } from "./scheduler-wiring";
 import type { ServiceOptions } from "./index";
+import { GoogleSecret } from "./googleSecret";
 import { googleClientFrom, SyncManager } from "./syncManager";
 import { UndoRegistry } from "./undo";
 
@@ -50,6 +51,8 @@ export type ServiceContext = {
   googleClient(): GoogleClient | null;
   /** Downloads missing bodies for these messages (best effort). */
   ensureBodies(messageIds: MessageRowId[]): Promise<void>;
+  /** Resolves once the Google client secret is loaded from the secret store (and migrated out of settings). */
+  readonly secretsReady: Promise<void>;
   readonly syncs: SyncManager;
   readonly undo: UndoRegistry;
   readonly optimistic: Optimistic;
@@ -67,13 +70,17 @@ export function createContext(platform: Platform, options: ServiceOptions = {}):
   const bus = new EventBus();
   const now = options.now ?? Date.now;
   const fetchImpl: typeof fetch = options.fetch ?? ((input, init) => fetch(input, init));
-  const getSettings = (): Settings => store.getSettings();
+  const googleSecret = new GoogleSecret(platform.secrets, store);
+  /** Settings as the rest of the app sees them: the Google client secret is masked. */
+  const getSettings = (): Settings => googleSecret.redact(store.getSettings());
+  const googleClient = () => googleClientFrom({ ...store.getSettings(), google: { ...store.getSettings().google, clientSecret: googleSecret.value } });
+  const secretsReady = googleSecret.load();
 
   const syncs = new SyncManager({
-    store, platform, getSettings, emit: bus.emit, fetch: fetchImpl, ...(options.sync ? { tuning: options.sync } : {}),
+    store, platform, getSettings, googleClient, emit: bus.emit, fetch: fetchImpl, ...(options.sync ? { tuning: options.sync } : {}),
   });
   const undo = new UndoRegistry({ now });
-  const optimistic = createOptimistic({ store, emit: bus.emit, undo, actionsFor: (id) => syncs.get(id).actions, caller: currentAgent });
+  const optimistic = createOptimistic({ store, emit: bus.emit, undo, actionsFor: (id) => syncs.get(id).actions, caller: currentAgent, now });
 
   const compose: ComposeHooks = {};
   const receipts = new ReceiptsClient({ store, secrets: platform.secrets, getSettings, fetch: (input, init) => fetchImpl(input, init as RequestInit), now, emit: bus.emit, timeoutMs: RECEIPTS_TIMEOUT_MS });
@@ -114,11 +121,12 @@ export function createContext(platform: Platform, options: ServiceOptions = {}):
     platform, options, store, bus, emit: bus.emit, now, fetch: fetchImpl, caller: currentAgent,
     getSettings,
     updateSettings(patch) {
-      const settings = store.updateSettings(patch);
+      store.updateSettings(googleSecret.intercept(patch));
+      const settings = getSettings();
       bus.emit({ type: "settings", settings });
       return settings;
     },
-    googleClient: () => googleClientFrom(getSettings()),
+    googleClient, secretsReady,
     ensureBodies: (ids) => ensureBodies(store, syncs, ids),
     syncs, undo, optimistic, scheduler, receipts, ai, compose, agent: { handle: null },
   };

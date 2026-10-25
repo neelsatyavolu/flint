@@ -34,9 +34,9 @@ export function recipientStatus(s: RecipientSignals): ReceiptStatus {
   return "sent";
 }
 
-export function recipientNote(status: ReceiptStatus, registered: boolean): string | null {
+export function recipientNote(status: ReceiptStatus, registered: boolean, untrackedReason: string | null = null): string | null {
   if (status === "unknowable") return PREFETCH_NOTE;
-  if (status === "untracked" && !registered) return UNREGISTERED_NOTE;
+  if (status === "untracked" && !registered) return untrackedReason ?? UNREGISTERED_NOTE;
   return null;
 }
 

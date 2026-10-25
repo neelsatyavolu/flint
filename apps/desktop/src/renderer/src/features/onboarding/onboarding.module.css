@@ -16,6 +16,8 @@
 .field { display: flex; flex-direction: column; gap: 4px; }
 .label { color: var(--fg-3); }
 .err { color: var(--danger); }
+.errorWell { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3); border: 1px solid var(--line-strong); border-left: 2px solid var(--danger); border-radius: var(--r-control); color: var(--fg); }
+.errorWell p { margin: 0; color: var(--fg-2); text-wrap: pretty; }
 .ok { color: var(--ok); }
 .muted { color: var(--fg-3); }
 .hint { color: var(--fg-3); max-width: 62ch; }

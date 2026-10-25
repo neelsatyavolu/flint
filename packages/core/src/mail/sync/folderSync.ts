@@ -39,18 +39,18 @@ const envelopeQuery = (gmail: boolean): FetchQueryObject => ({
   headers: [...FETCH_HEADERS], ...(gmail ? { labels: true, threadId: true } : {}),
 });
 
-const chunks = <T>(list: T[], size: number): T[][] => {
+export const chunks = <T>(list: T[], size: number): T[][] => {
   const out: T[][] = [];
   for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
   return out;
 };
 
-async function search(client: ImapFlow, query: Parameters<ImapFlow["search"]>[0]): Promise<number[]> {
+export async function search(client: ImapFlow, query: Parameters<ImapFlow["search"]>[0]): Promise<number[]> {
   const found = await client.search(query, { uid: true });
   return Array.isArray(found) ? found : [];
 }
 
-async function ingestUids(d: FolderSyncDeps, folder: Folder, uids: number[], evaluate: boolean): Promise<void> {
+export async function ingestUids(d: FolderSyncDeps, folder: Folder, uids: number[], evaluate: boolean): Promise<void> {
   const fetched = await d.client.fetchAll(uids.join(","), envelopeQuery(d.gmail), { uid: true });
   fetched.sort((a, b) => a.uid - b.uid);
   const wanted = new Set(uids);

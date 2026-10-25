@@ -1,5 +1,5 @@
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 /** Minimal D1Database fake over node:sqlite: prepare/bind/first/all/run/batch. */
@@ -17,7 +17,8 @@ class FakeStatement {
 export function createFakeD1(): { d1: D1Database; raw: DatabaseSync } {
   const raw = new DatabaseSync(":memory:");
   raw.exec("PRAGMA foreign_keys = ON");
-  raw.exec(readFileSync(fileURLToPath(new URL("../../migrations/0001_init.sql", import.meta.url)), "utf8"));
+  const dir = fileURLToPath(new URL("../../migrations/", import.meta.url));
+  for (const f of readdirSync(dir).filter((n) => n.endsWith(".sql")).sort()) raw.exec(readFileSync(dir + f, "utf8"));
   const d1 = {
     prepare: (sql: string) => new FakeStatement(raw, sql),
     async batch(stmts: FakeStatement[]) {

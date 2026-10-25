@@ -8,11 +8,12 @@ import { approveSend, cancelSend, createDraft, deleteDraft, getDraft, sendDraft,
 import { ALL_CONTACTS } from "./people";
 import { buildState } from "./seed";
 import { deepMerge, liveDrafts, nextId, type MThread, type MockState } from "./state";
-import { queryThreads, unreadCount } from "./threads";
+import { matchesSearch, parseSearch, queryThreads, sortedOlder, unreadCount } from "./threads";
 
 export type MockOptions = { now?: number; seed?: number; latencyMs?: number };
 
 const DAY = 86_400_000;
+const OLDER_BATCH = 25;
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /**
@@ -182,6 +183,23 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
       };
     },
     async listThreads(query) { await delay(); return queryThreads(state, query, now()); },
+    async loadOlder(query) {
+      await sleep(Math.max(latency, 600));
+      const batch = sortedOlder(state, query.accountId).slice(0, OLDER_BATCH);
+      state.threads = [...state.threads, ...batch];
+      state.older = state.older.filter((t) => !batch.includes(t));
+      changed(batch.map((t) => t.id));
+      return { loaded: batch.length, hasMore: sortedOlder(state, query.accountId).length > 0 };
+    },
+    async searchServer(search, accountId) {
+      await sleep(Math.max(latency, 900));
+      const terms = parseSearch(search);
+      const hits = sortedOlder(state, accountId).filter((t) => matchesSearch(state, t, terms));
+      state.threads = [...state.threads, ...hits];
+      state.older = state.older.filter((t) => !hits.includes(t));
+      changed(hits.map((t) => t.id));
+      return { found: hits.length, added: hits.length };
+    },
     async getThread(id): Promise<ThreadDetail> {
       await delay();
       const t = find(id);

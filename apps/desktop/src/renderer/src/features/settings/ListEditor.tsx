@@ -24,7 +24,7 @@ export function ListEditor<T extends { id: number }>({ items, selectedId, onSele
             return (
               <button key={it.id} type="button" role="listitem" aria-current={selectedId === it.id} className={`${styles.listItem} ${selectedId === it.id ? styles.listOn : ""}`} onClick={() => onSelect(it.id)}>
                 <span className={styles.rowTitle}>{r.title}</span>
-                {r.sub ? <span className={`${styles.rowSub} ${styles.mono}`} style={{ maxWidth: "100%" }}>{r.sub}</span> : null}
+                {r.sub ? <span className={`${styles.rowSub} ${styles.mono}`} style={{ maxWidth: "100%", whiteSpace: "normal", overflowWrap: "anywhere" }}>{r.sub}</span> : null}
               </button>
             );
           })}

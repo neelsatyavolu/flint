@@ -214,7 +214,7 @@ export class IngestRepo {
   #insertNew(run: Run, msg: IngestMessage, fromMe: boolean, sender: Address | undefined): IngestOutcome {
     const { threadId, mergedThreadIds } = resolveThread(this.q, run.account.id, run.folder.id, msg, run.own);
     const isKnown = fromMe || (sender ? this.contacts.hasSentTo(sender.address) : false);
-    let category = categorize({ from: sender ?? null, headers: msg.headers, isKnownContact: isKnown });
+    let category = categorize({ from: sender ?? null, headers: msg.headers, isKnownContact: isKnown, subject: msg.subject });
     const hasBody = msg.textBody != null || msg.htmlBody != null;
     const bodyText = hasBody ? bodyTextFor(msg.textBody, msg.htmlBody) : "";
     const snippet = msg.snippet ?? snippetFrom(bodyText);

@@ -3,7 +3,7 @@ import { request, type IncomingMessage } from "node:http";
 import { z } from "zod";
 import { FLINT_METHODS, type FlintApi, type FlintMethod } from "../api";
 import { FlintError, type FlintEvent } from "../types";
-import { agentPaths, defaultDataDir, NOT_RUNNING_MESSAGE } from "./paths";
+import { agentPaths, defaultDataDir, NOT_RUNNING_MESSAGE, readSocketPointer } from "./paths";
 
 /** Thrown when the socket or token file is missing or refuses connections. The CLI maps it to exit code 2. */
 export class AppNotRunningError extends FlintError {
@@ -49,7 +49,7 @@ function toFlintError(code: string, message: string): FlintError {
 export function connectAgent(opts: ConnectOptions = {}): AgentClient {
   const dir = opts.dataDir ?? defaultDataDir();
   const defaults = agentPaths(dir);
-  const socketPath = opts.socketPath ?? defaults.socketPath;
+  const socketPath = opts.socketPath ?? readSocketPointer(dir) ?? defaults.socketPath;
   const tokenPath = opts.tokenPath ?? defaults.tokenPath;
   const agent = opts.agent ?? "agent";
 

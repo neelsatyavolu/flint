@@ -1,7 +1,9 @@
 import type { AiTask } from "../types";
 import { formatToday } from "./context";
 import { askPrompt } from "./prompts";
-import { buildAskContext, citedThreads, extractQueries, retrieve, stripDateFilters, type Hit } from "./ask";
+import {
+  buildAskContext, citedThreads, extractQueries, extractSearchPlan, retrieve, retrieveRanked, stripDateFilters, type Hit,
+} from "./ask";
 import type { AiContext } from "./ports";
 import type { TaskPlan } from "./tasks";
 
@@ -12,12 +14,22 @@ type AskTask = Extract<AiTask, { kind: "ask" }>;
 
 export async function planAsk(task: AskTask, ctx: AiContext): Promise<{ plan: TaskPlan; hits: Hit[] }> {
   const history = task.history ?? [];
-  const queries = extractQueries(task.question, history, ctx.now(), ctx.timeZone);
-  let hits = queries.length ? await retrieve(ctx, queries) : [];
-  if (hits.length === 0 && queries.length) {
-    // A date filter that was guessed wrong should not hide everything.
-    const undated = queries.map(stripDateFilters).filter((q, i) => q !== queries[i] && q);
-    if (undated.length) hits = await retrieve(ctx, undated);
+  let hits: Hit[];
+  if (ctx.rankedSearchForAi) {
+    const search = extractSearchPlan(task.question, history, ctx.now(), ctx.timeZone);
+    hits = search ? await retrieveRanked(ctx, search) : [];
+    if (hits.length === 0 && search && (search.after !== undefined || search.before !== undefined)) {
+      // A date window that was guessed wrong should not hide everything.
+      const { after: _a, before: _b, ...undated } = search;
+      hits = await retrieveRanked(ctx, undated);
+    }
+  } else {
+    const queries = extractQueries(task.question, history, ctx.now(), ctx.timeZone);
+    hits = queries.length ? await retrieve(ctx, queries) : [];
+    if (hits.length === 0 && queries.length) {
+      const undated = queries.map(stripDateFilters).filter((q, i) => q !== queries[i] && q);
+      if (undated.length) hits = await retrieve(ctx, undated);
+    }
   }
   const today = formatToday(ctx.now(), ctx.timeZone);
   if (hits.length === 0) {

@@ -1,0 +1,7 @@
+.panel { width: 400px; max-width: calc(100vw - 16px); padding: 0; }
+.body { padding: var(--s-3) var(--s-4) var(--s-3); max-height: min(70vh, 520px); overflow-y: auto; }
+.head { display: flex; align-items: center; justify-content: space-between; min-height: 24px; color: var(--fg-3); }
+.tag { color: var(--accent); }
+.lines { display: flex; flex-direction: column; gap: 8px; margin-top: var(--s-3); }
+.error { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-2); color: var(--fg-3); }
+.foot { margin-top: var(--s-3); padding-top: var(--s-2); border-top: 1px solid var(--line); }

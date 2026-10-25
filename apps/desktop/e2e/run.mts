@@ -2,10 +2,13 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { addImapAccount, startMail } from "./lib/setup.mts";
+import { startReceiptsServer } from "./lib/receipts.mts";
+import { trackedSendBecomesOpened } from "./lib/receipts-flow.mts";
 import { cleanup, DESKTOP, launch, setSize, setTheme, sleep } from "./lib/app.mts";
 import { CONFIGS, closeSettings, goTo, openSettingsSection, openThreadBySubject, results, setThemeProbe, Shooter, sidebar, step, waitForRows } from "./lib/ui.mts";
 
 const gm = await startMail();
+const receipts = await startReceiptsServer();
 const l = await launch();
 const { win } = l;
 const sh = new Shooter(l);
@@ -193,11 +196,8 @@ try {
     return `list returned ${Array.isArray(parsed) ? parsed.length : (parsed.items?.length ?? "?")} items`;
   });
 
-  await step("Read Statuses", async () => {
-    await goTo(win, "Read Statuses");
-    await sleep(500);
-    await sh.shot("23-read-statuses");
-  });
+  await step("Read Statuses: tracked send, self hit stays unopened, Gmail proxy hit shows Opened", () =>
+    trackedSendBecomesOpened(win, receipts, (n) => sh.shot(n), "carol@test.local"));
 
   await step("settings sections", async () => {
     const labels = ["General", "Accounts", "Appearance", "Inbox", "Signatures", "Templates", "Rules", "Read Receipts", "Notifications", "+AI", "Agents", "Shortcuts", "Blocked", "About"];
@@ -264,6 +264,7 @@ try {
 } finally {
   console.log("\n--- app logs (tail) ---\n" + l.logs.join("").slice(-2500));
   await l.close();
+  await receipts.stop();
   await gm.stop();
   cleanup(l.dataDir);
 }

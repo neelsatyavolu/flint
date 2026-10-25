@@ -1,8 +1,10 @@
 import { logger } from "../log";
 import type { ActionReport, ServerActions } from "../mail/actions";
 import type { Store } from "../store";
+import type { PendingOp, PendingOpSpec } from "../store/pendingOps";
 import type { ActionResult, MessageLocation, ThreadSnapshot } from "../store/types";
 import { FlintError, type AccountId, type FlintEvent, type MessageRowId, type ThreadId } from "../types";
+import { applyPendingOp } from "./pendingOps";
 import type { InverseOp, UndoRegistry } from "./undo";
 
 const log = logger("service.actions");
@@ -16,6 +18,8 @@ export type OptimisticSpec = {
   local: () => ActionResult;
   /** Server follow-up. Omit for local-only actions such as snooze and mute. */
   server?: ServerOp;
+  /** What `server` does, in a form that survives a restart. When set, the operation is recorded before it runs (see replayPending). */
+  op?: PendingOpSpec;
   /** Server operation that undoes the change after the store was restored. */
   inverse?: InverseOp;
 };
@@ -27,9 +31,16 @@ export type OptimisticDeps = {
   actionsFor: (accountId: AccountId) => ServerActions;
   /** Name of the agent behind the current call, or undefined for the UI. */
   caller: () => string | undefined;
+  now?: () => number;
 };
 
+/** Failed replays tolerated before a recorded operation is dropped (sync then settles the mailbox) and the age after which it is dropped. */
+const REPLAY_ATTEMPTS = 3;
+const REPLAY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
 export type Optimistic = {
+  /** Re-runs server operations that were recorded but never finished, e.g. because the app was closed mid-action. */
+  replayPending(): Promise<number>;
   run(spec: OptimisticSpec): Promise<{ undoToken: string }>;
   undo(token: string): Promise<void>;
   changed(accountThreads: Map<AccountId, ThreadId[]>): void;
@@ -90,6 +101,45 @@ export function createOptimistic(d: OptimisticDeps): Optimistic {
     d.emit(toast(message));
   };
 
+  /** The server operation wrapped so it is on disk while it runs. A crash leaves the row behind for replayPending. */
+  function durable(spec: OptimisticSpec): ServerOp {
+    const server = spec.server!;
+    const { op } = spec;
+    if (!op) return server;
+    return async (actions, group) => {
+      const accountId = group[0]?.accountId;
+      const id = accountId ? d.store.addPendingOp(accountId, op, group.map((l) => l.messageRowId), (d.now ?? Date.now)()) : null;
+      try {
+        return await server(actions, group);
+      } finally {
+        if (id !== null) d.store.removePendingOp(id);
+      }
+    };
+  }
+
+  async function replayOne(p: PendingOp): Promise<void> {
+    const locs = d.store.getMessageLocations(p.messageIds);
+    if (locs.length === 0) return void d.store.removePendingOp(p.id);
+    const failed = await runOnServer(d, locs, (actions, group) => applyPendingOp(actions, p, group));
+    if (failed.size === 0) return void d.store.removePendingOp(p.id);
+    if (d.store.bumpPendingOp(p.id, "server refused the replayed operation") >= REPLAY_ATTEMPTS) d.store.removePendingOp(p.id);
+  }
+
+  async function replayPending(): Promise<number> {
+    const now = (d.now ?? Date.now)();
+    let ran = 0;
+    for (const p of d.store.listPendingOps()) {
+      if (now - p.createdAt > REPLAY_MAX_AGE_MS) { d.store.removePendingOp(p.id); continue; }
+      try {
+        await replayOne(p);
+        ran += 1;
+      } catch (error) {
+        log.warn("could not replay a pending operation", { id: p.id, kind: p.kind, reason: (error as Error).message });
+      }
+    }
+    return ran;
+  }
+
   async function run(spec: OptimisticSpec): Promise<{ undoToken: string }> {
     const result = spec.local();
     const threadIds = result.snapshot.threads.map((t) => t.id);
@@ -102,7 +152,7 @@ export function createOptimistic(d: OptimisticDeps): Optimistic {
     changed(accountsOf(threadIds));
     if (!spec.server || result.locations.length === 0) return { undoToken: token };
 
-    const failed = await runOnServer(d, result.locations, spec.server);
+    const failed = await runOnServer(d, result.locations, durable(spec));
     if (failed.size === 0) return { undoToken: token };
 
     const restored = d.store.restoreSnapshot(failedPart(result.snapshot, failed));
@@ -123,5 +173,5 @@ export function createOptimistic(d: OptimisticDeps): Optimistic {
     if (failed.size > 0) fail(`Couldn't undo ${entry.label} on the server. It will correct itself on the next sync.`);
   }
 
-  return { run, undo, changed, accountsOf };
+  return { run, undo, changed, accountsOf, replayPending };
 }

@@ -50,12 +50,12 @@ export function MessageBody({ message, onUpdated }: { message: MessageView; onUp
     <div className={styles.bodyWrap}>
       {blockedNotice ? (
         <div className={clsx("t-body", styles.notice)}>
-          <span>Remote images are blocked.</span>
+          <span>{message.hasTrackers ? "Remote images are blocked and tracking pixels removed." : "Remote images are blocked."}</span>
           <Button size="sm" variant="ghost" onClick={() => load(false)}>Load images</Button>
           <Button size="sm" variant="ghost" onClick={() => load(true)}>Always for this sender</Button>
         </div>
       ) : null}
-      {message.hasTrackers ? <p className={clsx("t-body", styles.trackers)}>Flint removed tracking pixels from this message.</p> : null}
+      {message.hasTrackers && !blockedNotice ? <p className={clsx("t-body", styles.trackers)}>Flint removed tracking pixels from this message.</p> : null}
       {message.html !== null ? (
         <div className={styles.sheet}>
           <MailFrame html={message.html} allowRemoteImages={allowed} title={`Message from ${message.from[0]?.name || message.from[0]?.address || "sender"}`} />

@@ -15,7 +15,7 @@ flint draft --to cindy@example.com --subject "Hello" --body "Draft text"`;
 
 export function AgentsSection() {
   const { settings: s, save } = useSettingsStore();
-  const info = useFlintQuery((api) => api.agentInfo(), []);
+  const info = useFlintQuery((api) => api.agentInfo(), [], { mail: false });
   const [installing, setInstalling] = useState(false);
   const [installMsg, setInstallMsg] = useState<{ ok: boolean; text: string } | null>(null);
 

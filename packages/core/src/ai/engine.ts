@@ -107,6 +107,8 @@ export function createAiEngine(ctx: AiContext, options: AiEngineOptions = {}) {
       const hit = ctx.cacheGet(plan.cacheKey);
       if (hit) {
         emit({ type: "text", text: hit });
+        const cachedCitations = plan.citations?.(hit) ?? [];
+        if (cachedCitations.length) emit({ type: "citations", threads: cachedCitations });
         return hit;
       }
     }
@@ -141,11 +143,14 @@ export function createAiEngine(ctx: AiContext, options: AiEngineOptions = {}) {
     return output;
   }
 
+  async function precheckConnected(): Promise<void> {
+    if (!(await auth.stored())) throw new FlintError("ai_not_connected", "Connect ChatGPT or Grok in Settings → +AI");
+  }
+
   async function precheck(rawTask: AiTask): Promise<AiTask> {
     const task = parseTask(rawTask);
-    await auth.stored().then((s) => {
-      if (!s) throw new FlintError("ai_not_connected", "Connect ChatGPT or Grok in Settings → +AI");
-    });
+    if (task.kind === "needsReply") return task; // local heuristic, no model call
+    await precheckConnected();
     return task;
   }
 
@@ -174,6 +179,18 @@ export function createAiEngine(ctx: AiContext, options: AiEngineOptions = {}) {
     return { runId };
   }
 
+  /** One plain model call outside the task kinds (background classification). Throws ai_not_connected when no provider is signed in. */
+  async function complete(system: string, user: string, signal: AbortSignal = new AbortController().signal): Promise<string> {
+    await precheckConnected();
+    await auth.active();
+    const plan: TaskPlan = { system, messages: [{ role: "user", content: user }], effort: "low", streamText: false };
+    try {
+      return await streamPass(plan, plan.messages, signal, () => {});
+    } catch (err) {
+      throw toFlintError(err);
+    }
+  }
+
   function cancel(runId: string): void {
     runs.get(runId)?.abort();
   }
@@ -197,6 +214,7 @@ export function createAiEngine(ctx: AiContext, options: AiEngineOptions = {}) {
     run,
     cancel,
     runToText,
+    complete,
     /** Port of the Codex loopback listener while a sign-in is pending (tests, diagnostics). */
     callbackPort: () => auth.listenerPort(),
     dispose: () => { for (const c of runs.values()) c.abort(); runs.clear(); auth.dispose(); },

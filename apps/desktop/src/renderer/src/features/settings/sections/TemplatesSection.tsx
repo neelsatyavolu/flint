@@ -14,7 +14,7 @@ type Draft = Omit<Template, "id"> & { id?: number };
 
 export function TemplatesSection() {
   const toast = useToast();
-  const templates = useFlintQuery((api) => api.listTemplates(), []);
+  const templates = useFlintQuery((api) => api.listTemplates(), [], { mail: false });
   const [sel, setSel] = useState<number | "new" | null>(null);
   const list = templates.data ?? [];
   const current: Draft | null = sel === "new" ? { name: "", subject: "", html: "" } : (list.find((t) => t.id === sel) ?? null);

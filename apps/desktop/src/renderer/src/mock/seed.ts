@@ -2,6 +2,7 @@ import type { Address, Draft, Folder, MailboxRole, MessageView, ReceiptDetail, R
 import { SIGNATURES, quoteBlock, textToMailHtml } from "./bodies";
 import { ACCOUNT_IDS, defaultAi, defaultSettings, makeAccounts, makeActivity, makeRules, makeSignatures, makeTemplates } from "./fixtures";
 import { generateThreads } from "./generated";
+import { generateOlder } from "./older";
 import { HERO_THREADS } from "./hero";
 import { ME, ME_NAME, PEOPLE } from "./people";
 import { createRng } from "./rng";
@@ -68,7 +69,7 @@ function bodyHtml(m: SeedMsg, prev: { from: Address; date: number; html: string 
   return html;
 }
 
-function buildThread(state: MockState, seed: SeedThread, now: number, folderByName: Map<string, number>): MThread {
+export function buildThread(state: MockState, seed: SeedThread, now: number, folderByName: Map<string, number>): MThread {
   const accountId = ACCOUNT_IDS[seed.acct];
   const me: Address = { name: ME_NAME, address: acctEmail(seed.acct) };
   const threadId = nextId(state, "thread");
@@ -148,7 +149,7 @@ export function buildState(now: number, seed = 7): MockState {
     accounts: makeAccounts(now), folders: [], threads: [], drafts: [], scheduled: [], signatures: makeSignatures(), templates: makeTemplates(), rules: makeRules(),
     blocked: [{ pattern: "outreach@growth-hacker.example", createdAt: now - 12 * DAY * MIN }, { pattern: "@bulk-deals.example", createdAt: now - 40 * DAY * MIN }],
     tracked: [], receipts: {}, activity: makeActivity(now), settings: defaultSettings(), ai: defaultAi(),
-    sync: [], ids: {},
+    sync: [], ids: {}, older: [],
   };
   state.folders = buildFolders(state);
   state.sync = state.accounts.map((a) => ({ accountId: a.id, state: "idle", lastSyncAt: now - 40_000 }));
@@ -156,6 +157,7 @@ export function buildState(now: number, seed = 7): MockState {
 
   const seeds: SeedThread[] = [...HERO_THREADS, ...generateThreads(rng)];
   state.threads = seeds.map((s) => buildThread(state, s, now, folderByName));
+  state.older = generateOlder(rng).map((s) => buildThread(state, s, now, folderByName));
   seedDrafts(state, now);
   return state;
 }

@@ -287,3 +287,27 @@ describe("markReplied, seenPing, stopTracking", () => {
     expect(stateOf(s, trackedId)).toBe("active");
   });
 });
+
+describe("recordUntracked", () => {
+  it("records an untracked row with the reason as the recipients' note, and skips the user's own address", () => {
+    const s = setup();
+    const ref = s.client.recordUntracked({ ...input(s, [carla, dan, me()]), reason: "Receipts off: plain-text mode" });
+    expect(ref).not.toBeNull();
+    const id = s.store.findTrackedByRef(ref!)!;
+    const tracked = s.store.getTracked(id)!;
+    expect(tracked.recipients.map((r) => r.email).sort()).toEqual(["carla@example.org", "dan@example.org"]);
+    expect(tracked.recipients.every((r) => r.status === "untracked" && r.note === "Receipts off: plain-text mode")).toBe(true);
+    expect(tracked.summary.status).toBe("untracked");
+    expect(stateOf(s, id)).toBe("unregistered");
+    expect(s.service.calls.filter((c) => c.path === "/v1/messages")).toHaveLength(0);
+    // The note survives a recompute (for example when a reply arrives in the thread).
+    s.store.recomputeRecipient(tracked.recipients.length ? (s.store.db.prepare("SELECT id FROM tracked_recipients LIMIT 1").get() as { id: number }).id : 0);
+    expect(s.store.getTracked(id)!.recipients[0]!.note).toBe("Receipts off: plain-text mode");
+  });
+
+  it("records nothing when the mail only went to the user", () => {
+    const s = setup();
+    expect(s.client.recordUntracked({ ...input(s, [me()]), reason: "Receipts off in Settings" })).toBeNull();
+    expect(s.store.listTracked()).toEqual([]);
+  });
+});

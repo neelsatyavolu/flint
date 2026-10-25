@@ -3,11 +3,14 @@ import type { Account } from "@flint/core";
 import { flint } from "../../lib/api";
 import { useFlintQuery } from "../../lib/hooks";
 import { Button } from "../../ui";
+import type { ProviderId } from "./providers";
 import { GoogleSetupPanel } from "./GoogleSetupPanel";
 import styles from "./onboarding.module.css";
 
-export function GoogleStep({ onDone }: { onDone: (a: Account) => void }) {
-  const settings = useFlintQuery((api) => api.getSettings(), []);
+type Props = { onDone: (a: Account) => void; /** Lets the error well offer another route, such as Proton Mail Bridge. */ onSwitch?: (c: ProviderId) => void };
+
+export function GoogleStep({ onDone, onSwitch }: Props) {
+  const settings = useFlintQuery((api) => api.getSettings(), [], { mail: false });
   const [editing, setEditing] = useState(false);
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +44,14 @@ export function GoogleStep({ onDone }: { onDone: (a: Account) => void }) {
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>Change Google client</Button>
         </div>
       )}
-      {error ? <p role="alert" className={styles.err}>{error}</p> : null}
+      {error ? (
+        <div role="alert" className={styles.errorWell}>
+          <p>{error}</p>
+          {onSwitch && /proton/i.test(error) ? (
+            <div><Button variant="ghost" size="sm" onClick={() => onSwitch("proton-bridge")}>Set up Proton Mail (Bridge)</Button></div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

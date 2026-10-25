@@ -55,10 +55,14 @@ export function unrecognizedOperators(query: string): string[] {
     .map((t) => `${t.negated ? "-" : ""}${t.text}`);
 }
 
-export async function search(ctx: Ctx, query: string, opts: { limit?: string }): Promise<void> {
+export async function search(ctx: Ctx, query: string, opts: { limit?: string; server?: boolean }): Promise<void> {
   if (!query.trim()) throw new FlintError("invalid", `Give a search query. Supported: ${OPERATORS}.`);
   const unknown = unrecognizedOperators(query);
   if (unknown.length) ctx.warn(`Warning: not a search operator, treated as plain text: ${unknown.join(", ")}. Supported: ${OPERATORS}.`);
+  if (opts.server) {
+    const found = await ctx.client.searchServer(query);
+    if (found.added > 0) ctx.warn(`Fetched ${plural(found.added, "older message")} from the mail server.`);
+  }
   const page = await ctx.client.listThreads({ view: "search", search: query, limit: parseLimit(opts.limit, 25) });
   emit(ctx, page, (p) => threadTable(ctx, p.items));
 }

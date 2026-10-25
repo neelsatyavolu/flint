@@ -9,6 +9,8 @@ import { ensureIndexes } from "./indexes";
 import { ActivityRepo, KvRepo } from "./kv";
 import { LibraryRepo, RemindersRepo } from "./library";
 import { MessagesRepo } from "./messages";
+import { PendingOpsRepo } from "./pendingOps";
+import { RecategorizeRepo } from "./recategorize";
 import { ReceiptsRepo } from "./receipts";
 import { RulesRepo } from "./rulesRepo";
 import { SettingsRepo } from "./settings";
@@ -21,7 +23,7 @@ type Pub<T> = { [K in keyof T]: T[K] };
 export interface Store extends
   Pub<AccountsRepo>, Pub<FoldersRepo>, Pub<ContactsRepo>, Pub<RulesRepo>, Pub<ReceiptsRepo>, Pub<IngestRepo>, Pub<MessagesRepo>,
   Pub<ThreadListRepo>, Pub<ThreadActionsRepo>, Pub<SettingsRepo>, Pub<KvRepo>, Pub<ActivityRepo>, Pub<DraftsRepo>, Pub<ScheduledRepo>,
-  Pub<LibraryRepo>, Pub<RemindersRepo>, Pub<DashboardRepo> {}
+  Pub<LibraryRepo>, Pub<RemindersRepo>, Pub<DashboardRepo>, Pub<RecategorizeRepo>, Pub<PendingOpsRepo> {}
 
 /**
  * The data layer. Synchronous (node:sqlite) and the only place SQL lives besides the schema.
@@ -46,7 +48,7 @@ export class Store {
       new IngestRepo(q, accounts, folders, contacts, rules, receipts),
       new ThreadActionsRepo(q, accounts, folders, messages),
       new SettingsRepo(q), new KvRepo(q), new ActivityRepo(q), new DraftsRepo(q), new ScheduledRepo(q),
-      new LibraryRepo(q), new RemindersRepo(q, accounts),
+      new LibraryRepo(q), new RemindersRepo(q, accounts), new RecategorizeRepo(q), new PendingOpsRepo(q),
       new DashboardRepo(q, accounts, folders, lists, receipts, rules),
     ];
     for (const repo of repos) {
@@ -75,6 +77,7 @@ export type * from "./types";
 export type { NewAccount, AccountPatch } from "./accounts";
 export type { FolderInput } from "./folders";
 export type { NewDraft, DraftUpdate, DraftMeta, ScheduledSendRow } from "./drafts";
+export type { PendingKind, PendingOp, PendingOpSpec } from "./pendingOps";
 export type { NewTracked, ReceiptEventInput } from "./receipts";
 export type { SidebarAccountData, SidebarCounts } from "./dashboard";
 export * from "../categorize";

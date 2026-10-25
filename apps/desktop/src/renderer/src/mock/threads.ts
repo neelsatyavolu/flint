@@ -57,7 +57,7 @@ export function parseSearch(q: string): SearchTerms {
 
 const addrText = (list: Address[]) => list.map((a) => `${a.name} ${a.address}`).join(" ").toLowerCase();
 
-function matchesSearch(state: MockState, t: MThread, terms: SearchTerms): boolean {
+export function matchesSearch(state: MockState, t: MThread, terms: SearchTerms): boolean {
   const msgs: MessageView[] = t.messages;
   const hay = `${t.subject} ${msgs.map((m) => `${addrText(m.from)} ${addrText(m.to)} ${m.snippet} ${m.text ?? ""}`).join(" ")}`.toLowerCase();
   if (!terms.include.every((w) => hay.includes(w))) return false;
@@ -112,6 +112,10 @@ function bundles(state: MockState, threads: MThread[]): Bundle[] {
   }).filter((b) => b.totalCount > 0);
 }
 
+/** Server-side mail that is older than the window, newest first. */
+export const sortedOlder = (state: MockState, accountId?: string): MThread[] =>
+  state.older.filter((t) => (accountId ? t.accountId === accountId : true)).sort((a, b) => lastDate(state, b) - lastDate(state, a));
+
 export function queryThreads(state: MockState, q: ThreadQuery, now: number): ThreadPage {
   let list = state.threads.filter((t) => (q.accountId ? t.accountId === q.accountId : true) && inView(state, t, q, now));
   const bundled = q.view === "inbox" && q.focused ? bundles(state, list) : [];
@@ -124,5 +128,7 @@ export function queryThreads(state: MockState, q: ThreadQuery, now: number): Thr
   const start = q.cursor ? Number(q.cursor) || 0 : 0;
   const slice = list.slice(start, start + limit);
   const end = start + slice.length;
-  return { items: slice.map((t) => toListItem(state, t)), bundles: bundled, nextCursor: end < list.length ? String(end) : null };
+  const nextCursor = end < list.length ? String(end) : null;
+  const olderLeft = q.view === "inbox" && state.older.some((t) => (q.accountId ? t.accountId === q.accountId : true));
+  return { items: slice.map((t) => toListItem(state, t)), bundles: bundled, nextCursor, ...(nextCursor === null ? { olderOnServer: olderLeft } : {}) };
 }

@@ -56,3 +56,33 @@ export function sharesParticipant(a: ReadonlySet<string>, b: ReadonlySet<string>
 }
 
 export const SUBJECT_JOIN_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+
+/** Subject with only reply/forward markers removed ([tags] stay, so "[repo-a] Fix" and "[repo-b] Fix" differ). */
+export function joinSubject(subject: string): string {
+  let s = subject.trim();
+  for (;;) {
+    const next = s.replace(/^(re|fwd?|aw|sv|wg|vs|antw|tr|rv|r)\s*(\[\d+\])?\s*:\s*/i, "");
+    if (next === s) break;
+    s = next;
+  }
+  return s.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+const GENERIC_SUBJECTS = new Set([
+  "hi", "hello", "hey", "test", "testing", "question", "questions", "update", "updates", "meeting", "thanks", "thank you", "follow up", "following up",
+  "reminder", "invoice", "receipt", "welcome", "(no subject)", "no subject", "quick question", "checking in", "hi there", "important", "fyi", "help", "request",
+]);
+
+/** True for subjects too common to prove two messages belong together. */
+export function isGenericSubject(subject: string): boolean {
+  const core = joinSubject(subject).replace(/[!.?\s]+$/g, "");
+  return core.length < 5 || GENERIC_SUBJECTS.has(core);
+}
+
+/** True when headers mark list, bulk or machine-generated mail, which must never join a thread by subject alone. */
+export function isAutomatedHeaders(headers: Record<string, string>): boolean {
+  if (headers["list-id"] || headers["list-unsubscribe"] || headers["x-github-reason"] || headers["feedback-id"]) return true;
+  const auto = (headers["auto-submitted"] ?? "").trim().toLowerCase();
+  if (auto !== "" && auto !== "no") return true;
+  return /^(bulk|list|junk)$/i.test((headers["precedence"] ?? "").trim());
+}

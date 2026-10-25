@@ -22,5 +22,10 @@ describe("initials", () => {
   it("uses first and last word", () => expect(initials("Carla Mendes", "c@x.io")).toBe("CM"));
   it("uses one letter for single names", () => expect(initials("Gitforge", "n@g.dev")).toBe("G"));
   it("falls back to the address", () => expect(initials("", "sam.lee@x.io")).toBe("SL"));
+  it("ignores punctuation", () => {
+    expect(initials("Neel (Nenu)", "n@x.io")).toBe("NN");
+    expect(initials("\"Doe, Jane\"", "j@x.io")).toBe("DJ");
+    expect(initials("()", "sam.lee@x.io")).toBe("SL");
+  });
   it("handles hyphenated names", () => expect(initials("Mei-Ling Zhou", "m@x.io")).toBe("MZ"));
 });

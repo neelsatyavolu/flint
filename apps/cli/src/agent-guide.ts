@@ -1,4 +1,4 @@
-/** Text for `flint help agents`. docs/AGENTS.md holds the same text; a test keeps them equal. */
+/** Text for `flint help agents`. apps/cli/AGENTS.md and docs/AGENTS.md hold the same text; a test keeps them equal. */
 export const AGENT_GUIDE = `Flint for scripts and AI agents
 
 Flint must be running. Every command accepts --json (machine output on stdout) and
@@ -48,6 +48,22 @@ Search operators ("flint search <query>")
   has:attachment   is:unread  is:read  is:pinned  is:snoozed   before:YYYY-MM-DD  after:YYYY-MM-DD
   A leading - negates ("-from:news"), "quoted phrases" match exactly.
   Anything else (filename:, label:) is treated as plain text and a warning goes to stderr.
+  Only recent mail is on this computer. Add --server to also search the mail server for older matches.
+
+Recipes
+  Triage unread people mail
+    flint list --unread --category people --limit 25 --json
+    flint read <threadId>                 # text; HTML mail is converted, links shown as [text](url)
+    flint archive <threadId>              # or pin, snooze <id> tomorrow, move <id> Receipts
+  Summarize a thread
+    flint summarize <threadId>            # uses the connected AI; or read it and summarize yourself
+  Draft a reply (never sends by itself)
+    flint reply <threadId> --body "Thanks, on it."   # prints: Draft 12 created.
+    flint send 12                         # queues it; with sending on "ask" it waits for the user
+  Find an attachment
+    flint search "has:attachment from:cindy invoice" --json
+    flint read <threadId>                 # lists "attachment N"
+    flint attachment <N>                  # saves the file and prints its path
 
 Triage loop
   flint list --unread --limit 25 --json

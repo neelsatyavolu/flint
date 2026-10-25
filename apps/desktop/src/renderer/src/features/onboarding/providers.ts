@@ -1,6 +1,6 @@
 import type { Provider, ServerConfig } from "@flint/core";
 
-export type ProviderId = "gmail-app" | "icloud" | "outlook" | "yahoo" | "fastmail" | "other";
+export type ProviderId = "gmail-app" | "icloud" | "outlook" | "yahoo" | "fastmail" | "proton-bridge" | "other";
 
 export type ProviderPreset = {
   id: ProviderId;
@@ -17,6 +17,9 @@ export type ProviderPreset = {
 const cfg = (email: string, imapHost: string, smtpHost: string, smtpPort: number, smtpSecure: boolean): ServerConfig => ({
   imapHost, imapPort: 993, imapSecure: true, smtpHost, smtpPort, smtpSecure, username: email,
 });
+
+/** Shown wherever Flint points at Proton Mail Bridge. */
+export const PROTON_BRIDGE_HINT = "Use the password from Proton Mail Bridge, not your Proton password. Bridge has to be running on this computer.";
 
 export const PROVIDERS: ProviderPreset[] = [
   {
@@ -46,6 +49,12 @@ export const PROVIDERS: ProviderPreset[] = [
     id: "fastmail", label: "Fastmail", provider: "imap",
     servers: (e) => cfg(e, "imap.fastmail.com", "smtp.fastmail.com", 465, true),
     passwordHint: "Use an app password with mail access. Create one in Fastmail under Privacy and Security.",
+  },
+  {
+    id: "proton-bridge", label: "Proton Mail (Bridge)", provider: "imap",
+    // Proton Bridge listens on this computer: IMAP 1143 with STARTTLS, SMTP 1025 with SSL.
+    servers: (e) => ({ imapHost: "127.0.0.1", imapPort: 1143, imapSecure: false, smtpHost: "127.0.0.1", smtpPort: 1025, smtpSecure: true, username: e }),
+    passwordHint: PROTON_BRIDGE_HINT,
   },
   {
     id: "other", label: "Other (IMAP)", provider: "imap", servers: null,

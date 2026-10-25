@@ -19,7 +19,7 @@ export function useNarrow(): boolean {
 /** Loads settings, accounts and sidebar data once and shares them. Renders a blank plane until settings and accounts arrive. */
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const { settings, update } = useSettings();
-  const accounts = useFlintQuery((api) => api.listAccounts(), [], { refetchOn: ["settings"] });
+  const accounts = useFlintQuery((api) => api.listAccounts(), [], { refetchOn: ["settings"], mail: false });
   const sidebar = useFlintQuery((api) => api.getSidebar(), [], { refetchOn: ["sync"] });
   const narrow = useNarrow();
 

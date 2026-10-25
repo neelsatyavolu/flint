@@ -5,6 +5,7 @@ import { readStored, writeStored } from "../../lib/storage";
 import { Button } from "../../ui/Button";
 import { Skeleton } from "../../ui/Skeleton";
 import { ProseText } from "./ProseText";
+import { ThreadTranslate } from "./ThreadTranslate";
 import { useAiAvailability, useAiRun } from "./useAiRun";
 import { isBusy } from "./aiRun";
 import styles from "./ThreadSummary.module.css";
@@ -44,7 +45,8 @@ export function ThreadSummary({ threadId, messageCount, wordCount }: Props): JSX
     }
   }, [state.status, state.text, cacheKey]);
 
-  if (!wanted) return null;
+  const translate = ai.ready ? <ThreadTranslate threadId={threadId} /> : null;
+  if (!wanted) return translate;
 
   const toggle = () => {
     const next = !collapsed;
@@ -56,6 +58,7 @@ export function ThreadSummary({ threadId, messageCount, wordCount }: Props): JSX
   const Chevron = collapsed ? ChevronRight : ChevronDown;
 
   return (
+    <>
     <section className={styles.summary} aria-label="Thread summary">
       <div className={styles.head}>
         <button type="button" onClick={toggle} aria-expanded={!collapsed}>
@@ -81,5 +84,7 @@ export function ThreadSummary({ threadId, messageCount, wordCount }: Props): JSX
         </div>
       )}
     </section>
+    {translate}
+    </>
   );
 }

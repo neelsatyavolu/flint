@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
-import { chmodSync, rmSync } from "node:fs";
+import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { z } from "zod";
 import { FLINT_METHODS, METHOD_TIERS, type FlintApi, type FlintMethod } from "../api";
@@ -8,6 +9,7 @@ import { FlintError, type AgentActivity, type Draft, type FlintEvent, type Setti
 import { runAsAgent } from "./context";
 import { redactParams } from "./redact";
 import { summarize, summarizeFailure } from "./summarize";
+import { SOCKET_POINTER_FILE } from "./paths";
 import { ensureToken } from "./token";
 
 const log = logger("agent");
@@ -124,6 +126,15 @@ function gate(tier: (typeof METHOD_TIERS)[FlintMethod], settings: Settings, meth
   return { ok: true };
 }
 
+function tightenUmask(): number | null {
+  try { return process.umask(0o177); } catch { return null; } // worker threads can't change the umask
+}
+
+function restoreUmask(previous: number | null): void {
+  if (previous === null) return;
+  try { process.umask(previous); } catch { /* nothing to restore */ }
+}
+
 export async function startAgentServer(opts: AgentServerOptions): Promise<AgentServerHandle> {
   const { api, socketPath, getSettings, logActivity } = opts;
   const callAs = opts.callAs ?? runAsAgent;
@@ -204,6 +215,13 @@ export async function startAgentServer(opts: AgentServerOptions): Promise<AgentS
     }
   }
 
+  /** Toast events carry the user's undo tokens, which undo() would accept from an agent. */
+  function forAgent(event: FlintEvent): FlintEvent {
+    if (event.type !== "toast") return event;
+    const { undoToken: _omit, ...rest } = event;
+    return rest;
+  }
+
   function allowEvent(event: FlintEvent): boolean {
     if (event.type === "settings") return false; // settings carry the Google client secret
     if (event.type === "ai") return aiRuns.has(event.chunk.runId);
@@ -237,7 +255,7 @@ export async function startAgentServer(opts: AgentServerOptions): Promise<AgentS
           cleanup();
           return;
         }
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
+        res.write(`data: ${JSON.stringify(forAgent(event))}\n\n`);
       });
     });
     const timer = setInterval(() => res.write(": keepalive\n\n"), keepaliveMs);
@@ -269,15 +287,28 @@ export async function startAgentServer(opts: AgentServerOptions): Promise<AgentS
     });
   });
 
+  const dataDir = dirname(opts.tokenPath);
+  const pointerPath = join(dataDir, SOCKET_POINTER_FILE);
+  const socketDir = dirname(socketPath);
+  mkdirSync(socketDir, { recursive: true, mode: 0o700 });
+  if (socketDir !== dataDir) chmodSync(socketDir, 0o700);
   rmSync(socketPath, { force: true });
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
-    server.listen(socketPath, () => {
-      server.off("error", reject);
-      resolve();
-    });
+    // The socket file is created with the process umask at bind time, so tighten it first: no window where others can connect.
+    const previousUmask = tightenUmask();
+    try {
+      server.listen(socketPath, () => {
+        server.off("error", reject);
+        resolve();
+      });
+    } finally {
+      restoreUmask(previousUmask);
+    }
   });
   chmodSync(socketPath, 0o600);
+  if (socketDir === dataDir) rmSync(pointerPath, { force: true });
+  else writeFileSync(pointerPath, socketPath, { mode: 0o600 });
   log.info("agent server listening");
 
   return {
@@ -288,6 +319,7 @@ export async function startAgentServer(opts: AgentServerOptions): Promise<AgentS
         for (const s of streams) s.end();
         server.close(() => {
           rmSync(socketPath, { force: true });
+          if (socketDir !== dataDir) rmSync(pointerPath, { force: true });
           resolve();
         });
         server.closeAllConnections();

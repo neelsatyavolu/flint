@@ -7,8 +7,10 @@ export const PAGE_SIZE = 50;
 const MAX_PAGE = 200;
 const MAX_REFRESH = 1000;
 
-type ListApi = Pick<FlintApi, "listThreads">;
+type ListApi = Pick<FlintApi, "listThreads"> & Partial<Pick<FlintApi, "loadOlder" | "searchServer">>;
 export type ListStatus = "idle" | "loading" | "ready" | "error";
+/** Progress of the server search that backs up a search with few local results. */
+export type ServerSearchStatus = "idle" | "searching" | "done" | "error";
 
 export type ListState = {
   query: ThreadQuery | null;
@@ -22,11 +24,20 @@ export type ListState = {
   nextCursor: string | null;
   status: ListStatus;
   loadingMore: boolean;
+  /** The server holds older mail for this list that is not on this computer (known once the local list ends). */
+  olderOnServer: boolean;
+  loadingOlder: boolean;
+  olderError: string | null;
+  serverSearch: ServerSearchStatus;
   error: string | null;
   hidden: ThreadId[];
   setQuery(query: ThreadQuery | null): void;
   refresh(): Promise<void>;
   loadMore(): Promise<void>;
+  /** Pulls the next batch of older mail from the server, then shows it. */
+  loadOlder(): Promise<void>;
+  /** Searches the server for the current search query and merges new matches into the list. Once per query. */
+  searchServer(): Promise<void>;
   hide(ids: ThreadId[]): void;
   unhide(ids: ThreadId[]): void;
   patchItems(ids: ThreadId[], patch: Partial<ThreadListItem> | ((item: ThreadListItem) => Partial<ThreadListItem>)): void;
@@ -59,6 +70,7 @@ function derive(raw: ThreadListItem[], bundles: Bundle[], hidden: ThreadId[], so
 
 export function createListStore(api: ListApi): ListStore {
   let seq = 0;
+  const searched = new Set<string>();
 
   return createStore<ListState>((set, get) => {
     const apply = (raw: ThreadListItem[], bundles: Bundle[], hidden: ThreadId[] = get().hidden) =>
@@ -79,6 +91,10 @@ export function createListStore(api: ListApi): ListStore {
       nextCursor: null,
       status: "idle",
       loadingMore: false,
+      olderOnServer: false,
+      loadingOlder: false,
+      olderError: null,
+      serverSearch: "idle",
       error: null,
       hidden: [],
 
@@ -86,11 +102,14 @@ export function createListStore(api: ListApi): ListStore {
         const key = query ? queryKey(query) : null;
         if (key === get().queryKey) return;
         const id = ++seq;
-        set({ query, queryKey: key, raw: [], items: [], bundles: [], entries: [], nextCursor: null, hidden: [], loadingMore: false, error: null, status: query ? "loading" : "idle" });
+        set({
+          query, queryKey: key, raw: [], items: [], bundles: [], entries: [], nextCursor: null, hidden: [], loadingMore: false, error: null,
+          olderOnServer: false, loadingOlder: false, olderError: null, serverSearch: "idle", status: query ? "loading" : "idle",
+        });
         if (!query) return;
         api.listThreads({ ...query, limit: PAGE_SIZE }).then((page) => {
           if (id !== seq) return;
-          set({ nextCursor: page.nextCursor, status: "ready" });
+          set({ nextCursor: page.nextCursor, olderOnServer: page.olderOnServer === true, status: "ready" });
           apply(page.items, page.bundles, []);
         }, (err: unknown) => fail(id, err));
       },
@@ -106,15 +125,17 @@ export function createListStore(api: ListApi): ListStore {
           let bundles: Bundle[] = [];
           let cursor: string | undefined;
           let nextCursor: string | null = null;
+          let olderOnServer = false;
           do {
             const page = await api.listThreads({ ...query, limit: Math.min(MAX_PAGE, want - items.length), ...(cursor ? { cursor } : {}) });
             if (id !== seq) return;
             items = [...items, ...page.items];
             if (!cursor) bundles = page.bundles;
             nextCursor = page.nextCursor;
+            olderOnServer = page.olderOnServer === true;
             cursor = page.nextCursor ?? undefined;
           } while (cursor && items.length < want);
-          set({ nextCursor, status: "ready", error: null });
+          set({ nextCursor, olderOnServer: nextCursor === null && olderOnServer, status: "ready", error: null });
           apply(reuse(get().raw, items), bundles);
         } catch (err) {
           fail(id, err);
@@ -130,10 +151,42 @@ export function createListStore(api: ListApi): ListStore {
           const page = await api.listThreads({ ...query, limit: PAGE_SIZE, cursor: nextCursor });
           if (id !== seq) return;
           const have = new Set(get().raw.map((i) => i.id));
-          set({ nextCursor: page.nextCursor, loadingMore: false });
+          set({ nextCursor: page.nextCursor, olderOnServer: page.olderOnServer === true, loadingMore: false });
           apply([...get().raw, ...page.items.filter((i) => !have.has(i.id))], get().bundles);
         } catch (err) {
           fail(id, err);
+        }
+      },
+
+      async loadOlder() {
+        const { query, queryKey: key, loadingOlder, status } = get();
+        if (!api.loadOlder || !query || loadingOlder || status !== "ready") return;
+        set({ loadingOlder: true, olderError: null });
+        try {
+          await api.loadOlder(query);
+          if (get().queryKey !== key) return;
+          await get().refresh();
+          if (get().queryKey !== key) return;
+          set({ loadingOlder: false });
+          await get().loadMore();
+        } catch (err) {
+          if (get().queryKey === key) set({ loadingOlder: false, olderError: err instanceof Error ? err.message : String(err) });
+        }
+      },
+
+      async searchServer() {
+        const { query, queryKey: key, status } = get();
+        if (!api.searchServer || !query || key === null || query.view !== "search" || !query.search?.trim() || status !== "ready" || searched.has(key)) return;
+        searched.add(key);
+        set({ serverSearch: "searching" });
+        try {
+          const result = await api.searchServer(query.search, query.accountId);
+          if (get().queryKey !== key) return;
+          set({ serverSearch: "done" });
+          if (result.added > 0) await get().refresh();
+        } catch {
+          searched.delete(key);
+          if (get().queryKey === key) set({ serverSearch: "error" });
         }
       },
 

@@ -37,7 +37,7 @@ function Timeline({ data }: { data: ReceiptDetail | undefined }) {
 function TrackedRow({ item, now }: { item: TrackedMessage; now: number }) {
   const [open, setOpen] = useState(false);
   const marker = receiptMarker(item.summary);
-  const detail = useFlintQuery((api) => api.getReceipt(item.trackedId), [item.trackedId], { refetchOn: ["receipt"], enabled: open }).data ?? null;
+  const detail = useFlintQuery((api) => api.getReceipt(item.trackedId), [item.trackedId], { refetchOn: ["receipt"], enabled: open, mail: false }).data ?? null;
   return (
     <li className={styles.item}>
       <div className={styles.itemHead}>
@@ -68,7 +68,7 @@ export function ReceiptsView() {
   const [filter, setFilter] = useState<Filter>("all");
   const [refreshing, setRefreshing] = useState(false);
   const toast = useToast();
-  const { data, loading, refetch } = useFlintQuery((api) => api.listTracked({ limit: 100, status: filter === "all" ? undefined : filter }), [filter], { refetchOn: ["receipt"] });
+  const { data, loading, refetch } = useFlintQuery((api) => api.listTracked({ limit: 100, status: filter === "all" ? undefined : filter }), [filter], { refetchOn: ["receipt"], mail: false });
   const now = Date.now();
 
   const refresh = async () => {

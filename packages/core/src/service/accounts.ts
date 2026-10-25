@@ -7,8 +7,8 @@ import { autoconfig as detectServers, KNOWN_PROVIDERS } from "../mail/autoconfig
 import { secretKey } from "../mail/connect";
 import { startGoogleAuth } from "../mail/google-oauth";
 import { safeFilename } from "../mail/sync/attachments";
-import { FlintError, type Account, type AddAccountInput, type Provider, type ServerConfig } from "../types";
-import { checkConnection } from "./connectionCheck";
+import { FlintError, type Account, type AddAccountInput, type AutoconfigResult, type Provider, type ServerConfig } from "../types";
+import { checkConnection, checkGoogleMailbox } from "./connectionCheck";
 import type { ServiceContext } from "./context";
 
 const log = logger("service.accounts");
@@ -71,7 +71,9 @@ export function accountsApi(ctx: ServiceContext): AccountsApi {
 
     async autoconfig(email) {
       try {
-        return serverOf(await detectServers(parse(emailSchema, email)));
+        const found = await detectServers(parse(emailSchema, email));
+        const result: AutoconfigResult = { ...serverOf(found), hint: found.hint ?? null };
+        return result;
       } catch (error) {
         log.info("autoconfig found nothing", { reason: (error as Error).message });
         return null;
@@ -110,9 +112,11 @@ export function accountsApi(ctx: ServiceContext): AccountsApi {
     async addGoogleAccount() {
       const client = ctx.googleClient();
       if (!client) throw new FlintError("invalid", "Add a Google client ID and secret in Settings, then try again.");
-      const signIn = await startGoogleAuth({ ...client, openExternal: platform.openExternal, now: ctx.now });
+      const signIn = await (ctx.options.googleAuth ?? startGoogleAuth)({ ...client, openExternal: platform.openExternal, now: ctx.now });
       const secret = { accessToken: signIn.accessToken, refreshToken: signIn.refreshToken, expiresAt: signIn.expiresAt };
       const email = signIn.email.toLowerCase();
+      // A Google account can exist without Gmail (mail hosted elsewhere). Find out before saving anything.
+      await (ctx.options.googleMailboxCheck ?? checkGoogleMailbox)({ ...serverOf({ ...KNOWN_PROVIDERS["gmail.com"]!, username: email }) }, email, signIn.accessToken, ctx.options.resolveMx);
       const existing = store.getAccountByEmail(email);
       let account: Account;
       if (existing) {

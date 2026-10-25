@@ -1,6 +1,10 @@
 import type { AccountId, Signature } from "@flint/core";
 
+/** Class used inside the editor view (mock drafts also use it). */
 export const SIGNATURE_CLASS = "flint-signature";
+/** Class core writes into drafts and searches for when swapping a signature. Saved HTML must use it. */
+export const CORE_SIGNATURE_CLASS = "flint_signature";
+export const SIGNATURE_SELECTOR = `.${SIGNATURE_CLASS}, .${CORE_SIGNATURE_CLASS}`;
 
 /** The default signature for an account, following the same rules as the backend: per-account default plus the new/reply flag. */
 export function defaultSignatureFor(
@@ -23,10 +27,10 @@ export function signaturesForAccount(signatures: Signature[], accountId: Account
 /** Replaces (or removes, with null) the signature block in a body. Pure string in, string out. */
 export function swapSignatureHtml(html: string, signature: Signature | null): string {
   const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
-  doc.body.querySelectorAll(`.${SIGNATURE_CLASS}`).forEach((el) => el.remove());
+  doc.body.querySelectorAll(SIGNATURE_SELECTOR).forEach((el) => el.remove());
   if (signature) {
     const block = doc.createElement("div");
-    block.className = SIGNATURE_CLASS;
+    block.className = CORE_SIGNATURE_CLASS;
     block.setAttribute("data-signature-id", String(signature.id));
     block.innerHTML = signature.html;
     doc.body.append(block);
@@ -37,7 +41,7 @@ export function swapSignatureHtml(html: string, signature: Signature | null): st
 /** True when the body holds nothing but whitespace, empty paragraphs and the signature. */
 export function isBodyEmpty(html: string): boolean {
   const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
-  doc.body.querySelectorAll(`.${SIGNATURE_CLASS}`).forEach((el) => el.remove());
+  doc.body.querySelectorAll(SIGNATURE_SELECTOR).forEach((el) => el.remove());
   if (doc.body.querySelector("img,table,hr")) return false;
   return (doc.body.textContent ?? "").trim() === "";
 }

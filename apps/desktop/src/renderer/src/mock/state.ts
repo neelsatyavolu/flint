@@ -38,6 +38,8 @@ export type MockState = {
   ai: AiStatus;
   sync: SyncStatus[];
   ids: Record<string, number>;
+  /** Mail older than the synced window. Moves into `threads` through loadOlder and searchServer. */
+  older: MThread[];
 };
 
 export function nextId(state: MockState, key: string): number {

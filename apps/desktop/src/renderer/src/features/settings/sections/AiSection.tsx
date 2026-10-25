@@ -40,7 +40,7 @@ export function AiSection({ page: initial }: { page?: string }) {
 function AiHome({ onOpen }: { onOpen: (p: AiPage) => void }) {
   const toast = useToast();
   const { settings: s, save } = useSettingsStore();
-  const status = useFlintQuery((api) => api.aiStatus(), []);
+  const status = useFlintQuery((api) => api.aiStatus(), [], { mail: false });
   const connect = useAiConnect(() => status.refetch());
   const st = status.data;
   const connected = st?.connected === true;

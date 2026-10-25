@@ -29,8 +29,43 @@ export function buildCsp(allowRemoteImages: boolean): string {
   return `default-src 'none'; ${img}; ${font}; style-src 'unsafe-inline'; media-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'`;
 }
 
+const LOCAL_SRC = /^(data:|flint-attachment:|cid:|blob:)/i;
+
+/**
+ * Swaps every remote <img> for a neutral box of the same size, so blocked images read as a
+ * deliberate placeholder instead of a broken-image glyph with alt text. Parsing with DOMParser
+ * runs no script and loads nothing.
+ */
+export function blockRemoteImages(html: string): string {
+  if (typeof DOMParser === "undefined" || !/<img\b/i.test(html)) return html;
+  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+  for (const img of Array.from(doc.body.querySelectorAll("img"))) {
+    const src = (img.getAttribute("src") ?? "").trim();
+    if (src !== "" && LOCAL_SRC.test(src)) continue;
+    const box = doc.createElement("span");
+    box.className = "flint-blocked-img";
+    box.setAttribute("role", "img");
+    const alt = img.getAttribute("alt");
+    if (alt) box.setAttribute("aria-label", alt);
+    const px = (v: string | null) => (v && /^\d{1,4}$/.test(v.trim()) ? Number(v) : null);
+    const w = px(img.getAttribute("width"));
+    const h = px(img.getAttribute("height"));
+    if (w !== null && w > 1) box.style.width = `${w}px`;
+    if (h !== null && h > 1) {
+      box.style.height = `${h}px`;
+      box.style.minHeight = "0";
+    } else if (w !== null && w > 1 && w <= 96) {
+      box.style.height = `${w}px`; // icons and avatars stay small
+      box.style.minHeight = "0";
+    }
+    img.replaceWith(box);
+  }
+  return doc.body.innerHTML;
+}
+
 export function buildSrcdoc(opts: SrcdocOptions): string {
   const c = opts.colors ?? WHITE_SHEET;
+  const html = opts.allowRemoteImages ? opts.html : blockRemoteImages(opts.html);
   const pad = opts.padding ?? 16;
   return `<!doctype html><html><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${buildCsp(opts.allowRemoteImages)}">
@@ -41,10 +76,20 @@ html{background:${c.bg};color-scheme:light}
 body{margin:0;padding:${pad}px;background:${c.bg};color:${c.fg};font:14.5px/1.5 "Geist Variable",ui-sans-serif,-apple-system,"Helvetica Neue",Arial,sans-serif;overflow-wrap:anywhere;word-break:normal;-webkit-font-smoothing:antialiased}
 a{color:${c.link}}
 img{max-width:100%;height:auto}
+.flint-blocked-img{display:inline-block;box-sizing:border-box;width:100%;max-width:100%;min-height:48px;background:rgba(128,128,128,.12);border-radius:2px;vertical-align:top}
 table{max-width:100%}
 blockquote{margin:0 0 0 4px;padding-left:12px;border-left:2px solid rgba(128,128,128,.35);color:inherit;opacity:.85}
 pre{white-space:pre-wrap}
-</style></head><body>${opts.html}</body></html>`;
+</style></head><body>${html}</body></html>`;
+}
+
+/** Visible text of an HTML fragment, whitespace collapsed. Parsing runs no script and loads nothing. */
+export function htmlToText(html: string): string {
+  if (typeof DOMParser === "undefined") return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+  for (const el of Array.from(doc.body.querySelectorAll("style,script,head"))) el.remove();
+  for (const br of Array.from(doc.body.querySelectorAll("br,p,div,li,tr"))) br.append("\n");
+  return (doc.body.textContent ?? "").replace(/[ \t\u00a0]+/g, " ").replace(/\s*\n\s*/g, "\n").trim();
 }
 
 /** Wraps plain text as HTML paragraphs (escaped), for rendering text/plain bodies. */

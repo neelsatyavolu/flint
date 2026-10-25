@@ -20,6 +20,11 @@
 .icon { display: inline-flex; flex: none; color: var(--fg-2); }
 .icon svg { display: block; }
 .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.label:has(.labelHead) { display: flex; overflow: hidden; }
+.labelHead { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.labelTail { flex: none; white-space: nowrap; }
+.itemMain:focus-visible, .railItem:focus-visible { outline: 1px solid var(--accent-ring); outline-offset: -1px; }
+.active .itemMain:focus-visible, .railItem.active:focus-visible { outline-color: color-mix(in srgb, var(--accent) 30%, transparent); }
 .active .itemMain { color: var(--fg); font-weight: 600; }
 .active .icon { color: var(--accent); }
 .count { color: var(--fg-3); flex: none; }

@@ -1,6 +1,6 @@
 import type { FlintApi } from "../api";
 import type { Platform } from "../platform";
-import { logger } from "../log";
+import { flushLog, logger } from "../log";
 import { accountsApi } from "./accounts";
 import { actionsApi } from "./actions";
 import { agentsApi } from "./agents";
@@ -9,6 +9,8 @@ import { aiApi } from "./ai";
 import { composeApi } from "./compose";
 import { createContext } from "./context";
 import { wireNotifications } from "./notify";
+import { recategorizeIfStale } from "./recategorize";
+import { historyApi } from "./history";
 import { readingApi } from "./reading";
 import { receiptsApi } from "./receipts";
 import { settingsApi } from "./settings";
@@ -34,6 +36,12 @@ export type ServiceOptions = {
   fetch?: typeof fetch;
   /** Resolves a hostname to its addresses for the one-click unsubscribe SSRF check (tests; default is the system resolver). */
   resolveHost?: (host: string) => Promise<string[]>;
+  /** Google sign-in flow (tests replace it; default opens the browser). */
+  googleAuth?: typeof import("../mail/google-oauth").startGoogleAuth;
+  /** Logs in to Gmail IMAP after Google sign-in and throws when the account has no Gmail inbox (tests replace it). */
+  googleMailboxCheck?: typeof import("./connectionCheck").checkGoogleMailbox;
+  /** MX lookup used to name the provider that hosts an address (tests). */
+  resolveMx?: (domain: string) => Promise<{ exchange: string; priority: number }[]>;
   /** Sync loop timing (tests shorten the poll interval). */
   sync?: SyncTuning;
   /** Absolute path of the bundled CLI script (apps/cli/dist/flint.js). installCli wraps it. */
@@ -49,6 +57,7 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
     ...accountsApi(ctx),
     ...syncApi(ctx),
     ...readingApi(ctx),
+    ...historyApi(ctx),
     ...actionsApi(ctx),
     ...composeApi(ctx),
     ...receiptsApi(ctx),
@@ -66,8 +75,11 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
     async start() {
       if (state !== "new") return;
       state = "started";
+      await ctx.secretsReady;
       ctx.store.kvPurgeExpired(ctx.now());
+      recategorizeIfStale(ctx);
       ctx.syncs.startAll();
+      void ctx.optimistic.replayPending().catch((error: Error) => log.warn("replaying pending operations failed", { reason: error.message }));
       await ctx.scheduler.start();
       if (opts.agentServer) ctx.agent.handle = await startAgentWiring(ctx, api);
       log.info("service started");
@@ -81,6 +93,7 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
       await stopAgentWiring(ctx);
       await ctx.syncs.stopAll();
       ctx.ai.dispose();
+      await flushLog();
       ctx.store.db.close();
       log.info("service stopped");
     },

@@ -5,12 +5,15 @@ import clsx from "clsx";
 import type { ThreadListItem, TrackedMessage } from "@flint/core";
 import { useFlintQuery } from "../../lib/hooks";
 import { formatListTime, formatParticipants, pluralize } from "../../lib/format";
-import { Avatar, SectionLabel, Skeleton } from "../../ui";
+import { Avatar, Skeleton } from "../../ui";
 import { PaneHeader } from "../../shell/PaneHeader";
 import { navStore } from "../../state/nav";
 import { rowAvatar } from "../mail/rowText";
 import { receiptMarker } from "../../state/receiptText";
 import { greeting } from "./greeting";
+import { CatchMeUp } from "./CatchMeUp";
+import { HomeBlock } from "./HomeBlock";
+import { NeedsReply } from "./NeedsReply";
 import styles from "./HomeView.module.css";
 
 function ThreadLine({ item, now }: { item: ThreadListItem; now: number }) {
@@ -52,12 +55,7 @@ function ReceiptLine({ item, now }: { item: TrackedMessage; now: number }) {
 
 function Block({ title, children, empty }: { title: string; children: ReactNode; empty?: boolean }) {
   if (empty) return null;
-  return (
-    <section className={styles.block}>
-      <SectionLabel className={styles.blockLabel}>{title}</SectionLabel>
-      <ul>{children}</ul>
-    </section>
-  );
+  return <HomeBlock title={title}>{children}</HomeBlock>;
 }
 
 export function HomeView() {
@@ -79,6 +77,8 @@ export function HomeView() {
 
           {data ? (
             <>
+              <CatchMeUp />
+              <NeedsReply now={now} />
               <Block title="Unread from people" empty={!data.unreadPeople.length}>
                 {data.unreadPeople.map((i) => <ThreadLine key={i.id} item={i} now={now} />)}
               </Block>

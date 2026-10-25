@@ -239,9 +239,11 @@ describe("cron", () => {
   it("worker.scheduled runs the purge", async () => {
     const s = setup();
     const waits: Promise<unknown>[] = [];
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 503 })));
     worker.scheduled({} as ScheduledController, s.env, { waitUntil: (p: Promise<unknown>) => waits.push(p) } as unknown as ExecutionContext);
     await Promise.all(waits);
     expect(waits).toHaveLength(1);
+    vi.unstubAllGlobals();
   });
   it("worker.fetch delegates to the router", async () => {
     const s = setup();

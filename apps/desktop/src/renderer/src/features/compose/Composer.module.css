@@ -4,7 +4,8 @@
 .saved { margin-left: var(--s-2); color: var(--fg-3); }
 .sep { width: 1px; height: 18px; margin: 0 var(--s-2); background: var(--line-strong); }
 .scroll { flex: 1; min-height: 0; overflow-y: auto; }
-.page { max-width: 860px; padding: var(--s-5) var(--s-8) var(--s-12); }
+.page { width: 100%; max-width: 808px; margin-inline: auto; padding: var(--s-5) var(--s-6) var(--s-12); box-sizing: border-box; }
+.note { display: flex; align-items: center; gap: 6px; margin: 6px 0 0 40px; color: var(--fg-3); }
 .subject { display: block; width: 100%; padding: 0; margin: 0 0 var(--s-2); border: 0; outline: none; background: transparent; color: var(--fg); caret-color: var(--accent); font: 600 var(--text-compose) / var(--lh-compose) var(--font-ui); -webkit-user-select: text; user-select: text; }
 .subject::placeholder { color: var(--fg-3); }
 .reveal { all: unset; color: var(--fg-3); padding: 2px 6px; border-radius: var(--r-control); font: 400 var(--text-data) / var(--lh-data) var(--font-mono); }

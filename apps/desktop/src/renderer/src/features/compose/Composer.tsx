@@ -1,5 +1,7 @@
-import { useRef, useState, type DragEvent, type JSX, type KeyboardEvent } from "react";
+import { useContext, useEffect, useRef, useState, type DragEvent, type JSX, type KeyboardEvent } from "react";
+import { EyeOff } from "lucide-react";
 import type { Signature, Template } from "@flint/core";
+import { AppContext } from "../../state/AppContext";
 import { formatRecipients } from "../../lib/format";
 import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
@@ -9,6 +11,7 @@ import { ComposerBar } from "./ComposerBar";
 import { closeComposer, minimizeComposer, type ComposerEntry } from "./composerStore";
 import { BodyEditor, type BodyEditorHandle } from "./editor/BodyEditor";
 import { sanitizeSignatureHtml } from "./editor/sanitize";
+import { receiptBlocker } from "./receiptNote";
 import { QuotedPill } from "./QuotedPill";
 import { RecipientField } from "./RecipientField";
 import { useComposerSession } from "./useComposerSession";
@@ -29,11 +32,29 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
   const [dragging, setDragging] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const flow = useSendFlow(session, () => closeComposer(entry.id));
+  const selfAddresses = useContext(AppContext)?.selfAddresses ?? [];
+  const closeRef = useRef<() => void>(() => undefined);
+
+  // Escape closes the composer (draft saved) even when focus is on the page rather than inside it.
+  useEffect(() => {
+    if (hidden) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      const t = e.target as Element | null;
+      if (t && t !== document.body && t.closest("[role=dialog],[role=menu],[role=listbox],[role=tooltip],input,textarea,[contenteditable=true]")) return;
+      if (document.querySelector("[role=menu],[role=dialog][aria-modal=true]")) return;
+      e.preventDefault();
+      closeRef.current();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [hidden]);
 
   if (!fields || !draft) {
     return <div className={`t-body ${styles.loading}`}>{session.error ?? "Opening draft"}</div>;
   }
 
+  const blocker = receiptBlocker({ settings: session.settings, recipients: [...fields.to, ...fields.cc, ...fields.bcc], selfAddresses });
   const sendProblem = flow.problem;
   const recipientProblem = sendProblem === "Add at least one recipient.";
 
@@ -41,6 +62,7 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
     await session.close();
     closeComposer(entry.id);
   };
+  closeRef.current = () => void close();
   const discard = async () => {
     await session.discard();
     closeComposer(entry.id);
@@ -57,7 +79,7 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       void flow.attempt();
-    } else if (e.key === "Escape" && !e.defaultPrevented && !hidden && e.currentTarget.contains(e.target as Node) && !document.querySelector("[role=menu],[role=listbox]")) {
+    } else if (e.key === "Escape" && !e.defaultPrevented && !hidden && e.currentTarget.contains(e.target as Node) && !document.querySelector("[role=menu]") && !e.currentTarget.querySelector("[role=listbox]")) {
       e.preventDefault();
       void close();
     }
@@ -87,7 +109,7 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
         fromOptions={session.fromOptions}
         templates={session.templates}
         signatures={session.signatures}
-        receiptsAvailable={session.settings?.receipts.enabled !== false}
+        receiptsAvailable={blocker === null}
         aiOpen={aiOpen}
         sending={flow.sending}
         onMinimize={() => minimizeComposer(entry.id)}
@@ -130,6 +152,7 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
           />
           {showCc || fields.cc.length ? <RecipientField label="Cc" value={fields.cc} autoFocus={showCc && fields.cc.length === 0} onChange={(cc) => patch({ cc })} /> : null}
           {showBcc || fields.bcc.length ? <RecipientField label="Bcc" value={fields.bcc} autoFocus={showBcc && fields.bcc.length === 0} onChange={(bcc) => patch({ bcc })} /> : null}
+          {blocker ? <div className={`t-data ${styles.note}`} role="status"><EyeOff size={12} strokeWidth={1.5} aria-hidden />{blocker}</div> : null}
           {sendProblem ? <div className={`t-data ${styles.error}`} role="alert">{sendProblem}</div> : null}
           {session.error ? <div className={`t-data ${styles.error}`} role="alert">{session.error}</div> : null}
           {aiOpen ? <AiBar body={body} threadId={draft.threadId} draftId={draft.id} to={formatRecipients(fields.to)} subject={fields.subject} onClose={() => setAiOpen(false)} /> : null}

@@ -20,7 +20,7 @@ function statusText(s: ScheduledSend): string {
 /** Mail queued to send later, or waiting for approval. Cancel returns a send to Drafts. */
 export function ScheduledView() {
   const toast = useToast();
-  const { data, loading, refetch } = useFlintQuery((api) => api.listScheduled(), [], { refetchOn: ["send"] });
+  const { data, loading, refetch } = useFlintQuery((api) => api.listScheduled(), [], { refetchOn: ["send"], mail: false });
 
   const cancel = (s: ScheduledSend) =>
     void flint.cancelSend(s.id).then(

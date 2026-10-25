@@ -52,7 +52,7 @@ export function ReaderToolbar({ thread }: { thread: ThreadDetail | undefined }) 
         )}
         <IconButton label="Trash" shortcut="#" disabled={!thread} onClick={() => void run({ type: "trash" }, ids)}><Trash2 {...ICON} /></IconButton>
         <IconButton label="Move to folder" shortcut="v" disabled={!thread} onClick={() => openMovePicker(ids)}><FolderInput {...ICON} /></IconButton>
-        <IconButton label="Snooze" shortcut="h" disabled={!thread} onClick={() => openSnooze(ids)}><Clock {...ICON} /></IconButton>
+        <IconButton label="Snooze" shortcut="h" data-snooze-anchor disabled={!thread} onClick={() => openSnooze(ids)}><Clock {...ICON} /></IconButton>
         <IconButton label={thread?.pinned ? "Unpin" : "Pin"} shortcut="s" disabled={!thread} onClick={() => void run({ type: "pin", pinned: !thread?.pinned }, ids)}>
           {thread?.pinned ? <PinOff {...ICON} /> : <Pin {...ICON} />}
         </IconButton>

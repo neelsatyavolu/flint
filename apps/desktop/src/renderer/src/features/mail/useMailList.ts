@@ -5,6 +5,9 @@ import { listStore } from "../../state/listStore";
 import { buildQuery, navStore, useNav } from "../../state/nav";
 
 const REFRESH_DEBOUNCE_MS = 120;
+/** A search with fewer local results than this also asks the server, after the query settles. */
+const FEW_LOCAL = 10;
+const SERVER_SEARCH_DELAY_MS = 700;
 
 /** Keeps the list store on the query for the current navigation, and refetches on mail events. */
 export function useMailList(enabled: boolean): void {
@@ -24,6 +27,15 @@ export function useMailList(enabled: boolean): void {
     listStore.getState().setQuery(query);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, view, accountId, folderId, category, search, searchOpen, focused, sort]);
+
+  useEffect(() => {
+    if (!enabled || !searchOpen || !search.trim()) return;
+    const timer = setTimeout(() => {
+      const list = listStore.getState();
+      if (list.status === "ready" && list.items.length < FEW_LOCAL) void list.searchServer();
+    }, SERVER_SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [enabled, search, searchOpen, accountId]);
 
   useEffect(() => {
     if (!enabled) return;

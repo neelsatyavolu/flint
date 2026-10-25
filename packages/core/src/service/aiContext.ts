@@ -2,6 +2,7 @@ import type { Platform } from "../platform";
 import type { AiContext } from "../ai/ports";
 import { htmlToText } from "../sanitize";
 import type { Store } from "../store";
+import { aiThreadBriefs, rankedThreadSearch } from "../store/aiSearch";
 import type { Settings } from "../types";
 import { ensureBodies } from "./bodies";
 import type { SyncManager } from "./syncManager";
@@ -24,6 +25,7 @@ export function buildAiContext(d: AiContextDeps): AiContext {
     getSettings: d.getSettings,
     secrets: d.platform.secrets,
     now: d.now,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     ...(d.fetch ? { fetch: d.fetch } : {}),
     async getThreadForAi(threadId) {
       const first = store.getThreadRows(threadId);
@@ -49,6 +51,12 @@ export function buildAiContext(d: AiContextDeps): AiContext {
       return page.items.map((t) => ({
         threadId: t.id, subject: t.subject, date: t.lastDate, from: t.participants.at(-1) ?? NOBODY, snippet: t.snippet,
       }));
+    },
+    async rankedSearchForAi(query) {
+      return rankedThreadSearch(store, query, d.now());
+    },
+    async listThreadsForAi(kind, limit) {
+      return aiThreadBriefs(store, kind, limit, d.now());
     },
     cacheGet: (key) => store.kvGet(key, d.now()),
     cacheSet: (key, value, ttlMs) => store.kvSet(key, value, ttlMs, d.now()),

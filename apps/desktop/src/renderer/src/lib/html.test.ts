@@ -11,6 +11,23 @@ describe("buildCsp", () => {
   it("allows https images when asked", () => expect(buildCsp(true)).toContain("img-src data: flint-attachment: https:"));
 });
 
+describe("blocked images", () => {
+  it("replaces remote images with a sized placeholder and keeps local ones", () => {
+    const out = buildSrcdoc({ html: '<img src="https://x.test/a.png" alt="Featured photo" width="300" height="120"><img src="data:image/gif;base64,AAA"><img src="flint-attachment://1/2">', allowRemoteImages: false });
+    expect(out).not.toContain("x.test");
+    expect(out).toContain('class="flint-blocked-img"');
+    expect(out).toContain('aria-label="Featured photo"');
+    expect(out).toContain("height: 120px");
+    expect(out).toContain("data:image/gif");
+    expect(out).toContain("flint-attachment://1/2");
+  });
+
+  it("leaves images alone once they are allowed", () => {
+    const out = buildSrcdoc({ html: '<img src="https://x.test/a.png">', allowRemoteImages: true });
+    expect(out).toContain("https://x.test/a.png");
+  });
+});
+
 describe("buildSrcdoc", () => {
   it("embeds CSP, base target, body and the white sheet by default", () => {
     const doc = buildSrcdoc({ html: "<p>Hello</p>", allowRemoteImages: false });

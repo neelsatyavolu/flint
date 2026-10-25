@@ -1,3 +1,4 @@
+import { sidebarFolders } from "./folderList";
 import { roleMember } from "../search";
 import type { HomeData, SidebarAccount, SidebarData } from "../types";
 import type { AccountsRepo } from "./accounts";
@@ -36,7 +37,7 @@ export class DashboardRepo {
       ).map((r) => [r.account_id, r.n]),
     );
     const enabled = new Set(accounts.filter((a) => a.enabled).map((a) => a.id));
-    const sidebarAccounts = accounts.map((account) => ({ account, inboxUnread: unread.get(account.id) ?? 0, folders: this.folders.listFolders(account.id) }));
+    const sidebarAccounts = accounts.map((account) => ({ account, inboxUnread: unread.get(account.id) ?? 0, folders: sidebarFolders(this.folders.listFolders(account.id)) }));
     const one = (sql: string, ...p: (string | number)[]) => this.q.get<{ n: number }>(sql, ...p)?.n ?? 0;
     const onEnabled = (n: Iterable<[string, number]>) => [...n].reduce((s, [id, c]) => s + (enabled.has(id) ? c : 0), 0);
     const pinned = onEnabled(this.q.all<{ account_id: string; n: number }>(

@@ -64,6 +64,7 @@ export function Sidebar({ rail, onNavigated }: Props) {
         depth={1}
         icon={<AccountChip account={a} />}
         label={a.email}
+        middleEllipsis
         count={counted ? counts.byAccount[a.id] : 0}
         active={active({ view, accountId: a.id })}
         onClick={() => go({ view, accountId: a.id }, view === "inbox" ? a.email : undefined)}

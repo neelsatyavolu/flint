@@ -11,6 +11,7 @@ import { LABEL_ROW_HEIGHT, rowHeight } from "../../state/rowMetrics";
 import { emptyCopy } from "../../state/viewMeta";
 import { useThreadActions } from "../../state/useActions";
 import { BundleRow } from "./BundleRow";
+import { ListFooter } from "./ListFooter";
 import { ThreadRow } from "./ThreadRow";
 import { openDraftThread, openMovePicker, openSnooze, replyTo } from "./mailCommands";
 import { rowMenuItems } from "./rowMenu";
@@ -29,6 +30,11 @@ export function ThreadList() {
   const status = useList((s) => s.status);
   const error = useList((s) => s.error);
   const hasMore = useList((s) => s.nextCursor !== null);
+  const serverSearch = useList((s) => s.serverSearch);
+  const loadingOlder = useList((s) => s.loadingOlder);
+  const olderOnServer = useList((s) => s.olderOnServer);
+  const listKey = useList((s) => s.queryKey);
+  const autoOlder = useRef<string | null>(null);
   const { run } = useThreadActions();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -63,6 +69,14 @@ export function ThreadList() {
   useEffect(() => {
     if (hasMore && rows.length > 0 && lastVisible >= rows.length - LOAD_AHEAD) void listStore.getState().loadMore();
   }, [hasMore, lastVisible, rows.length]);
+
+  // Reaching the end of what is local pulls one batch of older mail by itself; after that the footer asks.
+  useEffect(() => {
+    if (hasMore || !olderOnServer || status !== "ready" || listKey === null || autoOlder.current === listKey) return;
+    if (rows.length > 0 && lastVisible < rows.length - 1) return;
+    autoOlder.current = listKey;
+    void listStore.getState().loadOlder();
+  }, [hasMore, olderOnServer, status, listKey, rows.length, lastVisible]);
 
   const onScroll = useCallback(() => {
     const top = scrollRef.current?.scrollTop ?? 0;
@@ -123,6 +137,7 @@ export function ThreadList() {
     );
   }
   if (rows.length === 0) {
+    if (olderOnServer || serverSearch !== "idle" || loadingOlder) return <div className={styles.fill}><ListFooter empty /></div>;
     const copy = emptyCopy(nav);
     return <div className={styles.fill}><EmptyState title={copy.title} description={copy.description} markSize={48} /></div>;
   }
@@ -175,6 +190,7 @@ export function ThreadList() {
           );
         })}
       </div>
+      <ListFooter />
     </div>
   );
 }

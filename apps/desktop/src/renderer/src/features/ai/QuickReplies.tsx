@@ -6,7 +6,7 @@ import { useAiAvailability, useAiRun } from "./useAiRun";
 import styles from "./QuickReplies.module.css";
 
 /** A thread must stay open this long before a model call starts, so skimming with j/k costs nothing. */
-export const QUICK_REPLIES_DWELL_MS = 600;
+export const QUICK_REPLIES_DWELL_MS = 1500;
 
 const cache = new Map<string, string[]>();
 

@@ -1,0 +1,12 @@
+.offer { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s-2); margin: var(--s-3) var(--s-6); color: var(--fg-3); }
+.offer svg { flex: none; }
+.hint { color: var(--fg-3); }
+.block { position: relative; margin: var(--s-4) var(--s-6); padding: 2px 0 2px var(--s-4); border-left: 2px solid var(--line-strong); }
+.head { display: flex; align-items: center; min-height: 24px; }
+.head button { all: unset; display: inline-flex; align-items: center; gap: 6px; cursor: default; color: var(--fg-3); border-radius: var(--r-control); }
+.head button:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.head button:hover { color: var(--fg-2); }
+.text { margin-top: 4px; color: var(--fg); }
+.caret { display: inline-block; width: 2px; height: 1em; margin-left: 2px; vertical-align: text-bottom; background: var(--accent); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .caret { animation: none; } }

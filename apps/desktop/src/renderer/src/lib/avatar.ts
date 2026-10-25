@@ -23,8 +23,10 @@ export function avatarColor(address: string): string {
 }
 
 export function initials(name: string, address: string): string {
-  const source = name.trim() || address.split("@")[0] || "?";
-  const words = source.split(/[\s._-]+/).filter(Boolean);
+  // Only letters and digits count: "Neel (Nenu)" is NN, not "N(".
+  const split = (v: string) => v.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const named = split(name);
+  const words = named.length > 0 ? named : split(address.split("@")[0] ?? "");
   const first = words[0]?.[0] ?? "?";
   const second = words.length > 1 ? words[words.length - 1]?.[0] ?? "" : "";
   return (first + second).toUpperCase();

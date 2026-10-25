@@ -53,7 +53,7 @@ describe("planTask", () => {
         messages: [{ from: me, to: [], date: 1, text: "Sure", fromMe: true }],
       }),
     });
-    for (const kind of ["summarize", "reply", "quickReplies"] as const) {
+    for (const kind of ["summarize", "reply"] as const) {
       const plan = await planTask({ kind, threadId: 1 }, ctx);
       expect(plan.system).toContain("Neel S <neel@x.com, n@alias.com>");
       expect(plan.messages[0]!.content).toContain("(you)");

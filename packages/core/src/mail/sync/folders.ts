@@ -14,6 +14,12 @@ const NAME_ROLES: [RegExp, MailboxRole][] = [
   [/^(?:archives?|all mail)$/i, "archive"],
 ];
 
+/** Gmail's system namespace names the label even when LIST carries no (or a localized-only) special-use flag. */
+const GMAIL_NAMESPACE_ROLES: [RegExp, MailboxRole][] = [
+  [/^\[(?:gmail|google mail)\]\/(?:important|wichtig|importante|importants|importanti|belangrijk|wa[zż]ne)$/i, "important"],
+  [/^\[(?:gmail|google mail)\]\/(?:starred|markiert mit stern|destacados|suivis|speciali|met ster|oznaczone gwiazdk[aą])$/i, "flagged"],
+];
+
 export type MailboxEntry = { path: string; name: string; delimiter: string; role: MailboxRole | null; specialUse: string | null };
 
 /** Maps LIST output to folder entries with roles. Special-use flags win; name heuristics fill gaps. One folder per role. */
@@ -24,6 +30,7 @@ export function classifyMailboxes(list: ListResponse[]): MailboxEntry[] {
     const use = m.specialUse ?? null;
     let role: MailboxRole | null = use ? (SPECIAL_USE[use.toLowerCase()] ?? null) : null;
     if (m.path.toUpperCase() === "INBOX") role = "inbox";
+    if (!role) role = GMAIL_NAMESPACE_ROLES.find(([re]) => re.test(m.path))?.[1] ?? null;
     if (role && role !== "inbox") taken.add(role);
     return { path: m.path, name: m.name, delimiter: m.delimiter, role, specialUse: use };
   });

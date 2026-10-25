@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { agentPaths } from "@flint/core/agent/paths";
 import { FlintError } from "@flint/core/types";
 import type {
   Draft, FlintEvent, HomeData, MessageRowId, Settings, SidebarData, SyncStatus, ThreadPage,
@@ -63,6 +63,8 @@ export function createMockService(dataDir: string): FlintService {
     async getSidebar() { return sidebar; },
     async getHome() { return home; },
     async listThreads() { return emptyPage; },
+    async loadOlder() { return { loaded: 0, hasMore: false }; },
+    async searchServer() { return { found: 0, added: 0 }; },
     async getThread() { throw notFound("Thread"); },
     async getMessage(_id: MessageRowId) { throw notFound("Message"); },
     async allowRemoteImages() { throw notFound("Message"); },
@@ -140,7 +142,7 @@ export function createMockService(dataDir: string): FlintService {
 
     async listAgentActivity() { return []; },
     async agentInfo() {
-      return { socketPath: join(dataDir, "agent.sock"), tokenPath: join(dataDir, "agent-token"), cliInstalled: false, cliPath: null };
+      return { ...agentPaths(dataDir), cliInstalled: false, cliPath: null };
     },
     async installCli() { throw new FlintError("invalid", "The command line tool is unavailable in mock mode"); },
 

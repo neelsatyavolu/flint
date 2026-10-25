@@ -1,5 +1,6 @@
 import { classify } from "./classify";
 import { isApplePrivateRelayIp } from "./apple";
+import { loadAppleRanges } from "./apple-refresh";
 import { MAX_EVENTS_PER_TOKEN, SENDER_FINGERPRINT_TTL_MS, type Env } from "./env";
 import { fingerprintIp } from "./fingerprint";
 import { TOKEN_RE } from "./protocol";
@@ -22,17 +23,18 @@ export async function recordHit(request: Request, env: Env, token: string, now: 
     const ip = requestIp(request);
     const cf = cfProps(request);
     const fingerprint = await fingerprintIp(env.FINGERPRINT_SALT, ip);
-    const [senders, opens] = await Promise.all([
+    const [senders, opens, ranges] = await Promise.all([
       env.DB.prepare("SELECT fingerprint FROM sender_fingerprints WHERE install_id = ? AND seen_at > ?")
         .bind(row.install_id, now - SENDER_FINGERPRINT_TTL_MS).all<{ fingerprint: string }>(),
       env.DB.prepare("SELECT at, fingerprint, client FROM events WHERE token = ? AND kind = 'open' ORDER BY at LIMIT 50")
         .bind(token).all<{ at: number; fingerprint: string; client: string | null }>(),
+      loadAppleRanges(env, now),
     ]);
     const c = classify(
       {
         method: request.method, userAgent: request.headers.get("User-Agent") ?? "", asn: cf.asn ?? null,
         asOrganization: cf.asOrganization ?? null, country: cf.country ?? null, city: cf.city ?? null,
-        fingerprint, appleEgress: isApplePrivateRelayIp(ip),
+        fingerprint, appleEgress: isApplePrivateRelayIp(ip, ranges),
       },
       {
         secondsSinceRegistered: (now - row.registered_at) / 1000,

@@ -61,6 +61,14 @@ describe("list and search", () => {
     expect(JSON.parse(r.out).items).toEqual([]);
     expect((await exec(["search", "from:cindy has:attachment http://x.co"], f)).err).toBe("");
   });
+  it("search --server asks the mail server first, then lists", async () => {
+    const f = fakeClient({ searchServer: { found: 2, added: 2 }, listThreads: { items: [], bundles: [], nextCursor: null } });
+    const r = await exec(["search", "from:old@x.com", "--server"], f);
+    expect(f.calls.map((c) => c.method)).toEqual(["searchServer", "listThreads"]);
+    expect(f.calls[0]?.params[0]).toBe("from:old@x.com");
+    expect(r.err).toMatch(/Fetched 2 older messages/);
+  });
+
   it("searches", async () => {
     const f = fakeClient({ listThreads: page([item()]) });
     await exec(["search", "from:cindy", "--limit", "3"], f);
@@ -296,7 +304,8 @@ describe("errors and exit codes", () => {
     expect(r.code).toBe(0);
     expect(r.out).toContain("Exit codes");
     expect((await exec(["agents"], fakeClient())).out).toBe(AGENT_GUIDE);
-    expect(readFileSync(join(import.meta.dirname, "../../../docs/AGENTS.md"), "utf8")).toContain(AGENT_GUIDE);
+    expect(readFileSync(join(import.meta.dirname, "../AGENTS.md"), "utf8")).toBe(AGENT_GUIDE);
+    expect(readFileSync(join(import.meta.dirname, "../../../docs/AGENTS.md"), "utf8")).toBe(AGENT_GUIDE);
   });
 });
 

@@ -11,11 +11,17 @@ export type Address = { name: string; address: string };
 export type Provider = "gmail" | "imap";
 export type AuthKind = "oauth_google" | "password";
 
+/** What the sign-in form should tell the user about the password: 'proton_bridge' = the Bridge password, 'app_password' = an app password. */
+export type ServerHint = "proton_bridge" | "app_password" | null;
+
 export type ServerConfig = {
   imapHost: string; imapPort: number; imapSecure: boolean;
   smtpHost: string; smtpPort: number; smtpSecure: boolean;
   username: string;
 };
+
+/** What autoconfig returns: server settings plus an optional note for the sign-in form. Never stored on an account. */
+export type AutoconfigResult = ServerConfig & { hint?: ServerHint };
 
 export type Account = ServerConfig & {
   id: AccountId;
@@ -111,7 +117,15 @@ export type ThreadPage = {
   items: ThreadListItem[];
   bundles: Bundle[];       // only when query.focused
   nextCursor: string | null;
+  /** On the last page only: the server holds older mail for this list that is not on this computer yet. */
+  olderOnServer?: boolean;
 };
+
+/** Result of FlintApi.loadOlder: how many messages arrived and whether the server still has older ones. */
+export type LoadOlderResult = { loaded: number; hasMore: boolean };
+
+/** Result of FlintApi.searchServer: messages the server matched and how many of them were new here. */
+export type ServerSearchResult = { found: number; added: number };
 
 // ---------- Reading ----------
 
@@ -193,6 +207,11 @@ export type Draft = {
   remindAt: number | null;
   createdBy: string;
   updatedAt: number;
+  /**
+   * Set by the service when read receipts cannot work for a send right now (plain-text mode, receipts off, no
+   * receipts address), e.g. "Receipts off: plain-text mode". The composer shows it instead of a live toggle.
+   */
+  trackingBlockedReason?: string | null;
 };
 
 export type DraftInit =
@@ -282,7 +301,13 @@ export type AiTask =
   | { kind: "compose"; prompt: string; draftId?: number }
   | { kind: "rewrite"; text: string; style: RewriteStyle | string }
   | { kind: "translate"; text?: string; threadId?: ThreadId; language: string }
-  | { kind: "ask"; question: string; history?: { role: "user" | "assistant"; content: string }[] };
+  | { kind: "ask"; question: string; history?: { role: "user" | "assistant"; content: string }[] }
+  /** Streamed digest of unread people mail; citations are index-aligned with the [n] markers. */
+  | { kind: "digest" }
+  /** One-click summary of a Notifications or Newsletters bundle; citations are index-aligned. */
+  | { kind: "summarizeBundle"; category: "notifications" | "newsletters" }
+  /** People threads waiting on the user's answer. Local heuristic, no model call; the text is JSON. */
+  | { kind: "needsReply" };
 
 /** Streamed over events as AiChunk with the same runId. */
 export type AiRun = { runId: string };

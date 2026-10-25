@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { autoconfig, domainOf, KNOWN_PROVIDERS, parseIspdb } from "./autoconfig";
+import { autoconfig, domainOf, KNOWN_PROVIDERS, mxHostOf, parseIspdb } from "./autoconfig";
 
 const xml = (imapSocket = "SSL", imapPort = 993) => `<?xml version="1.0"?><clientConfig version="1.1"><emailProvider id="example.org">
 <incomingServer type="imap"><hostname>imap.example.org</hostname><port>${imapPort}</port><socketType>${imapSocket}</socketType><authentication>password-cleartext</authentication><username>%EMAILLOCALPART%</username></incomingServer>
@@ -94,5 +94,33 @@ describe("parseIspdb encryption", () => {
   });
   it("detects Gmail from the IMAP host", () => {
     expect(parseIspdb(xml("STARTTLS", "imap.gmail.com"), "a@corp.example")?.provider).toBe("gmail");
+  });
+});
+
+describe("autoconfig for Proton Mail", () => {
+  const noIspdb = { fetch: async () => ({ ok: false, text: async () => "" }), probe: async () => false };
+  const bridge = { imapHost: "127.0.0.1", imapPort: 1143, imapSecure: false, smtpHost: "127.0.0.1", smtpPort: 1025, smtpSecure: true, hint: "proton_bridge" };
+
+  it("returns the Bridge settings for proton.me, protonmail.com and pm.me addresses", async () => {
+    for (const d of ["proton.me", "protonmail.com", "pm.me"]) expect(await autoconfig(`a@${d}`, noNet)).toMatchObject(bridge);
+  });
+
+  it("detects a Proton-hosted custom domain through MX", async () => {
+    for (const mx of ["mail.protonmail.ch", "mailsec.protonmail.ch"]) {
+      const cfg = await autoconfig("neel@xanom.co", { ...noIspdb, resolveMx: async () => [{ exchange: mx, priority: 10 }] });
+      expect(cfg).toMatchObject({ ...bridge, source: "mx", username: "neel@xanom.co", provider: "imap" });
+    }
+  });
+
+  it("asks for an app password on Gmail and iCloud, and nothing on a plain guess", async () => {
+    expect((await autoconfig("a@gmail.com", noNet)).hint).toBe("app_password");
+    expect((await autoconfig("a@icloud.com", noNet)).hint).toBe("app_password");
+    expect((await autoconfig("a@nowhere.test", { ...noIspdb, resolveMx: async () => [] })).hint ?? null).toBeNull();
+  });
+
+  it("names the MX host", async () => {
+    expect(await mxHostOf("x.test", { resolveMx: async () => [{ exchange: "mx1.zoho.eu", priority: 1 }] })).toBe("zoho");
+    expect(await mxHostOf("x.test", { resolveMx: async () => [{ exchange: "mx.unknown.example", priority: 1 }] })).toBeNull();
+    expect(await mxHostOf("x.test", { resolveMx: async () => { throw new Error("ENODATA"); } })).toBeNull();
   });
 });

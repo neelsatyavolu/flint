@@ -1,12 +1,42 @@
-import { convert } from "html-to-text";
+import { convert, type FormatterFunction } from "html-to-text";
 import type { Address, MessageView } from "@flint/core/types";
+
+const MAX_URL_CHARS = 60;
+
+/** Long tracking URLs carry no meaning for a reader; keep the host so the destination is still clear. */
+export function shortenUrl(href: string): string {
+  if (href.length <= MAX_URL_CHARS) return href;
+  try {
+    const u = new URL(href);
+    return u.protocol === "http:" || u.protocol === "https:" ? `${u.protocol}//${u.host}/...` : `${u.protocol}...`;
+  } catch {
+    return `${href.slice(0, MAX_URL_CHARS)}...`;
+  }
+}
+
+/** Renders <a> as [text](url); a link whose text is its own URL prints just the URL. */
+export const markdownLink: FormatterFunction = (elem, walk, builder) => {
+  const raw = elem.attribs?.href?.trim();
+  if (!raw || raw.startsWith("#") || /^(javascript|data):/i.test(raw)) return walk(elem.children, builder);
+  const href = raw.startsWith("mailto:") ? raw.slice(7) : raw;
+  let text = "";
+  builder.addInline("[", { noWordTransform: true });
+  builder.pushWordTransform((str) => { text += str; return str; });
+  walk(elem.children, builder);
+  builder.popWordTransform();
+  const label = text.replace(/\s+/g, " ").trim();
+  if (!label) return builder.addInline(shortenUrl(href), { noWordTransform: true });
+  if (label === href || label === raw) return;
+  builder.addInline(`](${shortenUrl(href)})`, { noWordTransform: true });
+};
 
 export function htmlToReadable(html: string): string {
   return convert(html, {
     wordwrap: 100,
+    formatters: { markdownLink },
     selectors: [
       { selector: "img", format: "skip" },
-      { selector: "a", options: { ignoreHref: false, hideLinkHrefIfSameAsText: true } },
+      { selector: "a", format: "markdownLink" },
       ...["h1", "h2", "h3", "h4", "h5", "h6"].map((selector) => ({ selector, options: { uppercase: false } })),
       { selector: "table", format: "dataTable", options: { uppercaseHeaderCells: false, colSpacing: 3 } },
     ],

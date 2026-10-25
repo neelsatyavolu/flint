@@ -54,6 +54,8 @@ export function imagePolicy(store: Store, settings: Settings): ImagePolicy {
       const auth = authOutcome(trust.headers);
       if (auth === "fail") return false;
       if (trust.isFromMe && !trust.inSent && auth !== "pass") return false;
+      // A server that recorded Authentication-Results but did not record a DKIM, SPF or DMARC pass vouches for nothing.
+      if (!(trust.isFromMe && trust.inSent) && trust.headers?.["authentication-results"] && auth !== "pass") return false;
       return trust.isFromMe || senders.has(address) || store.hasSentTo(address);
     },
   };

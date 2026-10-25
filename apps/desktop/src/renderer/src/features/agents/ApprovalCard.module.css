@@ -1,0 +1,16 @@
+.card { display: flex; flex-direction: column; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.head { display: flex; flex-direction: column; gap: 2px; }
+.summary { overflow-wrap: anywhere; font-weight: 600; }
+.meta { color: var(--fg-3); }
+.fields { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 12px 16px; border-left: 2px solid var(--warn); background: var(--plane-1); }
+.field { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: baseline; }
+.field dt { color: var(--fg-3); }
+.value { margin: 0; overflow-wrap: anywhere; }
+.subject { font-weight: 600; }
+.body { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; max-width: 68ch; color: var(--fg); }
+.files { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; padding: 0; list-style: none; }
+.file { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: var(--r-control); background: var(--active); color: var(--fg-2); }
+.fileName { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fileSize { color: var(--fg-3); }
+.missing { margin: 0; color: var(--fg-2); }
+.actions { display: flex; gap: 8px; }

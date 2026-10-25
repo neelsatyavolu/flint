@@ -5,10 +5,12 @@ import { chunks, Sql } from "./sql";
 
 /** Recomputes subject, last_date, category and pinned from a thread's messages. Deletes the thread when it has none. Returns false when deleted. */
 export function recomputeThread(q: Sql, threadId: ThreadId): boolean {
-  const rows = q.all<{ subject: string; date: number; category: string | null; flagged: number }>(
-    "SELECT subject, date, category, flagged FROM messages WHERE thread_id = ? ORDER BY date, id", threadId,
+  const all = q.all<{ subject: string; date: number; category: string | null; flagged: number; draft: number }>(
+    "SELECT subject, date, category, flagged, draft FROM messages WHERE thread_id = ? ORDER BY date, id", threadId,
   );
-  if (rows.length === 0) {
+  // Server drafts do not count toward the conversation's date, subject or category unless they are all there is.
+  const rows = all.some((r) => r.draft === 0) ? all.filter((r) => r.draft === 0) : all;
+  if (all.length === 0) {
     q.run("DELETE FROM threads WHERE id = ?", threadId);
     return false;
   }

@@ -147,3 +147,11 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Theme switches (and the first paint) must not animate colours. */
+.no-theme-transition,
+.no-theme-transition *,
+.no-theme-transition *::before,
+.no-theme-transition *::after {
+  transition: none !important;
+}

@@ -71,7 +71,9 @@ export class MessagesRepo {
     );
     if (!t) return null;
     const own = this.accounts.ownAddresses();
-    const rows = this.q.all<MessageRow>("SELECT * FROM messages WHERE thread_id = ? ORDER BY date, id", threadId);
+    const every = this.q.all<MessageRow>("SELECT * FROM messages WHERE thread_id = ? ORDER BY date, id", threadId);
+    // Server drafts (draft=1) are shown through draftIds/the composer, not as conversation messages, unless the thread has nothing else.
+    const rows = every.some((r) => r.draft === 0) ? every.filter((r) => r.draft === 0) : every;
     const atts = this.q.all<AttachmentRow>("SELECT a.* FROM attachments a JOIN messages m ON m.id = a.message_id WHERE m.thread_id = ? ORDER BY a.id", threadId);
     const byMsg = new Map<number, AttachmentInfo[]>();
     for (const a of atts) byMsg.set(a.message_id, [...(byMsg.get(a.message_id) ?? []), this.#toInfo(a)]);

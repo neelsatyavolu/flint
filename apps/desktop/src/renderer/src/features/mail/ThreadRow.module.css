@@ -37,7 +37,8 @@
 .tail { display: flex; align-items: center; gap: 6px; flex: none; color: var(--fg-3); }
 .preview { color: var(--fg-3); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; line-height: 18px; max-height: 18px; }
 .preview2 { -webkit-line-clamp: 2; line-clamp: 2; max-height: 36px; }
-.acct { width: 6px; height: 6px; border-radius: 0; flex: none; }
+/* A thin account-colour edge on the right: cannot be mistaken for the unread dot. */
+.acct { position: absolute; right: 0; top: 10px; bottom: 10px; width: 2px; }
 .actions {
   position: absolute; right: 12px; top: 8px; display: flex; gap: 2px; padding: 0 0 0 4px;
   background-color: var(--plane-1); background-image: linear-gradient(var(--row-tint), var(--row-tint));

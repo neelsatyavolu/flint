@@ -12,3 +12,5 @@ export const MAX_EVENTS_PER_TOKEN = 300;
 export const REGISTER_LIMIT_PER_HOUR = 300;
 export const SEEN_LIMIT_PER_HOUR = 120;
 export const MAX_TOKENS_PER_INSTALL = 50_000;
+/** Per-IP cap across all authenticated endpoints, on top of the per-install caps. Generous enough for a shared office network. */
+export const AUTHED_IP_LIMIT_PER_HOUR = 1500;

@@ -2,6 +2,9 @@
 export const FETCH_HEADERS = [
   "references", "list-unsubscribe", "list-unsubscribe-post", "list-id", "precedence", "auto-submitted", "x-flint-ref",
   "x-github-reason", "x-auto-response-suppress", "feedback-id",
+  "return-path", "x-mailer", "x-campaign", "x-campaignid", "x-mailgun-sid", "x-mailgun-variables", "x-ses-outgoing", "x-sg-eid", "x-sg-id",
+  "x-mc-user", "x-mandrill-user", "x-sfmc-stack", "x-sfdc-lk", "x-hs-cid", "x-linear-team", "x-linear-project", "x-linear-id", "x-linear-issue",
+  "authentication-results", "list-post",
 ] as const;
 
 /** Parses raw header lines (with folding) into lowercase names. Repeated headers keep the first value. */

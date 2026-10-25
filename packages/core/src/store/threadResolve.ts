@@ -1,9 +1,9 @@
 import {
-  cleanMessageId, hasParentLink, linkedIds, normalizeSubject, participantSet, sharesParticipant, SUBJECT_JOIN_WINDOW_MS, threadKeyFor,
+  cleanMessageId, hasParentLink, isAutomatedHeaders, isGenericSubject, joinSubject, linkedIds, participantSet, sharesParticipant, SUBJECT_JOIN_WINDOW_MS, threadKeyFor,
 } from "../threading";
 import type { AccountId, Address, ThreadId } from "../types";
 import { addresses } from "./mappers";
-import { chunks, Sql } from "./sql";
+import { chunks, parseJson, Sql } from "./sql";
 import type { IngestMessage } from "./types";
 
 export type ResolvedThread = { threadId: ThreadId; mergedThreadIds: ThreadId[] };
@@ -32,17 +32,19 @@ function findLinkedThreads(q: Sql, accountId: AccountId, key: string | null, own
 }
 
 function findBySubject(q: Sql, accountId: AccountId, msg: IngestMessage, own: ReadonlySet<string>): ThreadId | null {
-  const core = normalizeSubject(msg.subject);
+  if (isGenericSubject(msg.subject) || isAutomatedHeaders(msg.headers)) return null;
+  const core = joinSubject(msg.subject);
   if (!core) return null;
   const others = (...lists: Address[][]) => new Set([...participantSet(...lists)].filter((a) => !own.has(a)));
   const mine = others(msg.from, msg.to, msg.cc);
-  const rows = q.all<{ thread_id: number; subject: string; from_json: string; to_json: string; cc_json: string }>(
-    `SELECT thread_id, subject, from_json, to_json, cc_json FROM messages
-     WHERE account_id = ? AND date BETWEEN ? AND ? AND subject LIKE ? ESCAPE '\\' ORDER BY date DESC LIMIT 200`,
+  const rows = q.all<{ thread_id: number; subject: string; from_json: string; to_json: string; cc_json: string; headers_json: string | null }>(
+    `SELECT thread_id, subject, from_json, to_json, cc_json, headers_json FROM messages
+     WHERE account_id = ? AND draft = 0 AND date BETWEEN ? AND ? AND subject LIKE ? ESCAPE '\\' ORDER BY date DESC LIMIT 200`,
     accountId, msg.date - SUBJECT_JOIN_WINDOW_MS, msg.date + SUBJECT_JOIN_WINDOW_MS, `%${escapeLike(core)}%`,
   );
   for (const r of rows) {
-    if (normalizeSubject(r.subject) !== core) continue;
+    if (joinSubject(r.subject) !== core) continue;
+    if (isAutomatedHeaders(parseJson<Record<string, string>>(r.headers_json, {}))) continue;
     if (sharesParticipant(mine, others(addresses(r.from_json), addresses(r.to_json), addresses(r.cc_json)))) return r.thread_id;
   }
   return null;

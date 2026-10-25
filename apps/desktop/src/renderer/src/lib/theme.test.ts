@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { applyTheme, getResolvedTheme, resolveTheme, startThemeSync } from "./theme";
+import { applyTheme, cachedThemeSetting, getResolvedTheme, resolveTheme, startThemeSync } from "./theme";
 import { createMockApi } from "../mock";
 
 afterEach(() => {
@@ -21,6 +21,14 @@ describe("theme", () => {
     expect(resolveTheme("system")).toBe("light");
     expect(applyTheme("system")).toBe("light");
     expect(document.documentElement.dataset.themeSetting).toBe("system");
+  });
+
+  it("caches the setting and suppresses transitions while switching", () => {
+    document.documentElement.setAttribute("data-theme", "dark");
+    applyTheme("light");
+    expect(document.documentElement.classList.contains("no-theme-transition")).toBe(true);
+    expect(window.localStorage.getItem("flint.theme")).toBe("light");
+    expect(cachedThemeSetting()).toBe("light");
   });
 
   it("follows settings events", async () => {

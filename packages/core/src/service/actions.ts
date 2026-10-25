@@ -20,41 +20,41 @@ export function actionsApi(ctx: ServiceContext): ActionsApi {
   return {
     async markRead(ids, read) {
       const t = threadIds.parse(ids);
-      return run({ label: read ? "mark as read" : "mark as unread", local: () => store.markRead(t, read), server: (a, l) => a.setSeen(l, read), inverse: inverseSeen });
+      return run({ label: read ? "mark as read" : "mark as unread", local: () => store.markRead(t, read), server: (a, l) => a.setSeen(l, read), op: { kind: "seen", arg: read }, inverse: inverseSeen });
     },
 
     async setPinned(ids, pinned) {
       const t = threadIds.parse(ids);
-      return run({ label: pinned ? "pin" : "unpin", local: () => store.setPinned(t, pinned), server: (a, l) => a.setFlagged(l, pinned), inverse: inverseFlagged });
+      return run({ label: pinned ? "pin" : "unpin", local: () => store.setPinned(t, pinned), server: (a, l) => a.setFlagged(l, pinned), op: { kind: "flagged", arg: pinned }, inverse: inverseFlagged });
     },
 
     async archive(ids) {
       const t = threadIds.parse(ids);
-      return run({ label: "archive", local: () => store.moveThreads(t, { kind: "archive" }), server: (a, l) => a.archive(l), inverse: move });
+      return run({ label: "archive", local: () => store.moveThreads(t, { kind: "archive" }), server: (a, l) => a.archive(l), op: { kind: "archive" }, inverse: move });
     },
 
     async trash(ids) {
       const t = threadIds.parse(ids);
       ensureRoleFolders(ctx, t, "trash");
-      return run({ label: "move to Trash", local: () => store.moveThreads(t, { kind: "trash" }), server: (a, l) => a.trash(l), inverse: move });
+      return run({ label: "move to Trash", local: () => store.moveThreads(t, { kind: "trash" }), server: (a, l) => a.trash(l), op: { kind: "trash" }, inverse: move });
     },
 
     async markSpam(ids, spam) {
       const t = threadIds.parse(ids);
       if (spam) ensureRoleFolders(ctx, t, "spam");
       return run(spam
-        ? { label: "mark as spam", local: () => store.moveThreads(t, { kind: "spam" }), server: (a, l) => a.spam(l), inverse: move }
-        : { label: "mark as not spam", local: () => store.moveThreads(t, { kind: "inbox" }), server: (a, l) => a.unspam(l), inverse: move });
+        ? { label: "mark as spam", local: () => store.moveThreads(t, { kind: "spam" }), server: (a, l) => a.spam(l), op: { kind: "spam" }, inverse: move }
+        : { label: "mark as not spam", local: () => store.moveThreads(t, { kind: "inbox" }), server: (a, l) => a.unspam(l), op: { kind: "unspam" }, inverse: move });
     },
 
     async moveToFolder(ids, folderId) {
       const t = threadIds.parse(ids);
-      return run({ label: "move", local: () => store.moveThreads(t, { kind: "folder", folderId }), server: (a, l) => a.moveToFolder(l, folderId), inverse: move });
+      return run({ label: "move", local: () => store.moveThreads(t, { kind: "folder", folderId }), server: (a, l) => a.moveToFolder(l, folderId), op: { kind: "move_folder", arg: folderId }, inverse: move });
     },
 
     async moveToInbox(ids) {
       const t = threadIds.parse(ids);
-      return run({ label: "move to the inbox", local: () => store.moveThreads(t, { kind: "inbox" }), server: (a, l) => a.moveToInbox(l), inverse: move });
+      return run({ label: "move to the inbox", local: () => store.moveThreads(t, { kind: "inbox" }), server: (a, l) => a.moveToInbox(l), op: { kind: "move_inbox" }, inverse: move });
     },
 
     async snooze(ids, until) {

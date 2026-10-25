@@ -120,6 +120,18 @@ describe("classifyMailboxes", () => {
   });
 });
 
+describe("classifyMailboxes: Gmail system folders", () => {
+  it("maps [Gmail]/Important and Starred by path, including localized names, without special-use flags", () => {
+    const r = classifyMailboxes([entry("INBOX"), entry("[Gmail]/Important"), entry("[Gmail]/Wichtig"), entry("[Google Mail]/Starred"), entry("Important")]);
+    const roles = Object.fromEntries(r.map((m) => [m.path, m.role]));
+    expect(roles).toMatchObject({ "[Gmail]/Important": "important", "[Gmail]/Wichtig": "important", "[Google Mail]/Starred": "flagged", Important: null });
+  });
+  it("maps a localized \\Important special-use flag", () => {
+    const r = classifyMailboxes([entry("[Gmail]/Importantes", [], "\\Important")]);
+    expect(r[0]!.role).toBe("important");
+  });
+});
+
 describe("gmailLabelPaths", () => {
   const paths = { inbox: "INBOX", sent: "[Gmail]/Sent Mail", drafts: "[Gmail]/Drafts", spam: "[Gmail]/Spam", trash: "[Gmail]/Trash" } as Record<string, string>;
   it("resolves system labels, keeps user labels and skips Starred and Important", () => {

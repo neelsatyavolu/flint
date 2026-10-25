@@ -1,4 +1,4 @@
-import type { ImapFlow } from "imapflow";
+import type { ImapFlow, SearchObject } from "imapflow";
 import { logger } from "../../log";
 import type { Store } from "../../store";
 import { FlintError, type Account, type AccountId, type Folder, type FlintEvent, type MailboxRole, type SyncStatus, type ThreadId } from "../../types";
@@ -9,6 +9,8 @@ import { attachmentPath, downloadPart, readCached, writeCached } from "./attachm
 import { loadBody } from "./body";
 import { reconcileExpunges, syncFolder, type Batch, type FolderSyncDeps } from "./folderSync";
 import { classifyMailboxes, gmailLabelPaths } from "./folders";
+import { backfillFolder, searchFolder, type BackfillResult } from "./history";
+import { buildGmailRaw, buildImapCriteria, inTargets, type ParsedSearch } from "../../search";
 import { applyOutcomeActions, newMailEvents } from "./outcomes";
 
 const log = logger("mail.sync");
@@ -100,6 +102,90 @@ export class AccountSync implements ImapRunner {
     const client = await this.#ensureClient();
     const gmail = this.#isGmail(client);
     await this.#syncOneFolder(client, folder, gmail);
+  }
+
+  /**
+   * Fetches the next batch of older mail for these folders (history below what was synced). Resolves with how many
+   * messages arrived and whether any folder still has older mail on the server.
+   */
+  async loadOlder(folderIds: number[], batch?: number): Promise<BackfillResult> {
+    const client = await this.#ensureClient();
+    const gmail = this.#gmailMode(client);
+    const pending: Batch[] = [];
+    const total: BackfillResult = { loaded: 0, hasMore: false };
+    for (const id of folderIds) {
+      const folder = this.#o.store.requireFolder(id);
+      const r = await this.#withFolderLock(client, folder, gmail, pending, (d, f) => backfillFolder(d, f, batch));
+      total.loaded += r.loaded;
+      total.hasMore = total.hasMore || r.hasMore;
+    }
+    await this.#afterBatches(pending, gmail);
+    return total;
+  }
+
+  /**
+   * Asks the server to search for a parsed query and ingests matching messages that are not local yet. Gmail gets
+   * X-GM-RAW; other servers get IMAP criteria in the folders the query points at.
+   */
+  async searchServer(parsed: ParsedSearch): Promise<{ found: number; added: number }> {
+    const { store } = this.#o;
+    const client = await this.#ensureClient();
+    const gmail = this.#gmailMode(client);
+    const pending: Batch[] = [];
+    const total = { found: 0, added: 0 };
+    const plan = gmail ? this.#gmailSearchPlan(parsed) : this.#imapSearchPlan(parsed);
+    for (const { folder, criteria } of plan) {
+      const r = await this.#withFolderLock(client, store.requireFolder(folder.id), gmail, pending, (d, f) => searchFolder(d, f, criteria));
+      total.found += r.found;
+      total.added += r.added;
+    }
+    await this.#afterBatches(pending, gmail);
+    return total;
+  }
+
+  #gmailMode(client: ImapFlow): boolean {
+    const { store, accountId } = this.#o;
+    return this.#isGmail(client) && store.getFolderByRole(accountId, "all") !== null;
+  }
+
+  #gmailSearchPlan(parsed: ParsedSearch): { folder: Folder; criteria: SearchObject }[] {
+    const { store, accountId } = this.#o;
+    const raw = buildGmailRaw(parsed);
+    if (!raw) return [];
+    const wants = inTargets(parsed).roles;
+    const role: MailboxRole = wants.includes("trash") ? "trash" : wants.includes("spam") ? "spam" : "all";
+    const folder = store.getFolderByRole(accountId, role);
+    return folder ? [{ folder, criteria: { gmraw: raw } }] : [];
+  }
+
+  #imapSearchPlan(parsed: ParsedSearch): { folder: Folder; criteria: SearchObject }[] {
+    const { store, accountId } = this.#o;
+    const criteria = buildImapCriteria(parsed);
+    if (!criteria) return [];
+    const { roles, names } = inTargets(parsed);
+    const synced = store.listFolders(accountId).filter((f) => store.getFolderSyncState(f.id).uidNext !== null);
+    const picked = roles.length || names.length
+      ? synced.filter((f) => (f.role !== null && roles.includes(f.role)) || names.includes(f.name.toLowerCase()))
+      : synced.filter((f) => f.role === "inbox" || f.role === "sent" || f.role === "archive" || f.role === null);
+    return picked.map((folder) => ({ folder, criteria }));
+  }
+
+  async #withFolderLock<T>(client: ImapFlow, folder: Folder, gmail: boolean, pending: Batch[], fn: (d: FolderSyncDeps, f: Folder) => Promise<T>): Promise<T> {
+    const { store, accountId } = this.#o;
+    const deps: FolderSyncDeps = {
+      store, accountId, client, gmail, now: this.#now,
+      labelPaths: (labels) => gmailLabelPaths(labels, (role) => store.getFolderByRole(accountId, role)?.path ?? null),
+      initialDays: () => store.getSettings().sync.initialDays,
+      collect: (b) => pending.push(b),
+      changed: (ids) => this.#emitChanged(ids),
+      progress: () => undefined,
+    };
+    const lock = await client.getMailboxLock(folder.path, { readOnly: true });
+    try {
+      return await fn(deps, folder);
+    } finally {
+      lock.release();
+    }
   }
 
   async run<T>(fn: (client: ImapFlow) => Promise<T>): Promise<T> {
@@ -224,9 +310,21 @@ export class AccountSync implements ImapRunner {
       await client.connect();
     } catch (error) {
       client.close();
-      throw describeConnectError(error, "IMAP");
+      throw describeConnectError(error, "IMAP", account.imapHost);
     }
+    this.#adoptGmailProvider(account, client);
     return client;
+  }
+
+  /**
+   * A server that advertises X-GM-EXT-1 is Gmail (Workspace, a custom domain, an IMAP account added by hand). Mark the
+   * account so label-aware sync is used. Only before any mail is stored: switching later would re-ingest everything.
+   */
+  #adoptGmailProvider(account: Account, client: ImapFlow): void {
+    const { store, accountId } = this.#o;
+    if (account.provider === "gmail" || !client.capabilities.has("X-GM-EXT-1") || store.accountHasMessages(accountId)) return;
+    store.updateAccount(accountId, { provider: "gmail" });
+    log.info("server is Gmail, using label-aware sync", { account: accountId });
   }
 
   async #connect(): Promise<ImapFlow> {

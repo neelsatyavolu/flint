@@ -1,8 +1,9 @@
 import type {
+  AutoconfigResult,
   Account, AccountId, AddAccountInput, AgentActivity, AiProvider, AiRun, AiStatus, AiTask, Contact,
   DeepPartial, Draft, DraftInit, DraftPatch, FlintEvent, Folder, FolderId, HomeData, MessageRowId,
   MessageView, ReceiptDetail, Rule, ScheduledSend, SendResult, ServerConfig, Settings, SidebarData,
-  Signature, SyncStatus, Template, ThreadDetail, ThreadId, ThreadPage, ThreadQuery, TrackedMessage,
+  Signature, SyncStatus, Template, ThreadDetail, ThreadId, ThreadPage, ThreadQuery, LoadOlderResult, ServerSearchResult, TrackedMessage,
 } from "./types";
 
 /**
@@ -16,7 +17,7 @@ import type {
 export interface FlintApi {
   // Accounts
   listAccounts(): Promise<Account[]>;
-  autoconfig(email: string): Promise<ServerConfig | null>;
+  autoconfig(email: string): Promise<AutoconfigResult | null>;
   testConnection(input: AddAccountInput): Promise<{ imap: "ok" | string; smtp: "ok" | string }>;
   addAccount(input: AddAccountInput): Promise<Account>;
   /** Opens the system browser for Google sign-in and resolves once the loopback callback lands. */
@@ -32,6 +33,10 @@ export interface FlintApi {
   getSidebar(): Promise<SidebarData>;
   getHome(): Promise<HomeData>;
   listThreads(query: ThreadQuery): Promise<ThreadPage>;
+  /** Fetches the next batch of mail older than what is synced for the folders behind this list. */
+  loadOlder(query: ThreadQuery): Promise<LoadOlderResult>;
+  /** Searches the mail server for this query and stores matches that are not local yet. Local search then finds them. */
+  searchServer(search: string, accountId?: AccountId): Promise<ServerSearchResult>;
   getThread(id: ThreadId): Promise<ThreadDetail>;
   getMessage(id: MessageRowId): Promise<MessageView>;
   /** Loads remote images for this message (and remembers the sender when `always`). */
@@ -132,7 +137,7 @@ export const METHOD_TIERS: Record<FlintMethod, "read" | "modify" | "send" | "adm
   listAccounts: "read", autoconfig: "read", testConnection: "admin", addAccount: "admin", addGoogleAccount: "admin",
   updateAccount: "admin", removeAccount: "admin",
   syncNow: "read", getSyncStatus: "read",
-  getSidebar: "read", getHome: "read", listThreads: "read", getThread: "read", getMessage: "read",
+  getSidebar: "read", getHome: "read", listThreads: "read", loadOlder: "read", searchServer: "read", getThread: "read", getMessage: "read",
   allowRemoteImages: "modify", listFolders: "read", saveAttachment: "read", openAttachment: "admin", suggestContacts: "read",
   markRead: "modify", setPinned: "modify", archive: "modify", trash: "modify", markSpam: "modify",
   moveToFolder: "modify", moveToInbox: "modify", snooze: "modify", unsnooze: "modify", setMuted: "modify", undo: "modify",

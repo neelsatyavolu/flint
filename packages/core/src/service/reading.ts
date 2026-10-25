@@ -4,6 +4,7 @@ import { logger } from "../log";
 import { FlintError, type MessageRowId, type ThreadId, type ThreadQuery } from "../types";
 import { openAttachment, saveAttachment } from "./attachments";
 import type { ServiceContext } from "./context";
+import { hasOlderOnServer } from "./historyFolders";
 import { allowImages } from "./imagePolicy";
 import { toMessageView, viewEnv } from "./messageView";
 
@@ -87,7 +88,8 @@ export function readingApi(ctx: ServiceContext): ReadingApi {
 
     async listThreads(query) {
       await syncUserFolderOnce(query);
-      return store.listThreads(query, ctx.now());
+      const page = store.listThreads(query, ctx.now());
+      return page.nextCursor ? page : { ...page, olderOnServer: hasOlderOnServer(store, query) };
     },
 
     async getThread(threadId) {

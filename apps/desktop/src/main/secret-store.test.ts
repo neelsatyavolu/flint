@@ -7,9 +7,9 @@ import { createSecretStore, type SafeStorageLike } from "./secret-store";
 
 function fakeSafeStorage(available: boolean): SafeStorageLike {
   return {
-    isEncryptionAvailable: () => available,
-    encryptString: (s) => Buffer.from(s, "utf8").reverse(),
-    decryptString: (b) => Buffer.from(b).reverse().toString("utf8"),
+    isAsyncEncryptionAvailable: async () => available,
+    encryptStringAsync: async (s) => Buffer.from(s, "utf8").reverse(),
+    decryptStringAsync: async (b) => ({ result: Buffer.from(b).reverse().toString("utf8"), shouldReEncrypt: false }),
   };
 }
 
@@ -91,5 +91,40 @@ describe("secret store", () => {
     await createSecretStore(file, fakeSafeStorage(true)).set("a", "b");
     await writeFile(file, Buffer.concat([Buffer.from([0]), Buffer.from(JSON.stringify({ a: "evil" }))]));
     await expect(createSecretStore(file, fakeSafeStorage(true)).get("a")).rejects.toThrow(/not trusted/);
+  });
+
+  it("keeps secrets in memory only, and tells the app once, when there is no keychain", async () => {
+    const file = join(dir, "secrets.bin");
+    let told = 0;
+    const s = createSecretStore(file, fakeSafeStorage(false), { memoryOnly: true, onMemoryOnly: () => { told++; } });
+    expect(await s.get("a")).toBeNull();
+    await s.set("a", "b");
+    await s.set("c", "d");
+    expect(await s.get("a")).toBe("b");
+    await s.delete("c");
+    expect(await s.get("c")).toBeNull();
+    expect(told).toBe(1);
+    await expect(readFile(file)).rejects.toThrow();
+    expect((await readdir(dir))).toEqual([]);
+    expect(await createSecretStore(file, fakeSafeStorage(false), { memoryOnly: true }).get("a")).toBeNull();
+  });
+
+  it("memory-only mode leaves an existing encrypted file untouched", async () => {
+    const file = join(dir, "secrets.bin");
+    await createSecretStore(file, fakeSafeStorage(true)).set("a", "b");
+    const before = await readFile(file);
+    const s = createSecretStore(file, fakeSafeStorage(false), { memoryOnly: true });
+    expect(await s.get("a")).toBeNull();
+    await s.set("x", "y");
+    expect(await s.get("x")).toBe("y");
+    expect((await readFile(file)).equals(before)).toBe(true);
+    expect(await createSecretStore(file, fakeSafeStorage(true)).get("a")).toBe("b");
+  });
+
+  it("re-encrypts when safeStorage says the key rotated", async () => {
+    const file = join(dir, "secrets.bin");
+    await createSecretStore(file, fakeSafeStorage(true)).set("a", "b");
+    const rotating = { ...fakeSafeStorage(true), decryptStringAsync: async (b: Buffer) => ({ result: Buffer.from(b).reverse().toString("utf8"), shouldReEncrypt: true }) };
+    expect(await createSecretStore(file, rotating).get("a")).toBe("b");
   });
 });

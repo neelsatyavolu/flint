@@ -19,10 +19,12 @@ export function SignaturesSection() {
   const toast = useToast();
   const { settings, save } = useSettingsStore();
   const { accounts } = useAccounts();
-  const sigs = useFlintQuery((api) => api.listSignatures(), []);
+  const sigs = useFlintQuery((api) => api.listSignatures(), [], { mail: false });
   const [sel, setSel] = useState<number | "new" | null>(null);
   const list = sigs.data ?? [];
-  const current: Draft | null = sel === "new" ? blank() : (list.find((s) => s.id === sel) ?? null);
+  // The first signature is open by default so the editor pane is never an empty box.
+  const active = sel ?? list[0]?.id ?? null;
+  const current: Draft | null = active === "new" ? blank() : (list.find((s) => s.id === active) ?? null);
   const accountName = (id: string | null) => (id ? (accounts?.find((a) => a.id === id)?.email ?? "Unknown account") : "All accounts");
 
   const onSave = async (draft: Draft) => {
@@ -55,7 +57,7 @@ export function SignaturesSection() {
     <SectionPage title="Signatures" description="Add a signature to new mail and replies, per account.">
       <ListEditor
         items={list}
-        selectedId={sel}
+        selectedId={active}
         onSelect={setSel}
         onNew={() => setSel("new")}
         newLabel="New signature"
@@ -63,7 +65,7 @@ export function SignaturesSection() {
         render={(s) => ({ title: s.name || "Untitled", sub: `${accountName(s.accountId)}${s.defaultNew ? " · new" : ""}${s.defaultReply ? " · replies" : ""}` })}
       >
         {current ? (
-          <SignatureEditor key={sel === "new" ? "new" : current.id} initial={current} accounts={accounts ?? []} onSave={onSave} onDelete={onDelete} />
+          <SignatureEditor key={active === "new" ? "new" : current.id} initial={current} accounts={accounts ?? []} onSave={onSave} onDelete={onDelete} />
         ) : (
           <p className={styles.muted}>Select a signature to edit it, or create a new one.</p>
         )}

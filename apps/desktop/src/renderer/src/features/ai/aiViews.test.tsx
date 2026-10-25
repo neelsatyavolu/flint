@@ -14,6 +14,7 @@ vi.mock("../../lib/api", () => ({
     aiRun: (t: AiTask) => aiRun(t),
     aiStatus: () => aiStatus(),
     aiCancel: () => Promise.resolve(),
+    getThread: (id: number) => Promise.resolve({ id, messages: [] }),
     getSettings: () => Promise.resolve({ ai: { enabled: true, autoSummarize: true, smartReplies: true } } as Settings),
   },
 }));

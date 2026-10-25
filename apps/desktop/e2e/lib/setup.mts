@@ -6,7 +6,7 @@ import { seedMail } from "./seed.mts";
 export type Rig = { gm: GreenMail; app: Launched };
 
 export async function startMail(): Promise<GreenMail> {
-  const gm = await startGreenMail({ users: ["alice", "bob"] });
+  const gm = await startGreenMail({ users: ["alice", "bob", "carol"] });
   await seedMail(gm, ["alice", "bob"]);
   return gm;
 }

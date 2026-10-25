@@ -48,8 +48,12 @@ function MainView() {
   }
 }
 
+/** "Ask anything" belongs on mail and Home. Settings, Read Statuses, Agent Activity and Scheduled have their own content to read. */
+const NO_ASK_VIEWS = new Set(["receipts", "agent_activity", "scheduled"]);
+
 export function AppShell() {
   const { narrow } = useApp();
+  const view = useNav((s) => s.view);
   const collapsed = useNav((s) => s.sidebarCollapsed);
   const narrowExpanded = useNav((s) => s.narrowExpanded);
   const settingsOpen = useNav((s) => s.settingsOpen);
@@ -103,7 +107,8 @@ export function AppShell() {
         )}
       </main>
       <Suspense fallback={null}><ComposerHost /></Suspense>
-      <AskLauncher />
+      {/* Kept mounted (display: none) so an open conversation survives a trip through Settings. */}
+      <div hidden={settingsOpen || NO_ASK_VIEWS.has(view)}><AskLauncher /></div>
       <Overlays cmds={cmds} />
     </div>
   );

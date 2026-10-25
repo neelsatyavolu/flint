@@ -18,10 +18,17 @@ export type NavItemProps = {
   onClick: () => void;
   rail?: boolean;
   shortcut?: string;
+  /** Cut long labels (addresses) in the middle so the domain stays visible; the full text is the tooltip. */
+  middleEllipsis?: boolean;
 };
 
+/** Where the always-visible tail of a middle-truncated address starts: its last 10 characters (the end of the domain). */
+function tailStart(label: string): number {
+  return Math.max(label.length - 10, 1);
+}
+
 /** One 30px sidebar row. In rail mode only the icon shows, with the label in a tooltip. */
-export function NavItem({ icon, label, count = 0, tone, active, depth = 0, expandable, expanded, onToggle, onClick, rail, shortcut }: NavItemProps) {
+export function NavItem({ icon, label, count = 0, tone, active, depth = 0, expandable, expanded, onToggle, onClick, rail, shortcut, middleEllipsis }: NavItemProps) {
   if (rail) {
     return (
       <Tooltip label={label} shortcut={shortcut} placement="right">
@@ -47,7 +54,14 @@ export function NavItem({ icon, label, count = 0, tone, active, depth = 0, expan
       ) : null}
       <button type="button" className={styles.itemMain} aria-current={active ? "page" : undefined} onClick={onClick}>
         {icon ? <span className={styles.icon}>{icon}</span> : null}
-        <span className={styles.label}>{label}</span>
+        {middleEllipsis && label.length > 14 ? (
+          <span className={styles.label} title={label}>
+            <span className={styles.labelHead}>{label.slice(0, tailStart(label))}</span>
+            <span className={styles.labelTail}>{label.slice(tailStart(label))}</span>
+          </span>
+        ) : (
+          <span className={styles.label} title={middleEllipsis ? label : undefined}>{label}</span>
+        )}
         {count > 0 ? <span className={clsx("t-data", styles.count, tone === "warn" && styles.countWarn)}>{count > 999 ? "999+" : count}</span> : null}
       </button>
     </div>

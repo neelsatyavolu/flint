@@ -133,8 +133,10 @@ export class ThreadListRepo {
     const items: ThreadListItem[] = [];
     for (const id of ids) {
       const t = threads.get(id);
-      const list = byThread.get(id);
-      if (!t || !list?.length) continue;
+      const all = byThread.get(id);
+      if (!t || !all?.length) continue;
+      // Server drafts are not part of the conversation: hide them unless the thread has nothing else in this view.
+      const list = all.some((m) => m.draft === 0) ? all.filter((m) => m.draft === 0) : all;
       const latest = list[list.length - 1]!;
       items.push({
         id, accountId: t.account_id, subject: t.subject, snippet: latest.snippet, participants: participants(list, own),

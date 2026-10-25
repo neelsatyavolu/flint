@@ -1,9 +1,10 @@
 import { useState, type JSX } from "react";
-import { ArrowLeft, Mail } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { Account } from "@flint/core";
 import { Button, FlintMark } from "../../ui";
 import { GoogleStep } from "./GoogleStep";
 import { ImapStep } from "./ImapStep";
+import { ProviderMark } from "./ProviderMark";
 import { PROVIDERS, presetById, type ProviderId } from "./providers";
 import styles from "./onboarding.module.css";
 
@@ -15,6 +16,7 @@ const DESCRIPTIONS: Record<ProviderId, string> = {
   outlook: "Outlook.com, Hotmail and Office 365.",
   yahoo: "Uses an app password.",
   fastmail: "Uses an app password.",
+  "proton-bridge": "Proton Mail through Proton Mail Bridge on this computer.",
   other: "Any provider that supports IMAP.",
 };
 
@@ -36,7 +38,7 @@ export function AddAccount({ onDone, onCancel, welcome, reauth }: Props): JSX.El
         <Button variant="ghost" size="sm" className={styles.back} icon={<ArrowLeft size={14} strokeWidth={1.5} />} onClick={() => setChoice("choose")}>All providers</Button>
       ) : null}
       {choice === "choose" ? <Choices onPick={setChoice} /> : null}
-      {choice === "google" ? <GoogleStep onDone={onDone} /> : null}
+      {choice === "google" ? <GoogleStep onDone={onDone} onSwitch={setChoice} /> : null}
       {choice !== "choose" && choice !== "google" ? <ImapStep key={choice} preset={presetById(choice)} reauth={reauth} onDone={onDone} /> : null}
       {onCancel ? <div className={styles.actions}><Button variant="ghost" onClick={onCancel}>Cancel</Button></div> : null}
     </div>
@@ -61,7 +63,7 @@ function Choices({ onPick }: { onPick: (c: Choice) => void }) {
   return (
     <div className={styles.choices}>
       <button type="button" className={styles.choice} onClick={() => onPick("google")}>
-        <span className={styles.choiceIcon} aria-hidden><Mail size={18} strokeWidth={1.5} /></span>
+        <span className={styles.choiceIcon} aria-hidden><ProviderMark id="google" /></span>
         <span className={styles.choiceText}>
           <span className={styles.choiceTitle} style={{ display: "block" }}>Sign in with Google</span>
           <span className={styles.choiceDesc} style={{ display: "block" }}>Gmail and Google Workspace, with Google's own sign-in.</span>
@@ -69,7 +71,7 @@ function Choices({ onPick }: { onPick: (c: Choice) => void }) {
       </button>
       {PROVIDERS.map((p) => (
         <button key={p.id} type="button" className={styles.choice} onClick={() => onPick(p.id)}>
-          <span className={styles.choiceIcon} aria-hidden><Mail size={18} strokeWidth={1.5} /></span>
+          <span className={styles.choiceIcon} aria-hidden><ProviderMark id={p.id} /></span>
           <span className={styles.choiceText}>
             <span className={styles.choiceTitle} style={{ display: "block" }}>{p.label}</span>
             <span className={styles.choiceDesc} style={{ display: "block" }}>{DESCRIPTIONS[p.id]}</span>

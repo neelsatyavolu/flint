@@ -30,7 +30,7 @@ export function CommandPalette({ cmds }: { cmds: AppCommands }) {
 
   const commands = useMemo<Command[]>(() => {
     const n = navStore.getState();
-    const mail = cmds.inMailView();
+    const mail = cmds.inMailView() && cmds.hasTarget();
     const action = (id: string, label: string, icon: React.ReactNode, run: () => void, shortcut?: string, keywords?: string): Command => ({ id, label, icon, run, shortcut, keywords, group: "Actions" });
     const out: Command[] = [];
     if (mail) {

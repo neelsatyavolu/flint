@@ -26,6 +26,12 @@ describe("SettingsView", () => {
     expect(await screen.findByText("Flint is free. No account, no tracking of you.")).toBeTruthy();
   });
 
+  it("General lets the user pick how much mail is kept locally", async () => {
+    mount({ section: "general" });
+    expect(await screen.findByText("Mail kept on this computer")).toBeTruthy();
+    expect(screen.getByText(/Older mail loads when you reach the end/)).toBeTruthy();
+  });
+
   it("opens a +AI sub-page", async () => {
     mount({ section: "ai/writing" });
     expect(await screen.findByText("Smart replies")).toBeTruthy();

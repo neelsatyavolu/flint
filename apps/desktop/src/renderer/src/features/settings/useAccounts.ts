@@ -12,8 +12,8 @@ export function errorText(err: unknown, fallback: string): string {
 
 /** Accounts plus their sync state, live. */
 export function useAccounts() {
-  const accounts = useFlintQuery((api) => api.listAccounts(), [], { refetchOn: ["sync"] });
-  const sync = useFlintQuery((api) => api.getSyncStatus(), [], { refetchOn: ["sync"] });
+  const accounts = useFlintQuery((api) => api.listAccounts(), [], { refetchOn: ["sync"], mail: false });
+  const sync = useFlintQuery((api) => api.getSyncStatus(), [], { refetchOn: ["sync"], mail: false });
   const byAccount = new Map<AccountId, SyncStatus>((sync.data ?? []).map((s) => [s.accountId, s]));
   return { accounts: accounts.data, loading: accounts.loading, error: accounts.error, refetch: accounts.refetch, syncOf: (id: AccountId) => byAccount.get(id) };
 }

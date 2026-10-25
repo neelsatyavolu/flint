@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { logger } from "@flint/core/log";
 import type { Platform } from "@flint/core/platform";
-import { app, Notification, safeStorage, shell } from "electron";
+import { app, dialog, Notification, safeStorage, shell } from "electron";
 import { isSafeExternalUrl } from "./ipc-core";
 import { createSecretStore } from "./secret-store";
 
@@ -16,13 +16,27 @@ export function resolveDataDir(): string {
   return process.env.FLINT_DATA_DIR?.trim() || app.getPath("userData");
 }
 
+function warnKeychainUnavailable(): void {
+  void dialog.showMessageBox({
+    type: "error",
+    title: "Flint",
+    message: "Flint can't save your passwords",
+    detail: "Your system keychain isn't available, so Flint is keeping account passwords in memory for this session only and you will need to sign in again next time. Unlock or set up your keychain, then restart Flint.",
+    buttons: ["OK"],
+  });
+}
+
 export function createPlatform(dataDir: string, hooks: PlatformHooks): Platform {
   // Notifications must stay referenced until clicked or closed, or they can be collected.
   const live = new Set<Notification>();
   return {
     dataDir,
     downloadsDir: app.getPath("downloads"),
-    secrets: createSecretStore(join(dataDir, "secrets.bin"), safeStorage, { allowPlain: !app.isPackaged }),
+    secrets: createSecretStore(join(dataDir, "secrets.bin"), safeStorage, {
+      allowPlain: !app.isPackaged,
+      memoryOnly: app.isPackaged,
+      onMemoryOnly: warnKeychainUnavailable,
+    }),
     appVersion: app.getVersion(),
     async openExternal(url) {
       if (!isSafeExternalUrl(url)) throw new Error("Only http, https and mailto links can be opened.");

@@ -103,3 +103,37 @@ describe("AddAccount", () => {
     await waitFor(() => expect(onDone).toHaveBeenCalled());
   });
 });
+
+describe("Proton Bridge", () => {
+  it("has its own provider row that prefills the Bridge servers", async () => {
+    render(<AddAccount onDone={() => {}} />);
+    fireEvent.click(screen.getByText("Proton Mail (Bridge)"));
+    expect(screen.getByText(/Use the password from Proton Mail Bridge/)).toBeTruthy();
+    fill("Email", "neel@xanom.co");
+    fireEvent.blur(screen.getByLabelText("Email"));
+    expect(await screen.findByText(/IMAP 127\.0\.0\.1:1143 STARTTLS · SMTP 127\.0\.0\.1:1025 SSL/)).toBeTruthy();
+  });
+
+  it("switches to the Bridge note when autoconfig reports the hint", async () => {
+    vi.spyOn(flint, "autoconfig").mockResolvedValue({ imapHost: "127.0.0.1", imapPort: 1143, imapSecure: false, smtpHost: "127.0.0.1", smtpPort: 1025, smtpSecure: true, username: "neel@xanom.co", hint: "proton_bridge" } as never);
+    render(<AddAccount onDone={() => {}} />);
+    fireEvent.click(screen.getByText("Other (IMAP)"));
+    expect(screen.queryByText(/Proton Mail Bridge/)).toBeNull();
+    fill("Email", "neel@xanom.co");
+    fireEvent.blur(screen.getByLabelText("Email"));
+    expect(await screen.findByText(/Use the password from Proton Mail Bridge/)).toBeTruthy();
+    expect(screen.getByText(/127\.0\.0\.1:1143 STARTTLS/)).toBeTruthy();
+  });
+
+  it("shows a Google no-Gmail error in a well with a way to Proton", async () => {
+    const real = await flint.getSettings();
+    vi.spyOn(flint, "getSettings").mockResolvedValue({ ...real, google: { clientId: "1-a.apps.googleusercontent.com", clientSecret: "s" } });
+    vi.spyOn(flint, "addGoogleAccount").mockRejectedValue(new Error("This Google account doesn't have a Gmail inbox. Its mail is hosted by Proton Mail."));
+    render(<AddAccount onDone={() => {}} />);
+    fireEvent.click(screen.getByText("Sign in with Google"));
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in with Google" }));
+    expect(await screen.findByText(/doesn't have a Gmail inbox/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Set up Proton Mail (Bridge)" }));
+    expect(screen.getByText(/Use the password from Proton Mail Bridge/)).toBeTruthy();
+  });
+});

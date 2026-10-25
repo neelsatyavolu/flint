@@ -103,7 +103,7 @@ function ThreadBody({ thread, refetch }: { thread: ThreadDetail; refetch: () => 
           {quickRepliesEligible(thread.category, thread.messages) ? (
             <QuickReplies threadId={thread.id} cacheKey={quickRepliesKey(thread.id, thread.messages)} onPick={setSeedText} />
           ) : null}
-          <Suspense fallback={null}><InlineReply threadId={thread.id} messageId={target.id} seedText={seedText} /></Suspense>
+          <Suspense fallback={null}><InlineReply threadId={thread.id} messageId={target.id} from={(target.isFromMe ? target.to[0] : target.from[0]) ?? target.from[0]} seedText={seedText} /></Suspense>
         </div>
       ) : null}
     </>

@@ -28,7 +28,24 @@ describe("text", () => {
   it("converts html", () => {
     const t = htmlToReadable('<p>Hi <b>there</b></p><p><a href="https://x.co">link</a><img src="a.png"></p>');
     expect(t).toContain("Hi there");
-    expect(t).toContain("link [https://x.co]");
+    expect(t).toContain("[link](https://x.co)");
+  });
+  it("shortens tracking urls, keeps short ones, and prints bare urls once", () => {
+    const long = `https://click.example.com/track/${"a1b2".repeat(30)}?u=1`;
+    const t = htmlToReadable(`<p>Open <a href="${long}">your invoice</a> or <a href="https://x.co/a">https://x.co/a</a>, mail <a href="mailto:a@b.co">Ann</a></p>`);
+    expect(t).toContain("[your invoice](https://click.example.com/...)");
+    expect(t).not.toContain("a1b2a1b2");
+    expect(t).toContain("https://x.co/a");
+    expect(t.match(/x\.co\/a/g)).toHaveLength(1);
+    expect(t).toContain("[Ann](a@b.co)");
+  });
+  it("keeps headings, lists and tables readable", () => {
+    const t = htmlToReadable("<h1>Order</h1><ul><li>One</li><li>Two</li></ul><table><tr><th>Item</th><th>Price</th></tr><tr><td>Tea</td><td>$4</td></tr></table>");
+    expect(t).toContain("Order");
+    expect(t).not.toContain("ORDER");
+    expect(t).toMatch(/\* One\n\s*\* Two/);
+    expect(t).toMatch(/Item\s+Price/);
+    expect(t).toMatch(/Tea\s+\$4/);
   });
   it("picks the body", () => {
     const m = { text: null, html: "<p>Hello</p>", snippet: "snip", bodyLoaded: true } as never;

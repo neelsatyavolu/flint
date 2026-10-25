@@ -75,13 +75,13 @@ export function libraryApi(ctx: ServiceContext): LibraryApi {
   async function perform(action: RuleAction, threadIds: ThreadId[]): Promise<void> {
     const run = ctx.optimistic.run;
     switch (action.type) {
-      case "archive": await run({ label: "archive", local: () => store.moveThreads(threadIds, { kind: "archive" }), server: (a, l) => a.archive(l) }); return;
+      case "archive": await run({ label: "archive", local: () => store.moveThreads(threadIds, { kind: "archive" }), server: (a, l) => a.archive(l), op: { kind: "archive" } }); return;
       case "trash":
         ensureRoleFolders(ctx, threadIds, "trash");
-        await run({ label: "move to Trash", local: () => store.moveThreads(threadIds, { kind: "trash" }), server: (a, l) => a.trash(l) });
+        await run({ label: "move to Trash", local: () => store.moveThreads(threadIds, { kind: "trash" }), server: (a, l) => a.trash(l), op: { kind: "trash" } });
         return;
-      case "mark_read": await run({ label: "mark as read", local: () => store.markRead(threadIds, true), server: (a, l) => a.setSeen(l, true) }); return;
-      case "pin": await run({ label: "pin", local: () => store.setPinned(threadIds, true), server: (a, l) => a.setFlagged(l, true) }); return;
+      case "mark_read": await run({ label: "mark as read", local: () => store.markRead(threadIds, true), server: (a, l) => a.setSeen(l, true), op: { kind: "seen", arg: true } }); return;
+      case "pin": await run({ label: "pin", local: () => store.setPinned(threadIds, true), server: (a, l) => a.setFlagged(l, true), op: { kind: "flagged", arg: true } }); return;
       case "mute": await run({ label: "mute", local: () => store.setMuted(threadIds, true) }); return;
       case "category": await run({ label: "change the category", local: () => setCategory(threadIds, action.category) }); return;
       case "move": {
@@ -89,7 +89,7 @@ export function libraryApi(ctx: ServiceContext): LibraryApi {
         for (const [accountId, ids] of accounts) {
           const folder = store.getFolderByPath(accountId, action.folderPath);
           if (!folder) { log.warn("a rule names a folder that does not exist", { accountId }); continue; }
-          await run({ label: "move", local: () => store.moveThreads(ids, { kind: "folder", folderId: folder.id }), server: (a, l) => a.moveToFolder(l, folder.id) });
+          await run({ label: "move", local: () => store.moveThreads(ids, { kind: "folder", folderId: folder.id }), server: (a, l) => a.moveToFolder(l, folder.id), op: { kind: "move_folder", arg: folder.id } });
         }
         return;
       }

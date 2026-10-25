@@ -41,3 +41,14 @@ describe("isBodyEmpty", () => {
     expect(isBodyEmpty('<p><img src="x"></p>')).toBe(false);
   });
 });
+
+describe("core signature class", () => {
+  it("recognises and writes the class core uses", () => {
+    const core = '<p>Hi</p><div class="flint_signature" data-signature-id="1"><b>old</b></div>';
+    expect(isBodyEmpty('<p></p><div class="flint_signature"><b>x</b></div>')).toBe(true);
+    const out = swapSignatureHtml(core, { id: 2, name: "n", html: "<i>new</i>", accountId: null, defaultNew: true, defaultReply: true });
+    expect(out).toContain('class="flint_signature"');
+    expect(out).not.toContain("old");
+    expect(out.match(/flint_signature/g)).toHaveLength(1);
+  });
+});

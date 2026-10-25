@@ -80,6 +80,19 @@ describe("remote images and a forged From", () => {
     expect(fresh.allowed(2, pal, { isFromMe: false, inSent: false })).toBe(true);
     expect(fresh.allowed(2, pal, { isFromMe: false, inSent: false, headers: { "authentication-results": "mx; dkim=fail; spf=pass" } })).toBe(false);
   });
+  it("auto-loads for a known sender only when the server recorded an authentication pass", () => {
+    const { store } = setup();
+    store.kvSet("images:senders", JSON.stringify(["pal@example.org"]));
+    const pal = [{ name: "Pal", address: "pal@example.org" }];
+    const fresh = imagePolicy(store, { ...DEFAULT_SETTINGS, inbox: { ...DEFAULT_SETTINGS.inbox, remoteImages: "known_senders" } });
+    const trust = (value: string) => ({ isFromMe: false, inSent: false, headers: { "authentication-results": value } });
+    expect(fresh.allowed(3, pal, trust("mx.google.com; dkim=pass header.i=@example.org"))).toBe(true);
+    expect(fresh.allowed(3, pal, trust("mx.google.com; spf=pass"))).toBe(true);
+    expect(fresh.allowed(3, pal, trust("mx.google.com; dkim=none; spf=none"))).toBe(false);
+    expect(fresh.allowed(3, pal, trust("mx.google.com; dkim=neutral"))).toBe(false);
+    // Mail synced before the header was fetched, or from a server that records none, keeps the old behaviour.
+    expect(fresh.allowed(3, pal, { isFromMe: false, inSent: false })).toBe(true);
+  });
   it("reads Authentication-Results", () => {
     expect(authOutcome(undefined)).toBe("unknown");
     expect(authOutcome({ "authentication-results": "mx; spf=softfail" })).toBe("fail");

@@ -1,14 +1,17 @@
 import { z } from "zod";
 import type { FlintApi } from "../api";
 import { logger } from "../log";
-import { buildReplyDraft, type ReplySource } from "../mail/compose";
+import { buildReplyDraft, type ReplyOptions, type ReplySource } from "../mail/compose";
 import { FlintError, type Account, type Draft, type DraftAttachment, type Signature } from "../types";
 import { copyIntoDraft, draftDir, removeDraftDir, removeDraftFile, writeIntoDraft } from "./compose-files";
 import { defaultSignature, replaceSignature } from "./compose-signature";
 import type { ServerDrafts } from "./compose-server-drafts";
 import type { ServiceContext } from "./context";
+import { trackingBlockedReason } from "./send";
 
 const log = logger("service.drafts");
+const INLINE_IMAGE_MAX_BYTES = 2_000_000;
+const INLINE_IMAGE_MAX_COUNT = 12;
 
 export type DraftsApi = Pick<FlintApi,
   "createDraft" | "getDraft" | "updateDraft" | "deleteDraft" | "listDrafts" | "addAttachment" | "removeAttachment">;
@@ -45,7 +48,7 @@ function replyFrom(account: Account, msg: { to: { address: string }[]; cc: { add
   return addressed.has(account.email.toLowerCase()) || !alias ? account.email : alias;
 }
 
-export function draftsApi(ctx: ServiceContext, serverDrafts: ServerDrafts): DraftsApi {
+function draftsInner(ctx: ServiceContext, serverDrafts: ServerDrafts): DraftsApi {
   const { store } = ctx;
 
   const creator = (): string => { const agent = ctx.caller(); return agent ? `agent:${agent}` : "user"; };
@@ -101,6 +104,25 @@ export function draftsApi(ctx: ServiceContext, serverDrafts: ServerDrafts): Draf
     return out;
   }
 
+  /** Inline (cid:) images of the original, so a reply or forward keeps the pictures in its quoted body. Best effort. */
+  async function inlineImagesFor(accountId: string, messageRowId: number, threadId: number, html: string | null): Promise<NonNullable<ReplyOptions["inlineImages"]>> {
+    const out: NonNullable<ReplyOptions["inlineImages"]> = {};
+    if (!html || !/cid:/i.test(html)) return out;
+    const inline = (store.getThreadRows(threadId)?.messages.find((m) => m.id === messageRowId)?.attachments ?? [])
+      .filter((a) => a.inline && a.contentId && /^image\//i.test(a.contentType) && a.size <= INLINE_IMAGE_MAX_BYTES)
+      .slice(0, INLINE_IMAGE_MAX_COUNT);
+    await Promise.all(inline.map(async (a) => {
+      try {
+        const data = await ctx.syncs.get(accountId).fetchAttachment(a.id);
+        const cid = a.contentId!.replace(/^<|>$/g, "");
+        out[cid] = out[cid.toLowerCase()] = { contentType: a.contentType, data };
+      } catch (error) {
+        log.warn("could not load an inline image for the quote", { reason: (error as Error).message });
+      }
+    }));
+    return out;
+  }
+
   async function createFromMessage(init: Extract<z.infer<typeof initSchema>, { mode: "reply" | "replyAll" | "forward" }>): Promise<Draft> {
     if (!store.getMessage(init.messageId)) throw new FlintError("not_found", "That message no longer exists.");
     await ctx.ensureBodies([init.messageId]);
@@ -110,7 +132,8 @@ export function draftsApi(ctx: ServiceContext, serverDrafts: ServerDrafts): Draf
       from: msg.from, to: msg.to, cc: msg.cc, replyTo: msg.replyTo, subject: msg.subject, date: msg.date,
       messageId: msg.messageId, references: msg.references, rawHtml: msg.rawHtml, text: msg.text,
     };
-    const reply = buildReplyDraft(source, init.mode, store.ownAddresses());
+    const inlineImages = await inlineImagesFor(account.id, msg.id, msg.threadId, msg.rawHtml);
+    const reply = buildReplyDraft(source, init.mode, store.ownAddresses(), { inlineImages });
     const sig = defaultSignature(store, ctx.getSettings(), account.id, init.mode);
     const draft = store.createDraft({
       accountId: account.id, from: replyFrom(account, msg), mode: init.mode, sourceMessageId: msg.id, threadId: msg.threadId,
@@ -218,5 +241,20 @@ export function draftsApi(ctx: ServiceContext, serverDrafts: ServerDrafts): Draf
       serverDrafts.touch(draft.id);
       return updated;
     },
+  };
+}
+
+/** The drafts methods, with each returned draft carrying why read receipts can't be used right now (see Draft.trackingBlockedReason). */
+export function draftsApi(ctx: ServiceContext, serverDrafts: ServerDrafts): DraftsApi {
+  const inner = draftsInner(ctx, serverDrafts);
+  const mark = (d: Draft): Draft => ({ ...d, trackingBlockedReason: trackingBlockedReason(ctx) });
+  return {
+    ...inner,
+    createDraft: async (init) => mark(await inner.createDraft(init)),
+    getDraft: async (id) => mark(await inner.getDraft(id)),
+    updateDraft: async (id, patch) => mark(await inner.updateDraft(id, patch)),
+    listDrafts: async () => (await inner.listDrafts()).map(mark),
+    addAttachment: async (id, path) => mark(await inner.addAttachment(id, path)),
+    removeAttachment: async (id, attachmentId) => mark(await inner.removeAttachment(id, attachmentId)),
   };
 }

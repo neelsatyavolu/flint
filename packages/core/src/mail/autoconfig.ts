@@ -1,10 +1,12 @@
 import { resolveMx } from "node:dns/promises";
 import { connect } from "node:net";
-import { FlintError, type Provider, type ServerConfig } from "../types";
+import { FlintError, type Provider, type ServerConfig, type ServerHint } from "../types";
 
 export type AutoconfigSource = "known" | "ispdb" | "mx" | "guess";
 
 export type Autoconfig = ServerConfig & {
+  /** What the form should say about the password: 'proton_bridge', 'app_password' or null. */
+  hint?: ServerHint;
   provider: Provider;
   source: AutoconfigSource;
   /** Google sign-in (XOAUTH2) is available for this address. */
@@ -20,17 +22,18 @@ export type AutoconfigDeps = {
 };
 
 type Known = Omit<Autoconfig, "username" | "source">;
-const server = (imapHost: string, imapPort: number, imapSecure: boolean, smtpHost: string, smtpPort: number, smtpSecure: boolean, provider: Provider = "imap", oauthGoogle = false): Known =>
-  ({ imapHost, imapPort, imapSecure, smtpHost, smtpPort, smtpSecure, provider, oauthGoogle });
+const server = (imapHost: string, imapPort: number, imapSecure: boolean, smtpHost: string, smtpPort: number, smtpSecure: boolean, provider: Provider = "imap", oauthGoogle = false, hint: ServerHint = null): Known =>
+  ({ imapHost, imapPort, imapSecure, smtpHost, smtpPort, smtpSecure, provider, oauthGoogle, hint });
 
-const GMAIL = server("imap.gmail.com", 993, true, "smtp.gmail.com", 465, true, "gmail", true);
+const GMAIL = server("imap.gmail.com", 993, true, "smtp.gmail.com", 465, true, "gmail", true, "app_password");
 const OUTLOOK = server("outlook.office365.com", 993, true, "smtp.office365.com", 587, false);
-const YAHOO = server("imap.mail.yahoo.com", 993, true, "smtp.mail.yahoo.com", 465, true);
-const ICLOUD = server("imap.mail.me.com", 993, true, "smtp.mail.me.com", 587, false);
+const YAHOO = server("imap.mail.yahoo.com", 993, true, "smtp.mail.yahoo.com", 465, true, "imap", false, "app_password");
+const ICLOUD = server("imap.mail.me.com", 993, true, "smtp.mail.me.com", 587, false, "imap", false, "app_password");
 const FASTMAIL = server("imap.fastmail.com", 993, true, "smtp.fastmail.com", 465, true);
 const ZOHO = server("imap.zoho.com", 993, true, "smtp.zoho.com", 465, true);
-const PROTON = server("127.0.0.1", 1143, false, "127.0.0.1", 1025, false);
-const AOL = server("imap.aol.com", 993, true, "smtp.aol.com", 465, true);
+/** Proton Mail has no public IMAP: Proton Mail Bridge on this computer serves IMAP (STARTTLS) and SMTP (SSL) on loopback. */
+const PROTON = server("127.0.0.1", 1143, false, "127.0.0.1", 1025, true, "imap", false, "proton_bridge");
+const AOL = server("imap.aol.com", 993, true, "smtp.aol.com", 465, true, "imap", false, "app_password");
 
 export const KNOWN_PROVIDERS: Readonly<Record<string, Known>> = {
   "gmail.com": GMAIL, "googlemail.com": GMAIL,
@@ -102,18 +105,37 @@ async function fetchIspdb(domain: string, email: string, deps: AutoconfigDeps): 
   }
 }
 
-async function detectByMx(domain: string, deps: AutoconfigDeps): Promise<Known | null> {
+export type MxHost = "google" | "proton" | "microsoft" | "fastmail" | "zoho" | "icloud";
+
+const MX_PATTERNS: [MxHost, RegExp][] = [
+  ["google", /(^|\.)(google\.com|googlemail\.com)\.?$/],
+  ["proton", /(^|\.)(protonmail\.ch|proton\.me)\.?$/],
+  ["microsoft", /(^|\.)(outlook\.com|protection\.outlook\.com|office365\.us)\.?$/],
+  ["fastmail", /(^|\.)(messagingengine\.com)\.?$/],
+  ["zoho", /(^|\.)(zoho\.com|zoho\.eu)\.?$/],
+  ["icloud", /(^|\.)(icloud\.com|me\.com)\.?$/],
+];
+
+export const MX_HOST_NAMES: Readonly<Record<MxHost, string>> = {
+  google: "Google", proton: "Proton Mail", microsoft: "Microsoft 365", fastmail: "Fastmail", zoho: "Zoho Mail", icloud: "iCloud Mail",
+};
+
+/** Which known provider hosts this domain's mail, judged by its MX records. Null when unknown or DNS fails. */
+export async function mxHostOf(domain: string, deps: Pick<AutoconfigDeps, "resolveMx"> = {}): Promise<MxHost | null> {
   try {
     const records = await (deps.resolveMx ?? resolveMx)(domain);
     const hosts = records.map((r) => r.exchange.toLowerCase());
-    if (hosts.some((h) => /(^|\.)(google\.com|googlemail\.com)\.?$/.test(h))) return GMAIL;
-    if (hosts.some((h) => /(^|\.)(outlook\.com|protection\.outlook\.com|office365\.us)\.?$/.test(h))) return OUTLOOK;
-    if (hosts.some((h) => /(^|\.)(messagingengine\.com)\.?$/.test(h))) return FASTMAIL;
-    if (hosts.some((h) => /(^|\.)(zoho\.com|zoho\.eu)\.?$/.test(h))) return ZOHO;
+    return MX_PATTERNS.find(([, re]) => hosts.some((h) => re.test(h)))?.[0] ?? null;
   } catch {
-    // No MX record or DNS failure: fall through to guesses.
+    return null; // No MX record or DNS failure.
   }
-  return null;
+}
+
+const BY_MX: Partial<Record<MxHost, Known>> = { google: GMAIL, proton: PROTON, microsoft: OUTLOOK, fastmail: FASTMAIL, zoho: ZOHO, icloud: ICLOUD };
+
+async function detectByMx(domain: string, deps: AutoconfigDeps): Promise<Known | null> {
+  const host = await mxHostOf(domain, deps);
+  return host ? BY_MX[host] ?? null : null;
 }
 
 /** Server settings for an address: known table, then ISPDB, then MX, then guessed host names. */

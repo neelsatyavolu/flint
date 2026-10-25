@@ -14,7 +14,7 @@ import styles from "../settings.module.css";
 export function RulesSection() {
   const toast = useToast();
   const { accounts } = useAccounts();
-  const rules = useFlintQuery((api) => api.listRules(), []);
+  const rules = useFlintQuery((api) => api.listRules(), [], { mail: false });
   const [editing, setEditing] = useState<RuleDraft | null>(null);
   const [applying, setApplying] = useState(false);
   const list = [...(rules.data ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);

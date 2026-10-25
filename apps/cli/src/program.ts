@@ -112,6 +112,7 @@ export function buildProgram(deps: Deps, jsonMode = false): Command {
   command("search", "Search mail (supports from:, to:, subject:, has:attachment, is:unread, before:, after:)")
     .argument("<query>")
     .option("--limit <n>", "how many threads (1 to 200)", "25")
+    .option("--server", "also search the mail server and fetch older matches that are not on this computer yet")
     .action(async (q: string, o, cmd: Command) => search(ctxFor(cmd), q, o));
 
   const composeOpts = (c: Command): Command => c

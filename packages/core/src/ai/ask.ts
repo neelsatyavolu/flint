@@ -1,6 +1,6 @@
 import type { Address, ThreadId } from "../types";
 import { buildThreadContext, formatAddress, formatDate, neutralizeTags } from "./context";
-import type { AiContext } from "./ports";
+import type { AiContext, AiRankedQuery } from "./ports";
 
 // Retrieval for "ask your inbox": keyword extraction (no model call), local
 // search, and a compact numbered context.
@@ -62,6 +62,16 @@ function stem(w: string): string {
   return w;
 }
 
+function analyze(text: string): { unique: string[]; quoted: string[]; emails: string[] } {
+  const emails = text.match(EMAIL_RE) ?? [];
+  const quoted = [...text.matchAll(/"([^"]{3,80})"/g)].map((m) => m[1]!.trim());
+  const rest = text.replace(EMAIL_RE, " ").replace(/"[^"]*"/g, " ");
+  const words = (rest.toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}'-]*/gu) ?? [])
+    .map((w) => w.replace(/'s$/, "").replace(/^'+|'+$/g, ""))
+    .filter((w) => w.length > 2 && !STOPWORDS.has(w));
+  return { unique: [...new Set(words.map(stem))], quoted, emails };
+}
+
 /**
  * Turns a question into several search queries. Keywords are searched separately
  * (and as a short AND of the most distinctive ones) so one unlucky word does not
@@ -74,13 +84,7 @@ export function extractQueries(
   timeZone?: string,
 ): string[] {
   const attempt = (text: string): string[] => {
-    const emails = text.match(EMAIL_RE) ?? [];
-    const quoted = [...text.matchAll(/"([^"]{3,80})"/g)].map((m) => m[1]!.trim());
-    const rest = text.replace(EMAIL_RE, " ").replace(/"[^"]*"/g, " ");
-    const words = (rest.toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}'-]*/gu) ?? [])
-      .map((w) => w.replace(/'s$/, "").replace(/^'+|'+$/g, ""))
-      .filter((w) => w.length > 2 && !STOPWORDS.has(w));
-    const unique = [...new Set(words.map(stem))];
+    const { unique, quoted, emails } = analyze(text);
     const dates = dateFilters(text, now, timeZone).join(" ");
     const withDate = (q: string) => (dates ? `${q} ${dates}` : q);
     const byDistinctiveness = [...unique].sort((a, b) => b.length - a.length);
@@ -108,6 +112,63 @@ export function extractQueries(
 }
 
 export type Hit = { threadId: ThreadId; subject: string; date: number; from: Address; snippet: string };
+
+
+const MAX_RANKED_TERMS = 8;
+
+/** "YYYY-MM-DD" at local midnight, the same reading the search operators use. */
+function dayStart(iso: string): number {
+  const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
+  return new Date(y, m - 1, d).getTime();
+}
+
+/**
+ * The structured form of a question for OR-ranked retrieval: distinctive stemmed words,
+ * quoted phrases, sender addresses and a date window. Null when there is nothing to search on.
+ */
+export function extractSearchPlan(
+  question: string,
+  history: { role: "user" | "assistant"; content: string }[] = [],
+  now: number = Date.now(),
+  timeZone?: string,
+): Omit<AiRankedQuery, "limit"> | null {
+  const build = (text: string, dateText: string): Omit<AiRankedQuery, "limit"> | null => {
+    const { unique, quoted, emails } = analyze(text);
+    const terms = [...unique].sort((a, b) => b.length - a.length).slice(0, MAX_RANKED_TERMS);
+    const filters = dateFilters(dateText, now, timeZone);
+    const after = filters.find((f) => f.startsWith("after:"))?.slice(6);
+    const before = filters.find((f) => f.startsWith("before:"))?.slice(7);
+    if (!terms.length && !quoted.length && !emails.length && !after && !before) return null;
+    return {
+      terms, phrases: quoted, from: emails,
+      ...(after ? { after: dayStart(after) } : {}),
+      ...(before ? { before: dayStart(before) } : {}),
+    };
+  };
+  const direct = build(question, question);
+  if (direct && (direct.terms.length || direct.phrases.length || direct.from.length)) return direct;
+  for (let i = history.length - 1; i >= 0; i--) {
+    const turn = history[i];
+    if (turn?.role !== "user") continue;
+    const fallback = build(turn.content, question);
+    if (fallback && (fallback.terms.length || fallback.phrases.length || fallback.from.length)) return fallback;
+  }
+  return direct;
+}
+
+/** Ranked retrieval through the host's bm25 search; one row per thread, best first. */
+export async function retrieveRanked(ctx: AiContext, plan: Omit<AiRankedQuery, "limit">): Promise<Hit[]> {
+  if (!ctx.rankedSearchForAi) return [];
+  const rows = await ctx.rankedSearchForAi({ ...plan, limit: MAX_THREADS }).catch(() => [] as Hit[]);
+  const seen = new Set<ThreadId>();
+  const out: Hit[] = [];
+  for (const hit of rows) {
+    if (seen.has(hit.threadId)) continue;
+    seen.add(hit.threadId);
+    out.push(hit);
+  }
+  return out.slice(0, MAX_THREADS);
+}
 
 /** Runs the queries, ranks threads found by several queries first, caps at 20. */
 export async function retrieve(ctx: AiContext, queries: string[]): Promise<Hit[]> {

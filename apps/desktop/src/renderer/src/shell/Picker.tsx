@@ -77,7 +77,7 @@ export function Picker({ label, placeholder, items, onPick, onClose, emptyText =
               >
                 {item.icon ? <span className={styles.icon}>{item.icon}</span> : null}
                 <span className={styles.text}>{item.label}</span>
-                {item.shortcut ? <Kbd combo={item.shortcut} /> : item.hint ? <span className={clsx("t-data", styles.hint)}>{item.hint}</span> : null}
+                {item.shortcut ? <Kbd combo={item.shortcut} /> : (item.hint ?? (query ? item.group : undefined)) ? <span className={clsx("t-data", styles.hint)}>{item.hint ?? item.group}</span> : null}
               </button>
             </div>
           );

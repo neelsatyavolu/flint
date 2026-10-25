@@ -278,4 +278,20 @@ export const MIGRATIONS: readonly string[] = [
   CREATE INDEX IF NOT EXISTS reminders_due ON reminders (status, remind_at);
   CREATE INDEX IF NOT EXISTS folders_role ON folders (role, account_id);
   `,
+  /* 3: durable outbox. A server operation is recorded before it runs and removed when it finishes, so an action the app was
+        killed in the middle of is replayed at the next start. */ `
+  CREATE TABLE pending_ops (
+    id INTEGER PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL,                  -- 'seen' | 'flagged' | 'archive' | 'trash' | 'spam' | 'unspam' | 'move_inbox' | 'move_folder'
+    arg TEXT,                            -- JSON: boolean for seen/flagged, folder id for move_folder
+    message_ids TEXT NOT NULL,           -- JSON number[] of messages.id
+    created_at INTEGER NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    last_error TEXT
+  );
+  `,
+  /* 4: why a message the user asked to track went out without tracking (shown as the recipients' note) */ `
+  ALTER TABLE tracked_messages ADD COLUMN untracked_reason TEXT;
+  `,
 ];

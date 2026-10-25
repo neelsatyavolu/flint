@@ -1,9 +1,21 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" class="no-theme-transition">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Flint</title>
+    <script>
+      // Set the theme before first paint so a light-mode user never sees dark first.
+      (function () {
+        var s = "system";
+        try {
+          var v = localStorage.getItem("flint.theme");
+          if (v === "dark" || v === "light" || v === "system") s = v;
+        } catch (e) {}
+        var light = s === "light" || (s === "system" && window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches);
+        document.documentElement.setAttribute("data-theme", light ? "light" : "dark");
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

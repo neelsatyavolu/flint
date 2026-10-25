@@ -90,8 +90,22 @@ export function createImapClient(server: ServerConfig, auth: MailAuth): ImapFlow
   return new ImapFlow(imapOptions(server, auth));
 }
 
+/** True for the IMAP answer that means the account has no mailbox on this server, as opposed to bad credentials. */
+export function isLookupFailure(error: unknown): boolean {
+  const e = error as { responseText?: string; message?: string };
+  return /lookup failed/i.test(`${e?.responseText ?? ""} ${e?.message ?? ""}`);
+}
+
+const APP_PASSWORD_HOSTS = /(^|\.)(gmail\.com|googlemail\.com|google\.com|me\.com|icloud\.com|yahoo\.com|aol\.com|office365\.com|outlook\.com)$/i;
+
+function passwordAdvice(host: string | undefined): string {
+  if (!host) return "";
+  if (isLoopback(host)) return " Use the password from Proton Mail Bridge, not your account password.";
+  return APP_PASSWORD_HOSTS.test(host) ? " This provider needs an app password." : "";
+}
+
 /** Short, user-facing text for a connection failure. Never includes credentials. */
-export function describeConnectError(error: unknown, what: "IMAP" | "SMTP"): FlintError {
+export function describeConnectError(error: unknown, what: "IMAP" | "SMTP", host?: string): FlintError {
   if (error instanceof FlintError) return error;
   const e = error as { code?: string; authenticationFailed?: boolean; responseText?: string; message?: string; serverResponseCode?: string; responseCode?: number };
   const code = e.code ?? "";
@@ -103,8 +117,10 @@ export function describeConnectError(error: unknown, what: "IMAP" | "SMTP"): Fli
     || /too many (simultaneous )?connections|temporar|try again|unavailable|overquota|rate limit/i.test(text)
     || (typeof e.responseCode === "number" && e.responseCode >= 400 && e.responseCode < 500);
   if (transient) return new FlintError("network", `The ${what} server is busy or temporarily unavailable. Flint will try again.`);
+  // Gmail answers "Lookup failed" when the Google account has no Gmail mailbox. That is not a wrong password.
+  if (isLookupFailure(error)) return new FlintError("auth", `The ${what} server has no mailbox for this account.`);
   if (e.authenticationFailed || /AUTH/i.test(code) || /auth|credentials|login/i.test(e.responseText ?? e.message ?? "")) {
-    return new FlintError("auth", "The server rejected the username or password. For Gmail and iCloud, use an app password.");
+    return new FlintError("auth", `The server rejected the username or password.${passwordAdvice(host)}`);
   }
   if (["ENOTFOUND", "EAI_AGAIN"].includes(code)) return new FlintError("network", `Could not find the ${what} server. Check the host name.`);
   if (["ECONNREFUSED", "ETIMEDOUT", "CONNECT_TIMEOUT", "ECONNRESET", "ESOCKET", "EDNS"].includes(code) || /timeout|timed out/i.test(e.message ?? "")) {

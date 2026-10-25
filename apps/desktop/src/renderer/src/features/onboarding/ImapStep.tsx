@@ -5,7 +5,7 @@ import { flint } from "../../lib/api";
 import { openExternal } from "../../lib/host";
 import { Button, Input } from "../../ui";
 import { EMPTY_SERVER, connectionProblems, describeServer, toInput, validateForm, type FormErrors } from "./imapFlow";
-import type { ProviderPreset } from "./providers";
+import { PROTON_BRIDGE_HINT, type ProviderPreset } from "./providers";
 import { ServerFields } from "./ServerFields";
 import styles from "./onboarding.module.css";
 
@@ -29,6 +29,7 @@ export function ImapStep({ preset, onDone, reauth }: Props) {
   const [problems, setProblems] = useState<string[]>([]);
   const [busy, setBusy] = useState<"testing" | "adding" | null>(null);
   const [synced, setSynced] = useState<string | null>(null);
+  const [bridge, setBridge] = useState(preset.id === "proton-bridge");
   const touched = useRef(false);
   const seq = useRef(0);
 
@@ -47,6 +48,7 @@ export function ImapStep({ preset, onDone, reauth }: Props) {
       if (id !== seq.current) return;
       if (found && !touched.current) {
         setServer(found);
+        setBridge((found as { hint?: string }).hint === "proton_bridge");
         setDetect({ kind: "found" });
       } else if (!found) {
         setServer((s) => s ?? { ...EMPTY_SERVER, username: trimmed });
@@ -102,7 +104,7 @@ export function ImapStep({ preset, onDone, reauth }: Props) {
   const emailLocked = reauth !== undefined;
   return (
     <form className={styles.step} onSubmit={(e) => { e.preventDefault(); void connect(); }} noValidate>
-      <p className={styles.hint}>{preset.passwordHint}</p>
+      <p className={styles.hint}>{bridge ? PROTON_BRIDGE_HINT : preset.passwordHint}</p>
       {preset.helpUrl ? (
         <div><Button variant="ghost" size="sm" icon={<ExternalLink size={14} strokeWidth={1.5} />} onClick={() => openExternal(preset.helpUrl!)}>{preset.helpLabel ?? "Open"}</Button></div>
       ) : null}

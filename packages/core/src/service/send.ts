@@ -42,11 +42,18 @@ async function discardTracking(ctx: ServiceContext, ref: string): Promise<void> 
 /** `untrackedReason` is set when the draft asked for read receipts but the mail went out without them. */
 type Delivery = { outcome: SendOutcome; ref: string | null; untrackedReason: string | null };
 
-function whyUntracked(ctx: ServiceContext, plain: boolean): string | null {
-  if (plain) return "plain text only is on, and a read receipt needs a tiny image";
-  const r = ctx.getSettings().receipts;
-  if (!r.enabled) return "read receipts are switched off in Settings";
-  return r.endpoint.trim() ? null : "no receipts address is set in Settings";
+type TrackingBlock = { note: string; toast: string };
+
+/** Why read receipts can't work right now, or null when they can. `note` goes on the message, `toast` into the sent notice. */
+function trackingBlock(ctx: ServiceContext, plain: boolean): TrackingBlock | null {
+  if (plain) return { note: "Receipts off: plain-text mode", toast: "plain text only is on, and a read receipt needs a tiny image" };
+  if (!ctx.getSettings().receipts.enabled) return { note: "Receipts off in Settings", toast: "read receipts are switched off in Settings" };
+  return ctx.receipts.isConfigured() ? null : { note: "Receipts off: no receipts address set", toast: "no receipts address is set in Settings" };
+}
+
+/** Short reason read receipts can't work for new mail right now (composer hint), or null when they can. */
+export function trackingBlockedReason(ctx: ServiceContext): string | null {
+  return trackingBlock(ctx, ctx.getSettings().compose.plainTextOnly)?.note ?? null;
 }
 
 async function deliver(ctx: ServiceContext, account: Account, draft: Draft, messageId: string): Promise<Delivery> {
@@ -59,8 +66,16 @@ async function deliver(ctx: ServiceContext, account: Account, draft: Draft, mess
   let ref: string | null = null;
   try {
     if (!draft.track || plain || !ctx.receipts.isConfigured()) {
-      const untrackedReason = draft.track ? (whyUntracked(ctx, plain) ?? "read receipts aren't available right now") : null;
-      return { outcome: await sendUntracked(transport, { message: base, folders, runner }), ref, untrackedReason };
+      const block = draft.track ? (trackingBlock(ctx, plain) ?? { note: "Receipts unavailable for this message", toast: "read receipts aren't available right now" }) : null;
+      const outcome = await sendUntracked(transport, { message: base, folders, runner });
+      // Only after the mail left, so a failed send leaves no phantom row.
+      if (block) {
+        ctx.receipts.recordUntracked({
+          accountId: account.id, subject: draft.subject, messageId, recipients: [...draft.to, ...draft.cc, ...draft.bcc],
+          selfAddresses: [...ctx.store.ownAddresses()], reason: block.note,
+        });
+      }
+      return { outcome, ref, untrackedReason: block?.toast ?? null };
     }
     const recipients: Address[] = [...draft.to, ...draft.cc, ...draft.bcc];
     const prepared = await ctx.receipts.prepareTracked({

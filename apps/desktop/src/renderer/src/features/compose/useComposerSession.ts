@@ -42,9 +42,9 @@ export function useComposerSession(key: SessionKey, options: { trackMeta?: boole
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
-  const accounts = useFlintQuery((api) => api.listAccounts(), []);
-  const signatures = useFlintQuery((api) => api.listSignatures(), []);
-  const templates = useFlintQuery((api) => api.listTemplates(), []);
+  const accounts = useFlintQuery((api) => api.listAccounts(), [], { mail: false });
+  const signatures = useFlintQuery((api) => api.listSignatures(), [], { mail: false });
+  const templates = useFlintQuery((api) => api.listTemplates(), [], { mail: false });
   const { settings } = useSettings();
 
   useEffect(() => {

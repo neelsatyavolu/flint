@@ -211,7 +211,7 @@ describe("agent server", () => {
       const s = await open(handle);
       expect(s.status).toBe(200);
       await wait(20);
-      api.emit({ type: "toast", level: "info", message: "hi" });
+      api.emit({ type: "toast", level: "info", message: "hi", undoToken: "secret-undo" });
       api.emit({ type: "settings", settings: settings() });
       api.emit({ type: "ai", chunk: { runId: "other", type: "text", text: "x" } });
       api.emit({ type: "ai", chunk: { runId: "mine", type: "text", text: "y" } });
@@ -219,6 +219,7 @@ describe("agent server", () => {
       const text = s.chunks.join("");
       expect(text).toContain('"type":"toast"');
       expect(text).toContain('"runId":"mine"');
+      expect(text).not.toContain("secret-undo");
       expect(text).not.toContain('"type":"settings"');
       expect(text).not.toContain('"runId":"other"');
       expect(text).toContain(": keepalive");

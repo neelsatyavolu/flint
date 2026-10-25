@@ -17,7 +17,7 @@ export function oneShotRunner(account: Account, getAuth: () => Promise<MailAuth>
         await client.connect();
       } catch (error) {
         client.close();
-        throw describeConnectError(error, "IMAP");
+        throw describeConnectError(error, "IMAP", account.imapHost);
       }
       try {
         return await fn(client);

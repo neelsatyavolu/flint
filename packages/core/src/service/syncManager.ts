@@ -13,6 +13,8 @@ export type SyncManagerDeps = {
   store: Store;
   platform: Platform;
   getSettings: () => Settings;
+  /** The Google OAuth client (id from settings, secret from the secret store). Defaults to settings. */
+  googleClient?: () => GoogleClient | null;
   emit: (event: FlintEvent) => void;
   fetch?: typeof fetch;
   tuning?: SyncTuning;
@@ -99,14 +101,14 @@ export class SyncManager {
   }
 
   #create(accountId: AccountId): AccountSync {
-    const { store, platform, getSettings, emit, fetch: fetchImpl, tuning } = this.#d;
+    const { store, platform, getSettings, googleClient, emit, fetch: fetchImpl, tuning } = this.#d;
     const sync = new AccountSync({
       store,
       accountId,
       dataDir: platform.dataDir,
       getAuth: () => resolveAuth(store.requireAccount(accountId), {
         secrets: platform.secrets,
-        google: () => googleClientFrom(getSettings()) ?? { clientId: "", clientSecret: "" },
+        google: () => (googleClient ? googleClient() : googleClientFrom(getSettings())) ?? { clientId: "", clientSecret: "" },
         ...(fetchImpl ? { fetch: (url, init) => fetchImpl(url, init) } : {}),
       }),
       emit: (event) => {

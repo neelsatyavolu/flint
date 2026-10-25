@@ -1,6 +1,6 @@
 import { authenticate } from "./auth";
 import { parseJsonBody } from "./body";
-import { INSTALL_LIMIT_PER_HOUR, MAX_TOKENS_PER_INSTALL, REGISTER_LIMIT_PER_HOUR, SEEN_LIMIT_PER_HOUR, type Env } from "./env";
+import { AUTHED_IP_LIMIT_PER_HOUR, INSTALL_LIMIT_PER_HOUR, MAX_TOKENS_PER_INSTALL, REGISTER_LIMIT_PER_HOUR, SEEN_LIMIT_PER_HOUR, type Env } from "./env";
 import { fingerprintIp, installFingerprint, sha256Hex } from "./fingerprint";
 import { HttpError, json } from "./http";
 import { EventsQuerySchema, RegisterMessageRequestSchema, type EventsResponse, type InstallResponse } from "./protocol";
@@ -18,6 +18,14 @@ async function hitRateLimit(env: Env, key: string, limit: number, now: number): 
   ).bind(key, windowStart).first<{ count: number }>();
   if ((row?.count ?? 1) > limit) throw new HttpError("rate_limited", "Too many requests. Try again later.");
 }
+
+/** Throttles by network before credentials are checked, so guessing secrets from one address is capped too. */
+async function limitByIp(request: Request, env: Env, now: number): Promise<void> {
+  const fp = await fingerprintIp(env.FINGERPRINT_SALT, requestIp(request));
+  await hitRateLimit(env, `ip:${fp}`, AUTHED_IP_LIMIT_PER_HOUR, now);
+}
+
+const MAX_REF_LENGTH = 200;
 
 export async function handleInstall(request: Request, env: Env, now: number): Promise<Response> {
   const fp = await fingerprintIp(env.FINGERPRINT_SALT, requestIp(request));
@@ -41,6 +49,7 @@ async function recordSender(env: Env, installId: string, fingerprint: string, no
 }
 
 export async function handleRegister(request: Request, env: Env, now: number): Promise<Response> {
+  await limitByIp(request, env, now);
   const installId = await authenticate(request, env);
   await hitRateLimit(env, `register:${installId}`, REGISTER_LIMIT_PER_HOUR, now);
   const body = await parseJsonBody(request, RegisterMessageRequestSchema);
@@ -68,23 +77,33 @@ export async function handleRegister(request: Request, env: Env, now: number): P
   return json({ ref: body.ref, recipients: tokens.length }, 201);
 }
 
-export async function handleDeleteMessage(request: Request, env: Env, ref: string): Promise<Response> {
-  const installId = await authenticate(request, env);
+/** Deleting is idempotent and best effort: a storage failure is logged and reported as not deleted, never as a 500. */
+export async function handleDeleteMessage(request: Request, env: Env, ref: string, now: number): Promise<Response> {
   let decoded: string;
   try {
     decoded = decodeURIComponent(ref);
   } catch {
     throw new HttpError("bad_request", "Malformed message ref.");
   }
-  await env.DB.batch([
-    env.DB.prepare("DELETE FROM events WHERE token IN (SELECT token FROM tokens WHERE install_id = ? AND ref = ?)").bind(installId, decoded),
-    env.DB.prepare("DELETE FROM tokens WHERE install_id = ? AND ref = ?").bind(installId, decoded),
-    env.DB.prepare("DELETE FROM messages WHERE install_id = ? AND ref = ?").bind(installId, decoded),
-  ]);
-  return json({ ok: true });
+  if (decoded.length > MAX_REF_LENGTH) throw new HttpError("bad_request", "Message ref is too long.");
+  try {
+    await limitByIp(request, env, now);
+    const installId = await authenticate(request, env);
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM events WHERE token IN (SELECT token FROM tokens WHERE install_id = ? AND ref = ?)").bind(installId, decoded),
+      env.DB.prepare("DELETE FROM tokens WHERE install_id = ? AND ref = ?").bind(installId, decoded),
+      env.DB.prepare("DELETE FROM messages WHERE install_id = ? AND ref = ?").bind(installId, decoded),
+    ]);
+    return json({ ok: true });
+  } catch (err) {
+    if (err instanceof HttpError) throw err;
+    console.error("receipts: delete failed", err instanceof Error ? err.message : String(err));
+    return json({ ok: false, deleted: false }, 202);
+  }
 }
 
 export async function handleSeen(request: Request, env: Env, now: number): Promise<Response> {
+  await limitByIp(request, env, now);
   const installId = await authenticate(request, env);
   await hitRateLimit(env, `seen:${installId}`, SEEN_LIMIT_PER_HOUR, now);
   await recordSender(env, installId, await fingerprintIp(env.FINGERPRINT_SALT, requestIp(request)), now);
@@ -97,7 +116,8 @@ type EventRow = {
   fingerprint: string; possibly_forwarded: number;
 };
 
-export async function handleEvents(request: Request, env: Env): Promise<Response> {
+export async function handleEvents(request: Request, env: Env, now: number): Promise<Response> {
+  await limitByIp(request, env, now);
   const installId = await authenticate(request, env);
   const params = Object.fromEntries(new URL(request.url).searchParams);
   const parsed = EventsQuerySchema.safeParse(params);

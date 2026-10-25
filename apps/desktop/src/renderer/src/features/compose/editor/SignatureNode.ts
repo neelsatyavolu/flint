@@ -1,11 +1,11 @@
 import { Node } from "@tiptap/react";
 import { sanitizeSignatureHtml } from "./sanitize";
 
-import { SIGNATURE_CLASS } from "../signature";
+import { CORE_SIGNATURE_CLASS, SIGNATURE_CLASS } from "../signature";
 
 /**
  * The signature block. It is an atom to ProseMirror (so rich layouts such as tables survive) whose node view
- * contains its own editable region. The saved HTML is `<div class="flint-signature" data-signature-id="N">…</div>`,
+ * contains its own editable region. The saved HTML is `<div class="flint_signature" data-signature-id="N">…</div>`,
  * the same shape the backend writes into new drafts. The "--" marker is view-only.
  */
 export const Signature = Node.create({
@@ -22,7 +22,7 @@ export const Signature = Node.create({
   parseHTML() {
     return [
       {
-        tag: `div.${SIGNATURE_CLASS}`,
+        tag: `div.${SIGNATURE_CLASS}, div.${CORE_SIGNATURE_CLASS}`,
         getAttrs: (el) => {
           const element = el as HTMLElement;
           const id = Number(element.getAttribute("data-signature-id"));
@@ -34,7 +34,7 @@ export const Signature = Node.create({
 
   renderHTML({ node }) {
     const el = document.createElement("div");
-    el.className = SIGNATURE_CLASS;
+    el.className = CORE_SIGNATURE_CLASS;
     if (node.attrs.signatureId) el.setAttribute("data-signature-id", String(node.attrs.signatureId));
     el.innerHTML = node.attrs.html as string;
     return el;
