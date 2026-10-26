@@ -6,4 +6,7 @@ export const CHANNELS = {
   openThread: "flint:open-thread",
   menu: "flint:menu",
   revealExtension: "flint:reveal-extension",
+  /** Main asks the window to save unsaved drafts before quitting; the window answers on draftsFlushed. */
+  flushDrafts: "flint:flush-drafts",
+  draftsFlushed: "flint:drafts-flushed",
 } as const;

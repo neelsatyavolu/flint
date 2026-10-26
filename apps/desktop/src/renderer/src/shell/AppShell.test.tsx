@@ -33,4 +33,22 @@ describe("App shell with the mock API", () => {
     await screen.findByText(/Good (morning|afternoon|evening)/);
     detach();
   }, 20000);
+
+  it("announces view changes but not typing in search", async () => {
+    render(<ToastProvider><App /></ToastProvider>);
+    await screen.findByRole("navigation", { name: "Mailboxes" });
+    // The shell's own live region; the reader's and the AI ones carry role or aria-atomic.
+    const region = () => document.querySelector('.sr-only[aria-live="polite"]:not([role]):not([aria-atomic])')?.textContent ?? "";
+    act(() => navStore.getState().go({ view: "sent" }));
+    await waitFor(() => expect(region()).toBe("Sent"));
+    act(() => {
+      navStore.getState().openSearch();
+      navStore.getState().setSearch("invoice");
+    });
+    await act(async () => {});
+    expect(region()).toBe("Sent");
+    act(() => navStore.getState().closeSearch());
+    act(() => navStore.getState().go({ view: "inbox" }));
+    await waitFor(() => expect(region()).toBe("Inbox"));
+  }, 20000);
 });

@@ -1,27 +1,25 @@
 import { useEffect, useRef } from "react";
 import { OPEN_SETTINGS_EVENT, OPEN_THREAD_EVENT } from "../features/ai/events";
+import { stepTextSize } from "../features/settings/sections/AppearanceSection";
 import { getHost } from "../lib/host";
 import { navStore } from "../state/nav";
 import { handleMenuAction } from "./menuActions";
 import type { AppCommands } from "./useAppCommands";
+import { undoAction } from "./useGlobalShortcuts";
 
 /** Window event the reader listens for to print the open conversation (File, Print). */
 export const PRINT_EVENT = "flint:print";
-
-/** True when focus is in a field or editor, where Cmd+Z should undo typing rather than a mail action. */
-function editingText(): boolean {
-  const el = document.activeElement as HTMLElement | null;
-  if (!el || el === document.body) return false;
-  const tag = el.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
-}
 
 /** Menu actions that act on the page itself rather than on app state. Returns false for anything else. */
 export function handleHostAction(action: string, cmds: Pick<AppCommands, "undo">): boolean {
   switch (action) {
     case "undo":
-      if (editingText()) document.execCommand("undo");
-      else void cmds.undo();
+      undoAction(cmds);
+      return true;
+    case "text-size:bigger":
+    case "text-size:smaller":
+    case "text-size:reset":
+      stepTextSize(action === "text-size:bigger" ? 1 : action === "text-size:smaller" ? -1 : 0);
       return true;
     case "print":
       window.dispatchEvent(new Event(PRINT_EVENT));

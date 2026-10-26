@@ -6,8 +6,8 @@ import { refreshSkill } from "@flint/core/agent/skill";
 import { initLog, logger } from "@flint/core/log";
 import type { FlintService } from "@flint/core/service/index";
 import type { Settings } from "@flint/core/types";
-import type { BrowserWindow } from "electron";
-import { app, dialog, nativeTheme, Notification, session } from "electron";
+import type { BrowserWindow, IpcMainEvent } from "electron";
+import { app, dialog, ipcMain, nativeTheme, Notification, session } from "electron";
 import electronUpdater from "electron-updater";
 import { CHANNELS } from "../preload/channels";
 import { APP_ORIGIN, APP_URL, registerAppScheme, serveRenderer } from "./app-protocol";
@@ -59,6 +59,31 @@ const pendingMenu: { action: string; arg?: string }[] = [];
 
 function sendToRenderer(channel: string, ...args: unknown[]): void {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, ...args);
+}
+
+/** How long quitting waits for the window to save its drafts. */
+const QUIT_FLUSH_MS = 3000;
+
+/**
+ * Asks the window to save unsaved drafts and waits for its answer (or QUIT_FLUSH_MS). Runs before the service stops,
+ * because the page's own unload saves would reach a closed database.
+ */
+function flushDrafts(): Promise<void> {
+  const win = mainWindow && !mainWindow.isDestroyed() && rendererReady ? mainWindow : null;
+  if (!win) return Promise.resolve();
+  return new Promise((resolve) => {
+    const done = (): void => {
+      clearTimeout(timer);
+      ipcMain.removeListener(CHANNELS.draftsFlushed, onAnswer);
+      resolve();
+    };
+    const onAnswer = (e: IpcMainEvent): void => {
+      if (e.sender === win.webContents) done();
+    };
+    const timer = setTimeout(done, QUIT_FLUSH_MS);
+    ipcMain.on(CHANNELS.draftsFlushed, onAnswer);
+    win.webContents.send(CHANNELS.flushDrafts);
+  });
 }
 
 function sendMenu(action: string, arg?: string): void {
@@ -127,6 +152,7 @@ async function main(): Promise<void> {
         // Stop the service first so the before-quit handler doesn't hold up the installer's quit and relaunch.
         beforeInstall: async () => {
           quitting = true;
+          await flushDrafts();
           await service?.stop().catch((err: unknown) => logger("main").error("service stop failed", { message: String(err) }));
         },
         ask: async (box) => {
@@ -215,8 +241,9 @@ if (!app.requestSingleInstanceLock()) {
     if (quitting || !service) return;
     event.preventDefault();
     quitting = true;
-    service
-      .stop()
+    const running = service;
+    flushDrafts()
+      .then(() => running.stop())
       .catch((err: unknown) => logger("main").error("service stop failed", { message: String(err) }))
       .finally(() => app.quit());
   });

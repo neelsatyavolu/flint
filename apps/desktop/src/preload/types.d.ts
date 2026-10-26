@@ -15,6 +15,8 @@ export interface FlintHost {
   setZoomFactor(factor: number): void;
   /** Opens the bundled browser extension folder ("chromium" or "firefox") in Finder. Rejects when this build does not ship it. */
   revealExtension(family: "chromium" | "firefox"): Promise<void>;
+  /** Sets what runs when the app quits, before the mail engine closes; quitting waits for it (with a cap). */
+  onFlushDrafts(cb: () => Promise<unknown>): void;
   /** Absolute path of a dropped or picked file, or an empty string when it has none. */
   getPathForFile(file: File): string;
 }

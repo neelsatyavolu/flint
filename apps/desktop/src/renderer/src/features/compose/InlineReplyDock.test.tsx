@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { flint } from "../../lib/api";
+import { shortcuts } from "../../lib/shortcuts";
+import type { AppCommands } from "../../shell/useAppCommands";
+import { useGlobalShortcuts } from "../../shell/useGlobalShortcuts";
 import { ToastProvider } from "../../ui/Toast";
 import { useComposers, resetComposerStore } from "./composerStore";
 import { InlineReplyDock } from "./InlineReplyDock";
@@ -139,18 +142,23 @@ describe("InlineReplyDock", () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledWith({ draftId: null, reason: "sent" }));
     const undo = await screen.findByRole("button", { name: /^Undo (⌘Z|Ctrl\+Z)$/ });
     const mac = undo.textContent === "Undo ⌘Z";
-    const later = vi.fn();
-    document.addEventListener("keydown", later);
-    fireEvent.keyDown(document.body, { key: "z", metaKey: mac, ctrlKey: !mac });
-    document.removeEventListener("keydown", later);
-    expect(later).not.toHaveBeenCalled();
+    // Cmd+Z goes through the app-wide undo, where an armed send wins over the last mail action.
+    const appUndo = vi.fn();
+    const cmds = new Proxy({ undo: appUndo }, { get: (t, k) => (k === "undo" ? t.undo : vi.fn()) }) as unknown as AppCommands;
+    const shell = renderHook(() => useGlobalShortcuts(cmds));
+    const press = () => shortcuts.dispatch(new KeyboardEvent("keydown", { key: "z", metaKey: mac, ctrlKey: !mac, bubbles: true, cancelable: true }));
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(press()).toBe(true);
+    expect(appUndo).not.toHaveBeenCalled();
     expect(cancel).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.getByTestId("composers").textContent).toBe("1"));
     expect(screen.queryByRole("button", { name: /^Undo / })).toBeNull();
     // This send is disarmed: a second press never cancels it again (it may reach an earlier test's send, still in its window).
     const first = cancel.mock.calls[0]![0];
-    fireEvent.keyDown(document.body, { key: "z", metaKey: mac, ctrlKey: !mac });
+    (document.activeElement as HTMLElement | null)?.blur();
+    press();
     expect(cancel.mock.calls.slice(1).map((c) => c[0])).not.toContain(first);
+    shell.unmount();
     cancel.mockRestore();
   });
 

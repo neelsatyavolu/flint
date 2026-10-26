@@ -132,3 +132,32 @@ describe("createAutosaver", () => {
     expect(save).not.toHaveBeenCalled();
   });
 });
+
+describe("quit flush", () => {
+  afterEach(() => {
+    delete (window as unknown as { flintHost?: unknown }).flintHost;
+    vi.resetModules();
+  });
+
+  it("gives the host a flush that quitting waits on until every unsaved draft is saved", async () => {
+    let quitFlush: (() => Promise<unknown>) | null = null;
+    (window as unknown as { flintHost: unknown }).flintHost = { onFlushDrafts: (cb: () => Promise<unknown>) => (quitFlush = cb) };
+    vi.resetModules();
+    const { createAutosaver: create } = await import("./autosave");
+    let finish: () => void = () => undefined;
+    const save = vi.fn(() => new Promise<void>((r) => (finish = r)));
+    const failing = vi.fn().mockRejectedValue(new Error("offline"));
+    create<P>({ save }).push({ subject: "a" });
+    create<P>({ save: failing }).push({ subject: "b" });
+    expect(quitFlush).not.toBeNull();
+    let done = false;
+    const flushing = quitFlush!().then(() => (done = true));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(save).toHaveBeenCalledWith({ subject: "a" });
+    expect(failing).toHaveBeenCalledWith({ subject: "b" });
+    expect(done).toBe(false);
+    finish();
+    await flushing;
+    expect(done).toBe(true);
+  });
+});

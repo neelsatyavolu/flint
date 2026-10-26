@@ -24,9 +24,15 @@ describe("menu template: undo, print and zoom", () => {
     expect(send).toHaveBeenCalledWith("print");
   });
 
-  it("has zoom items, with a hidden Cmd+= twin for zoom in", () => {
-    const view = sub(3);
-    expect(view.map((i) => i.role)).toEqual(expect.arrayContaining(["resetZoom", "zoomIn", "zoomOut"]));
-    expect(view.find((i) => i.role === "zoomIn" && i.visible === false)?.accelerator).toBe("CmdOrCtrl+=");
+  it("sends zoom to the renderer's Text size instead of the native zoom roles, with a hidden Cmd+= twin", () => {
+    const send = vi.fn();
+    const view = sub(3, send);
+    expect(view.some((i) => i.role === "zoomIn" || i.role === "zoomOut" || i.role === "resetZoom")).toBe(false);
+    const byAccel = (a: string) => view.find((i) => i.accelerator === a)!;
+    expect(byAccel("CmdOrCtrl+=").visible).toBe(false);
+    for (const [accel, action] of [["CmdOrCtrl+0", "text-size:reset"], ["CmdOrCtrl+Plus", "text-size:bigger"], ["CmdOrCtrl+=", "text-size:bigger"], ["CmdOrCtrl+-", "text-size:smaller"]]) {
+      byAccel(accel!).click?.({}, undefined, { triggeredByAccelerator: true });
+      expect(send).toHaveBeenLastCalledWith(action);
+    }
   });
 });

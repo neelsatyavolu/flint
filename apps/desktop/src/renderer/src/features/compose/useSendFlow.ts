@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { flint } from "../../lib/api";
 import { useToast } from "../../ui/Toast";
 import { openComposer } from "./composerStore";
-import { describeSend, isUndoSendKey, undoSendLabel } from "./sendToast";
+import { describeSend, undoSendLabel } from "./sendToast";
 import { checkSend, type SoftStop } from "./validate";
 import type { useComposerSession } from "./useComposerSession";
 
@@ -19,35 +19,33 @@ type ToastApi = ReturnType<typeof useToast>;
 
 type ArmedUndo = { toast: ToastApi; toastId: number; undo: () => void; timer: ReturnType<typeof setTimeout> };
 
-/** Sends still inside their undo window, oldest first. The keyboard undoes the newest. */
+/** Sends still inside their undo window, oldest first. Undo (keyboard or menu) cancels the newest. */
 const armed: ArmedUndo[] = [];
 
 function disarm(entry: ArmedUndo): void {
   clearTimeout(entry.timer);
   const i = armed.indexOf(entry);
   if (i >= 0) armed.splice(i, 1);
-  if (armed.length === 0) window.removeEventListener("keydown", onUndoKey, true);
-}
-
-function onUndoKey(e: KeyboardEvent): void {
-  const last = armed.at(-1);
-  if (!last || !isUndoSendKey(e)) return;
-  e.preventDefault();
-  e.stopImmediatePropagation();
-  disarm(last);
-  last.toast.dismiss(last.toastId);
-  last.undo();
 }
 
 /**
- * While the undo window is open, mod+z (or mod+shift+z) cancels the send. The listener captures on window and stops
- * the event, so the app-wide undo doesn't also run. It outlives the composer, which closes as soon as it sends.
- * Returns a function that disarms it early.
+ * Cancels the newest send still inside its undo window and dismisses its toast. Returns false when none is armed.
+ * The app-wide undo (useGlobalShortcuts' undoAction) calls this first, so it outlives the composer, which closes as
+ * soon as it sends, and never takes ⌘Z from a text field.
  */
+export function undoLatestSend(): boolean {
+  const last = armed.at(-1);
+  if (!last) return false;
+  disarm(last);
+  last.toast.dismiss(last.toastId);
+  last.undo();
+  return true;
+}
+
+/** Arms undoLatestSend for this send until its window closes. Returns a function that disarms it early. */
 function armUndoKey(toast: ToastApi, toastId: number, windowMs: number, undo: () => void): () => void {
   const entry: ArmedUndo = { toast, toastId, undo, timer: setTimeout(() => disarm(entry), windowMs) };
   armed.push(entry);
-  if (armed.length === 1) window.addEventListener("keydown", onUndoKey, true);
   return () => disarm(entry);
 }
 

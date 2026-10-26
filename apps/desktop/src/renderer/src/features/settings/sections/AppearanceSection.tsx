@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Columns2, Palette, UserRound, Globe, AlignLeft, Rows3, Brush, Image, Moon, Type } from "lucide-react";
 import { applyTextSize, readTextSize, TEXT_SIZES, type TextSize } from "../../../lib/host";
 import { useAccounts, useUpdateAccount } from "../useAccounts";
@@ -8,11 +8,30 @@ import { SectionPage, SelectRow, ToggleRow } from "../fields";
 import { useSettingsStore } from "../settingsStore";
 import styles from "../settings.module.css";
 
+/** Window event fired when View > Zoom changes the text size, so an open Settings page follows it. */
+export const TEXT_SIZE_EVENT = "flint:text-size";
+
+/**
+ * View > Zoom In (1), Zoom Out (-1) and Actual Size (0). Steps through the Text size choices and saves the result,
+ * so the menu and the setting are one zoom and it survives a restart.
+ */
+export function stepTextSize(step: -1 | 0 | 1): void {
+  const i = TEXT_SIZES.findIndex((t) => t.value === readTextSize());
+  const next = step === 0 ? "default" : TEXT_SIZES[Math.min(TEXT_SIZES.length - 1, Math.max(0, i + step))]!.value;
+  applyTextSize(next, true);
+  window.dispatchEvent(new Event(TEXT_SIZE_EVENT));
+}
+
 export function AppearanceSection() {
   const { settings: s, save } = useSettingsStore();
   const { accounts } = useAccounts();
   const updateAccount = useUpdateAccount();
   const [textSize, setTextSize] = useState<TextSize>(readTextSize);
+  useEffect(() => {
+    const follow = () => setTextSize(readTextSize());
+    window.addEventListener(TEXT_SIZE_EVENT, follow);
+    return () => window.removeEventListener(TEXT_SIZE_EVENT, follow);
+  }, []);
   const a = s.appearance;
   return (
     <SectionPage title="Appearance">
