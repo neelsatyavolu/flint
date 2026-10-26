@@ -1,7 +1,7 @@
 import { createStore, useStore, type StoreApi } from "zustand";
 import { z } from "zod";
 import { FlintError } from "@flint/core/types";
-import type { FlintApi } from "@flint/core";
+import type { FlintApi, ThreadListItem } from "@flint/core";
 import { flint } from "../../lib/api";
 import { readStored, writeStored } from "../../lib/storage";
 import { idleRun, isBusy, runReducer, type Citation, type RunAction, type RunState } from "../ai/aiRun";
@@ -18,8 +18,16 @@ export const EVERY_MS = 3 * 60 * 60 * 1000;
 export const RETRY_MS = 15 * 60 * 1000;
 /** The timer never waits longer than this, so sleep and clock changes can't push a run far past its slot. */
 export const MAX_WAIT_MS = 60 * 60 * 1000;
+/** How many unread people threads a digest reads (core's DIGEST_THREADS). */
+const DIGEST_THREADS = 12;
 
-export type CatchUpResult = { text: string; citations: Citation[]; at: number };
+export type CatchUpResult = {
+  text: string;
+  citations: Citation[];
+  at: number;
+  /** The unread people threads (`id.unreadCount`) on hand when this digest started. */
+  covered?: string[];
+};
 export type CatchUpStatus = "idle" | "running" | "ready" | "error" | "not_connected";
 
 export type CatchUpState = {
@@ -40,6 +48,7 @@ const storedSchema = z.object({
   text: z.string().min(1),
   citations: z.array(z.object({ threadId: z.number(), subject: z.string() })),
   at: z.number(),
+  covered: z.array(z.string()).optional(),
   checkedAt: z.number().optional(),
 });
 
@@ -49,8 +58,8 @@ export function parseStored(raw: string | null): { result: CatchUpResult; checke
   try {
     const parsed = storedSchema.safeParse(JSON.parse(raw));
     if (!parsed.success) return null;
-    const { text, citations, at, checkedAt = 0 } = parsed.data;
-    return { result: { text, citations, at }, checkedAt };
+    const { text, citations, at, covered, checkedAt = 0 } = parsed.data;
+    return { result: { text, citations, at, ...(covered ? { covered } : {}) }, checkedAt };
   } catch {
     return null;
   }
@@ -65,6 +74,8 @@ export function dueAt(s: Pick<CatchUpState, "result" | "checkedAt" | "failures" 
 export function waitMs(due: number, now: number): number {
   return Math.max(0, Math.min(due - now, MAX_WAIT_MS));
 }
+
+const threadKey = (t: ThreadListItem): string => `${t.id}.${t.unreadCount}`;
 
 const messageOf = (err: unknown): string =>
   err instanceof Error && err.message ? err.message : "The AI request failed.";
@@ -96,7 +107,7 @@ export function createCatchUp({ api, now = Date.now }: { api: FlintApi; now?: ()
   let checking = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let seq = 0;
-  let current = { startedAt: 0, auto: false };
+  let current: { startedAt: number; auto: boolean; covered?: string[] } = { startedAt: 0, auto: false };
 
   const persist = () => {
     const { result, checkedAt } = store.getState();
@@ -113,7 +124,8 @@ export function createCatchUp({ api, now = Date.now }: { api: FlintApi; now?: ()
   const settle = (run: RunState) => {
     const s = store.getState();
     if (run.status === "done" && run.text.trim()) {
-      store.setState({ status: "ready", result: { text: run.text, citations: run.citations, at: current.startedAt }, error: null, failures: 0, failedAt: 0 });
+      const { startedAt: at, covered } = current;
+      store.setState({ status: "ready", result: { text: run.text, citations: run.citations, at, ...(covered ? { covered } : {}) }, error: null, failures: 0, failedAt: 0 });
       persist();
     } else if (run.notConnected) {
       store.setState({ status: "not_connected", error: run.error });
@@ -132,10 +144,19 @@ export function createCatchUp({ api, now = Date.now }: { api: FlintApi; now?: ()
     if (isBusy(prev) && !isBusy(run) && (run.status === "done" || run.status === "error")) settle(run);
   };
 
+  async function unreadPeople(): Promise<ThreadListItem[]> {
+    return (await api.listThreads({ view: "inbox", focused: true, unreadOnly: true, limit: DIGEST_THREADS })).items;
+  }
+
   async function refresh(auto = false): Promise<void> {
     if (isBusy(store.getState().run)) return;
     const mine = ++seq;
     current = { startedAt: now(), auto };
+    // What the digest is about to read, so a later check can tell new mail by thread, not by its Date header.
+    unreadPeople().then(
+      (items) => { if (mine === seq) current = { ...current, covered: items.map(threadKey) }; },
+      () => {},
+    );
     clearTimeout(timer);
     store.setState({ status: "running", error: null });
     dispatch({ type: "start" });
@@ -147,11 +168,14 @@ export function createCatchUp({ api, now = Date.now }: { api: FlintApi; now?: ()
     }
   }
 
-  /** Whether unread people mail arrived after `at`. Errs toward running. */
-  async function arrivedSince(at: number): Promise<boolean> {
+  /** Whether there is unread people mail the digest didn't cover. Errs toward running. */
+  async function arrivedSince(result: CatchUpResult): Promise<boolean> {
     try {
-      const page = await api.listThreads({ view: "inbox", focused: true, unreadOnly: true, limit: 1 });
-      return (page.items[0]?.lastDate ?? 0) > at;
+      const items = await unreadPeople();
+      if (!result.covered) return (items[0]?.lastDate ?? 0) > result.at;
+      // New when a thread wasn't covered or has more unread than it did; reading part of one isn't new mail.
+      const covered = new Map(result.covered.map((k) => [k.split(".")[0], Number(k.split(".")[1])]));
+      return items.some((t) => t.unreadCount > (covered.get(String(t.id)) ?? 0));
     } catch {
       return true;
     }
@@ -166,14 +190,17 @@ export function createCatchUp({ api, now = Date.now }: { api: FlintApi; now?: ()
       const ai = await api.aiStatus().catch(() => null);
       if (!ai?.connected || !ai.enabled) return arm(MAX_WAIT_MS);
       const { result } = store.getState();
-      if (result && !(await arrivedSince(result.at))) {
-        store.setState({ checkedAt: now() });
+      if (result && !(await arrivedSince(result))) {
+        // Nothing to retry either, so a failed run's 15-minute slot can't keep the check due.
+        store.setState({ checkedAt: now(), failures: 0, failedAt: 0 });
         persist();
         return arm();
       }
     } finally {
       checking = false;
     }
+    // Auto may have been switched off while the checks above were waiting.
+    if (!started || !store.getState().auto) return;
     await refresh(true);
   }
 

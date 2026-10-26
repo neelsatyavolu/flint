@@ -1,6 +1,7 @@
 import { useState, type JSX } from "react";
 import clsx from "clsx";
 import type { ScheduledSend } from "@flint/core";
+import { FlintError } from "@flint/core/types";
 import { flint } from "../../../lib/api";
 import { formatParticipants } from "../../../lib/format";
 import { Button, useToast } from "../../../ui";
@@ -8,7 +9,7 @@ import { HomeBlock } from "../HomeBlock";
 import styles from "../HomeView.module.css";
 
 /** Sends an agent asked for that wait on the user's approval. Hidden when there are none. */
-export function WaitingForOk({ scheduled }: { scheduled: readonly ScheduledSend[] }): JSX.Element | null {
+export function WaitingForOk({ scheduled, onStale }: { scheduled: readonly ScheduledSend[]; onStale: () => void }): JSX.Element | null {
   const toast = useToast();
   const [busy, setBusy] = useState<ReadonlySet<number>>(new Set());
   const waiting = scheduled.filter((s) => s.status === "awaiting_approval");
@@ -17,10 +18,12 @@ export function WaitingForOk({ scheduled }: { scheduled: readonly ScheduledSend[
   const decide = async (s: ScheduledSend, approve: boolean) => {
     setBusy((b) => new Set(b).add(s.id));
     try {
+      // Decided: the buttons stay off until the refreshed list drops the row.
       await flint.approveSend(s.id, approve);
-    } catch {
+    } catch (err) {
+      // Already decided elsewhere (Agent Activity, the CLI), so not a failure: refresh to drop the row.
+      if (err instanceof FlintError && err.code === "conflict") return onStale();
       toast.show({ message: approve ? "Couldn't send it. Try again." : "Couldn't cancel the send. Try again.", level: "error" });
-    } finally {
       setBusy((b) => {
         const next = new Set(b);
         next.delete(s.id);

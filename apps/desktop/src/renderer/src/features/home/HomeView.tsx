@@ -1,7 +1,7 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { Eye, Paperclip } from "lucide-react";
 import clsx from "clsx";
-import type { ThreadListItem, TrackedMessage } from "@flint/core";
+import type { FlintApi, ThreadListItem, TrackedMessage } from "@flint/core";
 import { useFlintQuery } from "../../lib/hooks";
 import { formatListTime, formatParticipants } from "../../lib/format";
 import { useResolvedTheme } from "../../lib/theme";
@@ -14,7 +14,7 @@ import { receiptMarker } from "../../state/receiptText";
 import { greeting } from "./greeting";
 import { CatchMeUp } from "./CatchMeUp";
 import { HomeBlock } from "./HomeBlock";
-import { NeedsReply } from "./NeedsReply";
+import { NeedsReplyList, useNeedsReply } from "./NeedsReply";
 import { bumpSceneOffset, parseSceneOffset, pickScene, readSceneMode, readSceneOffsetRaw, writeSceneMode, type SceneMode } from "./scene";
 import { SCENES } from "./scenes";
 import { useNow } from "./useNow";
@@ -22,8 +22,9 @@ import { Backdrop, useSceneLayers } from "./widgets/Backdrop";
 import { Glance } from "./widgets/Glance";
 import { Hero, SceneMenu } from "./widgets/Hero";
 import { QuickActions } from "./widgets/QuickActions";
-import { RecentDrafts } from "./widgets/RecentDrafts";
+import { RecentDrafts, useDrafts } from "./widgets/RecentDrafts";
 import { Today } from "./widgets/Today";
+import { todayRows } from "./widgets/todayRows";
 import { WaitingForOk } from "./widgets/WaitingForOk";
 import styles from "./HomeView.module.css";
 
@@ -85,18 +86,37 @@ function useSceneChoice(now: number) {
   return { mode, scene, setMode, next };
 }
 
+/** Every snoozed thread: the list is ordered by last message, so one due back today can sit past the first page. */
+async function listSnoozed(api: FlintApi): Promise<ThreadListItem[]> {
+  let items: ThreadListItem[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await api.listThreads({ view: "snoozed", limit: 200, cursor });
+    items = [...items, ...page.items];
+    cursor = page.nextCursor ?? undefined;
+  } while (cursor);
+  return items;
+}
+
+/** Still loading for the first time: its block may be about to appear. */
+const pending = (q: { data: unknown; error: Error | undefined }) => q.data === undefined && !q.error;
+
 export function HomeView() {
   const now = useNow(60_000);
   const { sidebar } = useApp();
   const { data, loading, error, refetch } = useFlintQuery((api) => api.getHome(), [], { refetchOn: ["receipt"] });
-  const scheduled = useFlintQuery((api) => api.listScheduled(), [], { refetchOn: ["send"] }).data ?? [];
-  const snoozed = useFlintQuery((api) => api.listThreads({ view: "snoozed", limit: 50 }), []).data?.items ?? [];
+  const scheduledQ = useFlintQuery((api) => api.listScheduled(), [], { refetchOn: ["send"] });
+  const scheduled = scheduledQ.data ?? [];
+  const snoozed = useFlintQuery(listSnoozed, []).data ?? [];
+  const needsReply = useNeedsReply();
+  const drafts = useDrafts();
   const choice = useSceneChoice(now);
   const { layers, shown, onLoad } = useSceneLayers(choice.scene);
 
   const firstSync = sidebar?.accounts.some((a) => a.sync.state === "syncing" && !a.sync.lastSyncAt) ?? false;
   const waiting = scheduled.some((s) => s.status === "awaiting_approval");
-  const nothing = data && !data.unreadPeople.length && !data.pinned.length && !data.awaitingReply.length && !data.recentReceipts.length && !waiting;
+  const others = !pending(needsReply) && !pending(drafts) && !needsReply.data?.length && !drafts.data?.length && !todayRows(snoozed, scheduled, now).length;
+  const nothing = data && !data.unreadPeople.length && !data.pinned.length && !data.awaitingReply.length && !data.recentReceipts.length && !waiting && others;
   const sceneStyle = shown ? ({ "--photo-scrim": shown.scrim } as CSSProperties) : undefined;
 
   return (
@@ -127,8 +147,8 @@ export function HomeView() {
           {data ? (
             <>
               <CatchMeUp />
-              <NeedsReply now={now} />
-              <WaitingForOk scheduled={scheduled} />
+              <NeedsReplyList rows={needsReply.data ?? []} now={now} />
+              <WaitingForOk scheduled={scheduled} onStale={scheduledQ.refetch} />
               <Today snoozed={snoozed} scheduled={scheduled} now={now} />
               <Block title="Unread from people" empty={!data.unreadPeople.length}>
                 {data.unreadPeople.map((i) => <ThreadLine key={i.id} item={i} now={now} />)}
@@ -142,7 +162,7 @@ export function HomeView() {
               <Block title="Read receipts" empty={!data.recentReceipts.length}>
                 {data.recentReceipts.map((r) => <ReceiptLine key={r.trackedId} item={r} now={now} />)}
               </Block>
-              <RecentDrafts now={now} />
+              <RecentDrafts all={drafts.data ?? []} now={now} />
               {nothing ? (
                 <p className={clsx("t-body", styles.quiet)} role="status">{firstSync ? "Getting your mail…" : "Nothing needs you right now."}</p>
               ) : null}

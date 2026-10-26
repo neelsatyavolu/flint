@@ -9,7 +9,9 @@ type ChunkBody = AiChunk extends infer C ? (C extends AiChunk ? Omit<C, "runId">
 const T0 = new Date(2026, 9, 25, 14, 0).getTime();
 const HOUR = 60 * 60 * 1000;
 
-function fakeApi(opts: { connected?: boolean; enabled?: boolean; newestUnread?: number; fail?: boolean } = {}) {
+type Unread = Pick<ThreadPage["items"][number], "id" | "unreadCount" | "lastDate">;
+
+function fakeApi(opts: { connected?: boolean; enabled?: boolean; newestUnread?: number; unread?: Unread[]; fail?: boolean } = {}) {
   let listener: ((e: FlintEvent) => void) | null = null;
   let n = 0;
   const api = {
@@ -19,7 +21,7 @@ function fakeApi(opts: { connected?: boolean; enabled?: boolean; newestUnread?: 
       return { runId: `r${++n}` };
     }),
     listThreads: vi.fn(async (): Promise<ThreadPage> => ({
-      items: opts.newestUnread === undefined ? [] : [{ lastDate: opts.newestUnread } as ThreadPage["items"][number]],
+      items: (opts.unread ?? (opts.newestUnread === undefined ? [] : [{ id: 1, unreadCount: 1, lastDate: opts.newestUnread }])) as ThreadPage["items"],
       bundles: [], nextCursor: null,
     })),
     subscribe: (l: (e: FlintEvent) => void) => { listener = l; return () => { listener = null; }; },
@@ -80,7 +82,7 @@ describe("createCatchUp", () => {
     f.finish();
     const s = c.store.getState();
     expect(s.status).toBe("ready");
-    expect(s.result).toEqual({ text: "- Maria asks about lunch. [1]", citations: [{ threadId: 7, subject: "Lunch" }], at: T0 });
+    expect(s.result).toEqual({ text: "- Maria asks about lunch. [1]", citations: [{ threadId: 7, subject: "Lunch" }], at: T0, covered: [] });
     expect(parseStored(window.localStorage.getItem(STORED_KEY))?.result.at).toBe(T0);
     stop();
   });
@@ -110,6 +112,42 @@ describe("createCatchUp", () => {
     expect(f.raw.aiRun).not.toHaveBeenCalled();
     expect(c.store.getState().checkedAt).toBe(T0);
     expect(parseStored(window.localStorage.getItem(STORED_KEY))?.checkedAt).toBe(T0);
+    stop();
+  });
+
+  it("runs when an unread thread the digest didn't cover shows up, even with an older Date header", async () => {
+    const f = fakeApi({ unread: [{ id: 1, unreadCount: 2, lastDate: T0 - 5 * HOUR }] });
+    const c = createCatchUp({ api: f.api });
+    const stop = c.start();
+    await flush();
+    f.finish();
+    expect(c.store.getState().result?.covered).toEqual(["1.2"]);
+    expect(parseStored(window.localStorage.getItem(STORED_KEY))?.result.covered).toEqual(["1.2"]);
+    // Reading part of a covered thread is not new mail.
+    f.setOpts({ unread: [{ id: 1, unreadCount: 1, lastDate: T0 - 5 * HOUR }] });
+    await vi.advanceTimersByTimeAsync(EVERY_MS);
+    expect(f.raw.aiRun).toHaveBeenCalledTimes(1);
+    expect(c.store.getState().checkedAt).toBe(T0 + EVERY_MS);
+    // Synced late: stamped before the digest started, but the digest never saw it.
+    f.setOpts({ unread: [{ id: 1, unreadCount: 1, lastDate: T0 - 5 * HOUR }, { id: 2, unreadCount: 1, lastDate: T0 - HOUR }] });
+    await vi.advanceTimersByTimeAsync(EVERY_MS);
+    expect(f.raw.aiRun).toHaveBeenCalledTimes(2);
+    stop();
+  });
+
+  it("does not start a run when auto is switched off while a check is in flight", async () => {
+    window.localStorage.setItem(STORED_KEY, JSON.stringify({ text: "- old [1]", citations: [], at: T0 - EVERY_MS }));
+    const f = fakeApi({ newestUnread: T0 });
+    const status = { connected: true, enabled: true, provider: "codex", model: null, models: [] };
+    let answer: (v: typeof status) => void = () => {};
+    f.raw.aiStatus.mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }));
+    const c = createCatchUp({ api: f.api });
+    const stop = c.start();
+    await flush();
+    c.setAuto(false);
+    answer(status);
+    await flush();
+    expect(f.raw.aiRun).not.toHaveBeenCalled();
     stop();
   });
 
@@ -153,6 +191,28 @@ describe("createCatchUp", () => {
     expect(f.raw.aiRun).toHaveBeenCalledTimes(3);
     f.finish();
     expect(c.store.getState()).toMatchObject({ status: "ready", failures: 0 });
+    stop();
+  });
+
+  it("does not spin when the retry after a failed run finds no new mail", async () => {
+    window.localStorage.setItem(STORED_KEY, JSON.stringify({ text: "- old [1]", citations: [], at: T0 - EVERY_MS }));
+    const f = fakeApi({ newestUnread: T0, fail: true });
+    const c = createCatchUp({ api: f.api });
+    const stop = c.start();
+    await flush();
+    expect(c.store.getState()).toMatchObject({ status: "error", failures: 1 });
+    // The user reads the new mail before the retry slot.
+    f.setOpts({ newestUnread: T0 - EVERY_MS - HOUR, fail: false });
+    await vi.advanceTimersByTimeAsync(RETRY_MS);
+    const checks = f.raw.aiStatus.mock.calls.length;
+    expect(c.store.getState()).toMatchObject({ checkedAt: T0 + RETRY_MS, failures: 0, failedAt: 0 });
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(f.raw.aiStatus).toHaveBeenCalledTimes(checks);
+    expect(f.raw.listThreads.mock.calls.length).toBeLessThan(10);
+    expect(vi.getTimerCount()).toBe(1);
+    await vi.advanceTimersByTimeAsync(EVERY_MS - 60_000);
+    expect(f.raw.aiStatus).toHaveBeenCalledTimes(checks + 1);
+    expect(f.raw.aiRun).toHaveBeenCalledTimes(1);
     stop();
   });
 

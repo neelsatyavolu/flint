@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import clsx from "clsx";
+import type { Draft } from "@flint/core";
 import { useFlintQuery } from "../../../lib/hooks";
 import { formatAgo, formatParticipants } from "../../../lib/format";
 import { Avatar } from "../../../ui";
@@ -9,10 +10,13 @@ import styles from "../HomeView.module.css";
 
 const SHOWN = 3;
 
+export function useDrafts() {
+  return useFlintQuery((api) => api.listDrafts(), []);
+}
+
 /** The three most recently edited drafts; a row reopens it in the composer. Hidden when there are none. */
-export function RecentDrafts({ now }: { now: number }): JSX.Element | null {
-  const { data } = useFlintQuery((api) => api.listDrafts(), []);
-  const drafts = [...(data ?? [])].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, SHOWN);
+export function RecentDrafts({ all, now }: { all: readonly Draft[]; now: number }): JSX.Element | null {
+  const drafts = [...all].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, SHOWN);
   if (!drafts.length) return null;
   return (
     <HomeBlock title="Drafts">

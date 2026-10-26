@@ -155,7 +155,17 @@ export function CatchMeUp(): JSX.Element | null {
   const titleId = useId();
   const said = useAnnouncement();
   const [since] = useState(() => sinceStart(readStoredNumber(HOME_SEEN_KEY, 0), Date.now()));
-  useEffect(() => () => writeStored(HOME_SEEN_KEY, String(Date.now())), []);
+  useEffect(() => {
+    // Quitting or reloading on Home closes the window without unmounting, so save on the way out too.
+    const seen = () => writeStored(HOME_SEEN_KEY, String(Date.now()));
+    window.addEventListener("pagehide", seen);
+    window.addEventListener("beforeunload", seen);
+    return () => {
+      window.removeEventListener("pagehide", seen);
+      window.removeEventListener("beforeunload", seen);
+      seen();
+    };
+  }, []);
 
   if (ai.loading) return null;
   return (
