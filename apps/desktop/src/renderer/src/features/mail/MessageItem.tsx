@@ -12,6 +12,8 @@ import { AttachmentTiles } from "./AttachmentTiles";
 import { MessageBody } from "./MessageBody";
 import { useMailAppearance } from "./mailAppearance";
 import { ReceiptPanel } from "./ReceiptPanel";
+import { ReceiptCheck } from "../receipts/ReceiptCheck";
+import { receiptMarker, recipientStatusLine, summaryOf } from "../../state/receiptText";
 import { RecipientsLine } from "./RecipientsPopover";
 import styles from "./Message.module.css";
 
@@ -41,6 +43,10 @@ function MessageItemImpl({ message: m, expanded, selfAddresses, onToggle, onUpda
   const sender = senderOf(m);
   const name = m.isFromMe ? "me" : displayName(sender);
   const avatar = m.isFromMe ? { accountId: m.accountId } : {};
+  // Each tracked message you sent carries its own check, so a thread with several of your messages shows each one.
+  const receipt = m.receipt
+    ? { marker: receiptMarker(summaryOf(m.receipt)), detail: m.receipt.recipients.filter((r) => r.status !== "untracked").map((r) => `${displayName({ name: r.name, address: r.email })}: ${recipientStatusLine(r, m.receipt)}`).join("\n") }
+    : null;
 
   if (!expanded) {
     return (
@@ -48,6 +54,7 @@ function MessageItemImpl({ message: m, expanded, selfAddresses, onToggle, onUpda
         <Avatar address={sender.address} name={sender.name} size={24} {...avatar} />
         <span className={styles.cName}>{name}</span>
         <span className={styles.cSnippet}>{m.snippet}</span>
+        {receipt ? <ReceiptCheck marker={receipt.marker} detail={receipt.detail} /> : null}
         <span className={clsx("t-data", styles.time)}>{formatListTime(m.date, now)}</span>
       </button>
     );
@@ -104,6 +111,7 @@ function MessageItemImpl({ message: m, expanded, selfAddresses, onToggle, onUpda
           <RecipientsLine message={m} selfAddresses={selfAddresses} />
         </div>
         <div className={styles.headRight} onClick={act}>
+          {receipt ? <ReceiptCheck marker={receipt.marker} detail={receipt.detail} className={styles.headCheck} /> : null}
           <time className={clsx("t-data", styles.time)} dateTime={new Date(m.date).toISOString()}>{formatFullDate(m.date)}</time>
           <Menu items={menu} placement="bottom-end" trigger={<IconButton size={24} label="More"><MoreHorizontal size={14} strokeWidth={1.5} /></IconButton>} />
         </div>

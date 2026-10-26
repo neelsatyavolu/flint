@@ -1,0 +1,5 @@
+.check { display: inline-flex; align-items: center; gap: 2px; flex: none; line-height: 1; }
+.count { font: 500 11px/1 var(--font-mono, "Geist Mono", ui-monospace, monospace); font-variant-numeric: tabular-nums; }
+.ok { color: var(--ok); }
+.warn { color: var(--warn); }
+.muted { color: var(--fg-3); }

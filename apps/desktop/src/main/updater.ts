@@ -29,9 +29,12 @@ const describe = (err: unknown): string => {
   return raw.split("\n")[0]!.slice(0, 200);
 };
 
+export type UpdateMode = "auto" | "ask" | "manual";
+
 /**
- * Sparkle-style updates from GitHub Releases: check on launch and every few hours, download in the
- * background, then offer to restart. "Later" installs the update the next time Flint quits.
+ * Sparkle-style updates from GitHub Releases. Background checks run on launch and every few hours unless the mode is
+ * "manual". A download then either offers a restart ("ask"; "Later" installs on the next quit) or, in "auto", installs
+ * on the next quit without asking and only announces it. A check the user starts from the menu always offers a restart.
  */
 export function createUpdateController(deps: {
   updater: UpdaterLike;
@@ -39,10 +42,17 @@ export function createUpdateController(deps: {
   currentVersion: string;
   /** Runs before Restart Now hands over to the installer (the app stops its service so nothing blocks the quit). */
   beforeInstall?: () => Promise<void>;
+  /** settings.updates.mode, read at each decision so a change applies without a restart. */
+  getMode?: () => UpdateMode;
+  /** A quiet notice for "auto" mode that the update installs on the next quit. */
+  announce?: (version: string) => void;
 }): UpdateController {
-  const { updater, ask, currentVersion, beforeInstall } = deps;
+  const { updater, ask, currentVersion, beforeInstall, announce } = deps;
+  const mode = (): UpdateMode => deps.getMode?.() ?? "ask";
   const log = logger("updates");
   let reportNext = false;
+  /** The current download was started by a menu check, so it offers a restart whatever the mode. */
+  let userCycle = false;
   let checking = false;
   let readyVersion: string | null = null;
   let timers: ReturnType<typeof setTimeout>[] = [];
@@ -82,7 +92,10 @@ export function createUpdateController(deps: {
     log.info("update downloaded", { version: info.version });
     readyVersion = info.version;
     reportNext = false;
-    void offerRestart(info.version);
+    const asked = userCycle;
+    userCycle = false;
+    if (mode() === "auto" && !asked) announce?.(info.version);
+    else void offerRestart(info.version);
   }) as (arg: never) => void);
 
   updater.on("error", ((err: unknown) => {
@@ -97,7 +110,12 @@ export function createUpdateController(deps: {
       void offerRestart(readyVersion);
       return;
     }
-    if (userInitiated) reportNext = true;
+    if (userInitiated) {
+      reportNext = true;
+      userCycle = true;
+    } else if (mode() === "manual") {
+      return;
+    }
     if (checking) return;
     checking = true;
     // Failures also arrive as an "error" event, which reports them.

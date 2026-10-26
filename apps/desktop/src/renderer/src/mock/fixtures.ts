@@ -24,6 +24,7 @@ export const defaultSettings = (): Settings => ({
   agents: { enabled: true, modify: "allow", send: "ask" },
   sync: { initialDays: 90, bodiesForRecentDays: 14 },
   google: { clientId: "", clientSecret: "" },
+  updates: { mode: "ask" },
 });
 
 export const defaultAi = (): AiStatus => ({

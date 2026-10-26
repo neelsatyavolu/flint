@@ -100,4 +100,44 @@ describe("createUpdateController", () => {
     c.check(false);
     expect(updater.checkForUpdates).toHaveBeenCalledTimes(2);
   });
+
+  it("installs on quit without asking in auto mode, and only announces it", async () => {
+    const { updater, emit } = fakeUpdater();
+    const ask = vi.fn(async () => 0);
+    const announce = vi.fn();
+    createUpdateController({ updater, ask, currentVersion: "0.1.0", getMode: () => "auto", announce });
+    emit("update-downloaded", { version: "0.2.0" });
+    await flush();
+    expect(announce).toHaveBeenCalledWith("0.2.0");
+    expect(ask).not.toHaveBeenCalled();
+    expect(updater.quitAndInstall).not.toHaveBeenCalled();
+    expect(updater.autoInstallOnAppQuit).toBe(true);
+  });
+
+  it("still offers a restart in auto mode when the user checked from the menu", async () => {
+    const { updater, emit } = fakeUpdater();
+    const ask = vi.fn(async () => 1);
+    const announce = vi.fn();
+    const c = createUpdateController({ updater, ask, currentVersion: "0.1.0", getMode: () => "auto", announce });
+    c.check(true);
+    emit("update-available", { version: "0.2.0" });
+    emit("update-downloaded", { version: "0.2.0" });
+    await flush();
+    expect(announce).not.toHaveBeenCalled();
+    expect(ask).toHaveBeenLastCalledWith(expect.objectContaining({ message: "Flint 0.2.0 is ready to install" }));
+  });
+
+  it("skips background checks in manual mode but checks from the menu", async () => {
+    const { updater } = fakeUpdater();
+    let m: "manual" | "ask" = "manual";
+    const c = createUpdateController({ updater, ask: vi.fn(async () => 0), currentVersion: "0.1.0", getMode: () => m });
+    c.check(false);
+    expect(updater.checkForUpdates).not.toHaveBeenCalled();
+    c.check(true);
+    expect(updater.checkForUpdates).toHaveBeenCalledOnce();
+    await flush();
+    m = "ask";
+    c.check(false);
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(2);
+  });
 });

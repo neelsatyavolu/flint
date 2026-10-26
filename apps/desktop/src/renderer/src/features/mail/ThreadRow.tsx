@@ -1,9 +1,10 @@
 import { memo, type MouseEvent } from "react";
-import { Archive, BellRing, Clock, Eye, Paperclip, Pin, PinOff, Trash2 } from "lucide-react";
+import { Archive, BellRing, Clock, Paperclip, Pin, PinOff, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import type { ThreadListItem } from "@flint/core";
 import { Avatar, CountChip, IconButton } from "../../ui";
 import { receiptMarker } from "../../state/receiptText";
+import { ReceiptCheck } from "../receipts/ReceiptCheck";
 import { rowAvatar, rowSender, rowTime } from "./rowText";
 import styles from "./ThreadRow.module.css";
 
@@ -53,10 +54,7 @@ function ThreadRowImpl({ item, compact, previewLines, avatars, accountColor, ope
             {item.muted ? <BellRing size={12} strokeWidth={1.5} aria-label="Muted" /> : null}
             {item.pinned ? <Pin size={12} strokeWidth={1.5} className={styles.pin} aria-label="Pinned" /> : null}
             {marker ? (
-              <span className={clsx(styles.receipt, marker.tone === "ok" && styles.receiptOk)} title="Read receipts">
-                <Eye size={12} strokeWidth={1.5} />
-                {marker.text}
-              </span>
+              <ReceiptCheck marker={marker} className={styles.receipt} />
             ) : null}
             <span className={styles.time}>
               {time.snoozed ? <Clock size={11} strokeWidth={1.5} style={{ marginRight: 4, verticalAlign: -1 }} /> : null}

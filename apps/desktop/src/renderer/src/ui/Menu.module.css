@@ -8,9 +8,11 @@
   border: 1px solid var(--line-strong);
   border-radius: var(--r-control);
   outline: none;
-  animation: in var(--dur-panel) var(--ease);
 }
-@keyframes in { from { opacity: 0; transform: translateY(4px); } }
+/* Starts once the menu is placed, growing a touch from the corner nearest the pointer or trigger. */
+.shown { animation: in 110ms var(--ease); }
+@keyframes in { from { opacity: 0; transform: scale(0.97); } }
+@media (prefers-reduced-motion: reduce) { .shown { animation: none; } }
 
 .item {
   display: flex;

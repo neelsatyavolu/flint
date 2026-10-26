@@ -10,6 +10,7 @@ export const MOCK_DEFAULT_SETTINGS: Settings = {
   agents: { enabled: true, modify: "allow", send: "ask" },
   sync: { initialDays: 90, bodiesForRecentDays: 14 },
   google: { clientId: "", clientSecret: "" },
+  updates: { mode: "ask" },
 };
 
 type Plain = Record<string, unknown>;

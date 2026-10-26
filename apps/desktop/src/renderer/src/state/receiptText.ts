@@ -64,10 +64,33 @@ export function recipientStatusLine(r: ReceiptRecipient, detail?: ReceiptDetail 
   }
 }
 
-/** "2/3" for the list marker. */
-export function receiptMarker(s: ReceiptSummary): { text: string; tone: ReceiptTone } {
-  const allOpened = s.total > 0 && s.opened >= s.total;
-  return { text: `${s.opened}/${s.total}`, tone: allOpened ? "ok" : "muted" };
+export type ReceiptMarker = {
+  /** "2/3" when there are several recipients, "" for one (the check says it all). */
+  text: string;
+  tone: ReceiptTone;
+  /** At least one recipient opened or replied: a double check. */
+  read: boolean;
+  /** Spoken and hover label, e.g. "Opened by 2 of 3". */
+  label: string;
+};
+
+/** The check mark on list rows and message cards: one grey check when sent, a green double check once read. */
+export function receiptMarker(s: ReceiptSummary): ReceiptMarker {
+  const read = s.opened > 0 || s.status === "replied";
+  const several = s.total > 1;
+  const text = several ? `${s.opened}/${s.total}` : "";
+  if (read) return { text, read, tone: "ok", label: several ? `Opened by ${s.opened} of ${s.total}` : s.status === "replied" ? "Replied" : "Opened" };
+  if (s.status === "unknowable") return { text, read, tone: "warn", label: "Can't confirm opens: Apple Mail Privacy Protection" };
+  return { text, read, tone: "muted", label: several ? `Not opened yet by any of ${s.total}` : "Not opened yet" };
+}
+
+/** The same summary for one sent message, from its per-recipient detail. Untracked recipients (you, your aliases) don't count. */
+export function summaryOf(detail: ReceiptDetail): ReceiptSummary {
+  const tracked = detail.recipients.filter((r) => r.status !== "untracked");
+  const opened = tracked.filter((r) => r.status === "opened" || r.status === "replied").length;
+  const status: ReceiptStatus = tracked.some((r) => r.status === "replied") ? "replied" : opened > 0 ? "opened" : tracked.some((r) => r.status === "unknowable") ? "unknowable" : tracked.length ? "sent" : "untracked";
+  const lastOpenAt = tracked.reduce<number | null>((m, r) => (r.lastOpenAt && (!m || r.lastOpenAt > m) ? r.lastOpenAt : m), null);
+  return { opened, total: tracked.length, status, lastOpenAt };
 }
 
 const EVENT_LABELS: Record<OpenEvent["kind"], string> = {

@@ -7,7 +7,7 @@ import { initLog, logger } from "@flint/core/log";
 import type { FlintService } from "@flint/core/service/index";
 import type { Settings } from "@flint/core/types";
 import type { BrowserWindow } from "electron";
-import { app, dialog, nativeTheme, session } from "electron";
+import { app, dialog, nativeTheme, Notification, session } from "electron";
 import electronUpdater from "electron-updater";
 import { CHANNELS } from "../preload/channels";
 import { APP_ORIGIN, APP_URL, registerAppScheme, serveRenderer } from "./app-protocol";
@@ -21,7 +21,7 @@ import { createRequestFilter, receiptsHostFromEndpoint } from "./request-filter"
 import { secureSession } from "./security";
 import { applyDefaultReceiptsEndpoint } from "./receipts-default";
 import { bootstrapService } from "./service";
-import { createUpdateController, type UpdateController } from "./updater";
+import { createUpdateController, type UpdateController, type UpdateMode } from "./updater";
 import { createMainWindow, focusWindow, isMac } from "./window";
 
 app.setName("Flint");
@@ -107,10 +107,17 @@ async function main(): Promise<void> {
   serveAttachments(() => service, dataDir);
   registerIpc({ getWindow: () => mainWindow, getService: () => service, appOrigin });
   // Packaged builds update themselves from GitHub Releases (app-update.yml is written by electron-builder).
+  // settings.updates.mode is applied below once the service has loaded the settings.
+  let updateMode: UpdateMode = "ask";
   const updates: UpdateController | null = app.isPackaged
     ? createUpdateController({
         updater: electronUpdater.autoUpdater,
         currentVersion: app.getVersion(),
+        getMode: () => updateMode,
+        announce: (version) => {
+          if (!Notification.isSupported()) return;
+          new Notification({ title: `Flint ${version} is ready`, body: "It installs the next time you quit Flint.", silent: true }).show();
+        },
         // Stop the service first so the before-quit handler doesn't hold up the installer's quit and relaunch.
         beforeInstall: async () => {
           quitting = true;
@@ -155,7 +162,8 @@ async function main(): Promise<void> {
     getUnread: async () => badgeCount(badgeMode, service!),
     setBadge: (n) => app.setBadgeCount(n),
   });
-  const applySettings = (s: { receipts: { endpoint: string }; inbox: { blockTrackers: boolean }; appearance: { theme: "system" | "dark" | "light" } }): void => {
+  const applySettings = (s: { receipts: { endpoint: string }; inbox: { blockTrackers: boolean }; appearance: { theme: "system" | "dark" | "light" }; updates: { mode: UpdateMode } }): void => {
+    updateMode = s.updates.mode;
     filter.update({ receiptsHost: receiptsHostFromEndpoint(s.receipts.endpoint), blockTrackers: s.inbox.blockTrackers });
     nativeTheme.themeSource = s.appearance.theme;
   };

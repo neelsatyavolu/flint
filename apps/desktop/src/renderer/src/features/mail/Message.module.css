@@ -67,3 +67,6 @@
 .event { display: flex; gap: 12px; color: var(--fg-2); }
 .eventTime { flex: none; width: 96px; color: var(--fg-3); }
 .dim { color: var(--fg-3); }
+
+/* Read-receipt check before the date on your own tracked messages. */
+.headCheck { margin-right: 6px; }

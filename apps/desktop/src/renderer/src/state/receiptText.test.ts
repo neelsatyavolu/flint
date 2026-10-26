@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ReceiptDetail, ReceiptRecipient, ReceiptStatus } from "@flint/core";
-import { eventLabel, eventLine, firstCountedOpen, receiptMarker, receiptTone, recipientStatusLine } from "./receiptText";
+import { eventLabel, eventLine, firstCountedOpen, receiptMarker, receiptTone, recipientStatusLine, summaryOf } from "./receiptText";
 
 const NOW = new Date(2026, 9, 25, 18, 0).getTime();
 const at = (h: number, m: number, day = 25) => new Date(2026, 9, day, h, m).getTime();
@@ -53,8 +53,11 @@ describe("receipt status text", () => {
   });
 
   it("builds the list marker", () => {
-    expect(receiptMarker({ opened: 2, total: 3, status: "opened", lastOpenAt: null })).toEqual({ text: "2/3", tone: "muted" });
-    expect(receiptMarker({ opened: 3, total: 3, status: "opened", lastOpenAt: null })).toEqual({ text: "3/3", tone: "ok" });
+    expect(receiptMarker({ opened: 2, total: 3, status: "opened", lastOpenAt: null })).toEqual({ text: "2/3", tone: "ok", read: true, label: "Opened by 2 of 3" });
+    expect(receiptMarker({ opened: 3, total: 3, status: "opened", lastOpenAt: null })).toMatchObject({ text: "3/3", read: true });
+    expect(receiptMarker({ opened: 0, total: 1, status: "sent", lastOpenAt: null })).toEqual({ text: "", tone: "muted", read: false, label: "Not opened yet" });
+    expect(receiptMarker({ opened: 1, total: 1, status: "replied", lastOpenAt: null })).toMatchObject({ text: "", read: true, label: "Replied" });
+    expect(receiptMarker({ opened: 0, total: 2, status: "unknowable", lastOpenAt: null })).toMatchObject({ tone: "warn", read: false });
     expect(receiptMarker({ opened: 0, total: 0, status: "sent", lastOpenAt: null }).tone).toBe("muted");
   });
 
@@ -62,5 +65,21 @@ describe("receipt status text", () => {
     expect(eventLine(detail.events[1]!)).toBe("Opened · Gmail · iPhone · San Jose");
     expect(eventLine(detail.events[0]!)).toBe("Image prefetch · Apple Mail · not counted");
     for (const k of ["open", "prefetch", "scanner", "self", "bot", "duplicate"] as const) expect(eventLabel(k)).toBeTruthy();
+  });
+});
+
+describe("summaryOf", () => {
+  const r = (email: string, status: "sent" | "opened" | "replied" | "unknowable" | "untracked", lastOpenAt: number | null = null) =>
+    ({ email, name: email.split("@")[0]!, status, firstOpenAt: lastOpenAt, lastOpenAt, openCount: lastOpenAt ? 1 : 0, possiblyForwarded: false, repliedAt: null }) as never;
+
+  it("counts opens across several recipients and leaves out you and your aliases", () => {
+    const s = summaryOf({ trackedId: 1, sentAt: 0, events: [], recipients: [r("a@x.co", "opened", 50), r("b@x.co", "sent"), r("c@x.co", "replied", 70), r("me@x.co", "untracked")] });
+    expect(s).toEqual({ opened: 2, total: 3, status: "replied", lastOpenAt: 70 });
+    expect(receiptMarker(s)).toMatchObject({ text: "2/3", read: true, label: "Opened by 2 of 3" });
+  });
+
+  it("is a single grey check for one recipient who hasn't opened it", () => {
+    const s = summaryOf({ trackedId: 1, sentAt: 0, events: [], recipients: [r("a@x.co", "sent")] });
+    expect(receiptMarker(s)).toEqual({ text: "", tone: "muted", read: false, label: "Not opened yet" });
   });
 });

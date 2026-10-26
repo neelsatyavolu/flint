@@ -34,12 +34,22 @@ type PopupProps = {
   close: () => void;
 };
 
+/** The corner the menu grows from: the one nearest its anchor or the pointer. */
+function originFor(placement: Placement): string {
+  const [side, align] = placement.split("-") as [string, string | undefined];
+  const vertical = side === "top" ? "bottom" : side === "bottom" ? "top" : "center";
+  const horizontal = side === "left" ? "right" : side === "right" ? "left" : align === "end" ? "right" : align === "start" ? "left" : "center";
+  return `${vertical} ${horizontal}`;
+}
+
 function MenuPopup({ items, floating, context, getFloatingProps, getItemProps, listRef, activeIndex, close }: PopupProps) {
   let actionIndex = -1;
+  // Hidden until Floating UI has placed it, so it never shows at the corner of the window first.
+  const style = { ...floating.floatingStyles, transformOrigin: originFor(floating.placement), ...(floating.isPositioned ? {} : { opacity: 0, pointerEvents: "none" as const }) };
   return (
     <FloatingPortal>
       <FloatingFocusManager context={context} initialFocus={0} returnFocus>
-        <div ref={floating.refs.setFloating} style={floating.floatingStyles} className={styles.menu} {...getFloatingProps()}>
+        <div ref={floating.refs.setFloating} style={style} className={clsx(styles.menu, floating.isPositioned && styles.shown)} {...getFloatingProps()}>
           {items.map((item, i) => {
             if (!isAction(item)) {
               return "label" in item
@@ -87,6 +97,8 @@ function useMenuFloating(items: MenuItem[], open: boolean, setOpen: (o: boolean)
     open,
     onOpenChange: setOpen,
     placement,
+    // Position with top/left: the open animation uses transform, which would otherwise override the position.
+    transform: false,
     whileElementsMounted: autoUpdate,
     middleware: [
       offset(4), flip({ padding: 8 }), shift({ padding: 8 }),

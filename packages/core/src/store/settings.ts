@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS: Settings = {
   agents: { enabled: true, modify: "allow", send: "ask" },
   sync: { initialDays: 90, bodiesForRecentDays: 14 },
   google: { clientId: "", clientSecret: "" },
+  updates: { mode: "ask" },
 };
 
 const sections = {
@@ -44,6 +45,7 @@ const sections = {
   agents: z.object({ enabled: z.boolean(), modify: z.enum(["allow", "deny"]), send: z.enum(["allow", "ask", "deny"]) }),
   sync: z.object({ initialDays: z.number().int().min(1).max(3650), bodiesForRecentDays: z.number().int().min(0).max(3650) }),
   google: z.object({ clientId: z.string().max(500), clientSecret: z.string().max(500) }),
+  updates: z.object({ mode: z.enum(["auto", "ask", "manual"]) }),
 };
 
 export const settingsSchema = z.object(sections).strict();
@@ -52,6 +54,7 @@ export const settingsPatchSchema = z.object({
   appearance: optionalPartial(sections.appearance), inbox: optionalPartial(sections.inbox), compose: optionalPartial(sections.compose),
   receipts: optionalPartial(sections.receipts), notifications: optionalPartial(sections.notifications), ai: optionalPartial(sections.ai),
   agents: optionalPartial(sections.agents), sync: optionalPartial(sections.sync), google: optionalPartial(sections.google),
+  updates: optionalPartial(sections.updates),
 }).strict();
 
 type Plain = Record<string, unknown>;

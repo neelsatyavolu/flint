@@ -435,6 +435,9 @@ export type Settings = {
   // user-supplied OAuth client (Desktop app type). builtIn is reported by getSettings, never stored: true when
   // this build ships its own client, which is used whenever the user hasn't set one.
   google: { clientId: string; clientSecret: string; builtIn?: boolean };
+  // How the desktop app updates itself from GitHub Releases: "auto" downloads and installs on the next quit without
+  // asking, "ask" downloads then offers a restart, "manual" checks only from Flint > Check for Updates.
+  updates: { mode: "auto" | "ask" | "manual" };
 };
 
 export type DeepPartial<T> = { [K in keyof T]?: T[K] extends Record<string, unknown> ? DeepPartial<T[K]> : T[K] };
