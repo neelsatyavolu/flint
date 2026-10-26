@@ -19,6 +19,20 @@ final class InboxTests: XCTestCase {
     }
 
     @MainActor
+    func testVerificationCodeChipCopiesTheCode() {
+        let app = ShellTests.launchSeeded()
+        // The demo's code mail sits in the Notifications bundle.
+        let bundle = app.descendants(matching: .any)["inbox.bundle.notifications"]
+        XCTAssertTrue(bundle.waitForExistence(timeout: 30))
+        bundle.tap()
+        let chip = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'inbox.code.'")).firstMatch
+        XCTAssertTrue(chip.waitForExistence(timeout: 30), app.debugDescription)
+        XCTAssertTrue(chip.label.contains("482913"))
+        chip.tap()
+        XCTAssertTrue(app.staticTexts["Code copied"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testFilterSelectBatchAndUndo() {
         let app = ShellTests.launchSeeded()
         XCTAssertTrue(rows(app).firstMatch.waitForExistence(timeout: 25))

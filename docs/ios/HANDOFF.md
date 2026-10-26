@@ -235,3 +235,7 @@ All seven track branches merged into `ios`. Shared-file changes made while integ
 - The composer's receipt note (`composer.receiptNote`) uses the `fg` text token: on iPad the audit still read `fg2` at 11 pt mono as under the contrast threshold.
 - `EndToEndTests` scrolls to the onboarding Done button (the new signature box pushed it below the fold).
 - Open: `ShellFixTests.testKeyboardShortcutsOnIPad` (Cmd-F opens search) fails on the iPad Pro 13-inch (M5) simulator on iOS 26.5, also on the unmerged shell branch, so it is not a merge regression. It passed in the shell group's run. Unresolved whether the simulator or the `UIKeyCommand` is at fault; check on a real Magic Keyboard. `testCmdNAndArchiveOnIPad` failed once on a long-running simulator and passed after a reboot.
+
+## From wave 3 fix, composer group (second pass)
+
+- Findings 6, 8, 12, 14, 16, 22, 23, 24 were already fixed in fa2c703 and re-checked in code; 12 got more exact (autoconfig also resolves MX and probes likely hosts, receipts also registers and polls). 15: the code chip is now its own button (`inbox.code.<id>`) laid over the chip, tested by UI test. 9: textClipped is now checked on inbox, Settings; still skipped on Search and Thread (other groups' screens). Thread: `thread.original.*` toggle fails the iPad contrast audit (Thread group).

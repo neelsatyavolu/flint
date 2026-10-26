@@ -4,7 +4,7 @@ import SwiftUI
 /// What Flint contacts, in plain words. Every line here is something the app does; `PrivacyCopyTests` keeps the list honest.
 enum PrivacyCopy {
     static var contacts: String {
-        sl("Flint talks to your mail provider. When you sign in with Google it also talks to Google. When you add an account it asks the Thunderbird settings database for your provider's server settings and sends it the domain of your address. If you turn on read receipts, tracked messages point to the receipts address you set. Images load from the sender's server only when you allow them.")
+        sl("Flint talks to your mail provider. When you sign in with Google it also talks to Google. When you add an account it asks the Thunderbird settings database for your provider's server settings and sends it the domain of your address. If that has no answer, Flint looks up the domain's mail servers and tries a few likely server names. If you turn on read receipts, Flint also talks to the receipts address you set: it registers tracked messages there and asks it who opened them. Images load from the sender's server only when you allow them.")
     }
 
     static var cached: String {

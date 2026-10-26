@@ -21,18 +21,19 @@ struct InboxBundleRow: View {
             .frame(width: diameter, height: diameter)
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: FlintMetrics.Space.s2) {
-                    Text(ThreadAction.title(of: bundle.category)).flintText(unread ? .bodyStrong : .bodyMedium).lineLimit(1)
+                    Text(ThreadAction.title(of: bundle.category)).flintText(unread ? .bodyStrong : .bodyMedium)
                     if unread {
                         Text("\(bundle.unreadCount) new", tableName: "Inbox").flintText(.data, color: FlintColor.accent)
                     }
                     Spacer(minLength: FlintMetrics.Space.s2)
-                    Text(FlintTime.current.listTime(bundle.lastDate)).flintText(.data, color: FlintColor.fg3).lineLimit(1)
+                    Text(FlintTime.current.listTime(bundle.lastDate)).flintText(.data, color: FlintColor.fg3)
                     FlintIconView(icon: .chevronRight, size: 12, color: FlintColor.fg3)
                 }
                 if !compact, let first = bundle.latest.first {
                     (Text(FlintFormat.displayName(first.from)).font(FlintFontRole.bodyMedium.font) + Text(" ") + Text(first.subject))
                         .flintText(.body, color: FlintColor.fg3)
                         .lineLimit(1)
+                        .accessibilityIdentifier("inbox.bundle.summary")
                 }
             }
         }
@@ -50,6 +51,7 @@ struct InboxBundleRow: View {
         .accessibilityLabel(label)
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("inbox.bundle.\(bundle.category.rawValue)")
+        .accessibilityAction(.default, onOpen)
     }
 
     private var label: String {

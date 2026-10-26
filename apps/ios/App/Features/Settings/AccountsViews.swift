@@ -30,9 +30,9 @@ private struct AccountRow: View {
             HStack(spacing: FlintMetrics.Space.s3) {
                 FlintAvatar(address: account.email, name: account.name, size: .s32)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(account.name.isEmpty ? account.email : account.name).flintText(.bodyMedium).lineLimit(1)
-                    Text(account.email).flintText(.data, color: FlintColor.fg3).lineLimit(1)
-                    Text(status.text).flintText(.data, color: AccountStatusColor.color(status.tone)).lineLimit(1)
+                    Text(account.name.isEmpty ? account.email : account.name).flintText(.bodyMedium)
+                    Text(account.email).flintText(.data, color: FlintColor.fg3)
+                    Text(status.text).flintText(.data, color: AccountStatusColor.color(status.tone))
                 }
                 Spacer(minLength: FlintMetrics.Space.s2)
                 if let hex = account.color {

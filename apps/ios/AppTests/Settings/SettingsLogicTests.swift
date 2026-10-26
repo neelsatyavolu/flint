@@ -221,6 +221,9 @@ struct DeviceCopyTests {
         let text = PrivacyCopy.contacts
         #expect(text.contains("Google") && text.contains("Thunderbird") && text.contains("receipts"))
         #expect(!text.contains("nothing else") && !text.contains("only to"))
+        // Setup also resolves the domain's mail servers and tries likely server names; tracked sends register with and poll the receipts service.
+        #expect(text.contains("mail servers") && text.contains("likely"))
+        #expect(text.contains("asks it who opened"))
         #expect(!PrivacyCopy.cached.contains("nothing else"))
     }
 }
