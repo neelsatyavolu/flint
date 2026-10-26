@@ -77,7 +77,7 @@ const VIEWS: { label: string; target: NavTarget; icon: ReactNode; shortcut?: str
   { label: "Trash", target: { view: "trash" }, icon: <Trash2 {...I} />, keywords: "deleted bin" },
   { label: "Archive", target: { view: "archive" }, icon: <Archive {...I} />, keywords: "done" },
   { label: "Blocked", target: { view: "blocked" }, icon: <Ban {...I} /> },
-  { label: "Read Statuses", target: { view: "receipts" }, icon: <Eye {...I} />, keywords: "receipts opened tracking" },
+  { label: "Read Receipts", target: { view: "receipts" }, icon: <Eye {...I} />, keywords: "receipts opened tracking" },
 ];
 
 const SETTINGS_SECTIONS: { id: string; label: string; keywords?: string }[] = [
