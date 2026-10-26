@@ -5,6 +5,7 @@ import { isBusy } from "./aiRun";
 import { openThread } from "./events";
 import { NotConnected } from "./NotConnected";
 import { ProseText } from "./ProseText";
+import { RunAnnouncer, runAnnouncement } from "./RunAnnouncer";
 import type { useAsk } from "./useAsk";
 import styles from "./Ask.module.css";
 
@@ -16,12 +17,29 @@ export function AskPanel({ conversation, onClose }: Props): JSX.Element {
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const lastRef = useRef<HTMLElement>(null);
+  const awaiting = useRef<number | null>(null);
   const busy = turns.some((t) => isBusy(t.run));
   const last = turns.at(-1);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+  // When the answer to a question asked here finishes, move focus to it so a screen reader reads it,
+  // unless the user has already moved on to something outside the panel.
+  useEffect(() => {
+    if (!last) return;
+    if (isBusy(last.run)) {
+      awaiting.current = last.id;
+      return;
+    }
+    if (awaiting.current !== last.id) return;
+    awaiting.current = null;
+    const focused = document.activeElement;
+    const inPanel = !focused || focused === document.body || panelRef.current?.contains(focused);
+    if (last.run.status === "done" && inPanel) lastRef.current?.focus({ preventScroll: true });
+  }, [last]);
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -43,7 +61,8 @@ export function AskPanel({ conversation, onClose }: Props): JSX.Element {
   };
 
   return (
-    <aside className={styles.panel} aria-label="Ask">
+    <aside ref={panelRef} className={styles.panel} aria-label="Ask">
+      <RunAnnouncer message={last ? runAnnouncement(last.run, { busy: "Answering", done: "Answer ready" }) : ""} />
       <header className={styles.head}>
         <span className={`t-title ${styles.title}`}><Sparkles size={16} strokeWidth={1.5} aria-hidden />Ask</span>
         <IconButton label="Close" shortcut="Escape" onClick={onClose}><X size={16} strokeWidth={1.5} /></IconButton>
@@ -51,12 +70,12 @@ export function AskPanel({ conversation, onClose }: Props): JSX.Element {
       <div ref={scrollRef} className={styles.scroll}>
         {turns.length === 0 ? <p className={`t-body ${styles.empty}`}>Ask about anything in your mail. Answers cite the threads they came from.</p> : null}
         {turns.map((t) => (
-          <section key={t.id} className={styles.turn}>
+          <section key={t.id} ref={t.id === last?.id ? lastRef : undefined} tabIndex={-1} className={styles.turn}>
             <p className={styles.q}>{t.question}</p>
             {t.run.notConnected ? (
               <NotConnected />
             ) : t.run.status === "error" ? (
-              <p className="t-body" style={{ color: "var(--danger)" }}>{t.run.error}</p>
+              <p className="t-body" role="alert" style={{ color: "var(--danger)" }}>{t.run.error}</p>
             ) : (
               <>
                 {t.run.text ? (

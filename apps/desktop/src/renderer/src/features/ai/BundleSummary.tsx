@@ -8,6 +8,7 @@ import { navStore } from "../../state/nav";
 import { CATEGORY_TITLES } from "../../state/viewMeta";
 import { isBusy } from "./aiRun";
 import { DigestList } from "./DigestList";
+import { RunAnnouncer, runAnnouncement } from "./RunAnnouncer";
 import { useAiAvailability, useAiRun } from "./useAiRun";
 import styles from "./BundleSummary.module.css";
 
@@ -51,6 +52,9 @@ export function BundleSummary({ category }: { category: BundleCategory }): JSX.E
   const busy = isBusy(state);
 
   return (
+    <>
+    {/* Outside the popover, so the live region already exists when the run starts as the popover opens. */}
+    <RunAnnouncer message={runAnnouncement(state, { busy: `Summarizing ${title}`, done: `${title} summary ready`, error: `Couldn't summarize ${title}` })} />
     <Popover
       open={open}
       onOpenChange={onOpenChange}
@@ -91,5 +95,6 @@ export function BundleSummary({ category }: { category: BundleCategory }): JSX.E
         </div>
       )}
     </Popover>
+    </>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Search, X } from "lucide-react";
 import clsx from "clsx";
 import { Input, IconButton } from "../../ui";
@@ -7,6 +7,7 @@ import { applyHint, searchHints } from "../../state/searchHints";
 import styles from "./SearchField.module.css";
 
 export const SEARCH_DEBOUNCE_MS = 150;
+const MAX_HINTS = 7;
 
 /** Search row under the list header. Types are debounced into the nav store; operator hints sit below the field. */
 export function SearchField() {
@@ -27,8 +28,12 @@ export function SearchField() {
     return () => clearTimeout(t);
   }, [text, stored]);
 
-  const hints = focused ? searchHints(text) : [];
+  const listId = useId();
+  const optionId = (i: number) => `${listId}-${i}`;
+  // Only the hints on screen, so arrow keys and aria-activedescendant never point at a hidden one.
+  const hints = focused ? searchHints(text).slice(0, MAX_HINTS) : [];
   const clamped = Math.min(active, Math.max(0, hints.length - 1));
+  const showing = hints.length > 0;
 
   const pick = (i: number) => {
     const hint = hints[i];
@@ -71,6 +76,11 @@ export function SearchField() {
           value={text}
           placeholder="Search mail"
           aria-label="Search mail"
+          role={showing ? "combobox" : undefined}
+          aria-expanded={showing ? true : undefined}
+          aria-autocomplete={showing ? "list" : undefined}
+          aria-controls={showing ? listId : undefined}
+          aria-activedescendant={showing ? optionId(clamped) : undefined}
           onChange={(e) => setText(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 120)}
@@ -80,10 +90,10 @@ export function SearchField() {
           <X size={14} strokeWidth={1.5} />
         </IconButton>
       </div>
-      {hints.length ? (
-        <div className={styles.hints} role="listbox" aria-label="Search operators">
-          {hints.slice(0, 7).map((h, i) => (
-            <button key={h.token} type="button" role="option" aria-selected={i === clamped} className={clsx(styles.hint, i === clamped && styles.hintOn)} onMouseDown={(e) => e.preventDefault()} onClick={() => pick(i)}>
+      {showing ? (
+        <div id={listId} className={styles.hints} role="listbox" aria-label="Search operators">
+          {hints.map((h, i) => (
+            <button key={h.token} id={optionId(i)} type="button" role="option" tabIndex={-1} aria-selected={i === clamped} className={clsx(styles.hint, i === clamped && styles.hintOn)} onMouseDown={(e) => e.preventDefault()} onClick={() => pick(i)}>
               <span className={clsx("t-data", styles.token)}>{h.token}</span>
               <span className={clsx("t-body", styles.desc)}>{h.description}</span>
             </button>

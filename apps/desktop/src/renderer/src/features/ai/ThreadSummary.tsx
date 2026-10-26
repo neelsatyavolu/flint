@@ -5,6 +5,7 @@ import { readStored, writeStored } from "../../lib/storage";
 import { Button } from "../../ui/Button";
 import { Skeleton } from "../../ui/Skeleton";
 import { ProseText } from "./ProseText";
+import { RunAnnouncer, runAnnouncement } from "./RunAnnouncer";
 import { ThreadTranslate } from "./ThreadTranslate";
 import { useAiAvailability, useAiRun } from "./useAiRun";
 import { isBusy } from "./aiRun";
@@ -77,6 +78,7 @@ export function ThreadSummary({ threadId, messageCount, wordCount }: Props): JSX
   return (
     <>
     <section className={styles.summary} aria-label="Thread summary">
+      <RunAnnouncer message={runAnnouncement(state, { busy: "Summarizing this thread", done: "Summary ready", error: "Couldn't summarize this thread" })} />
       <div className={styles.head}>
         <button type="button" onClick={toggle} aria-expanded={!collapsed}>
           <Chevron size={12} strokeWidth={1.5} aria-hidden />

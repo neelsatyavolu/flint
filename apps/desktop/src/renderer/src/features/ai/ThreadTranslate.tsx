@@ -6,6 +6,7 @@ import { splitQuoted } from "../mail/quotedText";
 import { useThread } from "../mail/useThread";
 import { detectLanguage } from "./detectLanguage";
 import { ProseText } from "./ProseText";
+import { RunAnnouncer, runAnnouncement } from "./RunAnnouncer";
 import { userLanguage } from "./translateLanguage";
 import { isBusy } from "./aiRun";
 import { useAiRun } from "./useAiRun";
@@ -71,8 +72,15 @@ export function ThreadTranslate({ threadId }: { threadId: number }): JSX.Element
     if (!cached) void start({ kind: "translate", threadId, language: target });
   };
 
+  // First in both branches, so React keeps the same live region when the offer turns into the translation.
+  const announcer = (
+    <RunAnnouncer message={requested === cacheKey ? runAnnouncement(state, { busy: `Translating to ${target}`, done: "Translation ready", error: "Couldn't translate" }) : ""} />
+  );
+
   if (shown === undefined || shown === "") {
     return (
+      <>
+      {announcer}
       <div className={styles.offer}>
         <Languages size={14} strokeWidth={1.5} aria-hidden />
         <span className={`t-body ${styles.hint}`}>This looks like {detected}.</span>
@@ -80,11 +88,14 @@ export function ThreadTranslate({ threadId }: { threadId: number }): JSX.Element
         {state.status === "error" && requested === cacheKey ? <span className={`t-body ${styles.hint}`}>Couldn't translate. Try again.</span> : null}
         {busy && requested === cacheKey ? <Skeleton width={120} height={12} /> : null}
       </div>
+      </>
     );
   }
 
   const Chevron = open ? ChevronDown : ChevronRight;
   return (
+    <>
+    {announcer}
     <section className={styles.block} aria-label={`Translation to ${target}`}>
       <div className={styles.head}>
         <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}>
@@ -99,6 +110,7 @@ export function ThreadTranslate({ threadId }: { threadId: number }): JSX.Element
         </div>
       ) : null}
     </section>
+    </>
   );
 }
 
