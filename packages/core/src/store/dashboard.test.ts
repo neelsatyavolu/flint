@@ -63,6 +63,23 @@ describe("home data", () => {
     expect(home.scheduledCount).toBe(1);
   });
 
+  it("leaves archived threads out of Home's pinned list", () => {
+    const store = makeStore();
+    const s = seedImap(store);
+    const g = seedGmail(store, "g@gmail.com");
+    const pin = { seen: true, flagged: true, answered: false, draft: false };
+    store.ingestMessages(s.account.id, s.inbox.id, [msg({ uid: 1, messageId: "in@x", subject: "in inbox", flags: pin })]);
+    store.ingestMessages(s.account.id, s.archive.id, [msg({ uid: 1, messageId: "arc@x", subject: "archived", flags: pin })]);
+    store.ingestMessages(s.account.id, s.sent.id, [msg({ uid: 1, messageId: "sent@x", subject: "sent only", from: [me()], flags: pin })]);
+    store.ingestMessages(g.account.id, g.all.id, [
+      msg({ uid: 1, gmMsgid: "1", gmThrid: "A", subject: "gmail archived", flags: pin, gmLabels: [] }),
+      msg({ uid: 2, gmMsgid: "2", gmThrid: "B", subject: "gmail inbox", flags: pin, gmLabels: ["INBOX"] }),
+    ]);
+
+    expect(store.getHomeData().pinned.map((i) => i.subject).sort()).toEqual(["gmail inbox", "in inbox", "sent only"]);
+    expect(store.getSidebarData().counts.pinned).toBe(5);
+  });
+
   it("falls back to the email name and handles an empty store", () => {
     const store = makeStore();
     expect(store.getHomeData().greetingName).toBe("");

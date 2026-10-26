@@ -1,12 +1,12 @@
 import { sidebarFolders } from "./folderList";
-import { roleMember } from "../search";
+import { ARCHIVE_PREDICATE, roleMember } from "../search";
 import type { HomeData, SidebarAccount, SidebarData } from "../types";
 import type { AccountsRepo } from "./accounts";
 import type { FoldersRepo } from "./folders";
 import type { ReceiptsRepo } from "./receipts";
 import type { RulesRepo } from "./rulesRepo";
 import { NOT_QUEUED_DRAFT } from "./draftList";
-import { inUnified, type Sql } from "./sql";
+import { inUnified, Sql } from "./sql";
 import type { ThreadListRepo } from "./threadList";
 import { viewPredicate } from "./threadViews";
 
@@ -74,11 +74,23 @@ export class DashboardRepo {
     return {
       greetingName: name,
       unreadPeople: this.lists.listThreads({ view: "inbox", focused: true, unreadOnly: true, limit: 5 }, now).items,
-      pinned: this.lists.listThreads({ view: "pinned", limit: 5 }, now).items,
+      pinned: this.#unarchived(this.lists.listThreads({ view: "pinned", limit: 200 }, now).items).slice(0, 5),
       awaitingReply: this.lists.itemsForThreads(awaitingIds).filter((i) => !hidden.has(i.accountId)),
       recentReceipts: this.receipts.listTracked({ limit: 5 }),
       snoozedToday: this.q.get<{ n: number }>(`SELECT COUNT(*) AS n FROM threads WHERE snoozed_until > ? AND snoozed_until <= ? AND ${inUnified("account_id")}`, now, endOfDay.getTime())?.n ?? 0,
       scheduledCount: this.q.get<{ n: number }>("SELECT COUNT(*) AS n FROM scheduled_sends WHERE status IN ('pending','awaiting_approval')")?.n ?? 0,
     };
+  }
+
+  /** Drops threads that are archived: a message in the archive and none in the inbox. The Pinned view still lists them. */
+  #unarchived<T extends { id: number }>(items: T[]): T[] {
+    if (items.length === 0) return items;
+    const archived = new Set(this.q.all<{ thread_id: number }>(
+      `SELECT DISTINCT m.thread_id FROM messages m WHERE m.thread_id IN (${Sql.marks(items.length)}) AND ${ARCHIVE_PREDICATE}
+       AND NOT EXISTS (SELECT 1 FROM messages m2 JOIN message_folders xf ON xf.message_id = m2.id JOIN folders xr ON xr.id = xf.folder_id
+                       WHERE m2.thread_id = m.thread_id AND xr.role = 'inbox')`,
+      ...items.map((i) => i.id),
+    ).map((r) => r.thread_id));
+    return items.filter((i) => !archived.has(i.id));
   }
 }
