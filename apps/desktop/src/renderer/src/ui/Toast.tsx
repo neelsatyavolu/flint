@@ -14,6 +14,11 @@ export type ToastInput = {
   /** Milliseconds before it dismisses itself. Default 5000. 0 keeps it until dismissed. */
   timeout?: number;
   level?: "info" | "error";
+  /**
+   * Runs once when the toast goes without its action or secondary action being pressed: it timed out, was closed, or
+   * newer toasts pushed it out. Lets a deferred change commit exactly when its Undo is no longer on screen.
+   */
+  onDismiss?: () => void;
 };
 type ToastItem = ToastInput & { id: number };
 type ToastApi = { show: (t: ToastInput) => number; dismiss: (id: number) => void };
@@ -28,7 +33,7 @@ export function useToast(): ToastApi {
   return ctx;
 }
 
-function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: number) => void }) {
+function ToastView({ toast, onDismiss, onAct }: { toast: ToastItem; onDismiss: (id: number) => void; onAct: (id: number) => void }) {
   // The timer waits while the pointer is over the toast or focus is inside it, so it can't vanish mid-read or mid-Tab.
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -59,8 +64,8 @@ function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: num
             type="button"
             className={styles.action}
             onClick={() => {
+              onAct(toast.id);
               toast.action?.onClick();
-              onDismiss(toast.id);
             }}
           >
             {toast.action.label}
@@ -72,8 +77,8 @@ function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: num
                 type="button"
                 className={styles.action}
                 onClick={() => {
+                  onAct(toast.id);
                   toast.secondaryAction?.onClick();
-                  onDismiss(toast.id);
                 }}
               >
                 {toast.secondaryAction.label}
@@ -92,14 +97,30 @@ function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: num
 /** Bottom-right toasts, above the Ask field. Also turns main-process 'toast' events into toasts, wiring undoToken to "Undo". */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  // The list as of the last change, so onDismiss runs outside a state updater, once per toast.
+  const live = useRef<ToastItem[]>([]);
   const nextId = useRef(1);
 
-  const dismiss = useCallback((id: number) => setToasts((list) => list.filter((t) => t.id !== id)), []);
+  const replace = useCallback((next: ToastItem[]) => {
+    live.current = next;
+    setToasts(next);
+  }, []);
+  /** Removes a toast whose button was pressed: its onDismiss does not run. */
+  const act = useCallback((id: number) => replace(live.current.filter((t) => t.id !== id)), [replace]);
+  const dismiss = useCallback((id: number) => {
+    const gone = live.current.find((t) => t.id === id);
+    if (!gone) return;
+    replace(live.current.filter((t) => t.id !== id));
+    gone.onDismiss?.();
+  }, [replace]);
   const show = useCallback((t: ToastInput) => {
     const id = nextId.current++;
-    setToasts((list) => [...list, { ...t, id }].slice(-MAX_VISIBLE));
+    const all = [...live.current, { ...t, id }];
+    const kept = all.slice(-MAX_VISIBLE);
+    replace(kept);
+    for (const pushed of all.slice(0, all.length - kept.length)) pushed.onDismiss?.();
     return id;
-  }, []);
+  }, [replace]);
 
   useFlintEvent("toast", (e) => {
     const token = e.undoToken;
@@ -118,7 +139,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       <div className={styles.viewport}>
-        {toasts.map((t) => <ToastView key={t.id} toast={t} onDismiss={dismiss} />)}
+        {toasts.map((t) => <ToastView key={t.id} toast={t} onDismiss={dismiss} onAct={act} />)}
       </div>
     </ToastContext.Provider>
   );

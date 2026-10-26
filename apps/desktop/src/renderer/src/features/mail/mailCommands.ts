@@ -28,7 +28,7 @@ export async function openDraftThread(threadId: number): Promise<void> {
   if (draftId !== undefined) openComposer({ draftId });
 }
 
-export type Notify = (t: { message: string; level?: "info" | "error"; action?: { label: string; onClick: () => void }; timeout?: number }) => void;
+export type Notify = (t: { message: string; level?: "info" | "error"; action?: { label: string; onClick: () => void }; timeout?: number; onDismiss?: () => void }) => void;
 
 /**
  * Opens the draft behind a Drafts-view row. A local draft opens straight away; a server draft with no local copy
@@ -50,16 +50,19 @@ export async function openDraftRow(item: ThreadListItem, notify: Notify): Promis
   }
 }
 
-/** How long a deleted draft can still be brought back. The toast offering Undo stays up as long. */
+/** How long the toast offering Undo for a deleted draft stays up (longer while hovered or focused). */
 export const DRAFT_UNDO_MS = 5000;
 
 type DraftBatch = { draftIds: number[]; rowIds: ThreadId[]; notify: Notify };
 /** Deletes asked for in the current tick, shown as one toast. */
 let gathering: DraftBatch | null = null;
+/** Deletes whose Undo toast is still up. */
+const pending = new Set<DraftBatch>();
+let flushHooked = false;
 
 /**
  * Deletes the local draft behind a Drafts-view row (and its server copy). The row leaves at once, but the delete
- * runs only once the "Undo" toast has timed out, so a slip of the # key loses nothing. Calls in the same tick
+ * runs only once the "Undo" toast goes away, so a slip of the # key loses nothing. Calls in the same tick
  * (several selected drafts) share one toast.
  */
 export async function deleteDraftRow(draftId: number, notify: Notify): Promise<void> {
@@ -76,16 +79,42 @@ export async function deleteDraftRow(draftId: number, notify: Notify): Promise<v
   gathering = { ...gathering, draftIds: [...gathering.draftIds, draftId], rowIds: row ? [...gathering.rowIds, row.id] : gathering.rowIds };
 }
 
+/** Runs every delete still waiting on its Undo toast. */
+export function flushDraftDeletes(): void {
+  for (const batch of [...pending]) void commitDraftDelete(batch);
+}
+
+/**
+ * Commits waiting deletes when the page goes away, and when the list changes: another list drops the hidden rows,
+ * so a waiting draft would show again and could be opened.
+ */
+function hookFlush(): void {
+  if (flushHooked || typeof window === "undefined") return;
+  flushHooked = true;
+  window.addEventListener("pagehide", flushDraftDeletes);
+  window.addEventListener("beforeunload", flushDraftDeletes);
+  listStore.subscribe((s, prev) => {
+    if (s.queryKey !== prev.queryKey) flushDraftDeletes();
+  });
+}
+
 function scheduleDraftDelete(batch: DraftBatch): void {
+  hookFlush();
+  pending.add(batch);
+  // Cmd+Z replays the last thread action; a draft delete is not one, so it must not undo something older instead.
+  navStore.getState().setLastUndo(null);
   const count = batch.draftIds.length;
-  const timer = setTimeout(() => void commitDraftDelete(batch), DRAFT_UNDO_MS);
   batch.notify({
     message: count === 1 ? "Draft deleted" : `Deleted ${count} drafts`,
     timeout: DRAFT_UNDO_MS,
+    onDismiss: () => void commitDraftDelete(batch),
     action: {
       label: "Undo",
       onClick: () => {
-        clearTimeout(timer);
+        if (!pending.delete(batch)) {
+          batch.notify({ message: count === 1 ? "Too late to undo. The draft is already deleted." : "Too late to undo. The drafts are already deleted.", level: "error" });
+          return;
+        }
         listStore.getState().unhide(batch.rowIds);
       },
     },
@@ -93,6 +122,7 @@ function scheduleDraftDelete(batch: DraftBatch): void {
 }
 
 async function commitDraftDelete(batch: DraftBatch): Promise<void> {
+  if (!pending.delete(batch)) return;
   const results = await Promise.allSettled(batch.draftIds.map((id) => flint.deleteDraft(id)));
   const failed = batch.draftIds.filter((_, i) => results[i]?.status === "rejected");
   const back = new Set(failed);
@@ -104,32 +134,6 @@ async function commitDraftDelete(batch: DraftBatch): Promise<void> {
   if (failed.length === batch.draftIds.length) return;
   await listStore.getState().refresh();
   listStore.getState().unhide(batch.rowIds);
-}
-
-/**
- * Blocks the sender of a row, says where their mail goes with an Undo that unblocks them, then archives the row
- * (which offers its own Undo).
- */
-export async function blockRowSender(item: ThreadListItem, notify: Notify, archive: (ids: ThreadId[]) => Promise<void>): Promise<void> {
-  const sender = item.participants.find((p) => p.name.toLowerCase() !== "me");
-  if (!sender) return;
-  try {
-    await flint.blockSender(sender.address);
-  } catch {
-    notify({ message: `Couldn't block ${sender.address}. Try again.`, level: "error" });
-    return;
-  }
-  notify({
-    message: `Blocked ${sender.address}. Their mail goes to Blocked`,
-    action: {
-      label: "Undo",
-      onClick: () => void flint.unblockSender(sender.address).then(
-        () => listStore.getState().refresh(),
-        () => notify({ message: `Couldn't unblock ${sender.address}. Try again.`, level: "error" }),
-      ),
-    },
-  });
-  await archive([item.id]);
 }
 
 /** Selects every conversation loaded in the list. Bundle rows are not conversations and stay out. */

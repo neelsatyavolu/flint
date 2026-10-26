@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { NavView } from "../../state/nav";
 import { flint } from "../../lib/api";
 import { createMockApi } from "../../mock";
@@ -49,6 +49,27 @@ describe("BatchBar", () => {
     expect(screen.queryByRole("button", { name: "Archive" })).toBeNull();
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Move to Inbox" })); });
     expect(moveToInbox).toHaveBeenCalledWith([1, 2, 3]);
+  });
+
+  it("in Drafts offers only Trash, which deletes local drafts and trashes server ones", async () => {
+    const deleteDraft = vi.spyOn(flint, "deleteDraft").mockResolvedValue(undefined);
+    const trash = vi.spyOn(flint, "trash").mockResolvedValue({ undoToken: "u" });
+    await mount("drafts");
+    const drafts = [item(-4, { draft: { draftId: 4, messageId: null } }), item(5, { draft: { draftId: null, messageId: 50 } })];
+    act(() => {
+      listStore.setState({ raw: drafts, items: drafts, hidden: [] });
+      navStore.getState().setSelected([-4, 5]);
+    });
+    expect(screen.queryByRole("button", { name: "Archive" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Snooze" })).toBeNull();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Trash" })); });
+    expect(trash).toHaveBeenCalledWith([5]);
+    expect(listStore.getState().items.map((i) => i.id)).not.toContain(-4);
+    expect(await screen.findByText("Draft deleted")).toBeTruthy();
+    expect(deleteDraft).not.toHaveBeenCalled();
+    fireEvent.click(within(screen.getByText("Draft deleted").parentElement!).getByRole("button", { name: "Dismiss" }));
+    await act(async () => undefined);
+    expect(deleteDraft).toHaveBeenCalledWith(4);
   });
 
   it("offers Not spam in Spam", async () => {

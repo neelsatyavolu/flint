@@ -4,9 +4,9 @@ import { buildEntries } from "../../state/grouping";
 import { listStore } from "../../state/listStore";
 import { navStore } from "../../state/nav";
 import { bundle, item } from "../../state/testFixtures";
-import { blockRowSender, bundleThreadIds, deleteDraftRow, DRAFT_UNDO_MS, selectAll } from "./mailCommands";
+import { bundleThreadIds, deleteDraftRow, DRAFT_UNDO_MS, flushDraftDeletes, selectAll } from "./mailCommands";
 
-const hoisted = vi.hoisted(() => ({ deleteDraft: vi.fn(), blockSender: vi.fn(), unblockSender: vi.fn() }));
+const hoisted = vi.hoisted(() => ({ deleteDraft: vi.fn() }));
 vi.mock("../../lib/api", async (importOriginal) => {
   const real = await importOriginal<{ flint: object }>();
   return { ...real, flint: new Proxy(real.flint, { get: (t, k) => (k in hoisted ? hoisted[k as keyof typeof hoisted] : Reflect.get(t, k)) }) };
@@ -26,16 +26,23 @@ describe("deferred draft delete", () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it("hides the rows at once and shows one toast for deletes in the same tick", async () => {
+  /** The toast the delete showed: what a ToastProvider would get. */
+  const toastOf = (notify: ReturnType<typeof vi.fn>, call = 0) => notify.mock.calls[call]![0] as { message: string; onDismiss: () => void; action: { onClick: () => void } };
+
+  it("hides the rows at once, shows one toast for deletes in the same tick, and deletes once the toast goes", async () => {
     const notify = vi.fn();
     void deleteDraftRow(1, notify);
     void deleteDraftRow(2, notify);
     expect(listStore.getState().items.map((i) => i.id)).toEqual([-3]);
     await vi.advanceTimersByTimeAsync(0);
     expect(notify).toHaveBeenCalledTimes(1);
-    expect(notify.mock.calls[0]![0]).toMatchObject({ message: "Deleted 2 drafts", timeout: DRAFT_UNDO_MS, action: { label: "Undo" } });
+    expect(toastOf(notify)).toMatchObject({ message: "Deleted 2 drafts", timeout: DRAFT_UNDO_MS, action: { label: "Undo" } });
+    // Only the toast going commits: a toast held open by hover keeps its Undo working past DRAFT_UNDO_MS.
+    await vi.advanceTimersByTimeAsync(DRAFT_UNDO_MS * 3);
     expect(hoisted.deleteDraft).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(DRAFT_UNDO_MS);
+    toastOf(notify).onDismiss();
+    toastOf(notify).onDismiss();
+    await vi.advanceTimersByTimeAsync(0);
     expect(hoisted.deleteDraft.mock.calls).toEqual([[1], [2]]);
   });
 
@@ -43,45 +50,58 @@ describe("deferred draft delete", () => {
     const notify = vi.fn();
     void deleteDraftRow(3, notify);
     await vi.advanceTimersByTimeAsync(0);
-    expect(notify.mock.calls[0]![0].message).toBe("Draft deleted");
-    notify.mock.calls[0]![0].action.onClick();
+    expect(toastOf(notify).message).toBe("Draft deleted");
+    toastOf(notify).action.onClick();
     expect(listStore.getState().items).toHaveLength(3);
-    await vi.advanceTimersByTimeAsync(DRAFT_UNDO_MS * 2);
+    toastOf(notify).onDismiss();
+    await vi.advanceTimersByTimeAsync(0);
     expect(hoisted.deleteDraft).not.toHaveBeenCalled();
+  });
+
+  it("says Undo is too late once the delete has run", async () => {
+    const notify = vi.fn();
+    void deleteDraftRow(3, notify);
+    await vi.advanceTimersByTimeAsync(0);
+    flushDraftDeletes();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(hoisted.deleteDraft).toHaveBeenCalledWith(3);
+    toastOf(notify).action.onClick();
+    expect(notify).toHaveBeenLastCalledWith({ message: "Too late to undo. The draft is already deleted.", level: "error" });
+  });
+
+  it("commits waiting deletes when the page goes away or the list changes", async () => {
+    const notify = vi.fn();
+    void deleteDraftRow(1, notify);
+    await vi.advanceTimersByTimeAsync(0);
+    window.dispatchEvent(new Event("pagehide"));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(hoisted.deleteDraft).toHaveBeenCalledWith(1);
+
+    void deleteDraftRow(2, notify);
+    await vi.advanceTimersByTimeAsync(0);
+    listStore.setState({ queryKey: "elsewhere" });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(hoisted.deleteDraft).toHaveBeenCalledWith(2);
+    listStore.setState({ queryKey: null });
+  });
+
+  it("clears the last undo so Cmd+Z cannot undo an older thread action instead", async () => {
+    navStore.getState().setLastUndo("archive-token");
+    void deleteDraftRow(1, vi.fn());
+    await vi.advanceTimersByTimeAsync(0);
+    expect(navStore.getState().lastUndoToken).toBeNull();
+    flushDraftDeletes();
   });
 
   it("puts a row back and says so when its delete fails", async () => {
     hoisted.deleteDraft.mockRejectedValue(new Error("offline"));
     const notify = vi.fn();
     void deleteDraftRow(1, notify);
-    await vi.advanceTimersByTimeAsync(DRAFT_UNDO_MS);
+    await vi.advanceTimersByTimeAsync(0);
+    toastOf(notify).onDismiss();
+    await vi.advanceTimersByTimeAsync(0);
     expect(notify).toHaveBeenLastCalledWith({ message: "Couldn't delete the draft. Try again.", level: "error" });
     expect(listStore.getState().items).toHaveLength(3);
-  });
-});
-
-describe("block from the row menu", () => {
-  beforeEach(() => Object.values(hoisted).forEach((f) => f.mockReset().mockResolvedValue(undefined)));
-
-  it("blocks, offers an Undo that unblocks, then archives", async () => {
-    const notify = vi.fn();
-    const archive = vi.fn(async () => undefined);
-    const row = item(7, { participants: [{ name: "me", address: "me@x.test" }, { name: "Spammy", address: "spam@x.test" }] });
-    await blockRowSender(row, notify, archive);
-    expect(hoisted.blockSender).toHaveBeenCalledWith("spam@x.test");
-    expect(notify.mock.calls[0]![0].message).toBe("Blocked spam@x.test. Their mail goes to Blocked");
-    expect(archive).toHaveBeenCalledWith([7]);
-    notify.mock.calls[0]![0].action.onClick();
-    expect(hoisted.unblockSender).toHaveBeenCalledWith("spam@x.test");
-  });
-
-  it("reports a failure and leaves the row alone", async () => {
-    hoisted.blockSender.mockRejectedValue(new Error("offline"));
-    const notify = vi.fn();
-    const archive = vi.fn(async () => undefined);
-    await blockRowSender(item(7), notify, archive);
-    expect(notify).toHaveBeenCalledWith({ message: "Couldn't block carla@x.test. Try again.", level: "error" });
-    expect(archive).not.toHaveBeenCalled();
   });
 });
 

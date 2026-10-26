@@ -104,6 +104,36 @@ describe("Toast", () => {
     expect(screen.getByRole("alert").textContent).toBe("four");
   });
 
+  it("runs onDismiss once when the toast times out, is closed or is pushed out, but not after its action", () => {
+    mount();
+    const timedOut = vi.fn();
+    const closed = vi.fn();
+    const pushed = vi.fn();
+    const acted = vi.fn();
+    act(() => void show({ message: "Timed", timeout: 1000, onDismiss: timedOut }));
+    act(() => void vi.advanceTimersByTime(1100));
+    expect(timedOut).toHaveBeenCalledOnce();
+
+    act(() => void show({ message: "Closed", timeout: 0, onDismiss: closed }));
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    expect(closed).toHaveBeenCalledOnce();
+
+    act(() => void show({ message: "Acted", timeout: 0, onDismiss: acted, action: { label: "Undo", onClick: () => undefined } }));
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(acted).not.toHaveBeenCalled();
+
+    act(() => {
+      show({ message: "Pushed", timeout: 0, onDismiss: pushed });
+      show({ message: "two", timeout: 0 });
+      show({ message: "three", timeout: 0 });
+      show({ message: "four", timeout: 0 });
+    });
+    expect(pushed).toHaveBeenCalledOnce();
+    act(() => void vi.advanceTimersByTime(60_000));
+    expect([timedOut, closed, pushed].map((f) => f.mock.calls.length)).toEqual([1, 1, 1]);
+    expect(acted).not.toHaveBeenCalled();
+  });
+
   it("throws without a provider", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     expect(() => render(<Capture />)).toThrow(/ToastProvider/);
