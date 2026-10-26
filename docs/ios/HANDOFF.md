@@ -213,3 +213,10 @@ All seven track branches merged into `ios`. Shared-file changes made while integ
 - String catalogs were synced from the build (`xcstringstool sync`); Composer and Thread had most of their strings missing from their catalogs.
 - New: `AppUITests/ScreenTourTests.swift` (screenshots of every main screen, both themes, AX3, iPad columns), `AccessibilityAuditTests.swift` (documented exceptions in its header), `EndToEndTests.swift` with `scripts/e2e-greenmail.sh`, and `docs/ios/QA-CHECKLIST.md`.
 - Tooling note: with this Xcode, `xcodebuild test` sometimes stays idle after the last suite has finished (seen with and without `-resultBundlePath`). `e2e-greenmail.sh` stops it once the suite has reported and the log has been quiet for 90 s.
+
+## Wave 3 review fixes, shell group
+- Decision (finding 20): iPad portrait narrower than 1000 pt (11-inch is 834) keeps two visible columns, list and reader, with the sidebar over the list from the menu button. Three columns would leave the reader under 200 pt. PLAN's "three columns in portrait" holds for the 13-inch (1032 pt) only.
+- `App/Features/Composer/ComposerRoot.swift`: the composer's dismiss closure now calls `model.closeComposer()` instead of `navigate(to: .dismiss)` (one line), so closing the composer never closes a sheet or thread on iPad.
+- `App/Features/Search/SearchRoot.swift`: a tapped result calls `model.openFromSearch(id, query:)` (one line).
+- Sends whose undo window outlasts the ~25 s of background time, and scheduled sends, still wait for the foreground until Wave 4B adds the `BGProcessingTask` (`co.xanom.flint.processing`).
+- `FaceIDLock` moved from `PrivacyAboutPages.swift` to `App/Shell/DeviceAuthentication.swift`.

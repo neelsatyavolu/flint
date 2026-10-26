@@ -15,13 +15,16 @@ struct RootView: View {
             }
         }
         .background(FlintColor.plane1.ignoresSafeArea())
-        .overlay { if usesComposerPanel { ComposerPanelHost() } }
+        .background { ViewKeyShortcuts() }
+        .background { FindKeyCommand { if model.phase == .ready { model.navigate(to: .search(nil)) } } }
+        .overlay { if model.composerPanelRequest != nil { ComposerPanelHost() } }
         .overlay { if model.presented == nil || usesComposerPanel { ToastHost(center: model.toasts) } }
         .sheet(item: sheet) { presented in
             PresentedSheet(presented: presented)
                 .presentationBackground(FlintColor.plane1)
                 .interactiveDismissDisabled(presented == .onboarding && model.accounts.isEmpty && !model.isDemo)
         }
+        .onChange(of: sizeClass, initial: true) { _, size in model.setWide(size == .regular) }
         .onChange(of: model.presented, initial: true) { _, presented in
             // iPad has the sidebar as a column: show it there instead of in a sheet.
             if sizeClass == .regular, presented == .sidebar {
@@ -37,16 +40,17 @@ struct RootView: View {
         }
     }
 
-    /// iPad writes in the floating bottom-right panel, like the desktop; iPhone uses the sheet.
+    /// iPad writes in the floating bottom-right panel, like the desktop; iPhone uses the sheet. The panel stays up while a
+    /// thread, search or settings opens (`AppModel.composerPanelRequest`).
     private var usesComposerPanel: Bool {
-        guard sizeClass == .regular, case .compose = model.presented else { return false }
+        guard model.isWide, case .compose = model.presented else { return false }
         return true
     }
 
     /// The shell's sheet: everything in `presented` except what iPad shows in place (the composer panel, the sidebar column).
     private var sheet: Binding<Presented?> {
         Binding(
-            get: { usesComposerPanel || (sizeClass == .regular && model.presented == .sidebar) ? nil : model.presented },
+            get: { usesComposerPanel || (model.isWide && model.presented == .sidebar) ? nil : model.presented },
             set: { model.presented = $0 })
     }
 

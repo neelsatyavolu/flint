@@ -1,18 +1,5 @@
 import FlintModel
-import LocalAuthentication
 import SwiftUI
-
-/// Checks and asks for Face ID (or the passcode) before the lock is turned on, so a person cannot lock themselves out.
-enum FaceIDLock {
-    static func isAvailable() -> Bool {
-        LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
-    }
-
-    static func confirm(reason: String) async -> Bool {
-        let context = LAContext()
-        return (try? await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)) ?? false
-    }
-}
 
 struct PrivacyPage: View {
     @Environment(AppModel.self) private var model

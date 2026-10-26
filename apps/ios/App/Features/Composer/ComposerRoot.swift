@@ -41,7 +41,7 @@ struct ComposerScreen: View {
 
     init(model: AppModel, request: ComposeRequest) {
         self.request = request
-        _viewModel = State(initialValue: ComposerViewModel(model: model, dismiss: { model.navigate(to: .dismiss) }))
+        _viewModel = State(initialValue: ComposerViewModel(model: model, dismiss: { model.closeComposer() }))
     }
 
     var body: some View {

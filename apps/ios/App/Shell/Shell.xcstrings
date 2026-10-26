@@ -166,6 +166,17 @@
         }
       }
     },
+    "Flint is locked": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint is locked"
+          }
+        }
+      }
+    },
     "Inbox": {
       "extractionState": "manual",
       "localizations": {
@@ -173,6 +184,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Inbox"
+          }
+        }
+      }
+    },
+    "Mail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mail"
           }
         }
       }
@@ -276,6 +298,17 @@
         }
       }
     },
+    "New message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New message"
+          }
+        }
+      }
+    },
     "Newsletters": {
       "extractionState": "manual",
       "localizations": {
@@ -283,6 +316,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Newsletters"
+          }
+        }
+      }
+    },
+    "Next conversation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next conversation"
           }
         }
       }
@@ -331,6 +375,39 @@
         }
       }
     },
+    "Previous conversation": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous conversation"
+          }
+        }
+      }
+    },
+    "Reply": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reply"
+          }
+        }
+      }
+    },
+    "Reply all": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reply all"
+          }
+        }
+      }
+    },
     "Scheduled": {
       "extractionState": "manual",
       "localizations": {
@@ -349,6 +426,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Scheduled for %@"
+          }
+        }
+      }
+    },
+    "Search": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search"
           }
         }
       }
@@ -437,6 +525,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Undone"
+          }
+        }
+      }
+    },
+    "Unlock": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock"
+          }
+        }
+      }
+    },
+    "Unlock Flint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock Flint"
           }
         }
       }

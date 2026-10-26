@@ -11,4 +11,14 @@ enum FlintDebugFlags {
     static var isHostingUnitTests: Bool {
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
     }
+
+    /// `-FlintFakeAuth pass|fail|unavailable` answers the Face ID lock without the system prompt, for UI tests and screenshots.
+    static func fakeAuthentication(defaults: UserDefaults = .standard) -> AuthOutcome? {
+        switch defaults.string(forKey: "FlintFakeAuth") {
+        case "pass": .success
+        case "fail": .failed
+        case "unavailable": .unavailable
+        default: nil
+        }
+    }
 }

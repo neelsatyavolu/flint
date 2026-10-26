@@ -56,7 +56,7 @@ struct SearchRoot: View {
                     } else {
                         SearchResults(viewModel: vm) { item in
                             model.recordSearch(vm.text)
-                            model.navigate(to: .thread(item.id))
+                            model.openFromSearch(item.id, query: vm.text)
                         }
                     }
                 }
