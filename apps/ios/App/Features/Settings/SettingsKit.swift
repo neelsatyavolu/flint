@@ -31,6 +31,7 @@ struct SettingsPage<Content: View, Trailing: View>: View {
         }
         .background(FlintColor.plane1.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("settings.\(identifier).root")
     }
 }
