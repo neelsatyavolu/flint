@@ -29,10 +29,14 @@
 .active .icon { color: var(--accent); }
 .count { color: var(--fg-3); flex: none; }
 .countWarn { color: var(--warn); }
-.chevron { position: absolute; left: 4px; top: 9px; width: 12px; height: 12px; padding: 0; border: 0; background: transparent; color: var(--fg-3); display: grid; place-items: center; opacity: 0; transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease); z-index: 1; }
+/* Rendered only for rows with children, dimmed until hover or open. 24px hit area around the 12px glyph. */
+.chevron { position: absolute; left: -2px; top: 3px; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--r-control); background: transparent; color: var(--fg-3); display: grid; place-items: center; opacity: 0.6; transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease); z-index: 1; }
 .item:hover .chevron, .chevronOpen, .chevron:focus-visible { opacity: 1; }
 .chevronOpen { transform: rotate(90deg); }
-.chip { width: 16px; height: 16px; border-radius: 50%; flex: none; display: grid; place-items: center; font: 600 9px / 1 var(--font-ui); color: var(--avatar-fg); }
+/* Account chips are 16px avatars; one step up from the avatar's 8px keeps two initials legible. */
+.item .chip { font-size: 10px; }
+/* Conversations dragged from the list: an accent hairline marks the row they will land on. */
+.dropOver { box-shadow: inset 0 0 0 1px var(--accent); }
 
 .rail .scroll { padding: 4px 0; display: flex; flex-direction: column; align-items: center; }
 .rail .group, .rail .section { align-items: center; margin-top: 0; }

@@ -4,12 +4,29 @@ import type { Category } from "@flint/core";
 import type { ReplyMode } from "../state/compose";
 import { stepKey, threadIdOf } from "../state/grouping";
 import { listStore } from "../state/listStore";
-import { navStore, targetIds } from "../state/nav";
+import type { ThreadAction } from "../state/actions";
+import { navStore, targetIds, type NavState } from "../state/nav";
 import { useThreadActions } from "../state/useActions";
 import { useApp } from "../state/AppContext";
 import { useToast } from "../ui/Toast";
 
 const PURE_MAIL_VIEWS = new Set(["home", "receipts", "agent_activity", "scheduled"]);
+
+/** Views where archiving changes nothing the user can see, so E does nothing rather than toast "Archived". */
+const NO_ARCHIVE_VIEWS = new Set(["archive", "trash", "spam", "folder"]);
+
+/**
+ * What E, # and ! do in the view on screen. Search spans every folder, so it keeps the plain actions.
+ * Returns null when the key does nothing here: E where mail is already out of the Inbox, # in Trash until Delete forever exists.
+ */
+export function triageAction(kind: "archive" | "trash" | "spam", nav: Pick<NavState, "view" | "searchOpen" | "search">): ThreadAction | null {
+  const view = nav.searchOpen && nav.search.trim() ? "search" : nav.view;
+  switch (kind) {
+    case "archive": return NO_ARCHIVE_VIEWS.has(view) ? null : { type: "archive" };
+    case "trash": return view === "trash" ? null : { type: "trash" };
+    case "spam": return { type: "spam", spam: view !== "spam" };
+  }
+}
 
 /** Imperative app commands shared by keyboard shortcuts, the native menu and the command palette. */
 export function useAppCommands() {
@@ -63,15 +80,24 @@ export function useAppCommands() {
       undo,
       step,
       openCursor,
-      archive: () => void run({ type: "archive" }),
+      archive: () => {
+        const action = triageAction("archive", navStore.getState());
+        if (action) void run(action);
+      },
       trash: () => {
+        const action = triageAction("trash", navStore.getState());
+        if (!action) return;
         const drafts = navStore.getState().view === "drafts" ? items().flatMap((i) => (i.draft?.draftId != null ? [i.draft.draftId] : [])) : [];
         for (const draftId of drafts) void deleteDraftRow(draftId, toast.show);
-        if (drafts.length === 0) { void run({ type: "trash" }); return; }
+        if (drafts.length === 0) { void run(action); return; }
         const rest = items().filter((i) => i.draft?.draftId == null).map((i) => i.id);
-        if (rest.length) void run({ type: "trash" }, rest);
+        if (rest.length) void run(action, rest);
       },
-      spam: () => void run({ type: "spam", spam: true }),
+      /** Marks as spam, or as not spam in the Spam view. */
+      spam: () => {
+        const action = triageAction("spam", navStore.getState());
+        if (action) void run(action);
+      },
       snooze: () => openSnooze(targets()),
       move: () => openMovePicker(targets()),
       moveToInbox: () => void run({ type: "inbox" }),

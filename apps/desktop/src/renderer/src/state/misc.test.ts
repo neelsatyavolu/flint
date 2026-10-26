@@ -26,7 +26,7 @@ describe("viewMeta", () => {
     expect(viewTitle({ ...nav, category: "newsletters" })).toBe("Newsletters");
     expect(viewTitle({ ...nav, view: "folder", folderId: 4 }, folders)).toBe("Receipts");
     expect(viewTitle({ ...nav, searchOpen: true, search: "x" })).toBe("Search");
-    expect(viewTitle({ ...nav, view: "receipts" })).toBe("Read Statuses");
+    expect(viewTitle({ ...nav, view: "receipts" })).toBe("Read Receipts");
   });
   it("subtitles", () => {
     expect(viewSubtitle(nav, true, accounts)).toBe("Focused · All accounts");

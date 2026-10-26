@@ -42,13 +42,21 @@ export function buildMenuTemplate(opts: { isMac: boolean; isDev: boolean; send: 
 
   const file: MenuItemConstructorOptions = {
     label: "File",
-    submenu: [item("New Message", "compose", "CmdOrCtrl+N"), { type: "separator" }, { role: "close" }],
+    submenu: [
+      item("New Message", "compose", "CmdOrCtrl+N"),
+      { type: "separator" },
+      item("Print...", "print", "CmdOrCtrl+P"),
+      { type: "separator" },
+      { role: "close" },
+    ],
   };
 
   const edit: MenuItemConstructorOptions = {
     label: "Edit",
     submenu: [
-      { role: "undo" }, { role: "redo" }, { type: "separator" },
+      // The renderer decides: text undo inside a field, otherwise undo of the last mail action.
+      item("Undo", "undo", "CmdOrCtrl+Z"),
+      { role: "redo" }, { type: "separator" },
       { role: "cut" }, { role: "copy" }, { role: "paste" }, { role: "pasteAndMatchStyle" },
       { role: "delete" }, { role: "selectAll" },
     ],
@@ -61,6 +69,12 @@ export function buildMenuTemplate(opts: { isMac: boolean; isDev: boolean; send: 
       { type: "separator" },
       item("Split Layout", "layout:split"),
       item("Full Screen Layout", "layout:full"),
+      { type: "separator" },
+      { role: "resetZoom" },
+      { role: "zoomIn" },
+      // Hidden twin so Cmd+= zooms in without Shift.
+      { role: "zoomIn", accelerator: "CmdOrCtrl+=", visible: false },
+      { role: "zoomOut" },
       { type: "separator" },
       { role: "togglefullscreen" },
       ...(isDev

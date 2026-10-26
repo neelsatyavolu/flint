@@ -248,7 +248,7 @@ try {
       await sh.shot("s-compose");
       await win.getByRole("button", { name: /Close and save draft/ }).click();
       await sleep(300);
-      for (const [i, label] of ["Home", "Agent Activity", "Read Statuses", "Pins", "Sent"].entries()) {
+      for (const [i, label] of ["Home", "Agent Activity", "Read Receipts", "Pins", "Sent"].entries()) {
         await goTo(win, label);
         await sleep(300);
         await sh.shot(`s-${i}-${label.replace(/\s+/g, "").toLowerCase()}`);

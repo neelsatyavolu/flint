@@ -1,15 +1,18 @@
-import { lazy, Suspense, useEffect, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import clsx from "clsx";
+import { useShallow } from "zustand/react/shallow";
 import { AskLauncher } from "../features/ai/AskLauncher";
 import { AgentActivityView } from "../features/agents/AgentActivityView";
 import { HomeView } from "../features/home/HomeView";
 import { MailView } from "../features/mail/MailView";
 import { ScheduledView } from "../features/mail/ScheduledView";
 import { ReceiptsView } from "../features/receipts/ReceiptsView";
-import { isMac } from "../lib/host";
+import { applyTextSize, isMac, readTextSize } from "../lib/host";
 import { ResizeHandle, usePersistedSize } from "../ui";
 import { useApp } from "../state/AppContext";
 import { navStore, useNav } from "../state/nav";
+import { viewTitle } from "../state/viewMeta";
+import { AuthBanner } from "./AuthBanner";
 import { Overlays } from "./Overlays";
 import { Sidebar } from "./Sidebar";
 import { useAppCommands } from "./useAppCommands";
@@ -48,7 +51,26 @@ function MainView() {
   }
 }
 
-/** "Ask anything" belongs on mail and Home. Settings, Read Statuses, Agent Activity and Scheduled have their own content to read. */
+/** The name of what fills the main area, announced to screen readers when it changes. */
+function useViewAnnouncement(): string {
+  const { sidebar } = useApp();
+  const nav = useNav(useShallow((s) => ({ view: s.view, accountId: s.accountId, folderId: s.folderId, category: s.category, search: s.search, searchOpen: s.searchOpen, settingsOpen: s.settingsOpen })));
+  const folders = useMemo(() => (sidebar?.accounts ?? []).flatMap((a) => a.folders), [sidebar]);
+  const name = nav.settingsOpen ? "Settings" : viewTitle(nav, folders);
+  const [said, setSaid] = useState("");
+  const first = useRef(true);
+  useEffect(() => {
+    // The first view is the window's own content; announce only moves.
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    setSaid(name);
+  }, [name]);
+  return said;
+}
+
+/** "Ask anything" belongs on mail and Home. Settings, Read Receipts, Agent Activity and Scheduled have their own content to read. */
 const NO_ASK_VIEWS = new Set(["receipts", "agent_activity", "scheduled"]);
 
 export function AppShell() {
@@ -62,6 +84,7 @@ export function AppShell() {
   const cmds = useAppCommands();
   useGlobalShortcuts(cmds);
   useHostBridge(cmds);
+  const announcement = useViewAnnouncement();
 
   const hidden = !narrow && collapsed;
   const rail = narrow;
@@ -69,6 +92,8 @@ export function AppShell() {
 
   const sidebarPx = hidden ? 0 : rail ? RAIL_WIDTH : width;
   useEffect(() => warmChunks(), []);
+  // Text size is per device (Settings, Appearance); the window zoom does not survive a restart on its own.
+  useEffect(() => applyTextSize(readTextSize()), []);
 
   useEffect(() => {
     document.documentElement.style.setProperty("--flint-sidebar-width", `${sidebarPx}px`);
@@ -96,16 +121,20 @@ export function AppShell() {
           </aside>
         </>
       ) : null}
-      <main className={styles.main}>
-        {settingsOpen ? (
-          <div className={styles.settings}>
-            <div className={clsx(styles.dragStrip, "drag")} />
-            <Suspense fallback={null}><SettingsView section={section} onClose={() => navStore.getState().closeSettings()} /></Suspense>
-          </div>
-        ) : (
-          <MainView />
-        )}
-      </main>
+      <div className={styles.column}>
+        <AuthBanner />
+        <main className={styles.main}>
+          {settingsOpen ? (
+            <div className={styles.settings}>
+              <div className={clsx(styles.dragStrip, "drag")} />
+              <Suspense fallback={null}><SettingsView section={section} onClose={() => navStore.getState().closeSettings()} /></Suspense>
+            </div>
+          ) : (
+            <MainView />
+          )}
+        </main>
+      </div>
+      <div className="sr-only" aria-live="polite">{announcement}</div>
       <Suspense fallback={null}><ComposerHost /></Suspense>
       {/* Kept mounted (display: none) so an open conversation survives a trip through Settings. */}
       <div hidden={settingsOpen || NO_ASK_VIEWS.has(view)}><AskLauncher /></div>
