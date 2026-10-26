@@ -32,6 +32,7 @@
 }
 .chipText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .remove {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -43,6 +44,8 @@
   color: var(--fg-3);
   border-radius: var(--r-control);
 }
+/* The glyph stays small; the hit area is 24x24. */
+.remove::before { content: ""; position: absolute; inset: -4px; }
 .remove:hover { color: var(--fg); background: var(--active); }
 .input {
   flex: 1;
@@ -58,15 +61,15 @@
 .input:focus, .input:focus-visible { outline: none; }
 .input::placeholder { color: var(--fg-3); }
 .trailing { flex: none; display: flex; gap: 2px; padding-top: 2px; }
+/* Positioned by floating-ui in a portal; max-height comes from its size middleware. */
 .list {
-  position: absolute;
-  top: 100%;
-  left: 0;
   z-index: var(--z-menu);
+  box-sizing: border-box;
   min-width: 320px;
   max-width: 480px;
-  margin: 4px 0 0;
+  margin: 0;
   padding: 4px;
+  overflow-y: auto;
   list-style: none;
   background: var(--plane-3);
   border: 1px solid var(--line-strong);

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ClipboardEvent, type JSX, type KeyboardEvent, type ReactNode } from "react";
+import { FloatingPortal, autoUpdate, flip, offset, shift, size, useFloating } from "@floating-ui/react";
 import { X } from "lucide-react";
 import clsx from "clsx";
 import type { Address, Contact } from "@flint/core";
@@ -20,6 +21,30 @@ type Props = {
 };
 
 const SUGGEST_DELAY_MS = 120;
+const EDGE = 8;
+
+/**
+ * Suggestions float in a portal, so the reply dock's scroll box can't clip them. They open below the field and flip
+ * above it near the bottom of the window, never taller than the room left.
+ */
+function useSuggestionLayer(open: boolean) {
+  return useFloating({
+    open,
+    placement: "bottom-start",
+    whileElementsMounted: autoUpdate,
+    middleware: [
+      offset(4),
+      flip({ padding: EDGE }),
+      shift({ padding: EDGE }),
+      size({
+        padding: EDGE,
+        apply: ({ availableHeight, elements }) => {
+          elements.floating.style.maxHeight = `${Math.max(0, availableHeight)}px`;
+        },
+      }),
+    ],
+  });
+}
 
 export function RecipientField({ label, value, onChange, placeholder, autoFocus, trailing, invalid, compact }: Props): JSX.Element {
   const [text, setText] = useState("");
@@ -30,6 +55,8 @@ export function RecipientField({ label, value, onChange, placeholder, autoFocus,
   const listId = useId();
   const valueRef = useRef(value);
   valueRef.current = value;
+  const listOpen = suggestions.length > 0;
+  const layer = useSuggestionLayer(listOpen);
 
   useEffect(() => {
     const prefix = text.trim();
@@ -113,11 +140,10 @@ export function RecipientField({ label, value, onChange, placeholder, autoFocus,
     setBad(rest.length > 0);
   };
 
-  const listOpen = suggestions.length > 0;
   return (
     <div className={clsx(styles.row, compact && styles.compact, (invalid || bad) && styles.invalid)} onClick={() => inputRef.current?.focus()}>
       <span className={clsx(styles.label, "t-data")}>{label}</span>
-      <div className={styles.chips}>
+      <div ref={layer.refs.setReference} className={styles.chips}>
         {value.map((a) => (
           <span key={a.address} className={styles.chip} title={a.address}>
             <Avatar address={a.address} name={a.name} size={16} />
@@ -148,23 +174,25 @@ export function RecipientField({ label, value, onChange, placeholder, autoFocus,
           onBlur={() => { if (text.trim() !== "") commit(); setSuggestions([]); }}
         />
         {listOpen ? (
-          <ul id={listId} role="listbox" className={styles.list}>
-            {suggestions.map((c, i) => (
-              <li
-                key={c.email}
-                id={`${listId}-${i}`}
-                role="option"
-                aria-selected={i === active}
-                className={clsx(styles.option, i === active && styles.optionActive)}
-                onMouseDown={(e) => { e.preventDefault(); pickSuggestion(c); }}
-                onMouseMove={() => setActive(i)}
-              >
-                <Avatar address={c.email} name={c.name} size={24} />
-                <span className={styles.optionName}>{c.name || c.email}</span>
-                {c.name ? <span className={clsx(styles.optionEmail, "t-data")}>{c.email}</span> : null}
-              </li>
-            ))}
-          </ul>
+          <FloatingPortal>
+            <ul ref={layer.refs.setFloating} style={layer.floatingStyles} id={listId} role="listbox" aria-label={`${label} suggestions`} className={styles.list}>
+              {suggestions.map((c, i) => (
+                <li
+                  key={c.email}
+                  id={`${listId}-${i}`}
+                  role="option"
+                  aria-selected={i === active}
+                  className={clsx(styles.option, i === active && styles.optionActive)}
+                  onMouseDown={(e) => { e.preventDefault(); pickSuggestion(c); }}
+                  onMouseMove={() => setActive(i)}
+                >
+                  <Avatar address={c.email} name={c.name} size={24} />
+                  <span className={styles.optionName}>{c.name || c.email}</span>
+                  {c.name ? <span className={clsx(styles.optionEmail, "t-data")}>{c.email}</span> : null}
+                </li>
+              ))}
+            </ul>
+          </FloatingPortal>
         ) : null}
       </div>
       {trailing ? <div className={styles.trailing} onClick={(e) => e.stopPropagation()}>{trailing}</div> : null}

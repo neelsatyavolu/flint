@@ -5,7 +5,7 @@
   outline: none;
   color: var(--fg);
   caret-color: var(--accent);
-  font: 400 14.5px / 22px var(--font-ui);
+  font: 400 var(--text-message, 14.5px) / var(--lh-message, 22px) var(--font-ui);
   -webkit-user-select: text;
   user-select: text;
   overflow-wrap: anywhere;

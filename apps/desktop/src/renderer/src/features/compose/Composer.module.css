@@ -1,5 +1,5 @@
 .panel { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--plane-2); position: relative; }
-.bar { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); height: var(--titlebar-h); padding: 0 var(--s-3); flex: none; border-bottom: 1px solid var(--line); }
+.bar { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); height: var(--titlebar-h); padding: 0 var(--s-3) 0 max(var(--s-3), var(--lights-inset, 0px)); flex: none; border-bottom: 1px solid var(--line); }
 .group { display: flex; align-items: center; gap: 2px; min-width: 0; }
 .saved { margin-left: var(--s-2); color: var(--fg-3); }
 .sep { width: 1px; height: 18px; margin: 0 var(--s-2); background: var(--line-strong); }
@@ -14,8 +14,8 @@
 .error { margin: 4px 0 0 40px; color: var(--danger); }
 .body { margin-top: var(--s-4); }
 .quoteWrap { margin-top: var(--s-3); }
-.pill { height: 20px; padding: 0 var(--s-2); border: 0; border-radius: var(--r-control); background: var(--active); color: var(--fg-2); font: 500 13px / 1 var(--font-ui); letter-spacing: 1px; }
-.pill:hover { color: var(--fg); }
+.pill { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 18px; padding: 0; border: 0; border-radius: var(--r-round); background: var(--active); color: var(--fg-2); font: 500 13px / 1 var(--font-ui); }
+.pill:hover { background: var(--line-strong); color: var(--fg); }
 .pill:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .quote { margin-top: var(--s-2); padding-left: var(--s-3); border-left: 2px solid var(--line-strong); }
 .drop { position: absolute; inset: var(--titlebar-h) 0 0 0; display: grid; place-items: center; background: var(--accent-soft); border: 2px dashed var(--accent); color: var(--accent); pointer-events: none; z-index: 5; }
