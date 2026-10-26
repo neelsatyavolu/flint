@@ -4,6 +4,7 @@ import {
   useInteractions, useListNavigation, useMergeRefs, useRole, useTypeahead, type Placement, type UseFloatingReturn,
 } from "@floating-ui/react";
 import clsx from "clsx";
+import { Check } from "lucide-react";
 import { Kbd } from "./Kbd";
 import styles from "./Menu.module.css";
 
@@ -75,7 +76,7 @@ function MenuPopup({ items, floating, context, getFloatingProps, getItemProps, l
               >
                 <span className={styles.icon}>{item.icon}</span>
                 <span className={styles.text}>{item.label}</span>
-                {item.checked ? <span className={styles.check} aria-hidden>✓</span> : null}
+                {item.checked ? <span className={styles.check} aria-hidden><Check size={14} strokeWidth={1.5} /></span> : null}
                 {item.shortcut ? <Kbd combo={item.shortcut} /> : null}
               </button>
             );

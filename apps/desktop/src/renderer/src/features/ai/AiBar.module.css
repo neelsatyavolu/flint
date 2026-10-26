@@ -3,7 +3,7 @@
 .input { flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: transparent; color: var(--fg); caret-color: var(--accent); font: 400 var(--text-body) / 1 var(--font-ui); -webkit-user-select: text; user-select: text; }
 .input::placeholder { color: var(--fg-3); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0 4px 24px; }
-.chip { height: 24px; padding: 0 var(--s-2); border: 1px solid var(--line-strong); border-radius: var(--r-control); background: transparent; color: var(--fg-2); font: 400 12.5px / 1 var(--font-ui); transition: background var(--dur-fast) var(--ease); }
+.chip { height: 24px; padding: 0 var(--s-2); border: 1px solid var(--line-strong); border-radius: var(--r-control); background: transparent; color: var(--fg-2); font: 400 var(--text-body) / 1 var(--font-ui); transition: background var(--dur-fast) var(--ease); }
 .chip:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
 .chip:disabled { color: var(--fg-4); }
 .chip:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }

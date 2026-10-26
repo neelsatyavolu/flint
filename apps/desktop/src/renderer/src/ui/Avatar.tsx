@@ -31,6 +31,7 @@ export function Avatar({ address, name = "", src, size = 32, className, accountI
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
   const showImage = Boolean(url) && failedUrl !== url;
+  const letters = initials(name, address);
   return (
     <span
       className={clsx(styles.avatar, styles[`s${size}`], className)}
@@ -38,7 +39,7 @@ export function Avatar({ address, name = "", src, size = 32, className, accountI
       role="img"
       aria-label={name || address}
     >
-      <span className={styles.initials} aria-hidden>{initials(name, address)}</span>
+      <span className={styles.initials} aria-hidden>{size === 16 ? [...letters][0] : letters}</span>
       {showImage ? (
         <img
           className={clsx(styles.img, loadedUrl === url && styles.loaded)}

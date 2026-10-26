@@ -12,7 +12,8 @@
   line-height: 1;
   user-select: none;
 }
-.s16 { width: 16px; height: 16px; font-size: 8px; }
+/* A 16px circle holds one initial; two would need an unreadable 8px. */
+.s16 { width: 16px; height: 16px; font-size: 9px; }
 .s24 { width: 24px; height: 24px; font-size: 10px; }
 .s32 { width: 32px; height: 32px; font-size: 12px; }
 .img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--plane-3); opacity: 0; transition: opacity var(--dur-fast) var(--ease); }

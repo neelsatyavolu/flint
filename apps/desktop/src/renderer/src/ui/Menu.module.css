@@ -30,13 +30,14 @@
 }
 .item:hover:not(:disabled), .active { background: var(--hover); }
 .active { background: var(--active); }
-.item:focus-visible { outline: none; }
+/* Keyboard focus: a hairline inset on top of the tint, so the item reads without relying on a faint fill. */
+.item:focus-visible { outline: 1px solid var(--line-strong); outline-offset: -1px; }
 .item:disabled { color: var(--fg-4); }
 .danger { color: var(--danger); }
 .icon { display: inline-flex; width: 16px; flex: none; color: var(--fg-2); }
 .icon:empty { display: none; }
 .danger .icon { color: var(--danger); }
 .text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.check { color: var(--accent); font-size: 12px; }
+.check { display: inline-flex; flex: none; color: var(--accent); }
 .separator { height: 1px; margin: 4px -4px; background: var(--line); }
 .label { padding: 8px 8px 4px; }
