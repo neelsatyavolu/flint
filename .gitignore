@@ -9,3 +9,5 @@ coverage
 !.env.example
 release
 .review
+.playwright-mcp
+.claude/worktrees
