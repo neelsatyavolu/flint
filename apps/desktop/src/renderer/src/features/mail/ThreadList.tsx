@@ -151,6 +151,19 @@ export function ThreadList() {
     void listStore.getState().loadOlder();
   }, [hasMore, olderOnServer, status, listKey, rows.length, lastVisible]);
 
+  // A bundle whose last thread was archived or deleted closes back to the inbox. One opened empty, or emptied by
+  // the unread filter, stays.
+  const filledKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (entries.length > 0) {
+      filledKey.current = listKey;
+      return;
+    }
+    if (nav.category && nav.listFilter === "all" && status === "ready" && !hasMore && listKey !== null && filledKey.current === listKey) {
+      navStore.getState().closeCategory();
+    }
+  }, [entries.length, listKey, status, hasMore, nav.category, nav.listFilter]);
+
   // The scroller stays mounted across lists that paint from memory: a list seen before comes back where it was left,
   // a new one starts at the top.
   useEffect(() => {

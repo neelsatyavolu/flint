@@ -143,3 +143,28 @@ describe("firstSyncProgress", () => {
     expect(firstSyncProgress([acct("d", {})], undefined)).toBeNull();
   });
 });
+
+describe("ThreadList inside a bundle", () => {
+  const empty = () => act(() => listStore.setState({ raw: [], items: [], entries: [] }));
+
+  it("goes back to the inbox when the last thread leaves the bundle", async () => {
+    navStore.getState().openCategory("newsletters");
+    await mount([item(1)]);
+    empty();
+    expect(navStore.getState().category).toBeUndefined();
+  });
+
+  it("stays in a bundle that was already empty when opened", async () => {
+    navStore.getState().openCategory("newsletters");
+    await mount([]);
+    expect(navStore.getState().category).toBe("newsletters");
+  });
+
+  it("stays when the unread filter empties the bundle", async () => {
+    navStore.getState().openCategory("newsletters");
+    navStore.getState().setListFilter("unread");
+    await mount([item(1)]);
+    empty();
+    expect(navStore.getState().category).toBe("newsletters");
+  });
+});
