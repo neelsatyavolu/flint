@@ -1,0 +1,102 @@
+Subject: Your shipment was delivered 466613877842
+From: FedEx Delivery Manager <TrackingUpdates@fedex.com>
+
+We've included the delivery details for you
+
+Hi, ALEX RIVERA.
+Your shipment from DBRAND was delivered.
+Delivered Date
+Mon, 03/30/2026
+
+11:02am
+
+Delivered to
+100 MAIN ST, SPRINGFIELD, CA 90001
+Delivery picture not showing?
+View in browser
+(https://www.fedex.com/…)
+GET PROOF OF DELIVERY
+(https://www.fedex.com/…)
+Report missing package
+(https://www.fedex.com/…)
+
+How was your delivery?
+https://fedex.eu.qualtrics.com/…   https://fedex.eu.qualtrics.com/…   https://fedex.eu.qualtrics.com/…   https://fedex.eu.qualtrics.com/…   https://fedex.eu.qualtrics.com/…
+International Connect     International Connect     International Connect     International Connect     International Connect
+Plus&deliveryDateTime=2026-03-30T11:02:00Z&zipCode=90001&state=CA&userType=FDM     Plus&deliveryDateTime=2026-03-30T11:02:00Z&zipCode=90001&state=CA&userType=FDM     Plus&deliveryDateTime=2026-03-30T11:02:00Z&zipCode=90001&state=CA&userType=FDM     Plus&deliveryDateTime=2026-03-30T11:02:00Z&zipCode=90001&state=CA&userType=FDM     Plus&deliveryDateTime=2026-03-30T11:02:00Z&zipCode=90001&state=CA&userType=FDM
+
+Tracking details
+
+Tracking ID   466613877842
+     (https://www.fedex.com/…)
+
+From   DBRAND
+     7111 KENNEDY RD UNIT 1
+     MISSISSAUGA, ON, CA
+     L5S0A4
+
+To   ALEX RIVERA
+     100 MAIN ST
+     SPRINGFIELD, CA, US
+     90001
+
+Ship date   Wed 3/25/2026 05:06 PM
+
+Number of pieces   1
+
+Total shipment weight   0.60 LB
+
+Service   FedEx International Connect Plus
+
+Reference   #74865805
+
+Shipper reference   #74865805
+
+TRACK SHIPMENT
+(https://www.fedex.com/…)
+
+   Put shipping power in your palm
+   The free FedEx® Mobile app allows you to measure package
+   dimensions, create labels, use QR codes for printerless
+   shipping, find rates, manage pickups, and more.
+   DOWNLOAD THE APP
+   (https://www.fedex.com/…)
+
+  Please do not respond to this message. This email was sent
+from an unattended mailbox. This report was generated at
+approximately 1:08 PM CDT 03/30/2026.
+
+All weights are estimated.
+
+To track the latest status of your shipment, click on the
+tracking number above.
+
+Standard transit is the date and time the package is
+scheduled to be delivered by, based on the selected service,
+destination and ship date. Limitations and exceptions may
+apply. Please see the FedEx Service Guide for terms and
+conditions of service, including the FedEx Money-Back
+Guarantee, or contact your FedEx Customer Support
+representative.
+
+© 2026 Federal Express Corporation. The content of this
+message is protected by copyright and trademark laws under
+U.S. and international law. Review our FedEx Delivery
+Manager® Privacy Notice and Opt Out Preference
+(https://www.fedex.com/…).
+Find information on fraud and security
+(https://www.fedex.com/…).
+All rights reserved.
+
+Thank you for your business.
+
+If you no longer want to receive FedEx Delivery Manager®
+tracking notifications, you can edit
+(https://www.fedex.com/…) your
+settings at any time. Any advertisement included in this
+email, either by FedEx companies or a third-party, is not
+personalized or based on user data, learn more about our
+FedEx Delivery Manager® Privacy Notice
+(https://www.fedex.com/…).
+
+ID   1026
