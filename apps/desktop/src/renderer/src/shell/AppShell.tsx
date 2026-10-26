@@ -51,12 +51,15 @@ function MainView() {
   }
 }
 
-/** The name of what fills the main area, announced to screen readers when it changes. */
+/**
+ * The name of what fills the main area, announced to screen readers when it changes. Search is left out: the search
+ * field has focus and says what it is, and announcing "Search" on the first typed character talks over the typing.
+ */
 function useViewAnnouncement(): string {
   const { sidebar } = useApp();
-  const nav = useNav(useShallow((s) => ({ view: s.view, accountId: s.accountId, folderId: s.folderId, category: s.category, search: s.search, searchOpen: s.searchOpen, settingsOpen: s.settingsOpen })));
+  const nav = useNav(useShallow((s) => ({ view: s.view, accountId: s.accountId, folderId: s.folderId, category: s.category, settingsOpen: s.settingsOpen })));
   const folders = useMemo(() => (sidebar?.accounts ?? []).flatMap((a) => a.folders), [sidebar]);
-  const name = nav.settingsOpen ? "Settings" : viewTitle(nav, folders);
+  const name = nav.settingsOpen ? "Settings" : viewTitle({ ...nav, search: "", searchOpen: false }, folders);
   const [said, setSaid] = useState("");
   const first = useRef(true);
   useEffect(() => {
