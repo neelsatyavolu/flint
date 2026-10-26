@@ -14,13 +14,19 @@
 .skelCard { padding: 16px 20px 12px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--plane-3); }
 .skelHead { display: flex; align-items: center; gap: 12px; }
 .skelLines { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
-.threadHead { padding: 24px 24px 16px; }
+/* Header and summary share the 16px gutter of the message cards below them. */
+.threadHead { padding: 24px 16px 16px; }
 .subject { overflow-wrap: anywhere; }
+/* Keyboard opens move focus here as a reading start point; it is not a control, so it shows no ring. */
+.subject:focus { outline: none; }
+.summarySlot > section, .summarySlot > div { margin-inline: 16px; }
 .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
 .categoryChip { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 6px; border-radius: var(--r-control); background: var(--active); color: var(--fg-2); font: 400 var(--text-data) / 1 var(--font-mono); cursor: default; white-space: nowrap; }
 .categoryChip:hover { background: var(--hover); color: var(--fg); }
 .categoryChip:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-.acctDot { width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; flex: none; }
+.acctDot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.acctBadge { max-width: 240px; }
+.acctText { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .messages { display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
 .drafts { display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 0; }
 /* The inline reply is the last thing in the thread. Opening it scrolls it to the bottom of the reader. */

@@ -1,10 +1,11 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Pin, BellOff, ChevronDown as CaretDown } from "lucide-react";
 import clsx from "clsx";
-import type { ThreadDetail } from "@flint/core";
+import type { MessageView, ThreadDetail } from "@flint/core";
 import { flint } from "../../lib/api";
 import { formatPresetTime } from "../../lib/time";
-import { Badge, Button, EmptyState, Menu, Skeleton, useToast } from "../../ui";
+import { Badge, Button, Dialog, EmptyState, Menu, Skeleton, useToast } from "../../ui";
+import { displayName } from "../../lib/format";
 import { useApp } from "../../state/AppContext";
 import { replyTarget } from "../../state/compose";
 import { quickRepliesEligible, quickRepliesKey } from "../../state/quickRepliesGate";
@@ -27,19 +28,21 @@ import { categoryMenuItems } from "./rowMenu";
 import { initialExpanded, wordCount } from "./quotedText";
 import { scrollTargetTop } from "./scrollTarget";
 import { prefetchThread, useThread } from "./useThread";
+import { unsubscribeExplanation, unsubscribedMessage } from "./blockSender";
+import { PRINT_EVENT, printThread } from "./printThread";
 import styles from "./Reader.module.css";
 
 
 export function ThreadHeader({ thread }: { thread: ThreadDetail }) {
   const { accounts } = useApp();
-  const toast = useToast();
   const view = useNav((s) => s.view);
   const { run } = useThreadActions();
+  const [confirmUnsub, setConfirmUnsub] = useState(false);
   const account = accounts.find((a) => a.id === thread.accountId);
   const unsub = thread.messages.findLast((m) => m.unsubscribe);
   const chips = [
-    thread.pinned ? <Badge key="pin"><Pin size={10} strokeWidth={1.5} style={{ marginRight: 4 }} />Pinned</Badge> : null,
-    thread.muted ? <Badge key="mute"><BellOff size={10} strokeWidth={1.5} style={{ marginRight: 4 }} />Muted</Badge> : null,
+    thread.pinned ? <Badge key="pin"><Pin size={10} strokeWidth={1.5} />Pinned</Badge> : null,
+    thread.muted ? <Badge key="mute"><BellOff size={10} strokeWidth={1.5} />Muted</Badge> : null,
     thread.snoozedUntil && thread.snoozedUntil > Date.now() ? <Badge key="snz" tone="accent">Snoozed until {formatPresetTime(thread.snoozedUntil)}</Badge> : null,
     thread.category !== "people" ? (
       OUT_OF_INBOX.has(view) ? (
@@ -59,32 +62,83 @@ export function ThreadHeader({ thread }: { thread: ThreadDetail }) {
       )
     ) : null,
     account && accounts.length > 1 ? (
-      <Badge key="acct">
+      <Badge key="acct" className={styles.acctBadge}>
         <span className={styles.acctDot} style={{ background: account.color ?? "var(--fg-3)" }} aria-hidden />
-        {account.email}
+        <span className={styles.acctText} title={account.email}>{account.email}</span>
       </Badge>
     ) : null,
   ].filter(Boolean);
 
-  const unsubscribe = () => {
-    if (!unsub) return;
-    void flint.unsubscribe(unsub.id).then(
-      ({ method }) => toast.show({ message: method === "browser" ? "Opened the unsubscribe page" : method === "mailto" ? "Sent an unsubscribe email" : "Unsubscribed" }),
-      () => toast.show({ message: "Couldn't unsubscribe. Try again.", level: "error" }),
-    );
-  };
-
   return (
     <div className={styles.threadHead}>
-      <h1 className={clsx("t-subject selectable", styles.subject)}>{thread.subject || "(no subject)"}</h1>
+      <h1 className={clsx("t-subject selectable", styles.subject)} tabIndex={-1} data-thread-subject>{thread.subject || "(no subject)"}</h1>
       {chips.length || unsub ? (
         <div className={styles.chips}>
           {chips}
-          {unsub ? <Button size="sm" variant="ghost" onClick={unsubscribe}>Unsubscribe</Button> : null}
+          {unsub ? <button type="button" className={styles.categoryChip} onClick={() => setConfirmUnsub(true)}>Unsubscribe</button> : null}
         </div>
       ) : null}
+      {unsub ? <UnsubscribeDialog message={unsub} open={confirmUnsub} onClose={() => setConfirmUnsub(false)} /> : null}
     </div>
   );
+}
+
+/** Says how Flint will unsubscribe before it does, then offers to archive what that sender already sent. */
+function UnsubscribeDialog({ message, open, onClose }: { message: MessageView; open: boolean; onClose: () => void }) {
+  const toast = useToast();
+  const { run } = useThreadActions();
+  const sender = message.from[0];
+  const name = sender ? displayName(sender) : "this sender";
+
+  const archiveTheirs = async (address: string) => {
+    try {
+      const page = await flint.listThreads({ view: "search", search: `from:${address} in:inbox`, limit: 200 });
+      const ids = page.items.map((t) => t.id);
+      if (ids.length) await run({ type: "archive" }, ids);
+      else toast.show({ message: `No mail from ${name} is left in your Inbox` });
+    } catch {
+      toast.show({ message: `Couldn't archive mail from ${name}. Try again.`, level: "error" });
+    }
+  };
+
+  const confirm = async () => {
+    onClose();
+    try {
+      const { method } = await flint.unsubscribe(message.id);
+      toast.show({
+        message: unsubscribedMessage(method),
+        action: sender?.address ? { label: "Also archive these", onClick: () => void archiveTheirs(sender.address) } : undefined,
+      });
+    } catch {
+      toast.show({ message: "Couldn't unsubscribe. Try again.", level: "error" });
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={`Unsubscribe from ${name}?`}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={() => void confirm()}>Unsubscribe</Button>
+        </>
+      }
+    >
+      <p className="t-body">{message.unsubscribe ? unsubscribeExplanation(message.unsubscribe) : null}</p>
+    </Dialog>
+  );
+}
+
+/** The current time, refreshed once a minute: enough for "3:49 PM" and "Tue" labels, and stable between renders. */
+function useMinuteClock(): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  return now;
 }
 
 /** Longest the reader waits for mail frames to report their height before showing the thread anyway. */
@@ -111,7 +165,7 @@ function ThreadBody({ thread, refetch, staged, stale, onReady }: BodyProps) {
   const footRef = useRef<HTMLDivElement>(null);
   const userScrolled = useRef(false);
   const [draftRev, setDraftRev] = useState(0);
-  const now = Date.now();
+  const now = useMinuteClock();
   const target = replyTarget(thread.messages);
   const words = useMemo(() => thread.messages.reduce((n, m) => n + wordCount(m), 0), [thread.messages]);
   const request = useInlineReply((s) => s.request);
@@ -242,7 +296,9 @@ function ThreadBody({ thread, refetch, staged, stale, onReady }: BodyProps) {
     <FrameGateContext.Provider value={gate}>
       <div ref={stageRef} className={clsx(styles.stage, staged && styles.staged, stale && styles.stale)} aria-hidden={staged || undefined} inert={staged || stale || undefined}>
         <ThreadHeader thread={thread} />
-        <ThreadSummary threadId={thread.id} messageCount={thread.messages.length} wordCount={words} />
+        <div className={styles.summarySlot}>
+          <ThreadSummary threadId={thread.id} messageCount={thread.messages.length} wordCount={words} />
+        </div>
         <div className={styles.messages} ref={messagesRef}>
           {thread.messages.map((m) => (
             <MessageItem key={m.id} message={m} expanded={expanded.has(m.id)} selfAddresses={selfAddresses} onToggle={toggle} onUpdated={refetch} now={now} />
@@ -325,6 +381,48 @@ function useHoverPrefetch() {
   }, []);
 }
 
+/** How the last thread was opened, so the reader can move focus for keyboard users and announce it to everyone else. */
+let lastInput: "keyboard" | "pointer" = "pointer";
+const MODIFIERS = new Set(["Shift", "Meta", "Control", "Alt", "CapsLock"]);
+function useInputModality() {
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (!MODIFIERS.has(e.key)) lastInput = "keyboard";
+    };
+    const pointer = () => {
+      lastInput = "pointer";
+    };
+    document.addEventListener("keydown", key, true);
+    document.addEventListener("pointerdown", pointer, true);
+    return () => {
+      document.removeEventListener("keydown", key, true);
+      document.removeEventListener("pointerdown", pointer, true);
+    };
+  }, []);
+}
+
+/** Focus stays where the user is typing; otherwise keyboard opens land on the subject. */
+function focusIsBusy(): boolean {
+  const el = document.activeElement;
+  return el instanceof HTMLElement && (el.isContentEditable || el.closest("input, textarea, select, [role='dialog'], [data-composer], [data-inline-reply-mount]") !== null);
+}
+
+/** Prints the open thread when File > Print or the More menu asks. */
+function usePrintListener(thread: ThreadDetail | undefined) {
+  const toast = useToast();
+  const current = useRef(thread);
+  current.current = thread;
+  useEffect(() => {
+    const onPrint = () => {
+      const t = current.current;
+      if (!t) return;
+      void printThread(t, (id) => flint.getMessage(id)).catch(() => toast.show({ message: "Couldn't print this conversation. Try again.", level: "error" }));
+    };
+    window.addEventListener(PRINT_EVENT, onPrint);
+    return () => window.removeEventListener(PRINT_EVENT, onPrint);
+  }, [toast]);
+}
+
 export function Reader() {
   const openId = useNav((s) => s.openId);
   const { settings } = useApp();
@@ -350,10 +448,30 @@ export function Reader() {
     return () => clearTimeout(t);
   }, [thread === undefined]);
   useHoverPrefetch();
+  useInputModality();
+  usePrintListener(front?.id === openId ? front : undefined);
 
   useEffect(() => {
     if (openId === null) setShownId(null);
   }, [openId]);
+
+  // Once a newly opened thread is on screen: keyboard users get focus on its subject, everyone else an announcement.
+  const sectionRef = useRef<HTMLElement>(null);
+  const [announcement, setAnnouncement] = useState("");
+  const frontId = front?.id;
+  const frontSubject = front?.subject;
+  useEffect(() => {
+    if (frontId === undefined || frontId !== openId) return;
+    const heading = Array.from(sectionRef.current?.querySelectorAll<HTMLElement>("[data-thread-subject]") ?? []).find((h) => !h.closest("[aria-hidden='true']"));
+    if (lastInput === "keyboard" && heading && !focusIsBusy()) {
+      heading.focus({ preventScroll: true });
+      setAnnouncement("");
+    } else {
+      setAnnouncement(`Opened ${frontSubject || "(no subject)"}`);
+    }
+    // Only when a different thread comes to the front.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frontId]);
 
   // A reply dock belongs to the thread it was opened in. Leaving that thread ends it, so coming back
   // opens the saved draft as a card instead of creating a second draft.
@@ -373,7 +491,8 @@ export function Reader() {
   }, [openId, thread?.id, mode]);
 
   return (
-    <section className={clsx(styles.reader, full && styles.full)} aria-label="Conversation">
+    <section ref={sectionRef} className={clsx(styles.reader, full && styles.full)} aria-label="Conversation">
+      <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
       <ReaderToolbar thread={thread} />
       <div className={styles.scroll} data-reader-scroll>
         {openId === null ? (

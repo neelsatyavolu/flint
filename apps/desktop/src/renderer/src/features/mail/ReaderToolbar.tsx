@@ -1,4 +1,4 @@
-import { Archive, ArrowLeft, Clock, FolderInput, Forward, Inbox, Mail, MoreHorizontal, Pin, PinOff, Reply, ReplyAll, Trash2 } from "lucide-react";
+import { Archive, ArrowLeft, Clock, FolderInput, Forward, Inbox, Mail, MoreHorizontal, Pin, PinOff, Reply, ReplyAll, ShieldCheck, Trash2 } from "lucide-react";
 import type { ThreadDetail } from "@flint/core";
 import { flint } from "../../lib/api";
 import { IconButton, Menu, useToast } from "../../ui";
@@ -11,6 +11,8 @@ import { useInlineReply } from "../../state/inlineReply";
 import type { InlineReplyMode } from "../compose/inlineReplyTypes";
 import { openMovePicker, openSnooze } from "./mailCommands";
 import { categoryMenuItems } from "./rowMenu";
+import { blockSender } from "./blockSender";
+import { PRINT_EVENT } from "./printThread";
 import styles from "./Reader.module.css";
 
 const ICON = { size: 18, strokeWidth: 1.5 } as const;
@@ -27,19 +29,31 @@ export function ReaderToolbar({ thread }: { thread: ThreadDetail | undefined }) 
   const target = thread ? replyTarget(thread.messages) : undefined;
   const reply = (mode: InlineReplyMode) => target && useInlineReply.getState().open({ threadId: target.threadId, messageId: target.id, mode });
   const leaveInbox = OUT_OF_INBOX.has(view);
+  const inSpam = view === "spam";
   const sender = thread?.messages.findLast((m) => !m.isFromMe)?.from[0];
 
   const moreItems: MenuItem[] = thread
     ? [
         ...(OUT_OF_INBOX.has(view) ? [] : [...categoryMenuItems(thread.category, (action) => void run(action, ids)), { type: "separator", id: "sep-cat" } as MenuItem]),
         { id: "mute", label: thread.muted ? "Unmute" : "Mute", shortcut: "m", onSelect: () => void run({ type: "mute", muted: !thread.muted }, ids) },
-        { id: "spam", label: "Mark as spam", shortcut: "!", onSelect: () => void run({ type: "spam", spam: true }, ids) },
+        inSpam
+          ? { id: "spam", label: "Not spam", shortcut: "!", onSelect: () => void run({ type: "spam", spam: false }, ids) }
+          : { id: "spam", label: "Mark as spam", shortcut: "!", onSelect: () => void run({ type: "spam", spam: true }, ids) },
+        { id: "print", label: "Print\u2026", shortcut: "mod+p", onSelect: () => window.dispatchEvent(new Event(PRINT_EVENT)) },
         ...(sender
           ? [
               { type: "separator", id: "sep" } as MenuItem,
               view === "blocked"
-                ? ({ id: "unblock", label: "Unblock sender", onSelect: () => void flint.unblockSender(sender.address).then(() => toast.show({ message: `Unblocked ${sender.address}` })) } as MenuItem)
-                : ({ id: "block", label: "Block sender", danger: true, onSelect: () => void flint.blockSender(sender.address).then(() => toast.show({ message: `Blocked ${sender.address}` })) } as MenuItem),
+                ? ({
+                    id: "unblock",
+                    label: "Unblock sender",
+                    onSelect: () =>
+                      void flint.unblockSender(sender.address).then(
+                        () => toast.show({ message: `Unblocked ${sender.address}` }),
+                        () => toast.show({ message: `Couldn't unblock ${sender.address}. Try again.`, level: "error" }),
+                      ),
+                  } as MenuItem)
+                : ({ id: "block", label: "Block sender", danger: true, onSelect: () => void blockSender(flint, toast, sender.address) } as MenuItem),
             ]
           : []),
       ]
@@ -49,7 +63,9 @@ export function ReaderToolbar({ thread }: { thread: ThreadDetail | undefined }) 
     <div className={`${styles.toolbar} drag`}>
       <div className={`${styles.cluster} no-drag`}>
         {full ? <IconButton label="Back to list" shortcut="Escape" onClick={() => navStore.getState().openThread(null)}><ArrowLeft {...ICON} /></IconButton> : null}
-        {leaveInbox ? (
+        {inSpam ? (
+          <IconButton label="Not spam" shortcut="!" disabled={!thread} onClick={() => void run({ type: "spam", spam: false }, ids)}><ShieldCheck {...ICON} /></IconButton>
+        ) : leaveInbox ? (
           <IconButton label="Move to Inbox" disabled={!thread} onClick={() => void run({ type: "inbox" }, ids)}><Inbox {...ICON} /></IconButton>
         ) : (
           <IconButton label="Archive" shortcut="e" disabled={!thread} onClick={() => void run({ type: "archive" }, ids)}><Archive {...ICON} /></IconButton>

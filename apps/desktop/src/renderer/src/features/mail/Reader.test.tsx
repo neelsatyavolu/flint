@@ -53,6 +53,17 @@ describe("MessageItem card", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reply" }));
     expect(useInlineReply.getState().request?.mode).toBe("reply");
   });
+  it("offers Show original once the ... menu is opened on adapted dark mail", () => {
+    document.documentElement.setAttribute("data-theme", "dark");
+    try {
+      wrap(<MessageItem message={msg({ html: '<div style="background:#ffffff;color:#111111">Hi</div>' })} {...props} />);
+      fireEvent.pointerDown(screen.getByRole("button", { name: "More" }));
+      fireEvent.click(screen.getByRole("button", { name: "More" }));
+      expect(screen.getByRole("menuitem", { name: "Show original" })).toBeTruthy();
+    } finally {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  });
   it("collapses to a one-line row", () => {
     wrap(<MessageItem message={msg()} {...props} expanded={false} />);
     expect(screen.getByText("snip")).toBeTruthy();
