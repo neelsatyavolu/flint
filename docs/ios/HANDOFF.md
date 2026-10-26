@@ -190,3 +190,9 @@ Everything else in `FlintServiceConfiguration` has the production default (Swift
 - **project.yml**: the Flint target also links FlintMail, FlintModel and FlintStore products (the seed and app code import them). The test target must not list package products itself: doing so makes SwiftPM build FlintMail as a dynamic framework that fails to link (NIOIMAPCore symbols).
 - `FlintDebugFlags.themeGallery` is now off unless `-FlintThemeGallery YES` (it used to default on in Debug builds). `AppRouter` was removed; `AppModel` owns `pendingLink`.
 - Features own their folder only. Needs from shell/shared files go here as one line each: file, change, why.
+
+## From 3E (Composer)
+
+- App/Shared/ToastCenter.swift, ToastHost.swift | `Toast` gets an optional `countdown: SendCountdown?`; `ToastHost` draws `SendCountdownBar(countdown:)` along the toast's bottom edge and shows `countdown.message(at:)` while it runs; keep the toast up until `undoUntil` instead of 5 s for sends | the undo-send toast must drain over the undo window (`SendCountdown`, `SendCountdownBar` are in Features/Composer, ready to embed)
+- App/Shell/AppModel+Compose.swift | in `sendDraft`, pass `SendCountdown(startedAt: now, undoUntil: result.undoUntil)` (the result's undo deadline) to `toasts.show` when `sendAt` is nil | feeds the countdown bar above
+- App/Shell/Shells.swift | on iPad, optionally place `ComposerPanelHost()` as an overlay for `model.presented == .compose` instead of a sheet | `ComposerPanel` is the floating bottom-right composer; the sheet works without it
