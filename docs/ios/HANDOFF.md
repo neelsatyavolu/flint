@@ -190,3 +190,6 @@ Everything else in `FlintServiceConfiguration` has the production default (Swift
 - **project.yml**: the Flint target also links FlintMail, FlintModel and FlintStore products (the seed and app code import them). The test target must not list package products itself: doing so makes SwiftPM build FlintMail as a dynamic framework that fails to link (NIOIMAPCore symbols).
 - `FlintDebugFlags.themeGallery` is now off unless `-FlintThemeGallery YES` (it used to default on in Debug builds). `AppRouter` was removed; `AppModel` owns `pendingLink`.
 - Features own their folder only. Needs from shell/shared files go here as one line each: file, change, why.
+
+- 3F search: App/Shell (LaunchRoute/applyLaunchRoute): `-FlintRoute` does not open the route under XCUITest launches (ShellTests.testRouteOpensThread fails there; works via simctl launch). Search UI tests open the sheet by tapping the inbox search button instead.
+- 3F search: Features/Inbox/InboxRoot.swift: `.accessibilityIdentifier("inbox.root")` on the container overrides the ids of its children (buttons and fields report `inbox.root`, `inbox.search` is not reachable). Put the id on a background view as Search now does.

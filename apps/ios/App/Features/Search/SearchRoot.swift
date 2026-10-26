@@ -17,13 +17,12 @@ struct SearchRoot: View {
                 Spacer()
             }
         }
-        .background(FlintColor.plane1)
+        .background { FlintColor.plane1.accessibilityIdentifier("search.root") }
         .task {
             guard viewModel == nil else { return }
             viewModel = SearchViewModel(backend: SearchBackend(model: model), text: initialQuery)
             focused = true
         }
-        .accessibilityIdentifier("search.root")
     }
 
     private var initialQuery: String {
