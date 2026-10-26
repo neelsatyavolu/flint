@@ -1,90 +1,107 @@
 import FlintModel
 import SwiftUI
 
-/// PLACEHOLDER (track 3C replaces this file). Lists the selected mailbox from `AppModel` so the shell shows real data:
-/// threads for most lists, scheduled sends for Scheduled. Tapping a row opens the thread.
+/// The conversation list: second column on iPad, first screen on iPhone. It draws its own bar, a quick filter, the list and,
+/// while rows are selected, the batch bar. State lives in `InboxViewModel`.
 struct InboxRoot: View {
     @Environment(AppModel.self) private var model
-    @Environment(\.horizontalSizeClass) private var sizeClass
-    @State private var items: [ThreadListItem]?
-    @State private var scheduled: [ScheduledSend] = []
-    @State private var error: (any Error)?
 
     var body: some View {
-        VStack(spacing: 0) {
-            FlintBar(
-                title: model.title(for: model.mailbox),
-                leading: {
-                    FlintIconButton(icon: .menu, label: String(localized: "Mailboxes", table: "Inbox"), identifier: "inbox.menu") {
-                        model.toggleSidebar(columns: sizeClass == .regular)
-                    }
-                },
-                trailing: {
-                    FlintIconButton(icon: .search, label: String(localized: "Search", table: "Inbox"), identifier: "inbox.search") { model.navigate(to: .search(nil)) }
-                    FlintIconButton(icon: .compose, label: String(localized: "New message", table: "Inbox"), identifier: "inbox.compose") { model.startCompose() }
-                })
-            if let error { ErrorBanner(error: error, identifier: "inbox.error") }
-            content
-        }
-        .background(FlintColor.plane1)
-        .task(id: model.mailbox) { await watch() }
-        .accessibilityIdentifier("inbox.root")
-    }
-
-    @ViewBuilder private var content: some View {
-        if model.mailbox == .scheduled {
-            scheduledList
-        } else if let items {
-            if items.isEmpty {
-                FlintEmptyState(icon: .inbox, title: String(localized: "Nothing here", table: "Inbox"), identifier: "inbox.empty")
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(items) { item in
-                            Button { model.navigate(to: .thread(item.id)) } label: { FlintRow(item: item) }
-                                .buttonStyle(.plain)
-                                .accessibilityIdentifier("inbox.row.\(item.id)")
-                        }
-                    }
-                }
-                .refreshable { await model.syncNow() }
-            }
-        } else {
-            ScrollView { SkeletonRows() }
-        }
-    }
-
-    private var scheduledList: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(scheduled) { send in
-                    FlintRow(
-                        senderName: FlintFormat.participants(send.to), senderAddress: send.to.first?.address ?? "", subject: send.subject,
-                        time: FlintTime.current.listTime(send.sendAt))
-                        .accessibilityIdentifier("inbox.scheduled.\(send.id)")
-                }
-            }
-        }
-    }
-
-    private func watch() async {
-        items = nil
-        error = nil
-        if model.mailbox == .scheduled {
-            do { for try await list in model.scheduled() { scheduled = list } } catch { self.error = error }
-            return
-        }
-        guard let query = model.threadQuery(for: model.mailbox) else { return }
-        do { for try await page in model.threadPages(query) { items = page.items } } catch { self.error = error }
+        InboxScreen(model: model)
     }
 }
 
-private extension FlintRow {
-    init(item: ThreadListItem) {
-        let who = item.participants.first
-        self.init(
-            senderName: FlintFormat.participants(item.participants), senderAddress: who?.address ?? "", subject: item.subject,
-            preview: item.snippet, time: FlintTime.current.listTime(item.lastDate), isUnread: item.unreadCount > 0, isPinned: item.pinned,
-            hasAttachment: item.hasAttachments, messageCount: item.messageCount)
+private struct InboxScreen: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @State private var viewModel: InboxViewModel
+    @State private var attempt = 0
+    @State private var pendingTriage: BundleTriage?
+
+    init(model: AppModel) {
+        _viewModel = State(initialValue: InboxViewModel(model: model))
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            InboxTopBar(viewModel: viewModel, columns: sizeClass == .regular)
+            if showsFilter { InboxFilterBar(filter: $viewModel.filter) }
+            if case .failed(let error) = viewModel.phase { ErrorBanner(error: error, identifier: "inbox.error") { attempt += 1 } }
+            content
+            if viewModel.isSelecting {
+                InboxBatchBar(ops: InboxOp.batch(viewModel.selectedItems, in: model.mailbox), count: viewModel.selection.count) { op in
+                    Task { await viewModel.perform(op, on: viewModel.selectedItems) }
+                }
+            }
+        }
+        .background(FlintColor.plane1)
+        .task(id: "\(viewModel.watchKey(for: model.mailbox))|\(attempt)") { await viewModel.watch(model.mailbox) }
+        .onChange(of: model.mailbox) { _, _ in resetForMailbox() }
+        .sheet(item: $viewModel.picker) { picker in sheet(for: picker) }
+        .alert(triageTitle, isPresented: triageShown, presenting: pendingTriage) { triage in
+            Button(role: triage.kind == .archive ? .destructive : nil) { Task { await viewModel.run(triage) } } label: {
+                Text(triage.kind == .read ? "Mark as read" : "Archive", tableName: "Inbox")
+            }
+            Button(role: .cancel) {} label: { Text("Cancel", tableName: "Inbox") }
+        } message: { triage in
+            Text(triage.kind == .read ? "\(triage.ids.count) unread conversations will be marked as read." : "\(triage.ids.count) conversations will leave your inbox.", tableName: "Inbox")
+        }
+        .accessibilityIdentifier("inbox.root")
+    }
+
+    private var showsFilter: Bool {
+        InboxFilter.isAvailable(for: model.mailbox) && !viewModel.isSelecting
+    }
+
+    @ViewBuilder private var content: some View {
+        switch viewModel.phase {
+        case .loading:
+            ScrollView { SkeletonRows(density: viewModel.settings.appearance.density == .compact ? .compact : .comfortable) }
+        case .failed where viewModel.items.isEmpty:
+            Spacer()
+        default:
+            if model.mailbox == .scheduled {
+                InboxScheduledList(sends: viewModel.scheduled)
+            } else if viewModel.items.isEmpty && viewModel.visibleBundles.isEmpty {
+                empty
+            } else {
+                InboxList(viewModel: viewModel) { kind, bundle in
+                    Task { pendingTriage = await viewModel.triage(bundle.category, kind: kind) }
+                }
+            }
+        }
+    }
+
+    private var empty: some View {
+        let copy = InboxEmptyCopy.copy(for: model.mailbox, category: viewModel.category, filter: viewModel.filter)
+        return FlintEmptyState(
+            icon: copy.icon, title: copy.title, message: copy.message,
+            actionTitle: viewModel.filter == .all ? nil : String(localized: "Show all", table: "Inbox"), identifier: "inbox.empty"
+        ) { viewModel.filter = .all }
+    }
+
+    private func resetForMailbox() {
+        viewModel.category = nil
+        viewModel.filter = .all
+        viewModel.endSelecting()
+    }
+
+    @ViewBuilder private func sheet(for picker: InboxPicker) -> some View {
+        switch picker {
+        case .snooze(let ids): InboxSnoozeSheet(ids: ids, viewModel: viewModel)
+        case .move(let rows): InboxMoveSheet(rows: rows, viewModel: viewModel)
+        case .swipeSettings: InboxSwipeSettingsSheet(viewModel: viewModel)
+        }
+    }
+
+    private var triageShown: Binding<Bool> {
+        Binding(get: { pendingTriage != nil }, set: { if !$0 { pendingTriage = nil } })
+    }
+
+    private var triageTitle: String {
+        guard let pendingTriage else { return "" }
+        let name = ThreadAction.title(of: pendingTriage.category)
+        return pendingTriage.kind == .read
+            ? String(localized: "Mark all as read in \(name)?", table: "Inbox") : String(localized: "Archive all in \(name)?", table: "Inbox")
     }
 }
