@@ -17,11 +17,13 @@ vi.mock("../../lib/api", () => ({
     aiStatus: () => aiStatus(),
     aiCancel: () => Promise.resolve(),
     getThread: (id: number) => getThread(id),
+    listThreads: () => Promise.resolve({ items: [], bundles: [], nextCursor: null }),
   },
 }));
 
 import { navStore } from "../../state/nav";
 import { CatchMeUp } from "../home/CatchMeUp";
+import { catchUp } from "../home/catchUpStore";
 import { NeedsReply } from "../home/NeedsReply";
 import { BundleSummary } from "./BundleSummary";
 import { TRANSLATE_PROBE_DELAY_MS, ThreadTranslate } from "./ThreadTranslate";
@@ -67,25 +69,27 @@ describe("ThreadTranslate", () => {
 });
 
 describe("CatchMeUp", () => {
-  it("does nothing until asked, then lists items that open their threads", async () => {
+  it("runs from the store when it starts, then lists items that open their threads", async () => {
     render(<CatchMeUp />);
-    const ask = await screen.findByRole("button", { name: /catch me up/i });
+    await screen.findByRole("heading", { name: /catch me up/i });
     expect(aiRun).not.toHaveBeenCalled();
-    fireEvent.click(ask);
+    const stop = catchUp.start();
     await waitFor(() => expect(aiRun).toHaveBeenCalledWith({ kind: "digest" }));
     emit({ type: "ai", chunk: { runId: "r1", type: "text", text: "Needs a reply\n- Rodney asks you to confirm Monday. [1]\nWorth knowing\n- The invoice was approved. [2]" } });
     emit({ type: "ai", chunk: { runId: "r1", type: "citations", threads: [{ threadId: 11, subject: "Agreement" }, { threadId: 12, subject: "Invoice 2291" }] } });
     emit({ type: "ai", chunk: { runId: "r1", type: "done", text: "" } });
     fireEvent.click(await screen.findByRole("button", { name: /rodney asks you to confirm monday/i }));
     expect(navStore.getState().openId).toBe(11);
+    stop();
   });
 
-  it("is hidden when AI is off", async () => {
+  it("shows the local catch-up without the +AI tag when AI is off", async () => {
     aiStatus.mockResolvedValue({ ...connected, enabled: false });
-    const { container } = render(<CatchMeUp />);
-    await waitFor(() => expect(aiStatus).toHaveBeenCalled());
-    await new Promise((r) => setTimeout(r, 20));
-    expect(container.firstChild).toBeNull();
+    render(<CatchMeUp />);
+    expect(await screen.findByText(/nothing new\./)).toBeTruthy();
+    expect(screen.getByText("Turn on +AI to get a written catch-up")).toBeTruthy();
+    expect(screen.queryByText("+AI")).toBeNull();
+    expect(aiRun).not.toHaveBeenCalled();
   });
 });
 
@@ -100,15 +104,14 @@ describe("NeedsReply", () => {
     expect(aiRunToText).toHaveBeenCalledWith({ kind: "needsReply" });
   });
 
-  it("renders nothing when AI is off or the list is empty", async () => {
+  it("works with AI off, and renders nothing when the list is empty", async () => {
     aiStatus.mockResolvedValue({ ...connected, enabled: false });
+    aiRunToText.mockResolvedValue({ text: JSON.stringify(rows) });
     const off = render(<NeedsReply now={Date.now()} />);
-    await new Promise((r) => setTimeout(r, 30));
-    expect(off.container.firstChild).toBeNull();
-    expect(aiRunToText).not.toHaveBeenCalled();
+    expect(await screen.findByRole("button", { name: /plan for thursday/i })).toBeTruthy();
+    expect(screen.queryByText("+AI")).toBeNull();
     off.unmount();
-    aiStatus.mockResolvedValue(connected);
-    aiRunToText.mockResolvedValue({ text: "[]" });
+    aiRunToText.mockReset().mockResolvedValue({ text: "[]" });
     const empty = render(<NeedsReply now={Date.now()} />);
     await waitFor(() => expect(aiRunToText).toHaveBeenCalled());
     expect(empty.container.firstChild).toBeNull();

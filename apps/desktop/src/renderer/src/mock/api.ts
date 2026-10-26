@@ -84,7 +84,7 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
     for (const x of state.sync) if (!accountId || x.accountId === accountId) emit({ type: "sync", status: x });
   };
   const requireAi = () => {
-    if (!state.ai.connected || !state.ai.enabled) throw new FlintError("ai_not_connected", "Connect ChatGPT or Grok in Settings → +AI.");
+    if (!state.ai.connected || !state.settings.ai.enabled) throw new FlintError("ai_not_connected", "Connect ChatGPT or Grok in Settings → +AI.");
   };
 
   const api: FlintApi = {
@@ -361,7 +361,7 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
     },
 
     // AI
-    async aiStatus() { return state.ai; },
+    async aiStatus() { return { ...state.ai, enabled: state.settings.ai.enabled }; },
     async aiStartConnect(provider) {
       return provider === "codex" ? { url: "https://auth.example.com/codex/authorize", needsPaste: false } : { url: "https://auth.example.com/grok/authorize", needsPaste: true };
     },
@@ -378,7 +378,7 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
       aiRuns.set(runId, streamFakeAi(state, runId, task, (chunk) => emit({ type: "ai", chunk })));
       return { runId };
     },
-    async aiRunToText(task) { requireAi(); return { text: fakeAiText(state, task) }; },
+    async aiRunToText(task) { if (task.kind !== "needsReply") requireAi(); return { text: fakeAiText(state, task) }; },
     async aiCancel(runId) { aiRuns.get(runId)?.(); aiRuns.delete(runId); },
 
     // Agents

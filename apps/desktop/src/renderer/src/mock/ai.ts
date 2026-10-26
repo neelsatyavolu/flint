@@ -5,6 +5,8 @@ import { unreadCount } from "./threads";
 type Emit = (chunk: AiChunk) => void;
 
 const STREAM_MS = 1000;
+/** `?aiError` in the browser preview makes "Catch me up" fail after it starts, to show the error state. */
+const failDigest = (): boolean => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("aiError");
 
 function threadOf(state: MockState, id: ThreadId) {
   return state.threads.find((t) => t.id === id);
@@ -92,7 +94,10 @@ export function fakeAiText(state: MockState, task: AiTask): string {
   }
 }
 
-/** Streams `text` as ~16 chunks over about a second, then a done chunk. Returns a cancel function. */
+/**
+ * Streams `text` as ~16 chunks over about a second, then citations (digest, bundle, ask) and a done chunk,
+ * all as `ai` events, the path the catch-up store and useAiRun listen on. Returns a cancel function.
+ */
 export function streamFakeAi(state: MockState, runId: string, task: AiTask, emit: Emit): () => void {
   const full = fakeAiText(state, task);
   const parts = full.match(/\S+\s*/g) ?? [full];
@@ -102,6 +107,10 @@ export function streamFakeAi(state: MockState, runId: string, task: AiTask, emit
   const timers: ReturnType<typeof setTimeout>[] = [];
   const step = STREAM_MS / (chunks.length + 1);
   emit({ runId, type: "status", text: task.kind === "ask" ? "Searching your mail" : "Thinking" });
+  if (task.kind === "digest" && failDigest()) {
+    const t = setTimeout(() => emit({ runId, type: "error", message: "The AI provider didn't answer." }), STREAM_MS / 2);
+    return () => clearTimeout(t);
+  }
   chunks.forEach((c, i) => timers.push(setTimeout(() => emit({ runId, type: "text", text: c }), step * (i + 1))));
   timers.push(
     setTimeout(() => {
