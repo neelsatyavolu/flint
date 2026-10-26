@@ -4,7 +4,7 @@ import { listStore } from "../../state/listStore";
 import { ListFooter } from "./ListFooter";
 
 const set = (patch: Partial<ReturnType<typeof listStore.getState>>) => act(() => listStore.setState(patch));
-afterEach(() => set({ nextCursor: null, olderOnServer: false, loadingOlder: false, olderError: null, serverSearch: "idle", query: null, loadingMore: false }));
+afterEach(() => set({ nextCursor: null, olderOnServer: false, loadingOlder: false, olderError: null, serverSearch: "idle", query: null, loadingMore: false, pageError: null }));
 
 describe("ListFooter", () => {
   it("is empty when the whole list is local", () => {
@@ -41,9 +41,21 @@ describe("ListFooter", () => {
     set({ query: { view: "search", search: "x" }, searchServer });
     const { rerender } = render(<ListFooter />);
     fireEvent.click(screen.getByRole("button", { name: "Search the server" }));
-    expect(searchServer).toHaveBeenCalled();
+    expect(searchServer).toHaveBeenCalledWith({ explicit: true });
+    set({ serverSearch: "done" });
+    rerender(<ListFooter />);
+    expect(screen.getByRole("button", { name: "Search the server" })).toBeTruthy();
     set({ serverSearch: "error" });
     rerender(<ListFooter />);
     expect(screen.getByText(/Couldn't search the server/)).toBeTruthy();
+  });
+
+  it("offers a retry when a later page failed, keeping the rows above", () => {
+    const loadMore = vi.fn(async () => undefined);
+    set({ pageError: "offline", nextCursor: "50", loadMore });
+    render(<ListFooter />);
+    expect(screen.getByText("Couldn't load more.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(loadMore).toHaveBeenCalled();
   });
 });

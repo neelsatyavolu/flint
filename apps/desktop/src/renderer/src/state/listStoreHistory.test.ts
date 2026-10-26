@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ThreadPage, ThreadQuery } from "@flint/core";
-import { createListStore } from "./listStore";
+import { createListStore, SERVER_SEARCH_REPEAT_MS } from "./listStore";
 import { item } from "./testFixtures";
 
 /** A server with `local` rows on this computer and `server` older rows, `batch` of which come down per loadOlder. */
@@ -77,6 +77,25 @@ describe("list store history", () => {
     expect(s.getState().items).toHaveLength(5);
     await s.getState().searchServer();
     expect(api.searchServer).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks the server again after a while by itself, and at once on an explicit click", async () => {
+    const api = rig(2, 0, 0);
+    let t = 1_000_000;
+    const s = createListStore(api, () => t);
+    s.getState().setQuery({ view: "search", search: "rollup" });
+    await vi.waitFor(() => expect(s.getState().status).toBe("ready"));
+    await s.getState().searchServer();
+    await s.getState().searchServer({ explicit: true });
+    expect(api.searchServer).toHaveBeenCalledTimes(2);
+    s.getState().setQuery({ view: "search", search: "other" });
+    s.getState().setQuery({ view: "search", search: "rollup" });
+    await vi.waitFor(() => expect(s.getState().status).toBe("ready"));
+    await s.getState().searchServer();
+    expect(api.searchServer).toHaveBeenCalledTimes(2);
+    t += SERVER_SEARCH_REPEAT_MS;
+    await s.getState().searchServer();
+    expect(api.searchServer).toHaveBeenCalledTimes(3);
   });
 
   it("never searches the server outside search, and a failure is reported quietly", async () => {

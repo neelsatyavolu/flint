@@ -6,11 +6,15 @@ import { buildEntries, type ListEntry } from "./grouping";
 export const PAGE_SIZE = 50;
 const MAX_PAGE = 200;
 const MAX_REFRESH = 1000;
+/** A server search that already ran for a query runs again by itself only after this long; a click always runs it. */
+export const SERVER_SEARCH_REPEAT_MS = 5 * 60_000;
 
 type ListApi = Pick<FlintApi, "listThreads"> & Partial<Pick<FlintApi, "loadOlder" | "searchServer">>;
 export type ListStatus = "idle" | "loading" | "ready" | "error";
 /** Progress of the server search that backs up a search with few local results. */
 export type ServerSearchStatus = "idle" | "searching" | "done" | "error";
+/** Where the user was in a list: restored when they come back to it. */
+export type ListPlace = { scrollTop: number; cursorKey: string | null };
 
 export type ListState = {
   query: ThreadQuery | null;
@@ -30,6 +34,10 @@ export type ListState = {
   olderError: string | null;
   serverSearch: ServerSearchStatus;
   error: string | null;
+  /** A later page or refresh failed while rows are on screen. The rows stay; the footer offers a retry. */
+  pageError: string | null;
+  /** Scroll position and cursor saved for the list now shown, when it was painted from a snapshot. Read once on arrival. */
+  restored: ListPlace | null;
   /** The rows on screen belong to the list the user just left; the new one is still loading. They show dimmed so the pane never goes blank. */
   stale: boolean;
   hidden: ThreadId[];
@@ -38,8 +46,13 @@ export type ListState = {
   loadMore(): Promise<void>;
   /** Pulls the next batch of older mail from the server, then shows it. */
   loadOlder(): Promise<void>;
-  /** Searches the server for the current search query and merges new matches into the list. Once per query. */
-  searchServer(): Promise<void>;
+  /**
+   * Searches the server for the current search query and merges new matches into the list. Runs once per query every
+   * few minutes, or every time when `explicit` (the user clicked).
+   */
+  searchServer(opts?: { explicit?: boolean }): Promise<void>;
+  /** Remembers where the user is in the current list, for a later revisit. */
+  savePlace(place: Partial<ListPlace>): void;
   hide(ids: ThreadId[]): void;
   /** Replaces the bundle rows (optimistic category moves). The next refresh brings the server's numbers. */
   patchBundles(fn: (bundles: Bundle[]) => Bundle[]): void;
@@ -75,13 +88,15 @@ function derive(raw: ThreadListItem[], bundles: Bundle[], hidden: ThreadId[], so
 }
 
 /** What a list showed when the user left it, so coming back paints at once while a refresh checks for changes. */
-type Snapshot = { items: ThreadListItem[]; bundles: Bundle[]; nextCursor: string | null; olderOnServer: boolean };
+type Snapshot = { items: ThreadListItem[]; bundles: Bundle[]; nextCursor: string | null; olderOnServer: boolean; place: ListPlace };
 const SNAPSHOT_LIMIT = 12;
 
-export function createListStore(api: ListApi): ListStore {
+export function createListStore(api: ListApi, now: () => number = Date.now): ListStore {
   let seq = 0;
-  const searched = new Set<string>();
+  /** When each search query last asked the server. */
+  const searched = new Map<string, number>();
   const snapshots = new Map<string, Snapshot>();
+  let place: ListPlace = { scrollTop: 0, cursorKey: null };
 
   return createStore<ListState>((set, get) => {
     const apply = (raw: ThreadListItem[], bundles: Bundle[], hidden: ThreadId[] = get().hidden) =>
@@ -89,9 +104,15 @@ export function createListStore(api: ListApi): ListStore {
 
     const fail = (id: number, err: unknown) => {
       if (id !== seq) return;
-      const wasStale = get().stale;
+      const { stale: wasStale, raw } = get();
+      const message = err instanceof Error ? err.message : String(err);
+      // Rows of this list are on screen: keep them, and let the footer retry what failed.
+      if (!wasStale && raw.length > 0) {
+        set({ status: "ready", loadingMore: false, pageError: message });
+        return;
+      }
       set({
-        status: "error", loadingMore: false, error: err instanceof Error ? err.message : String(err), stale: false,
+        status: "error", loadingMore: false, error: message, stale: false,
         ...(wasStale ? { raw: [], items: [], bundles: [], entries: [], nextCursor: null } : {}),
       });
     };
@@ -111,6 +132,8 @@ export function createListStore(api: ListApi): ListStore {
       olderError: null,
       serverSearch: "idle",
       error: null,
+      pageError: null,
+      restored: null,
       stale: false,
       hidden: [],
 
@@ -120,15 +143,16 @@ export function createListStore(api: ListApi): ListStore {
         const left = get();
         if (left.queryKey !== null && left.status === "ready" && left.query?.view !== "search") {
           snapshots.delete(left.queryKey);
-          snapshots.set(left.queryKey, { items: left.items, bundles: left.bundles, nextCursor: left.nextCursor, olderOnServer: left.olderOnServer });
+          snapshots.set(left.queryKey, { items: left.items, bundles: left.bundles, nextCursor: left.nextCursor, olderOnServer: left.olderOnServer, place });
           if (snapshots.size > SNAPSHOT_LIMIT) snapshots.delete(snapshots.keys().next().value as string);
         }
         const id = ++seq;
         const snap = key !== null && query?.view !== "search" ? snapshots.get(key) : undefined;
+        place = snap?.place ?? { scrollTop: 0, cursorKey: null };
         if (snap) {
           set({
-            query, queryKey: key, nextCursor: snap.nextCursor, hidden: [], loadingMore: false, error: null, olderOnServer: snap.olderOnServer,
-            loadingOlder: false, olderError: null, serverSearch: "idle", status: "ready", stale: false,
+            query, queryKey: key, nextCursor: snap.nextCursor, hidden: [], loadingMore: false, error: null, pageError: null, olderOnServer: snap.olderOnServer,
+            loadingOlder: false, olderError: null, serverSearch: "idle", status: "ready", stale: false, restored: snap.place,
           });
           apply(snap.items, snap.bundles, []);
           void get().refresh();
@@ -140,7 +164,7 @@ export function createListStore(api: ListApi): ListStore {
         const carry = !typing && query !== null && query.view !== "search" && left.status === "ready" && left.raw.length > 0;
         set({
           query, queryKey: key, ...(typing || carry ? {} : { raw: [], items: [], bundles: [], entries: [], nextCursor: null }), hidden: [], loadingMore: false, error: null,
-          olderOnServer: false, loadingOlder: false, olderError: null, serverSearch: "idle", status: query ? "loading" : "idle", stale: carry,
+          pageError: null, restored: null, olderOnServer: false, loadingOlder: false, olderError: null, serverSearch: "idle", status: query ? "loading" : "idle", stale: carry,
         });
         if (!query) return;
         api.listThreads({ ...query, limit: PAGE_SIZE }).then((page) => {
@@ -171,7 +195,7 @@ export function createListStore(api: ListApi): ListStore {
             olderOnServer = page.olderOnServer === true;
             cursor = page.nextCursor ?? undefined;
           } while (cursor && items.length < want);
-          set({ nextCursor, olderOnServer: nextCursor === null && olderOnServer, status: "ready", error: null, stale: false });
+          set({ nextCursor, olderOnServer: nextCursor === null && olderOnServer, status: "ready", error: null, pageError: null, stale: false });
           apply(reuse(get().raw, items), bundles);
         } catch (err) {
           fail(id, err);
@@ -182,7 +206,7 @@ export function createListStore(api: ListApi): ListStore {
         const { query, nextCursor, loadingMore, status } = get();
         if (!query || !nextCursor || loadingMore || status !== "ready") return;
         const id = seq;
-        set({ loadingMore: true });
+        set({ loadingMore: true, pageError: null });
         try {
           const page = await api.listThreads({ ...query, limit: PAGE_SIZE, cursor: nextCursor });
           if (id !== seq) return;
@@ -210,10 +234,12 @@ export function createListStore(api: ListApi): ListStore {
         }
       },
 
-      async searchServer() {
-        const { query, queryKey: key, status } = get();
-        if (!api.searchServer || !query || key === null || query.view !== "search" || !query.search?.trim() || status !== "ready" || searched.has(key)) return;
-        searched.add(key);
+      async searchServer(opts) {
+        const { query, queryKey: key, status, serverSearch } = get();
+        if (!api.searchServer || !query || key === null || query.view !== "search" || !query.search?.trim() || status !== "ready" || serverSearch === "searching") return;
+        const last = searched.get(key);
+        if (!opts?.explicit && last !== undefined && now() - last < SERVER_SEARCH_REPEAT_MS) return;
+        searched.set(key, now());
         set({ serverSearch: "searching" });
         try {
           const result = await api.searchServer(query.search, query.accountId);
@@ -224,6 +250,10 @@ export function createListStore(api: ListApi): ListStore {
           searched.delete(key);
           if (get().queryKey === key) set({ serverSearch: "error" });
         }
+      },
+
+      savePlace(patch) {
+        place = { ...place, ...patch };
       },
 
       patchBundles(fn) {
