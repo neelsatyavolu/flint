@@ -60,6 +60,45 @@ struct ThreadLogicTests {
     }
 }
 
+@Suite("Thread bar and image notice")
+struct ThreadBarLogicTests {
+    @Test("Archive or Move to Inbox follows where the conversation is, not the open list")
+    func place() {
+        // Opened from a search while Archive is selected, but the conversation is in the Inbox.
+        #expect(!ThreadLogic.leavesInbox(place: .inbox, selection: .archive))
+        #expect(ThreadLogic.leavesInbox(place: .archive, selection: .inbox(nil)))
+        #expect(ThreadLogic.leavesInbox(place: .trash, selection: .inbox(nil)))
+        #expect(ThreadLogic.leavesInbox(place: .folder, selection: .inbox(nil)))
+        #expect(ThreadLogic.leavesInbox(place: .spam, selection: .inbox(nil)))
+        #expect(!ThreadLogic.leavesInbox(place: .inbox, selection: .sent))
+    }
+
+    @Test("an unknown place falls back to the open list")
+    func fallback() {
+        #expect(ThreadLogic.leavesInbox(place: nil, selection: .archive))
+        #expect(!ThreadLogic.leavesInbox(place: nil, selection: .inbox(nil)))
+        #expect(ThreadLogic.inSpam(place: nil, selection: .spam))
+        #expect(!ThreadLogic.inSpam(place: nil, selection: .archive))
+    }
+
+    @Test("Not spam follows the conversation too")
+    func spam() {
+        #expect(ThreadLogic.inSpam(place: .spam, selection: .inbox(nil)))
+        #expect(!ThreadLogic.inSpam(place: .inbox, selection: .spam))
+    }
+
+    @Test("the blocked-images notice needs remote images to load")
+    func notice() {
+        func view(_ policy: RemoteImagePolicy, remote: Bool) -> MessageView {
+            MessageView(id: 1, accountId: "acc", threadId: 1, from: [Address(address: "a@x.com")], subject: "s", date: 1, seen: true,
+                        html: "<p>x</p>", remoteImages: policy, hasRemoteImages: remote)
+        }
+        #expect(ThreadLogic.showsImageNotice(view(.blocked, remote: true)))
+        #expect(!ThreadLogic.showsImageNotice(view(.blocked, remote: false)))
+        #expect(!ThreadLogic.showsImageNotice(view(.allowed, remote: true)))
+    }
+}
+
 @Suite("Quoted text")
 struct QuotedTextTests {
     @Test("plain text splits at the attribution line")
@@ -105,6 +144,86 @@ struct QuotedTextTests {
     @Test("nothing above the quote means no split")
     func empty() {
         #expect(QuotedText.splitHTML("<div class=\"gmail_quote\">old</div>").quoted == nil)
+    }
+
+    @Test("an attribution wrapped in nested tags is cut from its outermost block")
+    func nestedAttribution() {
+        let html = "<p>Thanks</p><div dir=\"ltr\"><span>On Fri, Oct 23, Maya wrote:</span></div><blockquote type=\"cite\">old</blockquote>"
+        let parts = QuotedText.splitHTML(html)
+        #expect(parts.body == "<p>Thanks</p>")
+        #expect(parts.quoted?.hasPrefix("<div dir") == true)
+    }
+
+    @Test("an attribution that follows loose text is not a block start")
+    func looseText() {
+        let html = "<p>Thanks</p>See below. On Fri, Oct 23, Maya wrote: <blockquote type=\"cite\">old</blockquote>"
+        let parts = QuotedText.splitHTML(html)
+        #expect(parts.body == "<p>Thanks</p>See below. On Fri, Oct 23, Maya wrote: ")
+    }
+
+    @Test("a forwarded attribution is never hidden")
+    func forwardedAttribution() {
+        let html = "<p>FYI</p><div>On Fri, Oct 23, Maya wrote:</div><div>---------- Forwarded message ---------</div>"
+        #expect(QuotedText.splitHTML(html).quoted == nil)
+    }
+
+    // MARK: Cost
+
+    /// Image-only promotional markup: long runs of tags with no text between them, the shape that made the old pattern quadratic.
+    private static func imageHeavy(bytes: Int) -> String {
+        var html = "<html><head><style>img{border:0}</style></head><body>"
+        var index = 0
+        while html.utf8.count < bytes {
+            html += "<div><p><span><a href=\"https://shop.example.com/p/\(index)\"><img src=\"https://cdn.example.com/i/\(index).jpg\" width=\"600\" height=\"200\"></a></span></p></div>\n"
+            index += 1
+        }
+        return html + "</body></html>"
+    }
+
+    private func seconds(_ work: () -> Void) -> Double {
+        let clock = ContinuousClock()
+        let elapsed = clock.measure(work)
+        return Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+    }
+
+    @Test("a 1.3 MB image-heavy mail splits in well under a second")
+    func imageHeavyIsFast() {
+        let html = Self.imageHeavy(bytes: 1_300_000)
+        var plain: QuotedText.HTMLParts?
+        let plainTime = seconds { plain = QuotedText.splitHTML(html, subject: "Sale") }
+        #expect(plain?.quoted == nil)
+        #expect(plainTime < 1.0)
+
+        let replied = html + "<p>Thanks!</p><div>On Fri, Oct 23, Maya wrote:</div><blockquote type=\"cite\">old</blockquote>"
+        var split: QuotedText.HTMLParts?
+        let splitTime = seconds { split = QuotedText.splitHTML(replied, subject: "Re: Sale") }
+        #expect(split?.quoted?.contains("blockquote") == true)
+        #expect(split?.body.hasSuffix("<p>Thanks!</p>") == true)
+        #expect(splitTime < 1.0)
+    }
+
+    @Test("a 1.3 MB mail with an attribution deep in a tag run still splits fast")
+    func attributionAfterTagRun() {
+        let html = Self.imageHeavy(bytes: 1_300_000) + "<p>Thanks!</p><div><div><div>On Fri, Oct 23, Maya wrote:</div></div></div><div class=\"gmail_quote\">old</div>"
+        var split: QuotedText.HTMLParts?
+        let time = seconds { split = QuotedText.splitHTML(html) }
+        #expect(split?.quoted?.contains("gmail_quote") == true)
+        #expect(split?.body.hasSuffix("<p>Thanks!</p>") == true)
+        #expect(time < 1.0)
+    }
+
+    @Test("plain text with 20,000 blank lines splits fast")
+    func blankRuns() {
+        let blanks = String(repeating: "\n", count: 20_000)
+        let text = "Sounds good." + blanks + "On Fri, Oct 23, Maya wrote:" + blanks + "> earlier"
+        var parts: QuotedText.Plain?
+        let time = seconds { parts = QuotedText.splitPlain(text) }
+        #expect(parts?.body == "Sounds good.")
+        #expect(parts?.quoted.hasPrefix("On Fri") == true)
+        #expect(time < 1.0)
+
+        let onlyBlanks = "Hello" + blanks + "Bye"
+        #expect(seconds { _ = QuotedText.splitPlain(onlyBlanks) } < 1.0)
     }
 }
 

@@ -41,7 +41,7 @@ struct MailFrameView: View {
         }
         .frame(height: isFailed ? nil : height)
         .frame(maxWidth: .infinity)
-        .task(id: allowImages) { await prepare() }
+        .task(id: "\(allowImages)-\(blockTrackers)") { await prepare() }
         .accessibilityIdentifier(identifier)
     }
 
@@ -65,9 +65,11 @@ struct MailFrameView: View {
         }
     }
 
+    private var blockTrackers: Bool { app.settings?.inbox.blockTrackers ?? true }
+
     private func prepare() async {
         let endpoint = app.settings?.receipts.endpoint
-        if let lists = await ReaderRuleStore.shared.lists(allowImages: allowImages, receiptsEndpoint: endpoint) {
+        if let lists = await ReaderRuleStore.shared.lists(allowImages: allowImages, blockTrackers: blockTrackers, receiptsEndpoint: endpoint) {
             rules = .ready(lists)
         } else {
             rules = .failed

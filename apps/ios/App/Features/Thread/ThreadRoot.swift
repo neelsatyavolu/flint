@@ -50,7 +50,8 @@ struct ThreadRoot: View {
             trailing: {
                 if let detail = vm.detail {
                     ThreadToolbar(
-                        detail: detail, leavesInbox: ThreadLogic.leavesInbox(model.mailbox), inSpam: model.mailbox == .spam,
+                        detail: detail, leavesInbox: ThreadLogic.leavesInbox(place: detail.place, selection: model.mailbox),
+                        inSpam: ThreadLogic.inSpam(place: detail.place, selection: model.mailbox),
                         sender: vm.messages.last { !$0.isFromMe }?.from.first)
                 }
             })

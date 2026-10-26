@@ -3,6 +3,9 @@ import WebKit
 
 /// Serves `flint-attachment://<id>` for inline (cid) images, from the attachment cache through the service. Only image types
 /// are served, so a hostile attachment can never come back as a document or script.
+///
+/// WebKit raises an Objective-C exception when a task it has stopped is messaged. A task is therefore messaged only while it is
+/// in `active`, checked on the main actor right before each call, and `webView(_:stop:)` takes it out of `active`.
 @MainActor
 final class AttachmentSchemeHandler: NSObject, WKURLSchemeHandler {
     static let scheme = "flint-attachment"
@@ -11,6 +14,7 @@ final class AttachmentSchemeHandler: NSObject, WKURLSchemeHandler {
 
     private let load: Loader
     private var types: [Int: String]
+    private var active: Set<ObjectIdentifier> = []
     private var tasks: [ObjectIdentifier: Task<Void, Never>] = [:]
 
     init(types: [Int: String], load: @escaping Loader) {
@@ -28,26 +32,31 @@ final class AttachmentSchemeHandler: NSObject, WKURLSchemeHandler {
             return
         }
         let load = self.load
+        active.insert(key)
         tasks[key] = Task { [weak self] in
-            do {
-                let data = try await load(id)
-                try Task.checkCancellation()
-                let response = URLResponse(url: url, mimeType: type, expectedContentLength: data.count, textEncodingName: nil)
-                urlSchemeTask.didReceive(response)
-                urlSchemeTask.didReceive(data)
-                urlSchemeTask.didFinish()
-            } catch is CancellationError {
-                // The web view stopped the task; it must not be touched again.
-            } catch {
-                urlSchemeTask.didFailWithError(URLError(.cannotLoadFromNetwork))
-            }
-            self?.tasks[key] = nil
+            let result: Result<Data, Error>
+            do { result = .success(try await load(id)) } catch { result = .failure(error) }
+            self?.deliver(result, to: urlSchemeTask, key: key, url: url, type: type)
         }
     }
 
     func webView(_ webView: WKWebView, stop urlSchemeTask: any WKURLSchemeTask) {
         let key = ObjectIdentifier(urlSchemeTask as AnyObject)
-        tasks[key]?.cancel()
+        active.remove(key)
+        tasks.removeValue(forKey: key)?.cancel()
+    }
+
+    /// Replies to the task unless the web view stopped it while the image was loading.
+    private func deliver(_ result: Result<Data, Error>, to task: any WKURLSchemeTask, key: ObjectIdentifier, url: URL, type: String) {
         tasks[key] = nil
+        guard active.remove(key) != nil else { return }
+        switch result {
+        case .success(let data):
+            task.didReceive(URLResponse(url: url, mimeType: type, expectedContentLength: data.count, textEncodingName: nil))
+            task.didReceive(data)
+            task.didFinish()
+        case .failure:
+            task.didFailWithError(URLError(.cannotLoadFromNetwork))
+        }
     }
 }

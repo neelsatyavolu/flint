@@ -14,7 +14,7 @@ struct MessageBodyView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: FlintMetrics.Space.s3) {
-            if !hasBody {
+            if !hasBody || (message.html != nil && vm.cachedSplit(for: message) == nil) {
                 loading
             } else {
                 if blocked { imageNotice }
@@ -24,10 +24,16 @@ struct MessageBodyView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .task(id: SplitKey(id: message.id, htmlHash: message.html?.hashValue)) { await vm.prepareSplit(for: message) }
+    }
+
+    private struct SplitKey: Equatable {
+        let id: MessageRowID
+        let htmlHash: Int?
     }
 
     private var hasBody: Bool { message.bodyLoaded || message.html != nil || message.text != nil }
-    private var blocked: Bool { message.remoteImages == .blocked }
+    private var blocked: Bool { ThreadLogic.showsImageNotice(message) }
     private var allowImages: Bool { message.remoteImages == .allowed }
 
     private var appearance: MailAppearance {
@@ -35,14 +41,13 @@ struct MessageBodyView: View {
     }
 
     @ViewBuilder private var content: some View {
-        if let html = message.html {
-            let parts = QuotedText.splitHTML(html, subject: message.subject)
+        if let parts = vm.cachedSplit(for: message) {
             frame(parts.body, id: "thread.body.\(message.id)", verdict: true)
             if let quoted = parts.quoted {
                 QuotePill(open: $quotedOpen, identifier: "thread.quoted.\(message.id)")
                 if quotedOpen { frame(quoted, id: "thread.quotedBody.\(message.id)", verdict: false) }
             }
-        } else {
+        } else if message.html == nil {
             plain(message.text ?? "")
         }
     }

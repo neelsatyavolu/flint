@@ -90,7 +90,15 @@ extension ServiceCore {
         let views = try await messageViews(rows)
         return ThreadDetail(
             id: rows.id, accountId: rows.accountId, subject: rows.subject, category: rows.category, pinned: rows.pinned, muted: rows.muted,
-            snoozedUntil: rows.snoozedUntil, messages: views, draftIds: rows.draftIds)
+            snoozedUntil: rows.snoozedUntil, messages: views, draftIds: rows.draftIds, place: await threadPlace(rows))
+    }
+
+    /// Where the conversation is, from the folders each message is a member of (labels included for Gmail).
+    private func threadPlace(_ rows: ThreadRows) async -> ThreadPlace? {
+        guard let locations = try? await store.threadLocations([rows.id]), !locations.isEmpty,
+              let folders = try? await store.listFolders(accountId: rows.accountId) else { return nil }
+        let roles = Dictionary(folders.map { ($0.id, $0.role) }, uniquingKeysWith: { first, _ in first })
+        return ThreadPlace.resolve(memberRoles: locations.map { location in location.memberFolderIds.map { roles[$0] ?? nil } })
     }
 
     func messageView(_ id: MessageRowID) async throws -> MessageView {
@@ -138,7 +146,7 @@ extension ServiceCore {
             id: m.id, accountId: m.accountId, threadId: m.threadId, messageId: m.messageId, from: m.from, to: m.to, cc: m.cc, bcc: m.bcc,
             replyTo: m.replyTo, subject: m.subject, date: m.date, seen: m.seen, pinned: m.flagged, isFromMe: m.isFromMe, snippet: m.snippet,
             html: clean?.html, text: m.text, bodyLoaded: m.bodyLoaded,
-            remoteImages: allow || !(clean?.hasRemoteImages ?? false) ? .allowed : .blocked, hasTrackers: clean?.hasTrackers ?? false,
+            remoteImages: allow ? .allowed : .blocked, hasRemoteImages: clean?.hasRemoteImages ?? false, hasTrackers: clean?.hasTrackers ?? false,
             attachments: m.attachments, unsubscribe: m.unsubscribe, receipt: receipt, verificationCode: await codes.badge(messageId: m.id))
     }
 

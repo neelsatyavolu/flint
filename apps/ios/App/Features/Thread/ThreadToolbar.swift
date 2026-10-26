@@ -8,6 +8,13 @@ struct ThreadToolbar: View {
     let inSpam: Bool
     let sender: Address?
     @Environment(AppModel.self) private var app
+    @State private var picker: Picker?
+
+    /// The sheets the bar raises for the open conversation.
+    private enum Picker: String, Identifiable {
+        case snooze, move
+        var id: String { rawValue }
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -21,7 +28,14 @@ struct ThreadToolbar: View {
             button(.trash, String(localized: "Trash", table: "Thread"), "thread.trash") { await app.trash([detail.id]) }
             button(.pin, detail.pinned ? String(localized: "Unpin", table: "Thread") : String(localized: "Pin", table: "Thread"), "thread.pin",
                    color: detail.pinned ? FlintColor.accent : FlintColor.fg2) { await app.setPinned([detail.id], pinned: !detail.pinned) }
+            button(.clock, String(localized: "Snooze", table: "Thread"), "thread.snooze") { picker = .snooze; return true }
             more
+        }
+        .sheet(item: $picker) { picker in
+            switch picker {
+            case .snooze: ThreadSnoozeSheet(threadId: detail.id)
+            case .move: ThreadMoveSheet(threadId: detail.id, accountId: detail.accountId)
+            }
         }
     }
 
@@ -35,6 +49,7 @@ struct ThreadToolbar: View {
             Button(detail.muted ? String(localized: "Unmute", table: "Thread") : String(localized: "Mute", table: "Thread")) {
                 Task { _ = await app.setMuted([detail.id], muted: !detail.muted) }
             }
+            Button(String(localized: "Move to folder", table: "Thread")) { picker = .move }
             if !inSpam {
                 Button(String(localized: "Mark as spam", table: "Thread")) { Task { _ = await app.markSpam([detail.id], spam: true) } }
             }

@@ -200,6 +200,26 @@ public enum RemoteImagePolicy: String, Codable, Hashable, Sendable {
     case allowed, blocked
 }
 
+/// Where a conversation lives now, which decides whether the reader offers Archive or Move to Inbox.
+public enum ThreadPlace: String, Codable, Hashable, Sendable {
+    /// Archive applies: a message is in the Inbox, or the conversation only has sent mail and drafts.
+    case inbox
+    case archive, trash, spam
+    /// A folder or label of the account's own.
+    case folder
+
+    /// The place for a conversation whose messages are members of these folders (one entry per message, nil for a folder without a
+    /// role). Sent mail and drafts stay where they are on every move, so they only count when nothing else is there.
+    public static func resolve(memberRoles: [[MailboxRole?]]) -> ThreadPlace {
+        let moved = memberRoles.filter { roles in !roles.contains(.sent) && !roles.contains(.drafts) }.flatMap { $0 }
+        if moved.isEmpty || moved.contains(.inbox) { return .inbox }
+        if moved.contains(.spam) { return .spam }
+        if moved.contains(.trash) { return .trash }
+        if moved.contains(.archive) || moved.contains(.all) { return .archive }
+        return .folder
+    }
+}
+
 public struct MessageView: Hashable, Sendable, Identifiable {
     public var id: MessageRowID
     public var accountId: AccountID
@@ -221,6 +241,8 @@ public struct MessageView: Hashable, Sendable, Identifiable {
     public var text: String?
     public var bodyLoaded: Bool
     public var remoteImages: RemoteImagePolicy
+    /// The sanitizer found remote images (or remote CSS images) in the HTML, whether or not they are loaded.
+    public var hasRemoteImages: Bool
     /// Known third-party tracking pixels were removed.
     public var hasTrackers: Bool
     public var attachments: [AttachmentInfo]
@@ -232,8 +254,9 @@ public struct MessageView: Hashable, Sendable, Identifiable {
         id: MessageRowID, accountId: AccountID, threadId: ThreadID, messageId: String? = nil, from: [Address], to: [Address] = [],
         cc: [Address] = [], bcc: [Address] = [], replyTo: [Address] = [], subject: String, date: EpochMs, seen: Bool, pinned: Bool = false,
         isFromMe: Bool = false, snippet: String = "", html: String? = nil, text: String? = nil, bodyLoaded: Bool = false,
-        remoteImages: RemoteImagePolicy = .blocked, hasTrackers: Bool = false, attachments: [AttachmentInfo] = [],
-        unsubscribe: UnsubscribeInfo? = nil, receipt: ReceiptDetail? = nil, verificationCode: CodeBadge? = nil
+        remoteImages: RemoteImagePolicy = .blocked, hasRemoteImages: Bool = false, hasTrackers: Bool = false,
+        attachments: [AttachmentInfo] = [], unsubscribe: UnsubscribeInfo? = nil, receipt: ReceiptDetail? = nil,
+        verificationCode: CodeBadge? = nil
     ) {
         self.id = id
         self.accountId = accountId
@@ -254,6 +277,7 @@ public struct MessageView: Hashable, Sendable, Identifiable {
         self.text = text
         self.bodyLoaded = bodyLoaded
         self.remoteImages = remoteImages
+        self.hasRemoteImages = hasRemoteImages
         self.hasTrackers = hasTrackers
         self.attachments = attachments
         self.unsubscribe = unsubscribe
@@ -273,10 +297,12 @@ public struct ThreadDetail: Hashable, Sendable, Identifiable {
     /// Oldest first.
     public var messages: [MessageView]
     public var draftIds: [Int]
+    /// Where the conversation is now; nil when the store could not say.
+    public var place: ThreadPlace?
 
     public init(
         id: ThreadID, accountId: AccountID, subject: String, category: MailCategory, pinned: Bool = false, muted: Bool = false,
-        snoozedUntil: EpochMs? = nil, messages: [MessageView], draftIds: [Int] = []
+        snoozedUntil: EpochMs? = nil, messages: [MessageView], draftIds: [Int] = [], place: ThreadPlace? = nil
     ) {
         self.id = id
         self.accountId = accountId
@@ -287,6 +313,7 @@ public struct ThreadDetail: Hashable, Sendable, Identifiable {
         self.snoozedUntil = snoozedUntil
         self.messages = messages
         self.draftIds = draftIds
+        self.place = place
     }
 }
 

@@ -46,6 +46,25 @@ enum ThreadLogic {
         }
     }
 
+    /// Whether the bar offers Move to Inbox instead of Archive: where the conversation is, falling back to the open list when the
+    /// store could not say. A search result from the Inbox opened while Archive is selected still gets Archive.
+    static func leavesInbox(place: ThreadPlace?, selection: MailboxSelection) -> Bool {
+        guard let place else { return leavesInbox(selection) }
+        return place != .inbox
+    }
+
+    /// Whether the bar offers Not spam: the conversation is in Spam, or the open list is when the place is unknown.
+    static func inSpam(place: ThreadPlace?, selection: MailboxSelection) -> Bool {
+        guard let place else { return selection == .spam }
+        return place == .spam
+    }
+
+    /// The "Remote images are blocked" notice shows only when the message has remote images to load. The web view's rule list
+    /// blocks images for every message that is not allowed, with or without the notice.
+    static func showsImageNotice(_ message: MessageView) -> Bool {
+        message.remoteImages == .blocked && message.hasRemoteImages
+    }
+
     /// What Unsubscribe will do, in the order the service tries the methods.
     static func unsubscribeExplanation(_ info: UnsubscribeInfo) -> String {
         if info.oneClick, info.url != nil {
