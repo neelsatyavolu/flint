@@ -15,6 +15,8 @@ struct InboxRow: View {
     var onOpen: () -> Void = {}
     var onToggle: () -> Void = {}
     var onCopyCode: (String) -> Void = { _ in }
+    /// Search shows the same row under its own identifier.
+    var identifier: String?
 
     private var compact: Bool { settings.appearance.density == .compact }
     private var unread: Bool { item.unreadCount > 0 }
@@ -47,7 +49,7 @@ struct InboxRow: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(InboxRowText.accessibility(item, time: time.text))
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
-        .accessibilityIdentifier("inbox.row.\(item.id)")
+        .accessibilityIdentifier(identifier ?? "inbox.row.\(item.id)")
         .accessibilityAction { isSelecting ? onToggle() : onOpen() }
         .accessibilityAction(named: Text("Select", tableName: "Inbox"), onToggle)
     }

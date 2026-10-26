@@ -174,6 +174,8 @@ struct ComposerFormatBar: View {
                 .textCase(nil)
                 .fontWeight(bold ? .bold : nil)
                 .italic(italic)
+                .lineLimit(1)
+                .padding(.horizontal, wide ? FlintMetrics.Space.s2 : 0)
                 .frame(minWidth: wide ? 52 : FlintMetrics.Size.touch, minHeight: FlintMetrics.Size.touch)
                 .background(active ? FlintColor.accentSoft : .clear, in: RoundedRectangle(cornerRadius: FlintMetrics.Radius.control))
                 .contentShape(Rectangle())

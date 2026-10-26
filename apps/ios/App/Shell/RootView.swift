@@ -7,7 +7,6 @@ struct RootView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
-        @Bindable var model = model
         Group {
             if FlintDebugFlags.themeGallery() {
                 ThemeGallery()
@@ -16,18 +15,39 @@ struct RootView: View {
             }
         }
         .background(FlintColor.plane1.ignoresSafeArea())
-        .overlay { if model.presented == nil { ToastHost(center: model.toasts) } }
-        .sheet(item: $model.presented) { presented in
+        .overlay { if usesComposerPanel { ComposerPanelHost() } }
+        .overlay { if model.presented == nil || usesComposerPanel { ToastHost(center: model.toasts) } }
+        .sheet(item: sheet) { presented in
             PresentedSheet(presented: presented)
                 .presentationBackground(FlintColor.plane1)
                 .interactiveDismissDisabled(presented == .onboarding && model.accounts.isEmpty && !model.isDemo)
         }
+        .onChange(of: model.presented, initial: true) { _, presented in
+            // iPad has the sidebar as a column: show it there instead of in a sheet.
+            if sizeClass == .regular, presented == .sidebar {
+                model.columnVisibility = .all
+                model.presented = nil
+            }
+        }
         .task {
-            guard !FlintDebugFlags.isHostingUnitTests else { return }
+            // The theme gallery is a design check: it opens no mailbox, so onboarding does not cover it.
+            guard !FlintDebugFlags.isHostingUnitTests, !FlintDebugFlags.themeGallery() else { return }
             await model.bootstrap()
             await model.applyLaunchRoute(LaunchRoute.fromArguments())
         }
-        .accessibilityIdentifier("shell.root")
+    }
+
+    /// iPad writes in the floating bottom-right panel, like the desktop; iPhone uses the sheet.
+    private var usesComposerPanel: Bool {
+        guard sizeClass == .regular, case .compose = model.presented else { return false }
+        return true
+    }
+
+    /// The shell's sheet: everything in `presented` except what iPad shows in place (the composer panel, the sidebar column).
+    private var sheet: Binding<Presented?> {
+        Binding(
+            get: { usesComposerPanel || (sizeClass == .regular && model.presented == .sidebar) ? nil : model.presented },
+            set: { model.presented = $0 })
     }
 
     @ViewBuilder private var content: some View {

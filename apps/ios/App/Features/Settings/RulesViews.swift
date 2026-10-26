@@ -229,6 +229,7 @@ private struct ActionEditor: View {
     }
 }
 
+@MainActor
 private func removeButton(_ title: String, id: String, action: @escaping () -> Void) -> some View {
     Button(action: action) {
         SettingsRowLayout(icon: .close, title: title, titleColor: FlintColor.fg3) { EmptyView() }.contentShape(Rectangle())

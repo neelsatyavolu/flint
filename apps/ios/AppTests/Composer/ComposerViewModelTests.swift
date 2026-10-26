@@ -116,7 +116,8 @@ struct ComposerViewModelTests {
         #expect(vm.confirm == .noSubject && closed.count == 0)
         await vm.confirmSend()
         #expect(vm.confirm == nil && closed.count == 1)
-        #expect(app.model.toasts.current?.message == "Sent")
+        #expect(app.model.toasts.current?.message.hasPrefix("Sending in") == true)
+        #expect(app.model.toasts.current?.countdown != nil)
         await app.tearDown()
     }
 

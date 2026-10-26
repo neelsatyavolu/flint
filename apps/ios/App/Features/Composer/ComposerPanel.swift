@@ -5,15 +5,16 @@ import SwiftUI
 struct ComposerPanel: View {
     static let width: CGFloat = 460
     static let height: CGFloat = 640
+    /// Shorter when the window (less the keyboard) has no room for the full panel.
+    var height: CGFloat = Self.height
 
     var body: some View {
         ComposerRoot()
-            .frame(width: Self.width, height: Self.height)
+            .frame(width: Self.width, height: height)
             .background(FlintColor.plane1)
             .clipShape(RoundedRectangle(cornerRadius: FlintMetrics.Radius.card))
             .overlay(RoundedRectangle(cornerRadius: FlintMetrics.Radius.card).stroke(FlintColor.lineStrong, lineWidth: 1))
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("composer.panel")
+            // No identifier of its own: a container with one child hands its id to that child and would hide `composer.root`.
     }
 }
 
@@ -21,10 +22,12 @@ struct ComposerPanel: View {
 /// usable behind it: only the panel takes touches.
 struct ComposerPanelHost: View {
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            Color.clear.allowsHitTesting(false)
-            ComposerPanel()
-                .padding(FlintMetrics.Space.s4)
+        GeometryReader { proxy in
+            ZStack(alignment: .bottomTrailing) {
+                Color.clear.allowsHitTesting(false)
+                ComposerPanel(height: min(ComposerPanel.height, max(320, proxy.size.height - 2 * FlintMetrics.Space.s4)))
+                    .padding(FlintMetrics.Space.s4)
+            }
         }
     }
 }

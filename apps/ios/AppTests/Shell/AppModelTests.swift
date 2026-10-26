@@ -109,7 +109,8 @@ struct AppModelTests {
         defer { Task { await app.tearDown() } }
         let draft = try await app.model.createDraft(.new(accountId: DemoAccount.work.id, to: [DemoPeople.priya], subject: "Test", html: "<p>Hi</p>"))
         let result = try #require(await app.model.sendDraft(id: draft.id))
-        #expect(app.model.toasts.current?.message == "Sent")
+        #expect(app.model.toasts.current?.message.hasPrefix("Sending in") == true)
+        #expect(app.model.toasts.current?.countdown != nil)
         await app.model.toasts.performUndo()
         #expect(app.model.presented == .compose(.resume(draftId: draft.id)))
         #expect(result.scheduledId > 0)

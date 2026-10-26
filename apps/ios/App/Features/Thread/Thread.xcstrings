@@ -1,17 +1,261 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "Back": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Back"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@: can't tell" : {
+
+    },
+    "%@: not opened yet" : {
+
+    },
+    "%@: not tracked" : {
+
+    },
+    "%@: opened %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: opened %2$@"
           }
         }
       }
+    },
+    "%@: replied %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: replied %2$@"
+          }
+        }
+      }
+    },
+    "(no subject)" : {
+
+    },
+    "Adapted" : {
+
+    },
+    "Always for this sender" : {
+
+    },
+    "Archive" : {
+
+    },
+    "Back" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        }
+      }
+    },
+    "Block sender" : {
+
+    },
+    "Can't tell if it was opened" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Cancel send" : {
+
+    },
+    "Copied" : {
+
+    },
+    "Copy" : {
+
+    },
+    "Couldn't load images. Try again." : {
+
+    },
+    "Couldn't open that file. Try again." : {
+
+    },
+    "Flint removed tracking pixels from this message." : {
+
+    },
+    "Flint will ask the sender's server to remove you. Nothing opens and no email is sent." : {
+
+    },
+    "Flint will open the sender's unsubscribe page in your browser. You may need to confirm there." : {
+
+    },
+    "Flint will send an unsubscribe email from your account to %@." : {
+
+    },
+    "Folds the message" : {
+
+    },
+    "For %@" : {
+
+    },
+    "Forward" : {
+
+    },
+    "Goes out in %lld s" : {
+
+    },
+    "Hide quoted text" : {
+
+    },
+    "Load images" : {
+
+    },
+    "Loading message" : {
+
+    },
+    "Mark as spam" : {
+
+    },
+    "Mark as unread" : {
+
+    },
+    "Mark thread unread" : {
+
+    },
+    "More" : {
+
+    },
+    "Move to Inbox" : {
+
+    },
+    "Move to category" : {
+
+    },
+    "Mute" : {
+
+    },
+    "Muted" : {
+
+    },
+    "Not opened yet" : {
+
+    },
+    "Not spam" : {
+
+    },
+    "Not tracked" : {
+
+    },
+    "Open" : {
+
+    },
+    "Open this link?" : {
+
+    },
+    "Opened" : {
+
+    },
+    "Opened %@" : {
+
+    },
+    "Opened by %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Opened by %1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "Opens a preview" : {
+
+    },
+    "Original" : {
+
+    },
+    "Pin" : {
+
+    },
+    "Pinned" : {
+
+    },
+    "Read receipt" : {
+
+    },
+    "Remote images are blocked and tracking pixels removed." : {
+
+    },
+    "Remote images are blocked." : {
+
+    },
+    "Replied" : {
+
+    },
+    "Reply" : {
+
+    },
+    "Reply all" : {
+
+    },
+    "Scheduled" : {
+
+    },
+    "Sending" : {
+
+    },
+    "Sending now" : {
+
+    },
+    "Sent an unsubscribe email" : {
+
+    },
+    "Show quoted text" : {
+
+    },
+    "Shows the message" : {
+
+    },
+    "Snoozed until %@" : {
+
+    },
+    "The text says %@, but the link goes to %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The text says %1$@, but the link goes to %2$@."
+          }
+        }
+      }
+    },
+    "Trash" : {
+
+    },
+    "Undo" : {
+
+    },
+    "Unmute" : {
+
+    },
+    "Unpin" : {
+
+    },
+    "Unsubscribe" : {
+
+    },
+    "Unsubscribe from %@?" : {
+
+    },
+    "Unsubscribed" : {
+
+    },
+    "Verification code" : {
+
+    },
+    "me" : {
+
+    },
+    "this sender" : {
+
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }

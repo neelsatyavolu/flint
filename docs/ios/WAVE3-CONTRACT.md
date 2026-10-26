@@ -69,7 +69,7 @@ Presented (the sheet): .sidebar .compose .search .settings .onboarding
 
 ## Conventions
 
-- Accessibility identifiers are `feature.element`, lower camel after the dot: `inbox.row.<threadId>`, `inbox.search`, `thread.back`, `composer.send`, `settings.account.<id>`. Shell ids: `shell.root`, `shell.pad`, `shell.phone`, `toast.root`, `toast.undo`. Every interactive view has one.
+- Accessibility identifiers are `feature.element`, lower camel after the dot: `inbox.row.<threadId>`, `inbox.search`, `thread.back`, `composer.send`, `settings.account.<id>`. Shell ids: `shell.phone`, `toast.root`, `toast.undo`. Every interactive view has one.
 - Strings go in `Features/<Name>/<Name>.xcstrings` and are used as `String(localized: "...", table: "<Name>")` or `Text("...", tableName: "<Name>")`. Plain sentence case, no exclamation marks, no emoji. Shared and shell strings live in `Shared.xcstrings` and `Shell.xcstrings`.
 - Flat, opaque chrome: no system glass, no shadows, 12 px message cards, 4 px controls, Geist Mono labels, one accent.
 - Swift 6 strict concurrency, small files (800 max), functions under 50 lines, immutable value types.

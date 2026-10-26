@@ -8,11 +8,10 @@ struct ReplyDock: View {
     let onCompose: (ComposeMode, MessageView) -> Void
 
     var body: some View {
-        let single = ThreadLogic.hasSingleRecipient(target, selfAddresses: selfAddresses)
-        HStack(spacing: FlintMetrics.Space.s2) {
-            if single { dockButton(.reply, String(localized: "Reply", table: "Thread"), icon: .reply, primary: true, id: "thread.reply") }
-            dockButton(.replyAll, String(localized: "Reply all", table: "Thread"), icon: .replyAll, primary: !single, id: "thread.replyAll")
-            dockButton(.forward, String(localized: "Forward", table: "Thread"), icon: .forward, primary: false, id: "thread.forward")
+        // Large text: the titles no longer fit side by side, so the buttons keep only their icons (and their labels for VoiceOver).
+        ViewThatFits(in: .horizontal) {
+            buttons(titles: true)
+            buttons(titles: false)
         }
         .padding(.horizontal, FlintMetrics.Space.s4)
         .padding(.vertical, FlintMetrics.Space.s3)
@@ -20,15 +19,27 @@ struct ReplyDock: View {
         .overlay(alignment: .top) { FlintHairline() }
     }
 
-    private func dockButton(_ mode: ComposeMode, _ title: String, icon: FlintIcon, primary: Bool, id: String) -> some View {
+    private func buttons(titles: Bool) -> some View {
+        let single = ThreadLogic.hasSingleRecipient(target, selfAddresses: selfAddresses)
+        return HStack(spacing: FlintMetrics.Space.s2) {
+            if single {
+                dockButton(.reply, String(localized: "Reply", table: "Thread"), icon: .reply, primary: true, titled: titles, id: "thread.reply")
+            }
+            dockButton(.replyAll, String(localized: "Reply all", table: "Thread"), icon: .replyAll, primary: !single, titled: titles, id: "thread.replyAll")
+            dockButton(.forward, String(localized: "Forward", table: "Thread"), icon: .forward, primary: false, titled: titles, id: "thread.forward")
+        }
+    }
+
+    private func dockButton(_ mode: ComposeMode, _ title: String, icon: FlintIcon, primary: Bool, titled: Bool, id: String) -> some View {
         Button { onCompose(mode, target) } label: {
             HStack(spacing: FlintMetrics.Space.s2) {
                 FlintIconView(icon: icon, size: 16, color: primary ? FlintColor.accentFg : FlintColor.fg2)
-                Text(title).lineLimit(1)
+                if titled { Text(title).lineLimit(1).fixedSize() }
             }
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(FlintButtonStyle(kind: primary ? .primary : .ghost))
+        .accessibilityLabel(title)
         .accessibilityIdentifier(id)
     }
 }
@@ -64,7 +75,7 @@ struct QueuedReplyCard: View {
         } else {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 let left = max(0, Int(sendAt.timeIntervalSince(context.date).rounded(.up)))
-                Text(left > 0 ? String(localized: "Goes out in \(left) s", table: "Thread") : String(localized: "Sending now", table: "Thread"))
+                Text(left > 0 ? String(localized: "Sending in \(left)s", table: "Thread") : String(localized: "Sending now", table: "Thread"))
                     .flintText(.body, color: FlintColor.fg3)
             }
         }

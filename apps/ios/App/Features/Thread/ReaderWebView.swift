@@ -26,7 +26,8 @@ struct ReaderWebView: UIViewRepresentable {
         config.setURLSchemeHandler(coordinator.scheme, forURLScheme: AttachmentSchemeHandler.scheme)
         let controller = config.userContentController
         ruleLists.forEach(controller.add)
-        ReaderScript.userScripts().forEach(controller.addUserScript)
+        let textSize = Int((Self.zoom(for: context.environment.dynamicTypeSize) * 100).rounded())
+        ReaderScript.userScripts(textSizePercent: textSize).forEach(controller.addUserScript)
         controller.add(coordinator.messageProxy, contentWorld: ReaderScript.world, name: ReaderScript.handlerName)
 
         let web = WKWebView(frame: .zero, configuration: config)
@@ -48,6 +49,14 @@ struct ReaderWebView: UIViewRepresentable {
         guard coordinator.loadedKey != document.key else { return }
         coordinator.loadedKey = document.key
         web.loadHTMLString(document.page, baseURL: nil)
+    }
+
+    /// The message text follows the reader's Dynamic Type setting the way body text does, capped at twice the size so wide
+    /// newsletters still lay out. Applied as `-webkit-text-size-adjust`, which scales text without zooming the layout.
+    static func zoom(for size: DynamicTypeSize) -> CGFloat {
+        let traits = UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(size))
+        let scale = UIFontMetrics(forTextStyle: .body).scaledValue(for: 100, compatibleWith: traits) / 100
+        return min(2, max(1, (scale * 20).rounded() / 20))
     }
 
     static func dismantleUIView(_ web: WKWebView, coordinator: Coordinator) {

@@ -35,7 +35,7 @@ struct ComposerForm: View {
         let options = viewModel.fromOptions
         if options.count > 1 {
             HStack(spacing: FlintMetrics.Space.s2) {
-                Text("From", tableName: "Composer").flintText(.label).frame(width: 36, alignment: .leading)
+                Text("From", tableName: "Composer").flintText(.label).lineLimit(1).fixedSize().frame(minWidth: 36, alignment: .leading)
                 Menu {
                     ForEach(options) { option in
                         Button { viewModel.chooseFrom(option) } label: {

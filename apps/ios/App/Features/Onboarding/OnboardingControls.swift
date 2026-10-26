@@ -124,7 +124,7 @@ struct OnboardingToggleRow: View {
                 Text(detail).flintText(.body, color: FlintColor.fg3)
             }
         }
-        .tint(FlintColor.accent)
+        .toggleStyle(FlintToggleStyle(showsLabel: true))
         .padding(.horizontal, FlintMetrics.Space.s4)
         .padding(.vertical, FlintMetrics.Space.s3)
         .frame(minHeight: 64)

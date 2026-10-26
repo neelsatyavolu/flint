@@ -3,6 +3,7 @@ import SwiftUI
 
 /// Thread rows for a query (the inbox row look), the load-more trigger and the server search footer.
 struct SearchResults: View {
+    @Environment(AppModel.self) private var model
     let viewModel: SearchViewModel
     let onOpen: (ThreadListItem) -> Void
 
@@ -23,9 +24,7 @@ struct SearchResults: View {
                     .accessibilityIdentifier("search.count")
             }
             ForEach(viewModel.results) { item in
-                Button { onOpen(item) } label: { row(item) }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("search.result.\(item.id)")
+                InboxRow(item: item, settings: model.settings ?? .default, onOpen: { onOpen(item) }, identifier: "search.result.\(item.id)")
                     .onAppear { loadMoreIfLast(item) }
             }
             if viewModel.isLoadingMore { ProgressView().padding(FlintMetrics.Space.s4) }
@@ -38,13 +37,6 @@ struct SearchResults: View {
         return viewModel.nextCursor == nil
             ? FlintFormat.plural(count, String(localized: "result", table: "Search"), String(localized: "results", table: "Search"))
             : String(format: String(localized: "%lld results and more", table: "Search"), count)
-    }
-
-    private func row(_ item: ThreadListItem) -> some View {
-        FlintRow(
-            senderName: FlintFormat.participants(item.participants), senderAddress: item.participants.last?.address ?? "",
-            subject: item.subject, preview: item.snippet, time: FlintTime.current.listTime(item.lastDate),
-            isUnread: item.unreadCount > 0, isPinned: item.pinned, hasAttachment: item.hasAttachments, messageCount: item.messageCount)
     }
 
     private func loadMoreIfLast(_ item: ThreadListItem) {

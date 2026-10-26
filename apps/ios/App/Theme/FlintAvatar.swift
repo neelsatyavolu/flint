@@ -29,8 +29,7 @@ struct FlintAvatar: View {
             .foregroundStyle(FlintColor.avatarFg)
             .frame(width: size.rawValue, height: size.rawValue)
             .background(Color(red: tint.r, green: tint.g, blue: tint.b), in: Circle())
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(name.isEmpty ? address : name)
-            .accessibilityAddTraits(.isImage)
+            // Decorative: every avatar sits next to the name or address it stands for, which VoiceOver already reads.
+            .accessibilityHidden(true)
     }
 }

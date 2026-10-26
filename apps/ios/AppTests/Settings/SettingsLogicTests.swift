@@ -62,16 +62,23 @@ struct SettingsLogicTests {
         #expect(SettingsChoices.undoLabel(10) == "10 seconds")
     }
 
-    @Test("swipe actions read back from defaults and fall back")
+    @Test("choosing a swipe action moves it first, keeps the rest and saves where the inbox reads")
     func swipes() throws {
         let name = "flint.tests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: name))
         defer { defaults.removePersistentDomain(forName: name) }
-        #expect(SwipeAction.stored("k", fallback: .archive, defaults: defaults) == .archive)
-        defaults.set("trash", forKey: "k")
-        #expect(SwipeAction.stored("k", fallback: .archive, defaults: defaults) == .trash)
-        defaults.set("nonsense", forKey: "k")
-        #expect(SwipeAction.stored("k", fallback: .read, defaults: defaults) == .read)
+        let start = SwipeConfiguration.load(from: defaults)
+        #expect(start == .standard)
+        let moved = start.choosing(.trash, for: .leading)
+        #expect(moved.leading == [.trash, .read, .pin])
+        #expect(moved.trailing == start.trailing)
+        let first = start.choosing(.snooze, for: .trailing)
+        #expect(first.trailing == [.snooze, .archive, .trash])
+        let cleared = moved.choosing(nil, for: .leading)
+        #expect(cleared.primary(.leading) == nil)
+        cleared.save(to: defaults)
+        #expect(SwipeConfiguration.load(from: defaults) == cleared)
+        #expect(SwipeConfiguration.choiceLabel(nil) == "Nothing")
     }
 }
 

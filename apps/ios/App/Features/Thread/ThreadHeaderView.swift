@@ -33,7 +33,7 @@ struct ThreadHeaderView: View {
                 ThreadChip(text: String(localized: "Snoozed until \(when)", table: "Thread"), icon: .clock, accent: true).accessibilityIdentifier("thread.chip.snoozed")
             }
             if detail.category != .people { ThreadChip(text: ThreadAction.title(of: detail.category)).accessibilityIdentifier("thread.chip.category") }
-            if let account { ThreadChip(text: account.email, dot: account.email).accessibilityIdentifier("thread.chip.account") }
+            if let account { ThreadChip(text: account.email, dot: account.email).accessibilityLabel(account.email).accessibilityIdentifier("thread.chip.account") }
             if unsubscribeFrom != nil {
                 Button(action: onUnsubscribe) { ThreadChip(text: String(localized: "Unsubscribe", table: "Thread"), tappable: true) }
                     .buttonStyle(.plain)

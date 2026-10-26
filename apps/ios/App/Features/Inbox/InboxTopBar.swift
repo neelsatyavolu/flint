@@ -29,7 +29,7 @@ struct InboxTopBar: View {
             FlintBar(
                 title: viewModel.title, subtitle: model.title(for: model.mailbox),
                 leading: {
-                    FlintIconButton(icon: .chevronLeft, label: String(localized: "Back to inbox", table: "Inbox"), identifier: "inbox.back") {
+                    FlintIconButton(icon: .arrowLeft, label: String(localized: "Back to inbox", table: "Inbox"), identifier: "inbox.back") {
                         viewModel.category = nil
                     }
                 },

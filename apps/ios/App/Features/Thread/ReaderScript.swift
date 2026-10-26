@@ -37,9 +37,11 @@ enum ReaderScript {
 
     /// The adapter bundle then the runner, or the runner alone when the bundle is missing (colors stay as sent).
     @MainActor
-    static func userScripts() -> [WKUserScript] {
+    /// `textSizePercent` scales the message text for Dynamic Type (100 leaves it as sent).
+    static func userScripts(textSizePercent: Int = 100) -> [WKUserScript] {
         let bundle = Bundle.main.url(forResource: "mailDark.bundle", withExtension: "js").flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
-        let source = bundle + "\n" + runner
+        let textSize = "document.documentElement.style.webkitTextSizeAdjust = '\(max(100, min(200, textSizePercent)))%';"
+        let source = bundle + "\n" + textSize + "\n" + runner
         return [WKUserScript(source: source, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: world)]
     }
 

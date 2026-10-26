@@ -21,8 +21,9 @@ struct RecipientField<Trailing: View>: View {
             HStack(alignment: .top, spacing: FlintMetrics.Space.s2) {
                 Text(label)
                     .flintText(.label, color: invalid ? FlintColor.danger : FlintColor.fg3)
-                    .frame(width: 36, height: FlintMetrics.Size.touch, alignment: .leading)
-                    .accessibilityHidden(true)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .frame(minWidth: 36, minHeight: FlintMetrics.Size.touch, alignment: .leading)
                 ComposerFlowLayout(spacing: FlintMetrics.Space.s1) {
                     ForEach(addresses, id: \.address) { address in
                         RecipientChip(address: address, identifier: identifier) {
@@ -136,7 +137,9 @@ struct RecipientChip: View {
     }
 }
 
-/// Wraps children onto new lines, left to right.
+
+/// Chips in rows, then the text field filling what is left of the last row (or a row of its own when too little is left).
+/// Every subview is placed at the width it was measured at, so long text cannot spill over its neighbours.
 struct ComposerFlowLayout: Layout {
     var spacing: CGFloat = 4
 
@@ -146,30 +149,36 @@ struct ComposerFlowLayout: Layout {
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         let result = arrange(width: bounds.width, subviews: subviews)
-        for (index, origin) in result.origins.enumerated() {
-            subviews[index].place(at: CGPoint(x: bounds.minX + origin.x, y: bounds.minY + origin.y), proposal: .unspecified)
+        for (index, frame) in result.frames.enumerated() {
+            subviews[index].place(
+                at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY),
+                proposal: ProposedViewSize(width: frame.width, height: frame.height))
         }
     }
 
-    private func arrange(width: CGFloat, subviews: Subviews) -> (size: CGSize, origins: [CGPoint]) {
-        var origins: [CGPoint] = []
+    private func arrange(width: CGFloat, subviews: Subviews) -> (size: CGSize, frames: [CGRect]) {
+        var frames: [CGRect] = []
         var x: CGFloat = 0
         var y: CGFloat = 0
         var rowHeight: CGFloat = 0
         var maxX: CGFloat = 0
-        for subview in subviews {
-            var size = subview.sizeThatFits(.unspecified)
-            size.width = min(size.width, width)
-            if x > 0, x + size.width > width {
+        for (index, subview) in subviews.enumerated() {
+            let isLast = index == subviews.count - 1
+            let ideal = subview.sizeThatFits(.unspecified)
+            let minimum = isLast ? subview.sizeThatFits(ProposedViewSize(width: 0, height: nil)).width : ideal.width
+            var itemWidth = min(isLast ? minimum : ideal.width, width)
+            if x > 0, x + itemWidth > width {
                 x = 0
                 y += rowHeight + spacing
                 rowHeight = 0
             }
-            origins.append(CGPoint(x: x, y: y))
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
+            if isLast, width.isFinite { itemWidth = max(itemWidth, width - x) }
+            let height = subview.sizeThatFits(ProposedViewSize(width: itemWidth, height: nil)).height
+            frames.append(CGRect(x: x, y: y, width: itemWidth, height: height))
+            x += itemWidth + spacing
+            rowHeight = max(rowHeight, height)
             maxX = max(maxX, x - spacing)
         }
-        return (CGSize(width: width.isFinite ? width : maxX, height: y + rowHeight), origins)
+        return (CGSize(width: width.isFinite ? width : maxX, height: y + rowHeight), frames)
     }
 }

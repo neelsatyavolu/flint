@@ -32,11 +32,21 @@ struct InboxFilterBar: View {
     @Binding var filter: InboxFilter
 
     var body: some View {
+        // Scrolls sideways when large text makes the segments wider than the screen; a segment never wraps.
+        ScrollView(.horizontal, showsIndicators: false) { segments }
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+            .background(FlintColor.plane1)
+            .overlay(alignment: .bottom) { FlintHairline() }
+    }
+
+    private var segments: some View {
         HStack(spacing: FlintMetrics.Space.s2) {
             ForEach(InboxFilter.allCases) { option in
                 Button { filter = option } label: {
                     Text(option.title)
                         .flintText(.label, color: filter == option ? FlintColor.accentFg : FlintColor.fg2)
+                        .lineLimit(1)
+                        .fixedSize()
                         .padding(.horizontal, FlintMetrics.Space.s3)
                         .frame(minHeight: 32)
                         .background(filter == option ? FlintColor.accent : .clear, in: shape)
@@ -47,12 +57,9 @@ struct InboxFilterBar: View {
                 .accessibilityAddTraits(filter == option ? .isSelected : [])
                 .accessibilityIdentifier("inbox.filter.\(option.rawValue)")
             }
-            Spacer(minLength: 0)
         }
         .padding(.horizontal, FlintMetrics.Space.s4)
         .padding(.vertical, FlintMetrics.Space.s2)
-        .background(FlintColor.plane1)
-        .overlay(alignment: .bottom) { FlintHairline() }
     }
 
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: FlintMetrics.Radius.control) }

@@ -70,7 +70,7 @@ struct MessageCardView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         HStack(spacing: FlintMetrics.Space.s2) {
                             Text(name).flintText(.bodyStrong).lineLimit(1)
-                            if let receipt = message.receipt { ReceiptCheck(receipt: receipt) }
+                            if let receipt = message.receipt { MessageReceiptCheck(receipt: receipt) }
                         }
                         Text(recipientsLine).flintText(.body, color: FlintColor.fg3).lineLimit(1)
                         Text(FlintTime.current.fullDate(message.date)).flintText(.data, color: FlintColor.fg3).lineLimit(1)

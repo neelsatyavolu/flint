@@ -1,32 +1,77 @@
 import FlintModel
 import SwiftUI
 
-/// iPad: sidebar, list and thread side by side.
+/// iPad: sidebar, list and thread side by side as flat planes with hairlines, like the desktop window. Drawn by hand rather
+/// than with `NavigationSplitView`, whose iOS 26 sidebar floats on system glass (DESIGN.md: no glass on app chrome).
+/// Narrow windows (portrait 11-inch, Split View) keep the sidebar hidden and show it over the list when asked.
 struct PadShell: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.dynamicTypeSize) private var typeSize
+    static let wideWidth: CGFloat = 1000
+    static let sidebarWidth: CGFloat = 280
+    static let listWidth: CGFloat = 380
 
     var body: some View {
-        @Bindable var model = model
-        NavigationSplitView(columnVisibility: $model.columnVisibility) {
-            FeatureRegistry.root("sidebar")
-                .toolbar(.hidden, for: .navigationBar)
-                .navigationSplitViewColumnWidth(min: 240, ideal: 280, max: 320)
-        } content: {
-            FeatureRegistry.root("inbox")
-                .toolbar(.hidden, for: .navigationBar)
-                .navigationSplitViewColumnWidth(min: 320, ideal: 380, max: 460)
-        } detail: {
-            Group {
-                if model.openThread != nil {
-                    FeatureRegistry.root("thread").id(model.openThread)
-                } else {
-                    ReaderEmptyView()
+        GeometryReader { proxy in
+            // Accessibility text sizes need the room: the sidebar steps aside and the list gets wider.
+            let wide = proxy.size.width >= Self.wideWidth && !typeSize.isAccessibilitySize
+            let listWidth = typeSize.isAccessibilitySize ? Self.listWidth * 1.3 : Self.listWidth
+            let sidebarShown = model.columnVisibility == .all
+            HStack(spacing: 0) {
+                if wide, sidebarShown {
+                    sidebar.frame(width: Self.sidebarWidth)
+                    VerticalHairline()
                 }
+                FeatureRegistry.root("inbox").frame(width: min(listWidth, proxy.size.width * (wide ? 0.4 : 0.5)))
+                VerticalHairline()
+                detail.frame(maxWidth: .infinity)
             }
-            .toolbar(.hidden, for: .navigationBar)
+            .overlay(alignment: .leading) {
+                if !wide, sidebarShown { narrowSidebar }
+            }
+            .onChange(of: model.mailbox) { _, _ in
+                if !wide { model.columnVisibility = .doubleColumn }
+            }
+            .onAppear {
+                if !wide, model.columnVisibility == .all { model.columnVisibility = .doubleColumn }
+            }
         }
-        .navigationSplitViewStyle(.balanced)
-        .accessibilityIdentifier("shell.pad")
+        .flintAnimation(FlintMetrics.Motion.panel, value: model.columnVisibility)
+        // No `shell.pad` identifier: on this container it replaced the columns' own ids (`inbox.root`, `thread.root`).
+    }
+
+    private var sidebar: some View {
+        FeatureRegistry.root("sidebar")
+    }
+
+    @ViewBuilder private var detail: some View {
+        if model.openThread != nil {
+            FeatureRegistry.root("thread").id(model.openThread)
+        } else {
+            ReaderEmptyView()
+        }
+    }
+
+    /// The sidebar over the list; a tap beside it closes it.
+    private var narrowSidebar: some View {
+        HStack(spacing: 0) {
+            sidebar.frame(width: Self.sidebarWidth)
+            VerticalHairline()
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture { model.columnVisibility = .doubleColumn }
+                .accessibilityHidden(true)
+        }
+        .transition(.move(edge: .leading))
+    }
+}
+
+/// A 1 px vertical rule between columns.
+struct VerticalHairline: View {
+    @Environment(\.displayScale) private var scale
+
+    var body: some View {
+        FlintColor.line.frame(width: 1 / max(scale, 1)).accessibilityHidden(true)
     }
 }
 

@@ -13,7 +13,7 @@ struct SidebarRoot: View {
     var body: some View {
         VStack(spacing: 0) {
             FlintBar(
-                title: String(localized: "Flint", table: "Sidebar"),
+                title: String(localized: "Flint", table: "Sidebar"), plane: FlintColor.plane0,
                 leading: { closeButton },
                 trailing: { EmptyView() })
             SidebarSyncLine(line: syncLine, multipleAccounts: multiple, retry: retry, signIn: { model.navigate(to: .settings(.accounts)) })
@@ -29,7 +29,7 @@ struct SidebarRoot: View {
             }
             footer
         }
-        .background(FlintColor.plane1)
+        .background(FlintColor.plane0)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("sidebar.root")
     }
@@ -49,7 +49,7 @@ struct SidebarRoot: View {
             model.navigate(to: .settings(.root))
         }
         .overlay(alignment: .top) { FlintHairline() }
-        .background(FlintColor.plane1)
+        .background(FlintColor.plane0)
     }
 
     // MARK: Sync
@@ -68,7 +68,7 @@ struct SidebarRoot: View {
         if list.selection == .unifiedInbox, multiple {
             HStack(spacing: 0) {
                 row(list)
-                disclosure
+                disclosure.background(model.mailbox == list.selection ? FlintColor.accentSoft : .clear)
             }
         } else {
             row(list)

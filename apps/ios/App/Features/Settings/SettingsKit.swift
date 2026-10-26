@@ -15,7 +15,7 @@ struct SettingsPage<Content: View, Trailing: View>: View {
                 title: title,
                 leading: {
                     if showsBack {
-                        FlintIconButton(icon: .chevronLeft, label: sl("Back"), identifier: "settings.back") { dismiss() }
+                        FlintIconButton(icon: .arrowLeft, label: sl("Back"), identifier: "settings.back") { dismiss() }
                     }
                 },
                 trailing: { trailing })
@@ -116,27 +116,6 @@ struct SettingsToggleRow: View {
     }
 }
 
-/// Flat switch: a 44 by 26 track with a square thumb, accent when on. No glass, no shadow.
-struct FlintToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        Button { configuration.isOn.toggle() } label: {
-            ZStack(alignment: configuration.isOn ? .trailing : .leading) {
-                RoundedRectangle(cornerRadius: FlintMetrics.Radius.control)
-                    .fill(configuration.isOn ? FlintColor.accent : FlintColor.active)
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(configuration.isOn ? FlintColor.accentFg : FlintColor.fg2)
-                    .frame(width: 18, height: 18)
-                    .padding(4)
-            }
-            .frame(width: 46, height: 26)
-            .frame(width: FlintMetrics.Size.touch + 4, height: FlintMetrics.Size.touch)
-            .contentShape(Rectangle())
-            .flintAnimation(value: configuration.isOn)
-        }
-        .buttonStyle(.plain)
-        .accessibilityRepresentation { Toggle(isOn: configuration.$isOn) { configuration.label } }
-    }
-}
 
 /// A row that opens a menu of choices; the current choice shows on the right.
 struct SettingsChoiceRow<Value: Hashable>: View {

@@ -17,7 +17,9 @@ struct SearchRoot: View {
                 Spacer()
             }
         }
-        .background { FlintColor.plane1.accessibilityIdentifier("search.root") }
+        .background(FlintColor.plane1)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("search.root")
         .task {
             guard viewModel == nil else { return }
             viewModel = SearchViewModel(backend: SearchBackend(model: model), text: initialQuery)

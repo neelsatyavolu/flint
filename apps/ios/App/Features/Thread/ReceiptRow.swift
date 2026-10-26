@@ -2,7 +2,7 @@ import FlintModel
 import SwiftUI
 
 /// A small check beside the sender of a tracked message you sent: accent once somebody opened or replied.
-struct ReceiptCheck: View {
+struct MessageReceiptCheck: View {
     let receipt: ReceiptDetail
 
     var body: some View {

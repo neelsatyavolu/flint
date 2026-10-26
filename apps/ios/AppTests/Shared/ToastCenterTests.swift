@@ -1,4 +1,5 @@
 @testable import Flint
+import FlintModel
 import Foundation
 import Testing
 
@@ -58,5 +59,17 @@ struct ToastCenterTests {
         center.show("Muted")
         await center.performUndo()
         #expect(center.current?.message == "Muted")
+    }
+
+    @Test("a send toast stays up for its undo window, not the default duration")
+    func countdownDuration() async throws {
+        let center = ToastCenter(duration: .milliseconds(20))
+        let now = Date()
+        let undoUntil = EpochMs((now.timeIntervalSince1970 + 0.4) * 1000)
+        center.show("Sending in 1s", undo: {}, countdown: SendCountdown(startedAt: now, undoUntil: undoUntil), now: now)
+        try await Task.sleep(for: .milliseconds(150))
+        #expect(center.current?.countdown != nil)
+        try await Task.sleep(for: .milliseconds(600))
+        #expect(center.current == nil)
     }
 }

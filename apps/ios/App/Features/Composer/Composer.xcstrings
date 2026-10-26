@@ -1,39 +1,207 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "Composer": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Composer"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Add" : {
+
+    },
+    "Add a name or address" : {
+
+    },
+    "Add a subject" : {
+
+    },
+    "Add at least one recipient." : {
+
+    },
+    "Attach" : {
+
+    },
+    "Attach a file" : {
+
+    },
+    "Bold" : {
+
+    },
+    "Bulleted list" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Choose file" : {
+
+    },
+    "Composer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Composer"
           }
         }
       }
     },
-    "New message": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "New message"
+    "Couldn't add that file." : {
+
+    },
+    "Couldn't save" : {
+
+    },
+    "Couldn't save the draft. Try again." : {
+
+    },
+    "Discard" : {
+
+    },
+    "Discard draft" : {
+
+    },
+    "Discard this draft?" : {
+
+    },
+    "Draft saved" : {
+
+    },
+    "Every recipient is you, so there is nothing to track." : {
+
+    },
+    "Forward" : {
+
+    },
+    "From" : {
+
+    },
+    "Italic" : {
+
+    },
+    "Keep draft" : {
+
+    },
+    "Link" : {
+
+    },
+    "Link address" : {
+
+    },
+    "Message" : {
+
+    },
+    "New message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New message"
           }
         }
       }
     },
-    "This screen is a placeholder.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This screen is a placeholder."
+    "No signature" : {
+
+    },
+    "Off" : {
+
+    },
+    "On" : {
+
+    },
+    "Photo library" : {
+
+    },
+    "Pick a date and time" : {
+
+    },
+    "Plain text mode can't carry a read receipt, so this message won't be tracked." : {
+
+    },
+    "Read receipt" : {
+
+    },
+    "Read receipts are off in Settings, so this message won't be tracked." : {
+
+    },
+    "Read receipts need a receipts address in Settings. This message won't be tracked." : {
+
+    },
+    "Remove %@" : {
+
+    },
+    "Remove link" : {
+
+    },
+    "Reply" : {
+
+    },
+    "Reply all" : {
+
+    },
+    "Save and close" : {
+
+    },
+    "Saving" : {
+
+    },
+    "Schedule" : {
+
+    },
+    "Send" : {
+
+    },
+    "Send anyway" : {
+
+    },
+    "Send at" : {
+
+    },
+    "Send later" : {
+
+    },
+    "Send without a subject?" : {
+
+    },
+    "Send without an attachment?" : {
+
+    },
+    "Sending in %llds" : {
+
+    },
+    "Sent" : {
+
+    },
+    "Subject" : {
+
+    },
+    "Take photo" : {
+
+    },
+    "The draft will be deleted." : {
+
+    },
+    "This message has no subject line." : {
+
+    },
+    "This screen is a placeholder." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This screen is a placeholder."
           }
         }
       }
+    },
+    "To" : {
+
+    },
+    "You mentioned an attachment, but nothing is attached." : {
+
+    },
+    "https://" : {
+
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }

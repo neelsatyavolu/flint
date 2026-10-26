@@ -29,14 +29,19 @@ extension AppModel {
     func sendDraft(id: Int, sendAt: EpochMs? = nil, presets: SnoozePresets = SnoozePresets(), now: Date = Date()) async -> SendResult? {
         do {
             let result = try await requireService().sendDraft(id: id, sendAt: sendAt)
-            let message: String
+            let undo: @MainActor () async -> Void = { [weak self] in await self?.undoSend(scheduledId: result.scheduledId) }
             if let sendAt {
                 let time = presets.formatTime(Date(timeIntervalSince1970: Double(sendAt) / 1000), now: now)
-                message = String(localized: "Scheduled for \(time)", table: "Shell")
+                toasts.show(String(localized: "Scheduled for \(time)", table: "Shell"), undo: undo)
             } else {
-                message = String(localized: "Sent", table: "Shell")
+                // Like the desktop: "Sending in 10s" with Undo over the undo window, plain "Sent" when undo send is off.
+                let countdown = SendCountdown(startedAt: now, undoUntil: result.undoUntil)
+                if countdown.remaining(at: now) > 0 {
+                    toasts.show(countdown.message(at: now), undo: undo, countdown: countdown, now: now)
+                } else {
+                    toasts.show(String(localized: "Sent", table: "Shell"))
+                }
             }
-            toasts.show(message, undo: { [weak self] in await self?.undoSend(scheduledId: result.scheduledId) })
             return result
         } catch {
             report(error)

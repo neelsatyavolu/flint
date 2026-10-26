@@ -67,8 +67,7 @@ struct AppearancePage: View {
 /// Smart inbox, ordering and swipe actions.
 struct InboxPage: View {
     @Environment(AppModel.self) private var model
-    @State private var leading = SwipeAction.read
-    @State private var trailing = SwipeAction.archive
+    @State private var swipes = SwipeConfiguration.standard
 
     var body: some View {
         SettingsPage(title: sl("Inbox"), identifier: "inbox") {
@@ -95,23 +94,24 @@ struct InboxPage: View {
                         (value: .list, label: sl("Back to the list")),
                     ], identifier: "settings.inbox.afterArchive")
                 SettingsChoiceRow(
-                    title: sl("Swipe right"), selection: swipe($leading, key: SettingsDefaultsKey.swipeLeading),
-                    choices: SwipeAction.allCases.map { (value: $0, label: $0.title) }, identifier: "settings.inbox.swipeLeading")
+                    title: sl("Swipe right"), selection: swipe(.leading), choices: swipeChoices,
+                    identifier: "settings.inbox.swipeLeading")
                 SettingsChoiceRow(
-                    title: sl("Swipe left"), selection: swipe($trailing, key: SettingsDefaultsKey.swipeTrailing),
-                    choices: SwipeAction.allCases.map { (value: $0, label: $0.title) }, identifier: "settings.inbox.swipeTrailing")
+                    title: sl("Swipe left"), selection: swipe(.trailing), choices: swipeChoices,
+                    identifier: "settings.inbox.swipeTrailing")
             }
         }
-        .onAppear {
-            leading = SwipeAction.stored(SettingsDefaultsKey.swipeLeading, fallback: .read, defaults: model.defaults)
-            trailing = SwipeAction.stored(SettingsDefaultsKey.swipeTrailing, fallback: .archive, defaults: model.defaults)
-        }
+        .onAppear { swipes = SwipeConfiguration.load(from: model.defaults) }
     }
 
-    private func swipe(_ state: Binding<SwipeAction>, key: String) -> Binding<SwipeAction> {
-        Binding(get: { state.wrappedValue }, set: { value in
-            state.wrappedValue = value
-            model.defaults.set(value.rawValue, forKey: key)
+    private var swipeChoices: [(value: SwipeAction?, label: String)] {
+        ([nil] + SwipeAction.allCases.map(Optional.some)).map { (value: $0, label: SwipeConfiguration.choiceLabel($0)) }
+    }
+
+    private func swipe(_ side: SwipeConfiguration.Side) -> Binding<SwipeAction?> {
+        Binding(get: { swipes.primary(side) }, set: { value in
+            swipes = swipes.choosing(value, for: side)
+            swipes.save(to: model.defaults)
         })
     }
 }

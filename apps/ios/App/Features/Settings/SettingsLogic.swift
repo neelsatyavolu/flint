@@ -84,27 +84,27 @@ enum SettingsChoices {
 
 /// Where the Settings screens keep choices that are not part of the shared `Settings` model. Other features read these keys.
 enum SettingsDefaultsKey {
-    static let swipeLeading = "flint.swipe.leading"
-    static let swipeTrailing = "flint.swipe.trailing"
     static let faceIDLock = "flint.privacy.faceIDLock"
 }
 
-/// A swipe action on a list row. Raw values are what is stored.
-enum SwipeAction: String, CaseIterable, Sendable {
-    case archive, trash, pin, read, snooze, none
+/// The Settings view of the inbox swipe configuration (`SwipeConfiguration`, saved by the inbox): one choice per side, the
+/// action a full swipe runs. Choosing an action moves it to the front and keeps the other actions of that side; nil clears it.
+extension SwipeConfiguration {
+    enum Side: Sendable { case leading, trailing }
 
-    var title: String {
-        switch self {
-        case .archive: sl("Archive")
-        case .trash: sl("Trash")
-        case .pin: sl("Pin")
-        case .read: sl("Mark read or unread")
-        case .snooze: sl("Snooze")
-        case .none: sl("Nothing")
-        }
+    func primary(_ side: Side) -> SwipeAction? {
+        (side == .leading ? leading : trailing).first
     }
 
-    static func stored(_ key: String, fallback: SwipeAction, defaults: UserDefaults = .standard) -> SwipeAction {
-        defaults.string(forKey: key).flatMap(SwipeAction.init(rawValue:)) ?? fallback
+    func choosing(_ action: SwipeAction?, for side: Side) -> SwipeConfiguration {
+        let current = side == .leading ? leading : trailing
+        let next = action.map { chosen in [chosen] + current.filter { $0 != chosen } } ?? []
+        return side == .leading
+            ? SwipeConfiguration(leading: next, trailing: trailing)
+            : SwipeConfiguration(leading: leading, trailing: next)
+    }
+
+    static func choiceLabel(_ action: SwipeAction?) -> String {
+        action?.title ?? sl("Nothing")
     }
 }

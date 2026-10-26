@@ -30,7 +30,7 @@ struct ToastView: View {
             if toast.kind == .error {
                 FlintIconView(icon: .alert, size: 16, color: FlintColor.danger)
             }
-            Text(toast.message)
+            message
                 .flintText(.body)
                 .lineLimit(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -51,10 +51,22 @@ struct ToastView: View {
         .padding(.vertical, FlintMetrics.Space.s1)
         .frame(minHeight: FlintMetrics.Size.touch)
         .frame(maxWidth: 420)
+        .overlay(alignment: .bottom) {
+            if let countdown = toast.countdown { SendCountdownBar(countdown: countdown).padding(.horizontal, 1) }
+        }
         .background(FlintColor.plane3, in: RoundedRectangle(cornerRadius: FlintMetrics.Radius.control))
         .overlay(RoundedRectangle(cornerRadius: FlintMetrics.Radius.control).stroke(FlintColor.lineStrong, lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("toast.root")
         .onTapGesture(perform: dismiss)
+    }
+
+    /// The toast text; a send's toast counts down ("Sending in 9s") once a second.
+    @ViewBuilder private var message: some View {
+        if let countdown = toast.countdown {
+            TimelineView(.periodic(from: .now, by: 1)) { context in Text(countdown.message(at: context.date)) }
+        } else {
+            Text(toast.message)
+        }
     }
 }

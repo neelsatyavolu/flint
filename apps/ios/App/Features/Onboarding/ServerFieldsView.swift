@@ -43,7 +43,7 @@ struct ServerFieldsView: View {
             Toggle(isOn: secure) {
                 Text("Use TLS", tableName: "Onboarding").flintText(.body)
             }
-            .tint(FlintColor.accent)
+            .toggleStyle(FlintToggleStyle(showsLabel: true))
             .frame(minHeight: FlintMetrics.Size.touch)
             .accessibilityIdentifier("onboarding.server.\(prefix)Secure")
         }
