@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dateGroupLabel, displayName, formatAddress, formatFileSize, formatFullDate, formatListTime, formatParticipants, formatRecipients, pluralize } from "./format";
+import { dateGroupLabel, displayName, formatAddress, formatAgo, formatFileSize, formatFullDate, formatListTime, formatParticipants, formatRecipients, pluralize } from "./format";
 
 // Sunday, Oct 25 2026, 4:00 PM local time.
 const NOW = new Date(2026, 9, 25, 16, 0).getTime();
@@ -11,6 +11,24 @@ describe("formatListTime", () => {
   it("shows yesterday as a weekday", () => expect(formatListTime(at(2026, 10, 24), NOW)).toBe("Sat"));
   it("shows month and day after a week", () => expect(formatListTime(at(2026, 10, 18), NOW)).toBe("Oct 18"));
   it("adds the year for earlier years", () => expect(formatListTime(at(2025, 10, 23), NOW)).toBe("Oct 23, 2025"));
+});
+
+describe("formatAgo", () => {
+  it.each([
+    [NOW - 30_000, "just now"],
+    [NOW + 30_000, "just now"],
+    [at(2026, 10, 25, 15, 48), "12 min ago"],
+    [at(2026, 10, 25, 14, 0), "2h ago"],
+    [at(2026, 10, 25, 0, 30), "15h ago"],
+    [at(2026, 10, 24, 20, 0), "yesterday"],
+    [at(2026, 10, 22, 9, 0), "3 days ago"],
+    [at(2026, 10, 12), "Oct 12"],
+    [at(2025, 12, 31), "Dec 31, 2025"],
+  ])("formats %i as %s", (ts, text) => expect(formatAgo(ts, NOW)).toBe(text));
+
+  it("counts hours across midnight for a recent time", () => {
+    expect(formatAgo(at(2026, 10, 24, 23, 0), at(2026, 10, 25, 1, 30))).toBe("2h ago");
+  });
 });
 
 describe("dateGroupLabel", () => {
