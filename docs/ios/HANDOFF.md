@@ -229,3 +229,9 @@ All seven track branches merged into `ios`. Shared-file changes made while integ
 - Thread (not mine): header sender name and date are flagged "Text clipped" by the audit at the default size (`AccessibilityAuditTests.testThread` skips clipping for that reason). The reader's message header date still needs `lineLimit`/wrapping at AX3 (review finding 16, `MessageCardView.swift:76`).
 - Dated review items left open here: 22 per-account alerts (needs Wave 4 notifications), "import signature from Mac" on onboarding (Wave 4 pairing).
 - Licenses: App/Features/Settings/ThirdPartyLicenses.json was generated from Package.resolved and the SwiftPM checkouts; regenerate it when packages change (5D can fold it into THIRD-PARTY.md).
+
+## Wave 3 review fixes, integration
+- Merged the thread, shell and composer fix branches. `FaceIDLock` now lives only in `App/Shell/DeviceAuthentication.swift`; `PrivacyCopy` stays in `PrivacyAboutPages.swift`.
+- The composer's receipt note (`composer.receiptNote`) uses the `fg` text token: on iPad the audit still read `fg2` at 11 pt mono as under the contrast threshold.
+- `EndToEndTests` scrolls to the onboarding Done button (the new signature box pushed it below the fold).
+- Open: `ShellFixTests.testKeyboardShortcutsOnIPad` (Cmd-F opens search) fails on the iPad Pro 13-inch (M5) simulator on iOS 26.5, also on the unmerged shell branch, so it is not a merge regression. It passed in the shell group's run. Unresolved whether the simulator or the `UIKeyCommand` is at fault; check on a real Magic Keyboard. `testCmdNAndArchiveOnIPad` failed once on a long-running simulator and passed after a reboot.

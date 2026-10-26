@@ -117,7 +117,7 @@ struct ComposerForm: View {
     private func note(_ text: String, icon: FlintIcon, color: Color, id: String) -> some View {
         HStack(alignment: .top, spacing: FlintMetrics.Space.s2) {
             FlintIconView(icon: icon, size: 14, color: color)
-            Text(text).flintText(.data, color: color).frame(maxWidth: .infinity, alignment: .leading)
+            Text(text).flintText(.data, color: FlintColor.fg).frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, FlintMetrics.Space.s4)
         .padding(.vertical, FlintMetrics.Space.s2)

@@ -86,6 +86,7 @@ swift test --package-path Packages/FlintCore     # engine, on the Mac
 | 4.9 | Snooze from the swipe, pick Tomorrow | Row leaves; it appears under Snoozed | auto (`EndToEndTests`) |
 | 4.10 | Pull to refresh | Sync line updates; no duplicate rows | sim |
 | 4.11 | Verification code row chip (`482913`) | Chip shows the code; tap copies | not seen on screen |
+| 4.12 | VoiceOver on a row with a live code | The code is spoken; the "Copy code" action copies it | auto (spoken text); VoiceOver by hand not run |
 | 4.12 | Skeleton rows on a cold launch | Grey bars until the first page | not seen on screen |
 | 4.13 | Empty list (Spam in the demo) | Plain empty state with the Flint mark | sim |
 | 4.14 | VoiceOver on a row | Reads sender, subject, time, unread | auto (audit), device (O5) for the full pass |
@@ -102,6 +103,8 @@ swift test --package-path Packages/FlintCore     # engine, on the Mac
 | 5.6 | Open an attachment | Quick Look | not yet run |
 | 5.7 | Reply from the dock | Composer with the quote; after Send, a queued card with Undo until it goes | auto (`EndToEndTests` sends it) |
 | 5.8 | Archive, Trash, Pin, More menu | Each acts and toasts like the list | partly auto |
+| 5.8a | Snooze (clock) and Move to folder (More) from the open thread | Thread-owned sheets; the thread closes with a toast | auto (UI, iPhone and iPad) |
+| 5.8b | Open a thread from search, tap Back | Returns to the same search and results | auto (`testSearchResultKeepsTheSearch`) |
 | 5.9 | Receipt row on a tracked sent message | "Opened" / "Not opened yet" honestly | not seen on screen |
 
 ## 6. Composer (3E)
@@ -115,6 +118,8 @@ swift test --package-path Packages/FlintCore     # engine, on the Mac
 | 6.5 | Send without a recipient | "Add at least one recipient." | auto |
 | 6.6 | Send later: schedule sheet with presets | Toast "Scheduled for ..."; row under Scheduled | auto (sheet opens) |
 | 6.7 | Discard asks first | Alert with Keep draft / Discard | auto |
+| 6.7a | Insert template from the composer menu | Inserted at the cursor; fills an empty subject | auto (logic); not seen on screen |
+| 6.7b | Open a server draft with tables or images | Body read only with a note; "Edit as plain text" flattens only on request | auto (logic); not seen on screen |
 | 6.8 | iPad: the composer is a floating panel at the bottom right; the list stays usable | Panel shrinks to fit above the keyboard | sim (screenshot); keyboard overlap not checked with a hardware keyboard |
 | 6.9 | Attach from Photos, Files and camera | Attachment rows with sizes | device (O5) for the camera; Photos and Files not yet run |
 | 6.10 | Autosave to the server Drafts folder (GreenMail) | Draft appears in Drafts on the server | not yet run |
@@ -144,6 +149,7 @@ swift test --package-path Packages/FlintCore     # engine, on the Mac
 | 8.7 | Re-authenticate and Remove account (GreenMail) | Remove asks first; mail of that account goes | not yet run |
 | 8.8 | Privacy: Face ID lock | Flat lock screen on launch and on return from background; flat cover (no mail) in the app switcher; Unlock asks Face ID or passcode; a cancelled prompt stays locked | state machine auto; lock screen sim (`-FlintFakeAuth`); real Face ID and app switcher device (O5) |
 | 8.9 | About: version and licenses | | sim |
+| 8.9a | Licenses | 24 bundled projects, each with copyright line and full license text | auto (logic); not seen on screen |
 
 ## 9. End to end on GreenMail
 

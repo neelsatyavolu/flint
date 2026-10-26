@@ -109,6 +109,7 @@ final class EndToEndTests: XCTestCase {
         XCTAssertTrue(done.waitForExistence(timeout: 60), app.debugDescription)
         hideKeyboard(app)
         declineSavePassword(app)
+        for _ in 0..<4 where !done.isHittable { app.swipeUp() }
         waitHittable(app, done, "done")
         done.tap()
     }
