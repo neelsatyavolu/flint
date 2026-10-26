@@ -98,6 +98,16 @@ describe("performAction", () => {
     await vi.waitFor(() => expect(s.api.undo).toHaveBeenCalledWith("u1"));
   });
 
+  it("moves the keyboard cursor to the neighbour when its row leaves", async () => {
+    const s = setup();
+    await loaded(s);
+    s.nav.getState().openThread(1);
+    s.nav.getState().setCursor("t2");
+    void performAction(s.deps, { type: "trash" }, [2]);
+    expect(s.nav.getState().cursorKey).toBe("t3");
+    expect(s.nav.getState().openId).toBe(1);
+  });
+
   it("ignores local-only draft rows (negative ids) for thread actions", async () => {
     const s = setup();
     await loaded(s);

@@ -1,6 +1,8 @@
 .scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; background: var(--plane-1); contain: strict; }
 /* The ring sits inside the pane: the scroller clips anything drawn outside it. */
 .scroll:focus-visible { outline-offset: -2px; }
+/* With an active row the row's own accent edge shows where focus is: no ring around the whole pane. */
+.scroll[aria-activedescendant]:focus-visible { outline: none; }
 /* The previous list, kept while the next one loads. */
 .stale { opacity: 0.5; transition: opacity var(--dur-fast) var(--ease); }
 .fill { flex: 1; min-height: 0; height: 100%; background: var(--plane-1); }

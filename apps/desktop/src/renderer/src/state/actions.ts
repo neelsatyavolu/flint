@@ -188,7 +188,10 @@ export async function performAction(deps: ActionDeps, action: ThreadAction, allI
       nav.getState().openThread(next);
       if (next === null) nav.getState().setCursor(null);
     } else if (navState.cursorKey && ids.some((id) => threadKey(id) === navState.cursorKey)) {
-      nav.getState().setCursor(null);
+      // The cursor steps to the row that takes its place, so the list never loses its active row.
+      const at = ids.find((id) => threadKey(id) === navState.cursorKey)!;
+      const next = pickAdvance(before.items, at, ids, "next");
+      nav.getState().setCursor(next === null ? null : threadKey(next));
     }
     if (navState.selected.length) nav.getState().setSelected(navState.selected.filter((id) => !ids.includes(id)));
     list.getState().hide(ids);
