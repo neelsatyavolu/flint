@@ -53,7 +53,7 @@ Client logic we would write on top:
 
 - Port `packages/core/src/db/schema.ts` migrations 1 to 8 as GRDB migrations with the same table and column names (`threads.thread_key`, `messages.gm_thrid`, `message_folders`, `pending_ops`, `tracked_*`, `kv_cache`, ...). Same names means shared fixtures, the same SQL for list and search queries, and room for a future DB-level import.
 - Why not SwiftData: no FTS5 or contentless tables, little control over indexes and migrations, and a 100k-message mailbox with background writers is exactly where its model-context rules hurt. Search is a core feature.
-- FTS5 on iOS: `messages_fts` uses `contentless_delete=1`, which needs SQLite 3.43+. This Mac's `sqlite3` is 3.54; the iOS 26/27 system SQLite version is unverified. Wave 1 prints `sqlite3_libversion()` on both simulators. If it is below 3.43, drop `contentless_delete` and delete FTS rows by rowid with an explicit shadow table, or link a custom SQLite build (GRDB documents this).
+- FTS5 on iOS: `messages_fts` uses `contentless_delete=1`, which needs SQLite 3.43+. Verified in Wave 1 spike S1 (`spikes/S1-sqlite.md`): iOS 26.5 ships SQLite 3.51.0 and iOS 27.0 ships 3.54.0, and `contentless_delete=1` works on both, so the desktop schema is used as is. Port FTS maintenance as DELETE then INSERT by rowid: an UPDATE of a subset of columns is rejected on contentless-delete tables.
 - Encryption: iOS Data Protection class `completeUntilFirstUserAuthentication` on the database directory (background refresh must read it while the phone is locked), not `complete`. No SQLCipher in v1: it adds a custom SQLite build and size for little gain over file protection. Revisit if the owner wants it.
 - Secrets in Keychain only (section 8). Raw HTML bodies are stored unsanitized like desktop and sanitized on read.
 - Attachments: files under `Caches/attachments` (re-downloadable), purged by a processing task.
@@ -92,7 +92,7 @@ packages/core/src/pairing/   Mac side of "Set up from your Mac"
 - Fonts: bundle Geist, Geist Mono, Newsreader (SIL OFL) and register in `UIAppFonts`. Type roles from DESIGN.md section 3 become a `FlintFont` enum using `Font.custom(_, size:, relativeTo:)` so Dynamic Type works. Bodies of mail follow the "Message" role.
 - Icons: the Lucide subset the app uses, as SVGs in the asset catalog (stroke 1.5). SF Symbols only where iOS requires them (share, system chrome).
 - Radius 0 planes and rows, 4 controls, 12 cards, no shadows. Motion 120/180 ms, off under Reduce Motion. Increase Contrast and Reduce Transparency mapped as in DESIGN.md.
-- Conflict to resolve in Wave 1: iOS 26 draws navigation bars, tab bars and toolbars with Liquid Glass, which DESIGN.md forbids. Plan: custom opaque `FlintBar` views instead of system bars; as a stopgap the Info.plist key `UIDesignRequiresCompatibility`. Whether that key still works with the iOS 27 SDK is unverified; Wave 1 tests it on the iOS 27 simulator.
+- Conflict to resolve in Wave 1: iOS 26 draws navigation bars, tab bars and toolbars with Liquid Glass, which DESIGN.md forbids. Resolved in Wave 1 spike S3 (`spikes/S3-liquid-glass.md`): `UIDesignRequiresCompatibility` works on the iOS 26.5 runtime but is ignored on iOS 27.0, so it is not a usable stopgap. Custom opaque `FlintBar` views with the system navigation bar hidden render flat on both runtimes; that is the plan, with no Info.plist key.
 - Dark mail: see section 5.
 
 ## 5. What ports from TypeScript, and how drift is prevented

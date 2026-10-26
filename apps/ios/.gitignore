@@ -1,0 +1,10 @@
+# XcodeGen output and Xcode build products
+Flint.xcodeproj/
+build/
+DerivedData/
+*.xcresult
+xcuserdata/
+*.xcuserstate
+.swiftpm/
+.build/
+scripts/testflight.local.sh

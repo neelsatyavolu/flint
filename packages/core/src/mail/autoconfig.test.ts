@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { loadFixture } from "../../fixtures";
 import { autoconfig, domainOf, KNOWN_PROVIDERS, mxHostOf, parseIspdb } from "./autoconfig";
 
 const xml = (imapSocket = "SSL", imapPort = 993) => `<?xml version="1.0"?><clientConfig version="1.1"><emailProvider id="example.org">
@@ -122,5 +123,31 @@ describe("autoconfig for Proton Mail", () => {
     expect(await mxHostOf("x.test", { resolveMx: async () => [{ exchange: "mx1.zoho.eu", priority: 1 }] })).toBe("zoho");
     expect(await mxHostOf("x.test", { resolveMx: async () => [{ exchange: "mx.unknown.example", priority: 1 }] })).toBeNull();
     expect(await mxHostOf("x.test", { resolveMx: async () => { throw new Error("ENODATA"); } })).toBeNull();
+  });
+});
+
+type ProviderInput = { fn: string; email?: string; ispdbXml?: string | null; mx?: string[] | "error"; open?: string[]; xml?: string; exchanges?: string[] | "error" };
+const providers = loadFixture<ProviderInput, any>("providers");
+
+describe("providers fixtures", () => {
+  it.each(providers.cases)("$name", async ({ input, expect: want }) => {
+    const mx = (list: string[] | "error" | undefined) => async () => {
+      if (list === "error") throw new Error("ENODATA");
+      return (list ?? []).map((exchange, priority) => ({ exchange, priority }));
+    };
+    switch (input.fn) {
+      case "autoconfig": {
+        const cfg = await autoconfig(input.email!, {
+          fetch: async () => ({ ok: input.ispdbXml !== null && input.ispdbXml !== undefined, text: async () => input.ispdbXml ?? "" }),
+          resolveMx: mx(input.mx), probe: async (h, p) => (input.open ?? []).includes(`${h}:${p}`),
+        });
+        return expect(JSON.parse(JSON.stringify(cfg))).toEqual(want);
+      }
+      case "parseIspdb": return expect(parseIspdb(input.xml!, input.email!)).toEqual(want);
+      case "mxHost": return expect(await mxHostOf("x.test", { resolveMx: mx(input.exchanges) })).toBe(want);
+      case "domainOf": {
+        try { return expect(domainOf(input.email!)).toBe(want); } catch (err) { return expect({ error: (err as { code: string }).code }).toEqual(want); }
+      }
+    }
   });
 });

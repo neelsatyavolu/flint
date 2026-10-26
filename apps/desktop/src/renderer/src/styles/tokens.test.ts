@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { loadFixture, refreshData } from "../../../../../../packages/core/fixtures";
 
 // Read from disk: Vitest empties CSS imports, `?raw` included.
 const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "tokens.css"), "utf8");
@@ -84,5 +85,23 @@ describe("design tokens", () => {
     expect(block(":root {")["--text-message"]).toBe("14.5px");
     expect(block(":root {")["--lh-message"]).toBe("22px");
     expect(css).toContain(".t-message {");
+  });
+});
+
+// Shared with the iOS app: tokens.json carries the Graphite (dark) and Paper (light) values and the contrast cases.
+refreshData("tokens", "themes", { dark, light, darkMore: block('[data-theme="dark"]', moreContrast), lightMore: block('[data-theme="light"]', moreContrast) });
+refreshData("tokens", "root", block(":root {"));
+const shared = loadFixture<Record<string, string>, any>("tokens");
+
+describe("shared token fixture", () => {
+  it("matches tokens.css", () => {
+    expect(shared.themes).toEqual({ dark, light, darkMore: block('[data-theme="dark"]', moreContrast), lightMore: block('[data-theme="light"]', moreContrast) });
+    expect(shared.root).toEqual(block(":root {"));
+  });
+
+  it.each(shared.cases)("$name", ({ input, expect: want }) => {
+    if (input.fn === "root") return expect(block(":root {")[input.token!]).toBe(want);
+    const themes = shared.themes as Record<string, Record<string, string>>;
+    expect(contrast(themes[input.fgTheme!]![input.fg!]!, themes[input.planeTheme!]![input.plane!]!)).toBeGreaterThanOrEqual(want.min);
   });
 });

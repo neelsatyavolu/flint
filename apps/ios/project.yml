@@ -1,0 +1,134 @@
+name: Flint
+# Generated project is gitignored: run `xcodegen generate` in apps/ios. Never edit Flint.xcodeproj.
+options:
+  bundleIdPrefix: co.xanom
+  developmentLanguage: en
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+  deploymentTarget:
+    iOS: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+    DEVELOPMENT_TEAM: VTQW687WBQ
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+packages:
+  FlintCore:
+    path: Packages/FlintCore
+targets:
+  Flint:
+    type: application
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: App
+        excludes:
+          - Resources/Info.plist
+    dependencies:
+      - package: FlintCore
+        product: FlintService
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.xanom.flint
+        PRODUCT_NAME: Flint
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS: NO
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: App/Resources/Info.plist
+    info:
+      path: App/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Flint
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen:
+          UIColorName: Plane0
+        UIApplicationSupportsIndirectInputEvents: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        # Bundled fonts (SIL OFL): Geist, Geist Mono, Newsreader. Static instances of the variable fonts.
+        UIAppFonts:
+          - Geist-Regular.ttf
+          - Geist-Medium.ttf
+          - Geist-SemiBold.ttf
+          - GeistMono-Regular.ttf
+          - GeistMono-Medium.ttf
+          - Newsreader-Regular.ttf
+        UIBackgroundModes:
+          - fetch
+          - processing
+        BGTaskSchedulerPermittedIdentifiers:
+          - co.xanom.flint.refresh
+          - co.xanom.flint.processing
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleURLTypes:
+          - CFBundleURLName: co.xanom.flint.pair
+            CFBundleTypeRole: Editor
+            CFBundleURLSchemes:
+              - flint
+          - CFBundleURLName: co.xanom.flint.google
+            CFBundleTypeRole: Editor
+            CFBundleURLSchemes:
+              - com.googleusercontent.apps.617596563618-84523hu1pellgad03t263u2mqig2i45i
+        NSLocalNetworkUsageDescription: Flint connects to your Mac on this network to copy your accounts and settings to this iPhone.
+        NSCameraUsageDescription: Flint uses the camera to scan the pairing code shown on your Mac and to attach photos you choose to take.
+        NSFaceIDUsageDescription: Flint uses Face ID to unlock the app when you turn on the app lock.
+        NSCalendarsWriteOnlyAccessUsageDescription: Flint adds an event to your calendar when you choose Add to Calendar on an invitation.
+  FlintTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: AppTests
+    dependencies:
+      - target: Flint
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.xanom.flint.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Flint.app/Flint
+        BUNDLE_LOADER: $(TEST_HOST)
+  FlintUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: AppUITests
+    dependencies:
+      - target: Flint
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.xanom.flint.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Flint
+schemes:
+  Flint:
+    build:
+      targets:
+        Flint: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - FlintTests
+        - FlintUITests
+    archive:
+      config: Release
