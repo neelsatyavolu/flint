@@ -14,7 +14,6 @@ export function htmlToText(html: string, opts: { wordwrap?: number | false } = {
       { selector: "a", options: { ignoreHref: false, hideLinkHrefIfSameAsText: true, linkBrackets: ["(", ")"] } },
       { selector: "table", format: "dataTable", options: { uppercaseHeaderCells: false } },
     ],
-    preserveNewlines: false,
   })
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")

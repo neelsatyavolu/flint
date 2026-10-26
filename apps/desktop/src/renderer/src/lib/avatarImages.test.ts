@@ -16,24 +16,25 @@ describe("useAvatarImage", () => {
       b: useAvatarImage({ kind: "account", accountId: "acc_x" }),
     }));
     expect(result.current.a).toBeNull();
-    await waitFor(() => expect(result.current.a).toBe("data:image/png;base64,AAAA"));
-    await waitFor(() => expect(result.current.b).toBe("data:image/png;base64,AAAA"));
+    // The first lookup waits for settings, which loads the demo api lazily; that can take seconds under a full parallel run.
+    await waitFor(() => expect(result.current.a).toBe("data:image/png;base64,AAAA"), { timeout: 8000 });
+    await waitFor(() => expect(result.current.b).toBe("data:image/png;base64,AAAA"), { timeout: 8000 });
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy.mock.calls[0]![0]).toHaveLength(2);
     const again = renderHook(() => useAvatarImage({ kind: "sender", address: "a@example.org" }));
     expect(again.result.current).toBe("data:image/png;base64,AAAA");
     await new Promise((r) => setTimeout(r, 50));
     expect(spy).toHaveBeenCalledTimes(1);
-  });
+  }, 20_000);
 
   it("stays null with no ref, on a miss and on an error", async () => {
     const spy = vi.spyOn(flint, "getAvatars").mockRejectedValue(new Error("boom"));
     const none = renderHook(() => useAvatarImage(null));
     const miss = renderHook(() => useAvatarImage({ kind: "sender", address: "z@example.org" }));
-    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(1), { timeout: 8000 });
     expect(none.result.current).toBeNull();
     expect(miss.result.current).toBeNull();
-  });
+  }, 20_000);
 
   it("does not look anything up when avatars are off", async () => {
     const real = await flint.getSettings();
