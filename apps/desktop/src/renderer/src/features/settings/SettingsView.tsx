@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, type JSX, type KeyboardEvent } from "react";
+import { useContext, useEffect, useRef, useState, type JSX, type KeyboardEvent } from "react";
 import {
   Bot, Eye, FileText, Filter, Info, Inbox, Keyboard, type LucideIcon, Bell, Ban, Palette, PenLine, Search, SlidersHorizontal, Sparkles, UserRound, X,
 } from "lucide-react";
@@ -14,10 +14,25 @@ const ICONS: Record<SectionId, LucideIcon> = {
   rules: Filter, receipts: Eye, notifications: Bell, ai: Sparkles, agents: Bot, shortcuts: Keyboard, blocked: Ban, about: Info,
 };
 
-/** Full view replacing list and reader. `section` deep-links ("rules", "ai/writing"); Esc and the close button call onClose. */
-export function SettingsView(props: { section?: string; onClose: () => void }): JSX.Element {
+/**
+ * Full view replacing list and reader. `section` deep-links ("rules", "ai/writing"); Esc and the close button call onClose.
+ * onSectionRead clears the link once it is read, so the same link sent again (a second Sign in again) still lands.
+ */
+export function SettingsView(props: { section?: string; onClose: () => void; onSectionRead?: () => void }): JSX.Element {
   const [target, setTarget] = useState(() => parseSection(props.section));
-  useEffect(() => setTarget(parseSection(props.section)), [props.section]);
+  // Bumped for each link after the first, so the page remounts and acts on it again even when it is the same page.
+  const [visit, setVisit] = useState(0);
+  const lastSection = useRef(props.section);
+  useEffect(() => {
+    if (props.section !== undefined) {
+      if (props.section !== lastSection.current) {
+        setTarget(parseSection(props.section));
+        setVisit((v) => v + 1);
+      }
+      props.onSectionRead?.();
+    }
+    lastSection.current = props.section;
+  }, [props.section]);
   const [query, setQuery] = useState("");
   const shown = filterSections(SECTIONS, query);
 
@@ -78,7 +93,7 @@ export function SettingsView(props: { section?: string; onClose: () => void }): 
       <main className={styles.scroll}>
         <div className={styles.column}>
           <SettingsProvider initial={initial} fallback={<Skeleton height={240} />}>
-            <View key={`${target.id}:${target.page ?? ""}`} page={target.page} />
+            <View key={`${target.id}:${target.page ?? ""}:${visit}`} page={target.page} />
           </SettingsProvider>
         </div>
       </main>

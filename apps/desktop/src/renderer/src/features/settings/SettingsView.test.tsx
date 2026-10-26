@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { shortcuts } from "../../lib/shortcuts";
+import { navStore, useNav } from "../../state/nav";
 import { ToastProvider } from "../../ui";
 import { SettingsView } from "./SettingsView";
 import { SECTIONS, filterSections, parseSection } from "./sections";
@@ -108,6 +109,29 @@ describe("SettingsView", () => {
     expect(await screen.findByRole("dialog", { name: "Sign in again" })).toBeTruthy();
     // The modal hides the page behind it from the accessibility tree, hence hidden: true. Only that account is expanded.
     expect(screen.getAllByRole("button", { name: /hide details$/, hidden: true })).toHaveLength(1);
+  });
+
+  it("opens Sign in again a second time when the banner sends the same link again", async () => {
+    // Wired like AppShell: the section comes from the nav store, which is cleared once Settings reads it.
+    function Shell() {
+      const section = useNav((s) => s.settingsSection);
+      return <ToastProvider><SettingsView section={section} onClose={() => {}} onSectionRead={() => navStore.setState({ settingsSection: undefined })} /></ToastProvider>;
+    }
+    const link = "accounts/acc_orbit/reauth";
+    navStore.getState().openSettings(link);
+    render(<Shell />);
+    const cancel = async () => {
+      fireEvent.click(within(await screen.findByRole("dialog", { name: "Sign in again" })).getByRole("button", { name: "Cancel" }));
+      await waitFor(() => expect(screen.queryByRole("dialog", { name: "Sign in again" })).toBeNull());
+    };
+    await cancel();
+    act(() => navStore.getState().openSettings(link));
+    await cancel();
+    // Moved away with the left nav, the same link brings the page and the dialog back.
+    fireEvent.click(screen.getByRole("button", { name: "About" }));
+    act(() => navStore.getState().openSettings(link));
+    expect(await screen.findByRole("dialog", { name: "Sign in again" })).toBeTruthy();
+    act(() => navStore.getState().closeSettings());
   });
 
   it("renders every section without errors", async () => {

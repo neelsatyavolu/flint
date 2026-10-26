@@ -127,7 +127,7 @@ export function AppShell() {
           {settingsOpen ? (
             <div className={styles.settings}>
               <div className={clsx(styles.dragStrip, "drag")} />
-              <Suspense fallback={null}><SettingsView section={section} onClose={() => navStore.getState().closeSettings()} /></Suspense>
+              <Suspense fallback={null}><SettingsView section={section} onClose={() => navStore.getState().closeSettings()} onSectionRead={() => navStore.setState({ settingsSection: undefined })} /></Suspense>
             </div>
           ) : (
             <MainView />
