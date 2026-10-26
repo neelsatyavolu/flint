@@ -28,6 +28,22 @@ describe("queued sends", () => {
     expect(store.getThreadRows(threadId)?.draftIds).toEqual([d.id]);
     expect(store.listThreads({ view: "drafts" }).items).toHaveLength(1);
   });
+
+  it("are listed as the thread's outgoing replies until they go out", () => {
+    const { store, s } = fixture();
+    store.ingestMessages(s.account.id, s.inbox.id, [msg({ uid: 50, from: [person("Dana")], to: [me()], subject: "Hello" })]);
+    const threadId = store.listThreads({ view: "inbox" }).items[0]!.id;
+    const d = store.createDraft({ accountId: s.account.id, from: "me@example.com", threadId, to: [person("Dana")], subject: "Re: Hello" }, T0);
+    expect(store.getThreadRows(threadId)?.outgoing).toEqual([]);
+    const row = store.createScheduledSend({ draftId: d.id, sendAt: T0 + 10_000 }, T0);
+    expect(store.getThreadRows(threadId)?.outgoing).toEqual([{ scheduledId: row.id, draftId: d.id, sendAt: T0 + 10_000, status: "pending" }]);
+    store.updateScheduled(row.id, { status: "sending" });
+    expect(store.getThreadRows(threadId)?.outgoing.map((o) => o.status)).toEqual(["sending"]);
+    store.updateScheduled(row.id, { status: "sent" });
+    expect(store.getThreadRows(threadId)?.outgoing).toEqual([]);
+    // Not a draft again in the moment before the sent draft is deleted.
+    expect(store.getThreadRows(threadId)?.draftIds).toEqual([]);
+  });
 });
 
 describe("Drafts view", () => {

@@ -211,7 +211,10 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
     async getThread(id): Promise<ThreadDetail> {
       await delay();
       const t = find(id);
-      return { id: t.id, accountId: t.accountId, subject: t.subject, category: t.category, pinned: t.pinned, muted: t.muted, snoozedUntil: t.snoozedUntil, messages: t.messages.map((m) => withCode(state, m)), draftIds: t.draftIds.filter((d) => !isQueuedDraft(state, d)) };
+      return { id: t.id, accountId: t.accountId, subject: t.subject, category: t.category, pinned: t.pinned, muted: t.muted, snoozedUntil: t.snoozedUntil, messages: t.messages.map((m) => withCode(state, m)), draftIds: t.draftIds.filter((d) => !isQueuedDraft(state, d)),
+        outgoing: state.scheduled
+          .filter((j) => t.draftIds.includes(j.draftId) && (j.status === "pending" || j.status === "awaiting_approval" || j.status === "sending"))
+          .map((j) => ({ scheduledId: j.id, draftId: j.draftId, sendAt: j.sendAt, status: j.status as "pending" | "awaiting_approval" | "sending" })) };
     },
     async getMessage(id) { await delay(); return withCode(state, findMessage(id)); },
 

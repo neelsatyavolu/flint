@@ -79,6 +79,20 @@ describe("Toast", () => {
     expect(screen.queryByText("Hold on")).toBeNull();
   });
 
+  it("counts down to a deadline with a draining bar, and hovering does not hold it", () => {
+    mount();
+    const until = Date.now() + 10_000;
+    act(() => void show({ message: "Sending in 10s", timeout: 10_000, countdown: { until, format: (s) => `Sending in ${s}s` } }));
+    const toast = screen.getByRole("status");
+    expect(toast.textContent).toContain("Sending in 10s");
+    expect(toast.querySelector("[style*='animation-duration']")).not.toBeNull();
+    fireEvent.mouseEnter(toast);
+    act(() => void vi.advanceTimersByTime(3_100));
+    expect(screen.getByRole("status").textContent).toContain("Sending in 7s");
+    act(() => void vi.advanceTimersByTime(7_000));
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("closes from its X button", () => {
     mount();
     act(() => void show({ message: "Sticky", timeout: 0 }));

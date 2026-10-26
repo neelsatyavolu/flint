@@ -21,6 +21,8 @@ const InlineReplyDock = lazy(() => loadReplyDock().then((m) => ({ default: m.Inl
 import { QuickReplies } from "../ai/QuickReplies";
 import { ThreadSummary } from "../ai/ThreadSummary";
 import { DraftCard } from "./DraftCard";
+import { OutgoingCard } from "./OutgoingCard";
+import { useOutgoing } from "./useOutgoing";
 import { FrameGateContext, type FrameGate } from "./frameGate";
 import { MessageItem } from "./MessageItem";
 import { ReaderToolbar, OUT_OF_INBOX } from "./ReaderToolbar";
@@ -301,6 +303,7 @@ function ThreadBody({ thread, refetch, staged, stale, onReady }: BodyProps) {
   const openingDraft = dockOpen ? request.draftId : undefined;
   const liveDraftId = useInlineReply((s) => s.liveDraftId);
   const drafts = thread.draftIds.filter((id) => id !== openingDraft && id !== liveDraftId);
+  const outgoing = useOutgoing(thread);
   const quickReply = (seedText: string) => target && useInlineReply.getState().open({ threadId: thread.id, messageId: target.id, mode: "reply", seedText });
 
   return (
@@ -315,6 +318,13 @@ function ThreadBody({ thread, refetch, staged, stale, onReady }: BodyProps) {
             <MessageItem key={m.id} message={m} expanded={expanded.has(m.id)} selfAddresses={selfAddresses} onToggle={toggle} onUpdated={refetch} now={now} />
           ))}
         </div>
+        {outgoing.length ? (
+          <div className={styles.drafts}>
+            {outgoing.map(({ send, departed }) => (
+              <OutgoingCard key={`o${send.scheduledId}`} send={send} departed={departed} threadId={thread.id} messageId={target?.id ?? null} onChanged={() => { setDraftRev((n) => n + 1); refetch(); }} />
+            ))}
+          </div>
+        ) : null}
         {drafts.length ? (
           <div className={styles.drafts}>
             {drafts.map((id) => (

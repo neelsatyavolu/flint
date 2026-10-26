@@ -11,8 +11,11 @@ type LocalDraftRow = {
   attachments_json: string; updated_at: number;
 };
 
-/** A draft whose send is queued (in its undo window, scheduled or going out) is no longer a draft to edit; the Scheduled view and the undo toast own it. */
-export const NOT_QUEUED_DRAFT = "NOT EXISTS (SELECT 1 FROM scheduled_sends s WHERE s.draft_id = drafts.id AND s.status IN ('pending','awaiting_approval','sending'))";
+/**
+ * A draft whose send is queued (in its undo window, scheduled or going out) is no longer a draft to edit; the Scheduled
+ * view and the undo toast own it. A sent one is not either, in the moment before the service deletes it.
+ */
+export const NOT_QUEUED_DRAFT = "NOT EXISTS (SELECT 1 FROM scheduled_sends s WHERE s.draft_id = drafts.id AND s.status IN ('pending','awaiting_approval','sending','sent'))";
 
 export type DraftListEntry = { key: number; id: number; item: ThreadListItem };
 

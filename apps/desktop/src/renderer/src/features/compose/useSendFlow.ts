@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { flint } from "../../lib/api";
 import { useToast } from "../../ui/Toast";
 import { openComposer } from "./composerStore";
-import { describeSend, undoSendLabel } from "./sendToast";
+import { describeSend, sendingIn, undoSendLabel } from "./sendToast";
 import { checkSend, type SoftStop } from "./validate";
 import type { useComposerSession } from "./useComposerSession";
 
@@ -17,7 +17,7 @@ export const NO_ATTACHMENT = { title: "Send without an attachment?", body: "You 
 
 type ToastApi = ReturnType<typeof useToast>;
 
-type ArmedUndo = { toast: ToastApi; toastId: number; undo: () => void; timer: ReturnType<typeof setTimeout> };
+type ArmedUndo = { scheduledId: number; toast: ToastApi; toastId: number; undo: () => void; timer: ReturnType<typeof setTimeout> };
 
 /** Sends still inside their undo window, oldest first. Undo (keyboard or menu) cancels the newest. */
 const armed: ArmedUndo[] = [];
@@ -42,9 +42,17 @@ export function undoLatestSend(): boolean {
   return true;
 }
 
+/** Called after a send was undone somewhere else (its card in the thread): its toast and ⌘Z go too. */
+export function forgetSend(scheduledId: number): void {
+  for (const entry of armed.filter((a) => a.scheduledId === scheduledId)) {
+    disarm(entry);
+    entry.toast.dismiss(entry.toastId);
+  }
+}
+
 /** Arms undoLatestSend for this send until its window closes. Returns a function that disarms it early. */
-function armUndoKey(toast: ToastApi, toastId: number, windowMs: number, undo: () => void): () => void {
-  const entry: ArmedUndo = { toast, toastId, undo, timer: setTimeout(() => disarm(entry), windowMs) };
+function armUndoKey(scheduledId: number, toast: ToastApi, toastId: number, windowMs: number, undo: () => void): () => void {
+  const entry: ArmedUndo = { scheduledId, toast, toastId, undo, timer: setTimeout(() => disarm(entry), windowMs) };
   armed.push(entry);
   return () => disarm(entry);
 }
@@ -77,9 +85,10 @@ export function useSendFlow(session: Session, onSent: () => void) {
       const id = toast.show({
         message: info.message,
         timeout: info.timeoutMs,
+        countdown: info.until !== undefined ? { until: info.until, format: sendingIn } : undefined,
         action: info.undoable ? { label: undoSendLabel(), onClick: () => { disarm(); undo(); } } : undefined,
       });
-      if (info.undoable) disarm = armUndoKey(toast, id, info.timeoutMs, undo);
+      if (info.undoable) disarm = armUndoKey(outcome.result.scheduledId, toast, id, info.timeoutMs, undo);
     },
     [onSent, session, toast],
   );

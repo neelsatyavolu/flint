@@ -127,6 +127,7 @@ export function readingApi(ctx: ServiceContext): ReadingApi {
         snoozedUntil: rows.snoozedUntil,
         messages: views.map((v) => withInvite(ctx, withBadge(v))),
         draftIds: rows.draftIds,
+        outgoing: rows.outgoing,
       };
     },
 

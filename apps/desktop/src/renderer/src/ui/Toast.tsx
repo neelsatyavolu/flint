@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import clsx from "clsx";
 import { X } from "lucide-react";
 import { flint } from "../lib/api";
@@ -15,6 +15,11 @@ export type ToastInput = {
   timeout?: number;
   level?: "info" | "error";
   /**
+   * A deadline the toast counts down to, e.g. an undo-send window: the message is redrawn every second from `format`
+   * and a bar drains until `until` (epoch ms). Pointer and focus do not hold it: the deadline is real.
+   */
+  countdown?: { until: number; format: (secondsLeft: number) => string };
+  /**
    * Runs once when the toast goes without its action or secondary action being pressed: it timed out, was closed, or
    * newer toasts pushed it out. Lets a deferred change commit exactly when its Undo is no longer on screen.
    */
@@ -24,6 +29,20 @@ type ToastItem = ToastInput & { id: number };
 type ToastApi = { show: (t: ToastInput) => number; dismiss: (id: number) => void };
 
 const ToastContext = createContext<ToastApi | null>(null);
+
+/** Whole seconds until `until`, rounded up, redrawn as they tick; null without a deadline. */
+function useSecondsLeft(until: number | undefined): number | null {
+  const left = () => (until === undefined ? null : Math.max(0, Math.ceil((until - Date.now()) / 1000)));
+  const [value, setValue] = useState(left);
+  useEffect(() => {
+    if (until === undefined) return;
+    const t = setInterval(() => setValue(left()), 250);
+    return () => clearInterval(t);
+    // left only closes over until.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [until]);
+  return value;
+}
 const MAX_VISIBLE = 3;
 const DEFAULT_TIMEOUT = 5000;
 
@@ -37,13 +56,19 @@ function ToastView({ toast, onDismiss, onAct }: { toast: ToastItem; onDismiss: (
   // The timer waits while the pointer is over the toast or focus is inside it, so it can't vanish mid-read or mid-Tab.
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
-  const paused = hovered || focused;
-  const timeout = toast.timeout ?? DEFAULT_TIMEOUT;
+  const { countdown } = toast;
+  const paused = !countdown && (hovered || focused);
+  const timeout = countdown ? Math.max(0, countdown.until - Date.now()) : toast.timeout ?? DEFAULT_TIMEOUT;
   useEffect(() => {
-    if (paused || timeout === 0) return;
+    if (paused || (timeout === 0 && !countdown)) return;
     const t = setTimeout(() => onDismiss(toast.id), timeout);
     return () => clearTimeout(t);
-  }, [paused, timeout, toast.id, onDismiss]);
+    // timeout is read once per pause change: a countdown's deadline does not move.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paused, toast.id, onDismiss]);
+  const secondsLeft = useSecondsLeft(countdown?.until);
+  // The bar starts at the share of the window still left (the toast can appear a beat after the send was queued).
+  const [bar] = useState(() => (countdown && toast.timeout ? { from: Math.min(1, timeout / toast.timeout), ms: timeout } : countdown ? { from: 1, ms: timeout } : null));
 
   return (
     <div
@@ -56,7 +81,7 @@ function ToastView({ toast, onDismiss, onAct }: { toast: ToastItem; onDismiss: (
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
       }}
     >
-      <span className={styles.message}>{toast.message}</span>
+      <span className={styles.message}>{countdown && secondsLeft !== null ? countdown.format(secondsLeft) : toast.message}</span>
       {toast.action ? (
         <>
           <span className={styles.dot} aria-hidden>·</span>
@@ -90,6 +115,7 @@ function ToastView({ toast, onDismiss, onAct }: { toast: ToastItem; onDismiss: (
       <IconButton label="Dismiss" size={24} className={styles.close} onClick={() => onDismiss(toast.id)}>
         <X size={14} strokeWidth={1.5} />
       </IconButton>
+      {bar ? <span className={styles.progress} style={{ "--from": bar.from, animationDuration: `${bar.ms}ms` } as CSSProperties} aria-hidden /> : null}
     </div>
   );
 }

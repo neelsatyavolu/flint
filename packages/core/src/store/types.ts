@@ -1,5 +1,5 @@
 import type {
-  AccountId, Address, AttachmentInfo, Category, FolderId, MailboxRole, MessageRowId, Provider, RuleAction, ThreadId,
+  AccountId, Address, AttachmentInfo, Category, FolderId, MailboxRole, MessageRowId, OutgoingSend, Provider, RuleAction, ThreadId,
 } from "../types";
 
 export type IngestAttachment = {
@@ -127,6 +127,7 @@ export type ThreadRows = {
   /** Oldest first. */
   messages: StoredThreadMessage[];
   draftIds: number[];
+  outgoing: OutgoingSend[];
 };
 
 /** Where a message lives, for IMAP operations. */

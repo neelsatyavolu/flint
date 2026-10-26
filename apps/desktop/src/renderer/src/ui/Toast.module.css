@@ -12,6 +12,8 @@
   pointer-events: none;
 }
 .toast {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: var(--s-2);
@@ -33,3 +35,18 @@
 .action { flex: none; border: 0; background: transparent; padding: 4px 2px; color: var(--accent); font-weight: 600; border-radius: var(--r-control); white-space: nowrap; }
 .close { flex: none; }
 .action:hover { text-decoration: underline; }
+/* A countdown toast's deadline: a hairline along the bottom edge that drains to the left. */
+.progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--accent);
+  transform-origin: left center;
+  animation-name: drain;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  pointer-events: none;
+}
+@keyframes drain { from { transform: scaleX(var(--from, 1)); } to { transform: scaleX(0); } }

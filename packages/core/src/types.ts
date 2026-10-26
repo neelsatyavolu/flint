@@ -211,7 +211,12 @@ export type ThreadDetail = {
   snoozedUntil: number | null;
   messages: MessageView[]; // oldest first
   draftIds: number[];
+  /** Replies already sent from this thread that have not gone out yet (undo window, send later, approval). */
+  outgoing?: OutgoingSend[];
 };
+
+/** A queued send of a draft in a thread: the reader shows it at the end of the conversation until it goes out. */
+export type OutgoingSend = { scheduledId: number; draftId: number; sendAt: number; status: "pending" | "awaiting_approval" | "sending" };
 
 export type SidebarAccount = { account: Account; inboxUnread: number; folders: Folder[]; sync: SyncStatus };
 export type SidebarData = {
