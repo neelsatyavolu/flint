@@ -6,4 +6,6 @@
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .subject { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .meta { color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.side { flex: none; display: flex; gap: 8px; }
+.side { flex: none; display: flex; align-items: center; gap: 8px; }
+/* A failed send's full reason, wrapped rather than cut off. */
+.error { color: var(--danger); overflow-wrap: anywhere; user-select: text; }

@@ -36,7 +36,7 @@ function Row({ item, draftId, onDecide }: { item: AgentActivity; draftId: number
 /** Timeline of every call agents made through the CLI and agent API, with Approve and Deny for queued sends. */
 export function AgentActivityView() {
   const toast = useToast();
-  const { data, loading, refetch } = useFlintQuery((api) => api.listAgentActivity({ limit: 100 }), [], { refetchOn: ["agent_activity", "send"], mail: false });
+  const { data, error, loading, refetch } = useFlintQuery((api) => api.listAgentActivity({ limit: 100 }), [], { refetchOn: ["agent_activity", "send"], mail: false });
   const scheduled = useFlintQuery((api) => api.listScheduled(), [], { refetchOn: ["send"], mail: false });
   const draftOf = (item: AgentActivity): number | null | undefined => {
     if (!scheduled.data) return scheduled.error ? null : undefined;
@@ -65,6 +65,13 @@ export function AgentActivityView() {
       <div className={styles.scroll}>
         {!data && loading ? (
           <SkeletonRows count={6} density="compact" />
+        ) : !data && error ? (
+          <EmptyState
+            title="Couldn't load agent activity."
+            description={error.message}
+            action={<Button size="sm" variant="secondary" onClick={refetch}>Try again</Button>}
+            markSize={48}
+          />
         ) : groups.length === 0 ? (
           <EmptyState title="No agent activity." description="Calls from the flint command and other agents show up here." markSize={48} />
         ) : (
