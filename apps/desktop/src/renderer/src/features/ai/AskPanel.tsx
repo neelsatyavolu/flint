@@ -9,10 +9,10 @@ import { RunAnnouncer, runAnnouncement } from "./RunAnnouncer";
 import type { useAsk } from "./useAsk";
 import styles from "./Ask.module.css";
 
-type Props = { conversation: ReturnType<typeof useAsk>; onClose: () => void };
+type Props = { conversation: ReturnType<typeof useAsk>; onClose: () => void; /** Distance from the window's bottom edge, as for the Ask field. */ bottom?: number };
 
-/** 380px side panel: questions in UI type, answers in Prose, cited threads as rows. */
-export function AskPanel({ conversation, onClose }: Props): JSX.Element {
+/** A floating panel bottom-right, in place of the Ask field: questions in UI type, answers in Prose, cited threads as rows. */
+export function AskPanel({ conversation, onClose, bottom = 16 }: Props): JSX.Element {
   const { turns, ask, stop } = conversation;
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -61,7 +61,7 @@ export function AskPanel({ conversation, onClose }: Props): JSX.Element {
   };
 
   return (
-    <aside ref={panelRef} className={styles.panel} aria-label="Ask">
+    <aside ref={panelRef} className={styles.panel} style={{ bottom }} aria-label="Ask">
       <RunAnnouncer message={last ? runAnnouncement(last.run, { busy: "Answering", done: "Answer ready" }) : ""} />
       <header className={styles.head}>
         <span className={`t-title ${styles.title}`}><Sparkles size={16} strokeWidth={1.5} aria-hidden />Ask</span>

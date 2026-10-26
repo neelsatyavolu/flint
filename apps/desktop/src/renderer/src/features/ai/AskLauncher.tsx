@@ -38,13 +38,14 @@ export function AskLauncher(): JSX.Element | null {
     return () => { root.removeProperty("--ask-clearance"); };
   }, [minimized, replying]);
 
-  if (open) return <AskPanel conversation={conversation} onClose={() => setOpen(false)} />;
+  const bottom = 16 + (minimized ? minimized * 36 + 8 : 0);
+  if (open) return <AskPanel conversation={conversation} onClose={() => setOpen(false)} bottom={bottom} />;
   if (covered) return null;
 
   return (
     <form
       className={styles.launcher}
-      style={{ bottom: 16 + (minimized ? minimized * 36 + 8 : 0) }}
+      style={{ bottom }}
       onSubmit={(e) => {
         e.preventDefault();
         setOpen(true);

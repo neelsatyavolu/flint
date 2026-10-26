@@ -8,16 +8,21 @@
 .field { flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: transparent; color: var(--fg); font: 400 var(--text-body) / 1 var(--font-ui); caret-color: var(--accent); -webkit-user-select: text; user-select: text; }
 .field::placeholder { color: var(--fg-3); }
 .panel {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 60; width: 380px;
-  display: flex; flex-direction: column; background: var(--plane-2); border-left: 1px solid var(--line);
-  animation: in var(--dur-panel) var(--ease);
+  /* Floats where the Ask field sits and grows with the conversation, up to most of the window. */
+  position: fixed; right: 16px; z-index: 60; width: min(420px, calc(100vw - 32px));
+  max-height: min(620px, calc(100vh - var(--titlebar-h) - 32px));
+  display: flex; flex-direction: column; background: var(--plane-3); border: 1px solid var(--line-strong); border-radius: var(--r-control);
+  transform-origin: bottom right; animation: in var(--dur-panel) var(--ease);
 }
-@keyframes in { from { opacity: 0; transform: translateX(8px); } }
-.head { display: flex; align-items: center; justify-content: space-between; height: var(--titlebar-h); padding: 0 var(--s-3) 0 var(--s-4); flex: none; }
+@keyframes in { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
+@media (prefers-reduced-motion: reduce) { .panel { animation: none; } }
+.head { display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 0 var(--s-2) 0 var(--s-4); flex: none; border-bottom: 1px solid var(--line); }
 .title { display: inline-flex; align-items: center; gap: var(--s-2); }
 .title svg { color: var(--accent); }
-.scroll { flex: 1; overflow-y: auto; padding: var(--s-2) var(--s-4) var(--s-4); }
-.turn { margin-bottom: var(--s-6); }
+.scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: var(--s-4) var(--s-4) var(--s-2); }
+.turn { margin-bottom: var(--s-5); }
+/* Focus moves to a finished answer for screen readers; it needs no ring. */
+.turn:focus { outline: none; }
 .q { margin: 0 0 var(--s-2); color: var(--fg); font: 600 var(--text-body) / var(--lh-body) var(--font-ui); -webkit-user-select: text; user-select: text; }
 .note { color: var(--fg-3); }
 .caret { display: inline-block; width: 2px; height: 1em; margin-left: 2px; vertical-align: text-bottom; background: var(--accent); animation: blink 1s steps(1) infinite; }
@@ -28,7 +33,7 @@
 .cite:focus-visible { outline: var(--focus-ring); outline-offset: -2px; }
 .cite span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cite svg { flex: none; color: var(--fg-3); }
-.foot { flex: none; padding: var(--s-3) var(--s-4); border-top: 1px solid var(--line); display: flex; gap: var(--s-2); align-items: center; }
+.foot { flex: none; padding: var(--s-2) var(--s-2) var(--s-2) var(--s-3); border-top: 1px solid var(--line); display: flex; gap: var(--s-2); align-items: center; }
 .foot .field { height: 32px; padding: 0 var(--s-3); border: 1px solid var(--line-strong); border-radius: var(--r-control); }
 .foot .field:focus { border-color: var(--accent); }
-.empty { color: var(--fg-3); padding-top: var(--s-4); }
+.empty { margin: 0 0 var(--s-2); color: var(--fg-3); }

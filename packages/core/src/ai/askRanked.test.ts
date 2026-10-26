@@ -58,3 +58,23 @@ describe("planAsk with ranked retrieval", () => {
     expect(await retrieveRanked(ctx, { terms: ["a"], phrases: [], from: [] })).toEqual([]);
   });
 });
+
+describe("planAsk for a question with nothing to search", () => {
+  const brief = (threadId: number, unread: number) => ({
+    threadId, subject: `Brief ${threadId}`, date: NOW - threadId, from, lastText: `latest ${threadId}`, unreadCount: unread, messageCount: 1, lastFromMe: false, answered: false,
+  });
+
+  it("answers from recent unread and waiting mail instead of giving up", async () => {
+    const listThreadsForAi = vi.fn(async (kind: string) => (kind === "unread_people" ? [brief(1, 2), brief(2, 1)] : [brief(2, 1), brief(3, 0)]));
+    const ctx = makeContext({ timeZone: "UTC", now: () => NOW, rankedSearchForAi: async () => [], listThreadsForAi, getThreadForAi: async () => null });
+    const { plan, hits } = await planAsk({ kind: "ask", question: "Anything pressing?" }, ctx);
+    expect(plan.immediate).toBeUndefined();
+    expect(hits.map((h) => h.threadId)).toEqual([1, 2, 3]);
+    expect(String(plan.messages.at(-1)?.content)).toContain("recent");
+  });
+
+  it("still says nothing matched when there is no recent mail either", async () => {
+    const ctx = makeContext({ rankedSearchForAi: async () => [], listThreadsForAi: async () => [] });
+    expect((await planAsk({ kind: "ask", question: "Anything pressing?" }, ctx)).plan.immediate).toMatch(/couldn't find/);
+  });
+});
