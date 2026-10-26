@@ -10,11 +10,14 @@ describe("useAvatarImage", () => {
   it("batches asks from several avatars into one call and caches the answer", async () => {
     const spy = vi.spyOn(flint, "getAvatars").mockImplementation(async (refs) =>
       Object.fromEntries(refs.map((r) => [r.kind === "account" ? `account:${r.accountId}` : `sender:${r.address.toLowerCase()}`, "data:image/png;base64,AAAA"])));
-    const a = renderHook(() => useAvatarImage({ kind: "sender", address: "a@example.org" }));
-    const b = renderHook(() => useAvatarImage({ kind: "account", accountId: "acc_x" }));
-    expect(a.result.current).toBeNull();
-    await waitFor(() => expect(a.result.current).toBe("data:image/png;base64,AAAA"));
-    await waitFor(() => expect(b.result.current).toBe("data:image/png;base64,AAAA"));
+    // Both avatars mount in the same render, as rows of a list do, so they land in one batch however busy the machine is.
+    const { result } = renderHook(() => ({
+      a: useAvatarImage({ kind: "sender", address: "a@example.org" }),
+      b: useAvatarImage({ kind: "account", accountId: "acc_x" }),
+    }));
+    expect(result.current.a).toBeNull();
+    await waitFor(() => expect(result.current.a).toBe("data:image/png;base64,AAAA"));
+    await waitFor(() => expect(result.current.b).toBe("data:image/png;base64,AAAA"));
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy.mock.calls[0]![0]).toHaveLength(2);
     const again = renderHook(() => useAvatarImage({ kind: "sender", address: "a@example.org" }));
