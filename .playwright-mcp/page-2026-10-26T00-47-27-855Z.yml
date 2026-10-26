@@ -1,0 +1,112 @@
+- generic [ref=f4e4]:
+  - complementary [ref=f4e5]:
+    - navigation "Mailboxes" [ref=f4e881]:
+      - generic [ref=f4e7]:
+        - button "Sync now" [ref=f4e882]
+        - button "Hide sidebar" [ref=f4e883]
+      - generic [ref=f4e17]:
+        - generic [ref=f4e18]:
+          - button "Home" [ref=f4e884]
+          - generic [ref=f4e26]:
+            - button "Collapse Inbox" [expanded] [ref=f4e885]
+            - button "Inbox 19" [ref=f4e886]:
+              - generic [ref=f4e35]: Inbox
+              - generic [ref=f4e36]: "19"
+          - button "Alex Rivera alex@nor thwind.dev 13" [ref=f4e887]:
+            - img "Alex Rivera" [ref=f4e888]:
+              - generic [aria-hidden] [ref=f4e41]: AR
+            - generic "alex@northwind.dev" [ref=f4e889]:
+              - generic [ref=f4e43]: alex@nor
+              - generic [ref=f4e44]: thwind.dev
+            - generic [ref=f4e45]: "13"
+          - button "Alex Rivera alex@studio -orbit.com 3" [ref=f4e890]:
+            - img "Alex Rivera" [ref=f4e891]:
+              - generic [aria-hidden] [ref=f4e50]: AR
+            - generic "alex@studio-orbit.com" [ref=f4e892]:
+              - generic [ref=f4e52]: alex@studio
+              - generic [ref=f4e53]: "-orbit.com"
+            - generic [ref=f4e54]: "3"
+          - button "Alex Rivera alex.rivera @gmail.com 3" [ref=f4e893]:
+            - img "Alex Rivera" [ref=f4e894]:
+              - generic [aria-hidden] [ref=f4e59]: AR
+            - generic "alex.rivera@gmail.com" [ref=f4e895]:
+              - generic [ref=f4e61]: alex.rivera
+              - generic [ref=f4e62]: "@gmail.com"
+            - generic [ref=f4e63]: "3"
+          - button "Agent Activity 1" [ref=f4e896]:
+            - generic [ref=f4e69]: Agent Activity
+            - generic [ref=f4e70]: "1"
+          - button "Pins" [ref=f4e897]
+          - button "Drafts 2" [ref=f4e898]:
+            - generic [ref=f4e83]: Drafts
+            - generic [ref=f4e84]: "2"
+          - button "Sent" [ref=f4e899]
+          - button "Scheduled 2" [ref=f4e900]:
+            - generic [ref=f4e99]: Scheduled
+            - generic [ref=f4e100]: "2"
+          - button "Snoozed" [ref=f4e901]
+          - generic [ref=f4e108]:
+            - button "Expand Trash" [ref=f4e902]
+            - button "Trash" [ref=f4e903]
+          - button "Spam 1" [active] [ref=f4e904]:
+            - generic [ref=f4e123]: Spam
+            - generic [ref=f4e124]: "1"
+        - generic [ref=f4e125]:
+          - generic [ref=f4e126]: Folders
+          - button "Archive" [ref=f4e905]
+          - button "Blocked" [ref=f4e906]
+          - button "Read Statuses" [ref=f4e907]
+          - generic [ref=f4e149]:
+            - button "Expand More" [ref=f4e908]
+            - button "More" [ref=f4e909]
+      - generic [ref=f4e160]:
+        - button "AI Agents" [ref=f4e910]
+        - button "Settings" [ref=f4e911]
+  - separator "Resize sidebar" [ref=f4e912]
+  - main [ref=f4e176]:
+    - generic [ref=f4e177]:
+      - generic [ref=f4e178]:
+        - generic [ref=f4e179]:
+          - generic [ref=f4e180]:
+            - button "Spam, choose account" [ref=f4e913]:
+              - generic [ref=f4e182]: Spam
+            - generic [ref=f4e185]: All accounts
+          - generic [ref=f4e186]:
+            - button "Search" [ref=f4e914]
+            - button "Compose" [ref=f4e915]
+        - listbox "Conversations" [ref=f4e916]:
+          - generic [aria-hidden] [ref=f4e203]: THIS WEEK
+          - generic [ref=f4e204]:
+            - generic [ref=f4e917]: THIS WEEK
+            - option "Deal Desk Deal Desk Mon Newsletter spam test Limited time offer on bulk storage. Reply STOP to opt out. Pin Archive Trash Snooze" [ref=f4e920]:
+              - img "Deal Desk" [ref=f4e921]:
+                - generic [aria-hidden] [ref=f4e922]: DD
+              - generic [ref=f4e923]:
+                - generic [ref=f4e924]:
+                  - generic [ref=f4e925]: Deal Desk
+                  - generic [ref=f4e926]: Mon
+                - generic [ref=f4e928]: Newsletter spam test
+                - generic [ref=f4e931]: Limited time offer on bulk storage. Reply STOP to opt out.
+              - generic:
+                - button "Pin"
+                - button "Archive"
+                - button "Trash"
+                - button "Snooze"
+      - separator "Resize list" [ref=f4e932]
+      - region "Conversation" [ref=f4e520]:
+        - generic [ref=f4e521]: Opened Freelancing Cycle 3
+        - generic [ref=f4e522]:
+          - generic [ref=f4e523]:
+            - button "Not spam" [disabled]
+            - button "Trash" [disabled]
+            - button "Move to folder" [disabled]
+            - button "Snooze" [disabled]
+            - button "Pin" [disabled]
+            - button "Mark as unread" [disabled]
+          - generic [ref=f4e549]:
+            - button "Reply" [disabled]
+            - button "Reply all" [disabled]
+            - button "Forward" [disabled]
+            - button "More" [disabled]
+        - img "Flint" [ref=f4e934]
+  - textbox "Ask anything" [ref=f4e942]

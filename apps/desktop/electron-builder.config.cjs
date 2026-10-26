@@ -37,6 +37,9 @@ process.stderr.write(
     : "[electron-builder] Building unsigned (run scripts/dist.sh --apple for a release)\n",
 );
 
+const extensionBuilt = fs.existsSync(path.join(__dirname, "../browser-extension/dist/chromium/manifest.json"));
+if (!extensionBuilt) process.stderr.write("[electron-builder] apps/browser-extension/dist is missing: building without the browser extension (pnpm --filter @flint/browser-extension build)\n");
+
 /** @type {import('electron-builder').Configuration} */
 module.exports = {
   appId: "co.xanom.flint",
@@ -55,7 +58,12 @@ module.exports = {
   },
   // The main process bundle includes every dependency, so no node_modules ship.
   files: ["out/**", "package.json", "!node_modules/**/*"],
-  extraResources: [{ from: "../cli/dist/flint.js", to: "cli/flint.js" }],
+  extraResources: [
+    { from: "../cli/dist/flint.js", to: "cli/flint.js" },
+    // The built verification code extension (dist/chromium and dist/firefox) for "Load unpacked" from Settings.
+    // scripts/dist.sh builds it first; a build made without it simply ships no extension (Settings says so).
+    ...(extensionBuilt ? [{ from: "../browser-extension/dist", to: "browser-extension" }] : []),
+  ],
   protocols: [{ name: "Mail link", schemes: ["mailto"] }],
   // The update feed: electron-builder writes app-update.yml into the app and latest-mac.yml next to the
   // builds; scripts/release.sh uploads both with the zips to the GitHub release.

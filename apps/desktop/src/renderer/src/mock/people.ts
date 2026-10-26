@@ -27,6 +27,7 @@ export const PEOPLE = {
 export type PersonKey = keyof typeof PEOPLE;
 
 export const SENDERS = {
+  kayak: { name: "KAYAK", address: "no-reply@kayak.example" },
   googleSecurity: { name: "Google", address: "no-reply@accounts.google.com" },
   googleCalendar: { name: "Google Calendar", address: "calendar-notification@google.com" },
   gitforge: { name: "Gitforge", address: "notifications@gitforge.dev" },

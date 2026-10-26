@@ -1,0 +1,471 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e4]:
+    - complementary [aria-hidden] [ref=f1e5]:
+      - navigation [ref=f1e2697]:
+        - generic [ref=f1e7]:
+          - button [ref=f1e2698]
+          - button [ref=f1e2699]
+        - generic [ref=f1e8]:
+          - generic [ref=f1e19]:
+            - button [ref=f1e2700]:
+              - generic [ref=f1e471]: Home
+            - generic [ref=f1e472]:
+              - button [expanded] [ref=f1e2701]
+              - button [ref=f1e2702]:
+                - generic [ref=f1e481]: Inbox
+                - generic [ref=f1e482]: "18"
+            - button [ref=f1e2703]:
+              - img [ref=f1e2704]:
+                - generic [aria-hidden] [ref=f1e487]: A
+              - generic [ref=f1e2705]:
+                - generic [ref=f1e489]: alex@nor
+                - generic [ref=f1e490]: thwind.dev
+              - generic [ref=f1e491]: "13"
+            - button [ref=f1e2706]:
+              - img [ref=f1e2707]:
+                - generic [aria-hidden] [ref=f1e496]: A
+              - generic [ref=f1e2708]:
+                - generic [ref=f1e498]: alex@studio
+                - generic [ref=f1e499]: "-orbit.com"
+              - generic [ref=f1e500]: "3"
+            - button [ref=f1e2709]:
+              - img [ref=f1e2710]:
+                - generic [aria-hidden] [ref=f1e505]: A
+              - generic [ref=f1e2711]:
+                - generic [ref=f1e507]: alex.rivera
+                - generic [ref=f1e508]: "@gmail.com"
+              - generic [ref=f1e509]: "2"
+            - button [ref=f1e2712]:
+              - generic [ref=f1e515]: Agent Activity
+              - generic [ref=f1e516]: "1"
+            - button [ref=f1e2713]:
+              - generic [ref=f1e522]: Pins
+            - button [ref=f1e2714]:
+              - generic [ref=f1e529]: Drafts
+              - generic [ref=f1e530]: "2"
+            - button [ref=f1e2715]:
+              - generic [ref=f1e537]: Sent
+            - button [ref=f1e2716]:
+              - generic [ref=f1e545]: Scheduled
+              - generic [ref=f1e546]: "2"
+            - button [ref=f1e2717]:
+              - generic [ref=f1e553]: Snoozed
+            - generic [ref=f1e554]:
+              - button [ref=f1e2718]
+              - button [ref=f1e2719]:
+                - generic [ref=f1e563]: Trash
+            - button [ref=f1e2720]:
+              - generic [ref=f1e569]: Spam
+              - generic [ref=f1e570]: "1"
+          - generic [ref=f1e64]:
+            - generic [ref=f1e65]: Folders
+            - button [ref=f1e2721]:
+              - generic [ref=f1e577]: Archive
+            - button [ref=f1e2722]:
+              - generic [ref=f1e584]: Blocked
+            - button [ref=f1e2723]:
+              - generic [ref=f1e591]: Read Receipts
+            - generic [ref=f1e592]:
+              - button [ref=f1e2724]
+              - button [ref=f1e2725]:
+                - generic [ref=f1e602]: More
+        - generic [ref=f1e84]:
+          - button [ref=f1e2726]:
+            - generic [ref=f1e609]: Agents & CLI
+          - button [ref=f1e2727]:
+            - generic [ref=f1e616]: Settings
+    - separator [aria-hidden] [ref=f1e2728]
+    - main [ref=f1e95]:
+      - generic [ref=f1e2079]:
+        - generic [aria-hidden] [ref=f1e2080]:
+          - generic [ref=f1e2081]:
+            - generic [ref=f1e2082]:
+              - button [ref=f1e2729]:
+                - generic [ref=f1e2084]: Inbox
+              - generic [ref=f1e2087]: Focused · All accounts
+            - generic [ref=f1e2088]:
+              - button [pressed] [ref=f1e2730]
+              - button [ref=f1e2731]
+              - button [ref=f1e2732]
+              - button [ref=f1e2733]
+              - button [ref=f1e2734]
+          - listbox [ref=f1e2735]:
+            - generic [aria-hidden] [ref=f1e2111]: TODAY
+            - generic [ref=f1e2112]:
+              - text: TODAY
+              - option [ref=f1e2736]:
+                - generic [ref=f1e2116]: Unread
+                - img [ref=f1e2737]:
+                  - generic [aria-hidden] [ref=f1e2119]: CM
+                - generic [ref=f1e2120]:
+                  - generic [ref=f1e2121]:
+                    - generic [ref=f1e2123]: me, Carla, Rodney
+                    - generic [ref=f1e2124]: 5:51 PM
+                  - generic [ref=f1e2128]:
+                    - generic [ref=f1e2129]: Freelancing Cycle 3
+                    - generic [ref=f1e2130]: "9"
+                  - generic [ref=f1e2135]: Countersigned copy is attached. Carla, please file it and send Alex the kickoff invite for Monday. Alex, can you confirm you can start Mond…
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - option [selected] [ref=f1e2740]:
+                - img [ref=f1e2741]:
+                  - generic [aria-hidden] [ref=f1e2159]: SB
+                - generic [ref=f1e2160]:
+                  - generic [ref=f1e2161]:
+                    - generic [ref=f1e2163]:
+                      - generic [ref=f1e2164]: Draft,
+                      - text: Sofia, Priya, Tomas
+                    - generic [ref=f1e2165]: 5:13 PM
+                  - generic [ref=f1e2167]:
+                    - generic [ref=f1e2168]: "Q4 roadmap review: Thursday 2pm"
+                    - generic [ref=f1e2169]: "6"
+                  - generic [ref=f1e2172]: "One more thing for Thursday: can we add 10 minutes on the pricing page experiment? The first numbers are in and they are interesting."
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - option [ref=f1e2742]:
+                - generic [ref=f1e2176]: Unread
+                - generic [ref=f1e2181]:
+                  - generic [ref=f1e2182]:
+                    - generic [ref=f1e2184]: Notifications
+                    - generic [ref=f1e2185]: 4 new
+                    - generic [ref=f1e2186]: 3:50 PM
+                  - generic [ref=f1e2189]: Google Security alert
+                - generic [aria-hidden]:
+                  - button
+                  - button
+              - option [ref=f1e2743]:
+                - generic [ref=f1e2194]: Unread
+                - img [ref=f1e2744]:
+                  - generic [aria-hidden] [ref=f1e2197]: MZ
+                - generic [ref=f1e2198]:
+                  - generic [ref=f1e2199]:
+                    - generic [ref=f1e2201]: Mei-Ling, me, Rodney
+                    - generic [ref=f1e2202]: 3:24 PM
+                  - generic [ref=f1e2204]:
+                    - generic [ref=f1e2205]: Quick question about the handoff
+                    - generic [ref=f1e2206]: "3"
+                  - generic [ref=f1e2209]: Thanks, that works for me.
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - option [ref=f1e2745]:
+                - generic [ref=f1e2213]: Unread
+                - generic [ref=f1e2218]:
+                  - generic [ref=f1e2219]:
+                    - generic [ref=f1e2221]: Newsletters
+                    - generic [ref=f1e2222]: 3 new
+                    - generic [ref=f1e2223]: 2:40 PM
+                  - generic [ref=f1e2226]: "The Margin Note #212: The slow web is not coming back, and that's fine"
+                - generic [aria-hidden]:
+                  - button
+                  - button
+              - text: THIS WEEK
+              - option [ref=f1e2746]:
+                - generic [ref=f1e2231]: Unread
+                - img [ref=f1e2747]:
+                  - generic [aria-hidden] [ref=f1e2234]: JW
+                - generic [ref=f1e2235]:
+                  - generic [ref=f1e2236]:
+                    - generic [ref=f1e2238]: Jonas Weber
+                    - generic [ref=f1e2239]: Fri
+                  - generic [ref=f1e2241]: Updated brief for the spring campaign
+                  - generic [ref=f1e2244]: The brief changed after yesterday's call. The audience is now mostly existing customers, so the tone can be warmer.
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - option [ref=f1e2748]:
+                - img [ref=f1e2749]:
+                  - generic [aria-hidden] [ref=f1e2250]: TL
+                - generic [ref=f1e2251]:
+                  - generic [ref=f1e2252]:
+                    - generic [ref=f1e2253]: Tomas, Priya, me +1
+                    - generic [ref=f1e2254]: Thu
+                  - generic [ref=f1e2256]:
+                    - generic [ref=f1e2257]: "Re: Offsite venue shortlist"
+                    - generic [ref=f1e2258]: "5"
+                  - generic [ref=f1e2261]: Asked. They have fibre and a backup line. I will book if nobody objects by Friday.
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - option [ref=f1e2750]:
+                - generic [ref=f1e2265]: Unread
+                - img [ref=f1e2751]:
+                  - generic [aria-hidden] [ref=f1e2268]: DR
+                - generic [ref=f1e2269]:
+                  - generic [ref=f1e2270]:
+                    - generic [ref=f1e2272]: Dana Rivera
+                    - generic [ref=f1e2273]: Thu
+                  - generic [ref=f1e2275]: Updated brief for the spring campaign
+                  - generic [ref=f1e2278]: The brief changed after yesterday's call. The audience is now mostly existing customers, so the tone can be warmer.
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - option [ref=f1e2752]:
+                - img [ref=f1e2753]:
+                  - generic [aria-hidden] [ref=f1e2284]: AN
+                - generic [ref=f1e2285]:
+                  - generic [ref=f1e2286]:
+                    - generic [ref=f1e2287]: Amara, Sofia, me
+                    - generic [ref=f1e2288]: Thu
+                  - generic [ref=f1e2290]:
+                    - generic [ref=f1e2291]: "Fwd: Invoice 2291 from Quillworks"
+                    - generic [ref=f1e2292]: "3"
+                  - generic [ref=f1e2297]: Approved. Please schedule payment for the 30th.
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - option [ref=f1e2755]:
+                - generic [ref=f1e2301]: Unread
+                - img [ref=f1e2756]:
+                  - generic [aria-hidden] [ref=f1e2304]: HT
+                - generic [ref=f1e2305]:
+                  - generic [ref=f1e2306]:
+                    - generic [ref=f1e2308]: Hiro, me, Amara
+                    - generic [ref=f1e2309]: Wed
+                  - generic [ref=f1e2311]:
+                    - generic [ref=f1e2312]: Photos from Friday
+                    - generic [ref=f1e2313]: "3"
+                  - generic [ref=f1e2316]: Thanks, that works for me.
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - option [ref=f1e2757]:
+                - img [ref=f1e2758]:
+                  - generic [aria-hidden] [ref=f1e2322]: KM
+                - generic [ref=f1e2323]:
+                  - generic [ref=f1e2324]:
+                    - generic [ref=f1e2325]: Kofi, me
+                    - generic [ref=f1e2326]: Tue
+                  - generic [ref=f1e2328]:
+                    - generic [ref=f1e2329]: Dinner Saturday?
+                    - generic [ref=f1e2330]: "2"
+                  - generic [ref=f1e2333]: Count us in. Lena says yes as well.
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - option [ref=f1e2759]:
+                - img [ref=f1e2760]:
+                  - generic [aria-hidden] [ref=f1e2339]: NV
+                - generic [ref=f1e2340]:
+                  - generic [ref=f1e2341]:
+                    - generic [ref=f1e2342]: Nadia, me, Hiro
+                    - generic [ref=f1e2343]: Tue
+                  - generic [ref=f1e2345]:
+                    - generic [ref=f1e2346]: Studio rent renewal
+                    - generic [ref=f1e2347]: "4"
+                  - generic [ref=f1e2350]: Signed and sent. Thanks both.
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - option [ref=f1e2761]:
+                - img [ref=f1e2762]:
+                  - generic [aria-hidden] [ref=f1e2356]: TL
+                - generic [ref=f1e2357]:
+                  - generic [ref=f1e2358]:
+                    - generic [ref=f1e2359]: Tomas, me
+                    - generic [ref=f1e2360]: Mon
+                  - generic [ref=f1e2362]:
+                    - generic [ref=f1e2363]: Welcome to the team
+                    - generic [ref=f1e2364]: "2"
+                  - generic [ref=f1e2367]: Thank you, excited to get started.
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - text: LAST WEEK
+              - option [ref=f1e2763]:
+                - generic [ref=f1e2371]: Unread
+                - img [ref=f1e2764]:
+                  - generic [aria-hidden] [ref=f1e2374]: MZ
+                - generic [ref=f1e2375]:
+                  - generic [ref=f1e2376]:
+                    - generic [ref=f1e2378]: Mei-Ling, me, Rodney
+                    - generic [ref=f1e2379]: Oct 17
+                  - generic [ref=f1e2381]:
+                    - generic [ref=f1e2382]: "Re: contract redlines"
+                    - generic [ref=f1e2383]: "3"
+                  - generic [ref=f1e2386]: Thanks, that works for me.
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - option [ref=f1e2765]:
+                - img [ref=f1e2766]:
+                  - generic [aria-hidden] [ref=f1e2392]: RO
+                - generic [ref=f1e2393]:
+                  - generic [ref=f1e2394]:
+                    - generic [ref=f1e2395]: Rodney Okafor
+                    - generic [ref=f1e2396]: Oct 15
+                  - generic [ref=f1e2398]: Updated brief for the spring campaign
+                  - generic [ref=f1e2401]: The brief changed after yesterday's call. The audience is now mostly existing customers, so the tone can be warmer.
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - option [ref=f1e2767]:
+                - img [ref=f1e2768]:
+                  - generic [aria-hidden] [ref=f1e2407]: DR
+                - generic [ref=f1e2408]:
+                  - generic [ref=f1e2409]:
+                    - generic [ref=f1e2410]: Dana, me, Lena
+                    - generic [ref=f1e2411]: Oct 14
+                  - generic [ref=f1e2413]:
+                    - generic [ref=f1e2414]: Podcast interview request
+                    - generic [ref=f1e2415]: "3"
+                  - generic [ref=f1e2418]: Thanks, that works for me.
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - option [ref=f1e2769]:
+                - img [ref=f1e2770]:
+                  - generic [aria-hidden] [ref=f1e2424]: DR
+                - generic [ref=f1e2425]:
+                  - generic [ref=f1e2426]:
+                    - generic [ref=f1e2427]: Dana, me
+                    - generic [ref=f1e2428]: Oct 12
+                  - generic [ref=f1e2430]:
+                    - generic [ref=f1e2431]: Photos from Friday
+                    - generic [ref=f1e2432]: "2"
+                  - generic [ref=f1e2435]: These are great, thanks for sorting them out.
+                - generic [aria-hidden]:
+                  - button
+                  - button
+                  - button
+                  - button
+              - text: OCTOBER
+        - separator [aria-hidden] [ref=f1e2771]
+        - region "Conversation" [ref=f1e2438]:
+          - generic [aria-hidden] [ref=f1e2440]:
+            - generic [ref=f1e2441]:
+              - button [ref=f1e2772]
+              - button [ref=f1e2773]
+              - button [ref=f1e2774]
+              - button [ref=f1e2775]
+              - button [ref=f1e2776]
+              - button [ref=f1e2777]
+            - generic [ref=f1e2442]:
+              - button [ref=f1e2778]
+              - button [ref=f1e2779]
+              - button [ref=f1e2780]
+              - button [ref=f1e2781]
+          - generic [ref=f1e2593]:
+            - generic [aria-hidden] [ref=f1e2594]:
+              - heading [level=1] [ref=f1e2782]: "Q4 roadmap review: Thursday 2pm"
+              - generic [ref=f1e2596]: alex@northwind.dev
+            - region "Thread summary" [ref=f1e2601]:
+              - status [ref=f1e2602]: Summary ready
+              - button [expanded] [ref=f1e2784]:
+                - generic [ref=f1e2607]: Summary
+              - generic [ref=f1e2609]:
+                - paragraph [ref=f1e2610]: "Priya, Tomas, Sofia discuss \"Q4 roadmap review: Thursday 2pm\". The scope was agreed, the date moved earlier, and the signed copy is now attached."
+                - paragraph [ref=f1e2611]: "Action needed:"
+                - list [ref=f1e2612]:
+                  - listitem [ref=f1e2613]: Confirm you can start Monday morning
+                  - listitem [ref=f1e2614]: File the countersigned agreement
+            - generic [aria-hidden] [ref=f1e2615]:
+              - button [ref=f1e2785]:
+                - img [ref=f1e2786]:
+                  - generic [aria-hidden] [ref=f1e2618]: PR
+                - generic [ref=f1e2619]: Priya Raman
+                - generic [ref=f1e2620]: I booked the review for Thursday at 2pm. The agenda is in the doc. Please add your open questions before Wednesday night.
+                - generic [ref=f1e2621]: Mon
+              - button [ref=f1e2787]:
+                - img [ref=f1e2788]:
+                  - generic [aria-hidden] [ref=f1e2624]: TL
+                - generic [ref=f1e2625]: Tomas Lindqvist
+                - generic [ref=f1e2626]: Can we move it to 3pm? I have a customer call that might run over.
+                - generic [ref=f1e2627]: Tue
+              - button [ref=f1e2789]:
+                - img [ref=f1e2790]:
+                  - generic [aria-hidden] [ref=f1e2630]: SB
+                - generic [ref=f1e2631]: Sofia Bianchi
+                - generic [ref=f1e2632]: 3pm works for me.
+                - generic [ref=f1e2633]: Tue
+              - button [ref=f1e2791]:
+                - img [ref=f1e2792]:
+                  - generic [aria-hidden] [ref=f1e2636]: AR
+                - generic [ref=f1e2637]: me
+                - generic [ref=f1e2638]: 3pm is fine. I will have the design section ready by Wednesday noon.
+                - generic [ref=f1e2639]: Tue
+              - button [ref=f1e2793]:
+                - img [ref=f1e2794]:
+                  - generic [aria-hidden] [ref=f1e2642]: PR
+                - generic [ref=f1e2643]: Priya Raman
+                - generic [ref=f1e2644]: Done, moved to 3pm. Thanks all.
+                - generic [ref=f1e2645]: Tue
+              - article [ref=f1e2795]:
+                - generic [ref=f1e2647]:
+                  - img [ref=f1e2796]:
+                    - generic [aria-hidden] [ref=f1e2649]: TL
+                  - generic [ref=f1e2650]:
+                    - button [expanded] [ref=f1e2797]: Tomas Lindqvist
+                    - generic [ref=f1e2652]: to
+                    - button [ref=f1e2799]: me
+                  - generic [ref=f1e2654]:
+                    - time [ref=f1e2655]: Oct 25, 2026, 5:13 PM
+                    - button [ref=f1e2800]
+                - iframe [ref=f1e2663]:
+                  - paragraph [ref=f2e2]: "One more thing for Thursday: can we add 10 minutes on the pricing page experiment? The first numbers are in and they are interesting."
+                - generic [ref=f1e2664]:
+                  - button [ref=f1e2801]
+                  - button [ref=f1e2802]
+                  - button [ref=f1e2803]
+            - article [ref=f1e2804]:
+              - generic [ref=f1e2680]:
+                - img [ref=f1e2805]:
+                  - generic [aria-hidden] [ref=f1e2682]: A
+                - generic [ref=f1e2683]: DRAFT
+                - generic [ref=f1e2684]: to Tomas Lindqvist
+                - generic [ref=f1e2685]:
+                  - button [ref=f1e2806]: Delete
+                  - button [ref=f1e2807]: Edit
+                  - button [ref=f1e2808]: Send
+              - generic [ref=f1e2690]: Yes, ten minutes on the pricing experiment is fine. I will trim the design section to make room.
+            - group [ref=f1e2809]:
+              - button [ref=f1e2810]: Sounds good, thanks.
+              - button [ref=f1e2811]: Can we do Thursday instead?
+              - button [ref=f1e2812]: Let me check and get back to you.
+    - generic [ref=f1e450]: Inbox
+    - textbox [ref=f1e2813]:
+      - /placeholder: Ask anything
+  - dialog "Tomas Lindqvist" [ref=f1e2815]:
+    - generic [ref=f1e2816]:
+      - generic [ref=f1e2817]:
+        - img "Tomas Lindqvist" [ref=f1e2818]:
+          - generic [aria-hidden] [ref=f1e2819]: TL
+        - generic [ref=f1e2820]:
+          - generic [ref=f1e2821]: Tomas Lindqvist
+          - generic [ref=f1e2822]: tomas@northwind.dev
+      - generic [ref=f1e2823]:
+        - button "Copy address" [active] [ref=f1e2824]
+        - button "New message" [ref=f1e2830]
+        - button "All mail from Tomas Lindqvist" [ref=f1e2836]
+        - button "Attachments from Tomas Lindqvist" [ref=f1e2842]
+        - button "Block sender" [ref=f1e2847]

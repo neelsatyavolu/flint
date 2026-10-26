@@ -46,6 +46,12 @@ function bundledCliPath(): string {
     ? join(process.resourcesPath, "cli", "flint.js")
     : fileURLToPath(new URL("../../../cli/dist/flint.js", import.meta.url));
 }
+/** The built browser extension (chromium/ and firefox/ folders): Resources/browser-extension when packaged, apps/browser-extension/dist in development. */
+function bundledExtensionDir(): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, "browser-extension")
+    : fileURLToPath(new URL("../../../browser-extension/dist", import.meta.url));
+}
 let service: FlintService | null = null;
 let rendererReady = false;
 let quitting = false;
@@ -136,7 +142,7 @@ async function main(): Promise<void> {
     platform,
     forceMock: isDev && process.env.FLINT_MOCK === "1",
     create: createFlintService,
-    options: { cliPath: bundledCliPath(), ...(BUILT_IN_GOOGLE.clientId ? { googleClient: BUILT_IN_GOOGLE } : {}) },
+    options: { cliPath: bundledCliPath(), extensionDir: bundledExtensionDir(), ...(BUILT_IN_GOOGLE.clientId ? { googleClient: BUILT_IN_GOOGLE } : {}) },
   });
   if (!result.ok) {
     dialog.showErrorBox("Flint can't start", `The mail engine failed to load.\n\n${result.message}`);

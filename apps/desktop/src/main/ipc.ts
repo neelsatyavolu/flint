@@ -2,7 +2,7 @@ import { logger } from "@flint/core/log";
 import type { FlintService } from "@flint/core/service/index";
 import { ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from "electron";
 import { CHANNELS } from "../preload/channels";
-import { dispatchCall, isSafeExternalUrl, isTrustedFrameUrl, type CallResult } from "./ipc-core";
+import { dispatchCall, extensionFolder, isSafeExternalUrl, isTrustedFrameUrl, type CallResult } from "./ipc-core";
 import { shell } from "electron";
 
 const log = logger("ipc");
@@ -35,6 +35,15 @@ export function registerIpc(deps: IpcDeps): void {
     if (!trusted(e)) throw new Error("Not allowed");
     if (!isSafeExternalUrl(url)) throw new Error("Only http, https and mailto links can be opened.");
     await shell.openExternal(url);
+  });
+
+  // The renderer names only the browser family; the folder comes from the service, never from the renderer.
+  ipcMain.handle(CHANNELS.revealExtension, async (e, family: unknown): Promise<void> => {
+    if (!trusted(e)) throw new Error("Not allowed");
+    const status = await deps.getService()?.browserHelperStatus();
+    const folder = extensionFolder(status?.extensionDir ?? null, family);
+    if (!folder) throw new Error("This build of Flint doesn't include the browser extension.");
+    shell.showItemInFolder(folder);
   });
 }
 

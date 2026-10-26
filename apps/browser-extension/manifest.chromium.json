@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Flint verification codes",
+  "version": "0.1.0",
+  "description": "Suggests verification codes that arrive in Flint when a page asks for one. Talks only to the Flint app on this Mac.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlSAL485HgGg2/uU8hCAWoYoLVEEusq/1WwyP4lbXEVyIZvaQmfMz3dtrPYRMvvU17feour3bN+GlotfTE8RRo6S+Nsvxbyrm3gV+0XfHJBkThEyaSJy5z22jIvEN6w0tj0GUMqKCPwS02K9SADAY4vOzhx8oBNBLWlNiwerZb4MS7Jk2BfhG8cn3PeT90a4a8rEasurSVWHp3eRwX1oMSpTWwjrkSwaMIphb7QL2Wf3sS+iwQOXYKJW0YU1XHjcXnnNOKlpk6Eh4e1JfmfoDfUgbfHKW3KTavi4zLTaNNZc9nJ6ibTy89/TJJSbOu/XFel5iEwwJ8d1p6IdRQ20hywIDAQAB",
+  "minimum_chrome_version": "110",
+  "permissions": ["nativeMessaging"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    { "matches": ["http://*/*", "https://*/*"], "js": ["content.js"], "all_frames": true, "run_at": "document_idle" }
+  ],
+  "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" }
+}

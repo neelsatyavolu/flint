@@ -1,0 +1,139 @@
+- generic [ref=f1e4]:
+  - complementary [ref=f1e5]:
+    - navigation "Mailboxes" [ref=f1e6]:
+      - generic [ref=f1e7]:
+        - button "Sync now" [ref=f1e456]
+        - button "Hide sidebar" [ref=f1e462]
+      - generic [ref=f1e8]:
+        - generic [ref=f1e19]:
+          - button "Home" [ref=f1e466]
+          - generic [ref=f1e472]:
+            - button "Collapse Inbox" [expanded] [ref=f1e473]
+            - button "Inbox, 19 unread" [ref=f1e994]:
+              - generic [ref=f1e481]: Inbox
+              - generic [ref=f1e482]: "19"
+          - button "alex@northwind.dev, 14 unread" [ref=f1e484]:
+            - img "Alex Rivera" [ref=f1e486]:
+              - generic [aria-hidden] [ref=f1e487]: A
+            - generic "alex@northwind.dev" [ref=f1e488]:
+              - generic [ref=f1e489]: alex@nor
+              - generic [ref=f1e490]: thwind.dev
+            - generic [ref=f1e491]: "14"
+          - button "alex@studio-orbit.com, 3 unread" [ref=f1e493]:
+            - img "Alex Rivera" [ref=f1e495]:
+              - generic [aria-hidden] [ref=f1e496]: A
+            - generic "alex@studio-orbit.com" [ref=f1e497]:
+              - generic [ref=f1e498]: alex@studio
+              - generic [ref=f1e499]: "-orbit.com"
+            - generic [ref=f1e500]: "3"
+          - button "alex.rivera@gmail.com, 2 unread" [ref=f1e995]:
+            - img "Alex Rivera" [ref=f1e504]:
+              - generic [aria-hidden] [ref=f1e505]: A
+            - generic "alex.rivera@gmail.com" [ref=f1e506]:
+              - generic [ref=f1e507]: alex.rivera
+              - generic [ref=f1e508]: "@gmail.com"
+            - generic [ref=f1e509]: "2"
+          - button "Agent Activity, 1 awaiting approval" [ref=f1e511]:
+            - generic [ref=f1e515]: Agent Activity
+            - generic [ref=f1e516]: "1"
+          - button "Pins" [ref=f1e518]
+          - button "Drafts, 2" [ref=f1e1558]:
+            - generic [ref=f1e529]: Drafts
+            - generic [ref=f1e530]: "2"
+          - button "Sent" [ref=f1e532]
+          - button "Scheduled, 2" [ref=f1e539]:
+            - generic [ref=f1e545]: Scheduled
+            - generic [ref=f1e546]: "2"
+          - button "Snoozed" [ref=f1e548]
+          - generic [ref=f1e554]:
+            - button "Expand Trash" [ref=f1e555]
+            - button "Trash" [ref=f1e558]
+          - button "Spam, 1 unread" [ref=f1e565]:
+            - generic [ref=f1e569]: Spam
+            - generic [ref=f1e570]: "1"
+        - generic [ref=f1e64]:
+          - generic [ref=f1e65]: Folders
+          - button "Archive" [ref=f1e572]
+          - button "Blocked" [ref=f1e579]
+          - button "Read Receipts" [ref=f1e586]
+          - generic [ref=f1e592]:
+            - button "Expand More" [ref=f1e593]
+            - button "More" [ref=f1e596]
+      - generic [ref=f1e84]:
+        - button "Agents & CLI" [ref=f1e604]
+        - button "Settings" [ref=f1e611]
+  - separator "Resize sidebar" [ref=f1e617]
+  - main [ref=f1e95]:
+    - generic [ref=f1e1424]:
+      - navigation "Settings sections" [ref=f1e1425]:
+        - generic [ref=f1e1426]:
+          - generic [ref=f1e1427]: Settings
+          - button "Close settings" [ref=f1e1428]
+        - searchbox "Filter settings" [ref=f1e1433]
+        - generic [ref=f1e1434]:
+          - button "General" [ref=f1e1435]
+          - button "Accounts" [ref=f1e1437]
+          - button "Appearance" [ref=f1e1441]
+          - button "Inbox" [ref=f1e1448]
+          - button "Signatures" [ref=f1e1452]
+          - button "Templates" [ref=f1e1455]
+          - button "Rules" [ref=f1e1459]
+          - button "Read Receipts" [ref=f1e1462]
+          - button "Notifications" [ref=f1e1466]
+          - button "+AI" [ref=f1e1470]
+          - button "Agents" [ref=f1e1474]
+          - button "Shortcuts" [ref=f1e1478]
+          - button "Blocked" [ref=f1e1481]
+          - button "About" [ref=f1e1485]
+      - main [ref=f1e1488]:
+        - region "General" [ref=f1e1490]:
+          - heading "General" [level=2] [ref=f1e1492]
+          - generic [ref=f1e1493]:
+            - generic [ref=f1e1498]:
+              - generic [ref=f1e1499]: Mark as read
+              - generic [ref=f1e1500]: When a message is opened in the reader.
+            - combobox "Mark as read" [ref=f1e1503]:
+              - option "Right away" [selected]
+              - option "After a short delay"
+              - option "Never"
+          - generic [ref=f1e1504]:
+            - generic [ref=f1e1509]:
+              - generic [ref=f1e1510]: After archive
+              - generic [ref=f1e1511]: What opens once a thread is archived or trashed.
+            - combobox "After archive" [ref=f1e1514]:
+              - option "Next thread" [selected]
+              - option "Previous thread"
+              - option "Back to the list"
+          - generic [ref=f1e1515]:
+            - generic [ref=f1e1520]:
+              - generic [ref=f1e1521]: Undo send
+              - generic [ref=f1e1522]: How long a sent message waits before it leaves.
+            - combobox "Undo send" [ref=f1e1525]:
+              - option "Off"
+              - option "5 seconds"
+              - option "10 seconds" [selected]
+              - option "20 seconds"
+              - option "30 seconds"
+          - generic [ref=f1e1526]:
+            - generic [ref=f1e1531]:
+              - generic [ref=f1e1532]: Default sort
+              - generic [ref=f1e1533]: Order of threads in every list.
+            - combobox "Default sort" [ref=f1e1536]:
+              - option "Newest first" [selected]
+              - option "Oldest first"
+          - generic [ref=f1e1537]:
+            - generic [ref=f1e1543]:
+              - generic [ref=f1e1544]: Mail kept on this computer
+              - generic [ref=f1e1545]: How far back Flint downloads when it first syncs. Older mail loads when you reach the end of a list or search.
+            - combobox "Mail kept on this computer" [ref=f1e1548]:
+              - option "30 days"
+              - option "90 days" [selected]
+              - option "180 days"
+              - option "1 year"
+              - option "2 years"
+          - generic [ref=f1e1549]:
+            - generic [ref=f1e1553]:
+              - generic [ref=f1e1554]: Plain text only
+              - generic [ref=f1e1555]: Write new mail without formatting. Received mail is not changed.
+            - switch "Plain text only" [ref=f1e1557]
+  - generic [ref=f1e450]: Settings

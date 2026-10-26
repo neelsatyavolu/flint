@@ -1,4 +1,4 @@
-import type { Address, Bundle, MessageView, ThreadListItem, ThreadPage, ThreadQuery } from "@flint/core";
+import type { Address, Bundle, CodeBadge, MessageView, ThreadListItem, ThreadPage, ThreadQuery } from "@flint/core";
 import type { MThread, MockState } from "./state";
 import { liveDrafts, plainSnippet, stripHtml } from "./state";
 
@@ -30,7 +30,20 @@ export function isQueuedDraft(state: MockState, draftId: number): boolean {
   return state.scheduled.some((s) => s.draftId === draftId && (s.status === "pending" || s.status === "awaiting_approval" || s.status === "sending"));
 }
 
+/** The still-valid code found in this message, as the real service attaches it. */
+export function codeBadge(state: MockState, messageId: number): CodeBadge | undefined {
+  const c = state.codes.find((x) => x.messageId === messageId && x.expiresAt > Date.now());
+  return c ? { id: c.id, code: c.code, service: c.service, expiresAt: c.expiresAt, used: c.used } : undefined;
+}
+
+export function withCode(state: MockState, m: MessageView): MessageView {
+  const verificationCode = codeBadge(state, m.id);
+  return verificationCode ? { ...m, verificationCode } : m;
+}
+
 export function toListItem(state: MockState, t: MThread): ThreadListItem {
+  const codeMsg = t.messages.find((m) => codeBadge(state, m.id));
+  const verificationCode = codeMsg ? codeBadge(state, codeMsg.id) : undefined;
   const lastSent = [...t.messages].reverse().find((m) => m.isFromMe);
   const lastMsg = t.messages.at(-1);
   const draft = state.drafts.find((d) => t.draftIds.includes(d.id));
@@ -41,6 +54,7 @@ export function toListItem(state: MockState, t: MThread): ThreadListItem {
     participants: participants(state, t), lastDate: lastDate(state, t), messageCount: Math.max(1, t.messages.length),
     unreadCount: unreadCount(t), hasAttachments: t.messages.some((m) => m.attachments.length > 0), pinned: t.pinned, muted: t.muted,
     snoozedUntil: t.snoozedUntil, category: t.category, hasDraft: t.draftIds.some((d) => !isQueuedDraft(state, d)), receipt: tracked?.summary ?? null,
+    ...(verificationCode ? { verificationCode } : {}),
   };
 }
 

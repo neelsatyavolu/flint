@@ -1,7 +1,9 @@
 import { join } from "node:path";
+import { CODE_CLIPBOARD_CLEAR_MS } from "@flint/core/codes/contract";
 import { logger } from "@flint/core/log";
 import type { Platform } from "@flint/core/platform";
-import { app, dialog, Notification, safeStorage, shell } from "electron";
+import { app, clipboard, dialog, Notification, safeStorage, shell } from "electron";
+import { createClipboardCopier } from "./clipboard-copy";
 import { isSafeExternalUrl } from "./ipc-core";
 import { createNotifier, type NotifierHooks } from "./notify-actions";
 import { createSecretStore } from "./secret-store";
@@ -30,11 +32,12 @@ function warnKeychainUnavailable(): void {
 }
 
 export function createPlatform(dataDir: string, hooks: PlatformHooks): Platform {
+  const copyText = createClipboardCopier({ clipboard });
   const notify = createNotifier({
     isSupported: () => Notification.isSupported(),
     create: (options) => new Notification(options),
     isMac: process.platform === "darwin",
-    hooks: { onClick: hooks.onNotificationClick, onAction: hooks.onNotificationAction },
+    hooks: { onClick: hooks.onNotificationClick, onAction: hooks.onNotificationAction, onCopy: (text) => copyText(text, CODE_CLIPBOARD_CLEAR_MS) },
     warn: (message) => log.warn(message),
   });
   return {
@@ -55,5 +58,6 @@ export function createPlatform(dataDir: string, hooks: PlatformHooks): Platform 
       if (error) throw new Error(error);
     },
     notify,
+    copyText,
   };
 }

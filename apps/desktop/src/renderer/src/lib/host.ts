@@ -4,6 +4,8 @@ export type FlintHost = {
   openExternal(url: string): Promise<void> | void;
   onOpenThread(cb: (threadId: number) => void): () => void;
   onMenu(cb: (action: string, arg?: string) => void): () => void;
+  /** Opens the bundled browser extension folder in Finder. */
+  revealExtension?(family: "chromium" | "firefox"): Promise<void>;
   /** Absolute path of a dropped or picked file (Electron removed File.path). */
   getPathForFile?(file: File): string;
 };

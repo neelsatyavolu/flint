@@ -1,0 +1,101 @@
+- generic [ref=f1e4]:
+  - complementary [ref=f1e5]:
+    - navigation "Mailboxes" [ref=f1e2854]:
+      - generic [ref=f1e8]:
+        - generic [ref=f1e4294]:
+          - button "Show sidebar" [ref=f1e4295]
+          - button "Sync now" [ref=f1e4298]
+        - generic [ref=f1e19]:
+          - button "Home" [ref=f1e4304]
+          - button "Inbox, 14 unread" [ref=f1e4308]
+          - button "Agent Activity, 1 awaiting approval" [ref=f1e4313]
+          - button "Pins" [ref=f1e4317]
+          - button "Drafts, 2" [ref=f1e4320]
+          - button "Sent" [ref=f1e4325]
+          - button "Scheduled, 2" [ref=f1e4329]
+          - button "Snoozed" [ref=f1e4335]
+          - button "Trash" [ref=f1e4339]
+          - button "Spam, 1 unread" [ref=f1e4343]
+        - generic [ref=f1e64]:
+          - generic [ref=f1e65]: Folders
+          - button "Archive" [ref=f1e4348]
+          - button "Blocked" [ref=f1e4352]
+          - button "Read Receipts" [ref=f1e4356]
+          - button "More" [ref=f1e4360]
+      - generic [ref=f1e84]:
+        - button "Agents & CLI" [ref=f1e4365]
+        - button "Settings" [active] [ref=f1e4369]
+  - main [ref=f1e95]:
+    - generic [ref=f1e4376]:
+      - navigation "Settings sections" [ref=f1e4377]:
+        - generic [ref=f1e4378]:
+          - generic [ref=f1e4379]: Settings
+          - button "Close settings" [ref=f1e4380]
+        - searchbox "Filter settings" [ref=f1e4385]
+        - generic [ref=f1e4386]:
+          - button "General" [ref=f1e4387]
+          - button "Accounts" [ref=f1e4389]
+          - button "Appearance" [ref=f1e4393]
+          - button "Inbox" [ref=f1e4400]
+          - button "Signatures" [ref=f1e4404]
+          - button "Templates" [ref=f1e4407]
+          - button "Rules" [ref=f1e4411]
+          - button "Read Receipts" [ref=f1e4414]
+          - button "Notifications" [ref=f1e4418]
+          - button "+AI" [ref=f1e4422]
+          - button "Agents" [ref=f1e4426]
+          - button "Shortcuts" [ref=f1e4430]
+          - button "Blocked" [ref=f1e4433]
+          - button "About" [ref=f1e4437]
+      - main [ref=f1e4440]:
+        - region "General" [ref=f1e4442]:
+          - heading "General" [level=2] [ref=f1e4444]
+          - generic [ref=f1e4445]:
+            - generic [ref=f1e4450]:
+              - generic [ref=f1e4451]: Mark as read
+              - generic [ref=f1e4452]: When a message is opened in the reader.
+            - combobox "Mark as read" [ref=f1e4455]:
+              - option "Right away" [selected]
+              - option "After a short delay"
+              - option "Never"
+          - generic [ref=f1e4456]:
+            - generic [ref=f1e4461]:
+              - generic [ref=f1e4462]: After archive
+              - generic [ref=f1e4463]: What opens once a thread is archived or trashed.
+            - combobox "After archive" [ref=f1e4466]:
+              - option "Next thread" [selected]
+              - option "Previous thread"
+              - option "Back to the list"
+          - generic [ref=f1e4467]:
+            - generic [ref=f1e4472]:
+              - generic [ref=f1e4473]: Undo send
+              - generic [ref=f1e4474]: How long a sent message waits before it leaves.
+            - combobox "Undo send" [ref=f1e4477]:
+              - option "Off"
+              - option "5 seconds"
+              - option "10 seconds" [selected]
+              - option "20 seconds"
+              - option "30 seconds"
+          - generic [ref=f1e4478]:
+            - generic [ref=f1e4483]:
+              - generic [ref=f1e4484]: Default sort
+              - generic [ref=f1e4485]: Order of threads in every list.
+            - combobox "Default sort" [ref=f1e4488]:
+              - option "Newest first" [selected]
+              - option "Oldest first"
+          - generic [ref=f1e4489]:
+            - generic [ref=f1e4495]:
+              - generic [ref=f1e4496]: Mail kept on this computer
+              - generic [ref=f1e4497]: How far back Flint downloads when it first syncs. Older mail loads when you reach the end of a list or search.
+            - combobox "Mail kept on this computer" [ref=f1e4500]:
+              - option "30 days"
+              - option "90 days" [selected]
+              - option "180 days"
+              - option "1 year"
+              - option "2 years"
+          - generic [ref=f1e4501]:
+            - generic [ref=f1e4505]:
+              - generic [ref=f1e4506]: Plain text only
+              - generic [ref=f1e4507]: Write new mail without formatting. Received mail is not changed.
+            - switch "Plain text only" [ref=f1e4509]
+  - generic [ref=f1e450]: Settings

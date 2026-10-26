@@ -96,6 +96,12 @@ export const HERO_THREADS: SeedThread[] = [
     ],
   },
   {
+    acct: "gmail", subject: "530331 is your KAYAK verification code", unread: true,
+    msgs: [
+      { from: S.kayak, to: [], minsAgo: 2, text: "Enter this code to finish signing in to KAYAK: 530331. It expires in 10 minutes. If you didn't try to sign in, you can ignore this email.", html: notificationHtml({ title: "Your KAYAK verification code", body: "Enter this code to finish signing in: 530331. It expires in 10 minutes. If you didn't try to sign in, you can ignore this email." }) },
+    ],
+  },
+  {
     acct: "northwind", subject: "Security alert", category: "notifications", unread: true,
     msgs: [
       { from: S.googleSecurity, minsAgo: 130, text: "A new sign-in on a Mac was detected for alex@northwind.dev. If this was you, you don't need to do anything.", html: notificationHtml({ title: "New sign-in on a Mac", body: "Your Account alex@northwind.dev was just signed in to from a new Mac. If this was you, you don't need to do anything. If not, we'll help you secure your account.", button: "Check activity" }), textOnly: false },

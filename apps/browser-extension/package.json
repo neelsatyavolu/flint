@@ -1,0 +1,17 @@
+{
+  "name": "@flint/browser-extension",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "test:e2e": "node test/extension-e2e.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "jsdom": "^30.1.3"
+  }
+}

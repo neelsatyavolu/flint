@@ -224,6 +224,7 @@ export async function startAgentServer(opts: AgentServerOptions): Promise<AgentS
 
   function allowEvent(event: FlintEvent): boolean {
     if (event.type === "settings") return false; // settings carry the Google client secret
+    if (event.type === "code") return false; // verification codes are credentials
     if (event.type === "ai") return aiRuns.has(event.chunk.runId);
     return true;
   }

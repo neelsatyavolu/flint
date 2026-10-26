@@ -1,0 +1,354 @@
+- generic [ref=f1e4]:
+  - complementary [ref=f1e5]:
+    - navigation "Mailboxes" [ref=f1e2854]:
+      - generic [ref=f1e7]:
+        - button "Sync now" [ref=f1e2855]
+        - button "Hide sidebar" [ref=f1e2861]
+      - generic [ref=f1e8]:
+        - generic [ref=f1e19]:
+          - button "Home" [ref=f1e2865]
+          - generic [ref=f1e2871]:
+            - button "Collapse Inbox" [expanded] [ref=f1e2872]
+            - button "Inbox, 16 unread" [ref=f1e3925]:
+              - generic [ref=f1e2880]: Inbox
+              - generic [ref=f1e2881]: "16"
+          - button "alex@northwind.dev, 11 unread" [ref=f1e3926]:
+            - img "Alex Rivera" [ref=f1e2885]:
+              - generic [aria-hidden] [ref=f1e2886]: A
+            - generic "alex@northwind.dev" [ref=f1e2887]:
+              - generic [ref=f1e2888]: alex@nor
+              - generic [ref=f1e2889]: thwind.dev
+            - generic [ref=f1e2890]: "11"
+          - button "alex@studio-orbit.com, 3 unread" [ref=f1e2892]:
+            - img "Alex Rivera" [ref=f1e2894]:
+              - generic [aria-hidden] [ref=f1e2895]: A
+            - generic "alex@studio-orbit.com" [ref=f1e2896]:
+              - generic [ref=f1e2897]: alex@studio
+              - generic [ref=f1e2898]: "-orbit.com"
+            - generic [ref=f1e2899]: "3"
+          - button "alex.rivera@gmail.com, 2 unread" [ref=f1e2901]:
+            - img "Alex Rivera" [ref=f1e2903]:
+              - generic [aria-hidden] [ref=f1e2904]: A
+            - generic "alex.rivera@gmail.com" [ref=f1e2905]:
+              - generic [ref=f1e2906]: alex.rivera
+              - generic [ref=f1e2907]: "@gmail.com"
+            - generic [ref=f1e2908]: "2"
+          - button "Agent Activity, 1 awaiting approval" [ref=f1e2910]:
+            - generic [ref=f1e2914]: Agent Activity
+            - generic [ref=f1e2915]: "1"
+          - button "Pins" [ref=f1e2917]
+          - button "Drafts, 2" [ref=f1e2923]:
+            - generic [ref=f1e2928]: Drafts
+            - generic [ref=f1e2929]: "2"
+          - button "Sent" [ref=f1e2931]
+          - button "Scheduled, 2" [ref=f1e2938]:
+            - generic [ref=f1e2944]: Scheduled
+            - generic [ref=f1e2945]: "2"
+          - button "Snoozed" [ref=f1e2947]
+          - generic [ref=f1e2953]:
+            - button "Expand Trash" [ref=f1e2954]
+            - button "Trash" [ref=f1e2957]
+          - button "Spam, 1 unread" [ref=f1e2964]:
+            - generic [ref=f1e2968]: Spam
+            - generic [ref=f1e2969]: "1"
+        - generic [ref=f1e64]:
+          - generic [ref=f1e65]: Folders
+          - button "Archive" [ref=f1e2971]
+          - button "Blocked" [ref=f1e2978]
+          - button "Read Receipts" [ref=f1e2985]
+          - generic [ref=f1e2991]:
+            - button "Expand More" [ref=f1e2992]
+            - button "More" [ref=f1e2995]
+      - generic [ref=f1e84]:
+        - button "Agents & CLI" [ref=f1e3003]
+        - button "Settings" [ref=f1e3010]
+  - separator "Resize sidebar" [ref=f1e3016]
+  - main [ref=f1e95]:
+    - generic [ref=f1e3372]:
+      - generic [ref=f1e3373]:
+        - generic [ref=f1e3374]:
+          - button "Back to Inbox" [ref=f1e3927]
+          - generic [ref=f1e3375]:
+            - button "Newsletters, choose account" [ref=f1e3930]:
+              - generic [ref=f1e3377]: Newsletters
+            - generic [ref=f1e3380]: All accounts
+          - generic [ref=f1e3381]:
+            - status [ref=f1e3931]
+            - button "Summarize Newsletters" [ref=f1e3932]
+            - button "More for Newsletters" [ref=f1e3936]
+            - button "Filter" [ref=f1e3389]
+            - button "Select all" [ref=f1e3391]
+            - button "Search" [ref=f1e3395]
+            - button "Compose" [ref=f1e3399]
+        - listbox "Conversations" [active] [ref=f1e3403]:
+          - generic [aria-hidden] [ref=f1e3404]: TODAY
+          - generic [ref=f1e3405]:
+            - text: TODAY
+            - 'option "Unread The Margin Note The Margin Note 2:40 PM #212: The slow web is not coming back, and that''s fine The Margin Note, issue 212. This week: the slow web, a typographer''s guide to line length, and a small tool for quiet reading." [ref=f1e3943]':
+              - generic [ref=f1e3944]: Unread
+              - img "The Margin Note" [ref=f1e3946]:
+                - generic [aria-hidden] [ref=f1e3947]: TN
+              - generic [ref=f1e3948]:
+                - generic [ref=f1e3949]:
+                  - generic [ref=f1e3951]: The Margin Note
+                  - generic [ref=f1e3952]: 2:40 PM
+                - generic [ref=f1e3954]: "#212: The slow web is not coming back, and that's fine"
+                - generic [ref=f1e3957]: "The Margin Note, issue 212. This week: the slow web, a typographer's guide to line length, and a small tool for quiet reading."
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - 'option "Unread Dispatch Daily Dispatch Daily 12:07 AM Dispatch Daily: what happened while you were asleep What happened while you were asleep. Read the full issue online." [ref=f1e3960]':
+              - generic [ref=f1e3961]: Unread
+              - img "Dispatch Daily" [ref=f1e3963]:
+                - generic [aria-hidden] [ref=f1e3964]: DD
+              - generic [ref=f1e3965]:
+                - generic [ref=f1e3966]:
+                  - generic [ref=f1e3968]: Dispatch Daily
+                  - generic [ref=f1e3969]: 12:07 AM
+                - generic [ref=f1e3971]: "Dispatch Daily: what happened while you were asleep"
+                - generic [ref=f1e3974]: What happened while you were asleep. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - text: THIS WEEK
+            - 'option "Frontend Weekly Frontend Weekly Fri Frontend Weekly 418: Container queries in practice This week: container queries in practice, a CSS anchor positioning tour, and the state of view transitions." [ref=f1e3977]':
+              - img "Frontend Weekly" [ref=f1e3979]:
+                - generic [aria-hidden] [ref=f1e3980]: FW
+              - generic [ref=f1e3981]:
+                - generic [ref=f1e3982]:
+                  - generic [ref=f1e3983]: Frontend Weekly
+                  - generic [ref=f1e3984]: Fri
+                - generic [ref=f1e3986]: "Frontend Weekly 418: Container queries in practice"
+                - generic [ref=f1e3989]: "This week: container queries in practice, a CSS anchor positioning tour, and the state of view transitions."
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - 'option "Unread Bike Notes Bike Notes Mon Bike Notes: winter gloves, tested Winter gloves, tested. Read the full issue online." [ref=f1e3992]':
+              - generic [ref=f1e3993]: Unread
+              - img "Bike Notes" [ref=f1e3995]:
+                - generic [aria-hidden] [ref=f1e3996]: BN
+              - generic [ref=f1e3997]:
+                - generic [ref=f1e3998]:
+                  - generic [ref=f1e4000]: Bike Notes
+                  - generic [ref=f1e4001]: Mon
+                - generic [ref=f1e4003]: "Bike Notes: winter gloves, tested"
+                - generic [ref=f1e4006]: Winter gloves, tested. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - text: LAST WEEK
+            - 'option "Cooking for One Cooking for One Oct 15 Cooking for One: a soup for a Tuesday A soup for a Tuesday. Read the full issue online." [ref=f1e4009]':
+              - img "Cooking for One" [ref=f1e4011]:
+                - generic [aria-hidden] [ref=f1e4012]: CO
+              - generic [ref=f1e4013]:
+                - generic [ref=f1e4014]:
+                  - generic [ref=f1e4015]: Cooking for One
+                  - generic [ref=f1e4016]: Oct 15
+                - generic [ref=f1e4018]: "Cooking for One: a soup for a Tuesday"
+                - generic [ref=f1e4021]: A soup for a Tuesday. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - text: OCTOBER
+            - 'option "The Margin Note The Margin Note Oct 10 The Margin Note #211: on keeping a commonplace book On keeping a commonplace book. Read the full issue online." [ref=f1e4024]':
+              - img "The Margin Note" [ref=f1e4026]:
+                - generic [aria-hidden] [ref=f1e4027]: TN
+              - generic [ref=f1e4028]:
+                - generic [ref=f1e4029]:
+                  - generic [ref=f1e4030]: The Margin Note
+                  - generic [ref=f1e4031]: Oct 10
+                - generic [ref=f1e4033]: "The Margin Note #211: on keeping a commonplace book"
+                - generic [ref=f1e4036]: On keeping a commonplace book. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - 'option "Frontend Weekly Frontend Weekly Oct 5 Frontend Weekly 417: The case for fewer dependencies The case for fewer dependencies. Read the full issue online." [ref=f1e4039]':
+              - img "Frontend Weekly" [ref=f1e4041]:
+                - generic [aria-hidden] [ref=f1e4042]: FW
+              - generic [ref=f1e4043]:
+                - generic [ref=f1e4044]:
+                  - generic [ref=f1e4045]: Frontend Weekly
+                  - generic [ref=f1e4046]: Oct 5
+                - generic [ref=f1e4048]: "Frontend Weekly 417: The case for fewer dependencies"
+                - generic [ref=f1e4051]: The case for fewer dependencies. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - text: SEPTEMBER
+            - 'option "Dispatch Daily Dispatch Daily Sep 30 Dispatch Daily: what happened while you were asleep What happened while you were asleep. Read the full issue online." [ref=f1e4054]':
+              - img "Dispatch Daily" [ref=f1e4056]:
+                - generic [aria-hidden] [ref=f1e4057]: DD
+              - generic [ref=f1e4058]:
+                - generic [ref=f1e4059]:
+                  - generic [ref=f1e4060]: Dispatch Daily
+                  - generic [ref=f1e4061]: Sep 30
+                - generic [ref=f1e4063]: "Dispatch Daily: what happened while you were asleep"
+                - generic [ref=f1e4066]: What happened while you were asleep. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - 'option "Bike Notes Bike Notes Sep 25 Bike Notes: winter gloves, tested Winter gloves, tested. Read the full issue online." [ref=f1e4069]':
+              - img "Bike Notes" [ref=f1e4071]:
+                - generic [aria-hidden] [ref=f1e4072]: BN
+              - generic [ref=f1e4073]:
+                - generic [ref=f1e4074]:
+                  - generic [ref=f1e4075]: Bike Notes
+                  - generic [ref=f1e4076]: Sep 25
+                - generic [ref=f1e4078]: "Bike Notes: winter gloves, tested"
+                - generic [ref=f1e4081]: Winter gloves, tested. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - 'option "Cooking for One Cooking for One Sep 20 Cooking for One: a soup for a Tuesday A soup for a Tuesday. Read the full issue online." [ref=f1e4084]':
+              - img "Cooking for One" [ref=f1e4086]:
+                - generic [aria-hidden] [ref=f1e4087]: CO
+              - generic [ref=f1e4088]:
+                - generic [ref=f1e4089]:
+                  - generic [ref=f1e4090]: Cooking for One
+                  - generic [ref=f1e4091]: Sep 20
+                - generic [ref=f1e4093]: "Cooking for One: a soup for a Tuesday"
+                - generic [ref=f1e4096]: A soup for a Tuesday. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - 'option "The Margin Note The Margin Note Sep 14 The Margin Note #211: on keeping a commonplace book On keeping a commonplace book. Read the full issue online." [ref=f1e4099]':
+              - img "The Margin Note" [ref=f1e4101]:
+                - generic [aria-hidden] [ref=f1e4102]: TN
+              - generic [ref=f1e4103]:
+                - generic [ref=f1e4104]:
+                  - generic [ref=f1e4105]: The Margin Note
+                  - generic [ref=f1e4106]: Sep 14
+                - generic [ref=f1e4108]: "The Margin Note #211: on keeping a commonplace book"
+                - generic [ref=f1e4111]: On keeping a commonplace book. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - 'option "Frontend Weekly Frontend Weekly Sep 9 Frontend Weekly 417: The case for fewer dependencies The case for fewer dependencies. Read the full issue online." [ref=f1e4114]':
+              - img "Frontend Weekly" [ref=f1e4116]:
+                - generic [aria-hidden] [ref=f1e4117]: FW
+              - generic [ref=f1e4118]:
+                - generic [ref=f1e4119]:
+                  - generic [ref=f1e4120]: Frontend Weekly
+                  - generic [ref=f1e4121]: Sep 9
+                - generic [ref=f1e4123]: "Frontend Weekly 417: The case for fewer dependencies"
+                - generic [ref=f1e4126]: The case for fewer dependencies. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - 'option "Dispatch Daily Dispatch Daily Sep 5 Dispatch Daily: what happened while you were asleep What happened while you were asleep. Read the full issue online." [ref=f1e4129]':
+              - img "Dispatch Daily" [ref=f1e4131]:
+                - generic [aria-hidden] [ref=f1e4132]: DD
+              - generic [ref=f1e4133]:
+                - generic [ref=f1e4134]:
+                  - generic [ref=f1e4135]: Dispatch Daily
+                  - generic [ref=f1e4136]: Sep 5
+                - generic [ref=f1e4138]: "Dispatch Daily: what happened while you were asleep"
+                - generic [ref=f1e4141]: What happened while you were asleep. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - text: AUGUST
+            - 'option "Bike Notes Bike Notes Aug 31 Bike Notes: winter gloves, tested Winter gloves, tested. Read the full issue online." [ref=f1e4144]':
+              - img "Bike Notes" [ref=f1e4146]:
+                - generic [aria-hidden] [ref=f1e4147]: BN
+              - generic [ref=f1e4148]:
+                - generic [ref=f1e4149]:
+                  - generic [ref=f1e4150]: Bike Notes
+                  - generic [ref=f1e4151]: Aug 31
+                - generic [ref=f1e4153]: "Bike Notes: winter gloves, tested"
+                - generic [ref=f1e4156]: Winter gloves, tested. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - 'option "Cooking for One Cooking for One Aug 25 Cooking for One: a soup for a Tuesday A soup for a Tuesday. Read the full issue online." [ref=f1e4159]':
+              - img "Cooking for One" [ref=f1e4161]:
+                - generic [aria-hidden] [ref=f1e4162]: CO
+              - generic [ref=f1e4163]:
+                - generic [ref=f1e4164]:
+                  - generic [ref=f1e4165]: Cooking for One
+                  - generic [ref=f1e4166]: Aug 25
+                - generic [ref=f1e4168]: "Cooking for One: a soup for a Tuesday"
+                - generic [ref=f1e4171]: A soup for a Tuesday. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - 'option "The Margin Note The Margin Note Aug 21 The Margin Note #211: on keeping a commonplace book On keeping a commonplace book. Read the full issue online." [ref=f1e4174]':
+              - img "The Margin Note" [ref=f1e4176]:
+                - generic [aria-hidden] [ref=f1e4177]: TN
+              - generic [ref=f1e4178]:
+                - generic [ref=f1e4179]:
+                  - generic [ref=f1e4180]: The Margin Note
+                  - generic [ref=f1e4181]: Aug 21
+                - generic [ref=f1e4183]: "The Margin Note #211: on keeping a commonplace book"
+                - generic [ref=f1e4186]: On keeping a commonplace book. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+            - 'option "Frontend Weekly Frontend Weekly Aug 16 Frontend Weekly 417: The case for fewer dependencies The case for fewer dependencies. Read the full issue online." [ref=f1e4189]':
+              - img "Frontend Weekly" [ref=f1e4191]:
+                - generic [aria-hidden] [ref=f1e4192]: FW
+              - generic [ref=f1e4193]:
+                - generic [ref=f1e4194]:
+                  - generic [ref=f1e4195]: Frontend Weekly
+                  - generic [ref=f1e4196]: Aug 16
+                - generic [ref=f1e4198]: "Frontend Weekly 417: The case for fewer dependencies"
+                - generic [ref=f1e4201]: The case for fewer dependencies. Read the full issue online.
+              - generic [aria-hidden]:
+                - button
+                - button
+                - button
+                - button
+          - generic [ref=f1e4202]:
+            - generic [ref=f1e4203]: Older mail isn't on this computer yet
+            - generic [aria-hidden] [ref=f1e4204]: ·
+            - button "Load more" [ref=f1e4205]
+      - separator "Resize list" [ref=f1e3711]
+      - region "Conversation" [ref=f1e3712]:
+        - generic [ref=f1e3714]:
+          - generic [ref=f1e3715]:
+            - button "Archive" [disabled]
+            - button "Trash" [disabled]
+            - button "Move to folder" [disabled]
+            - button "Snooze" [disabled]
+            - button "Pin" [disabled]
+            - button "Mark as unread" [disabled]
+          - generic [ref=f1e3716]:
+            - button "Reply" [disabled]
+            - button "Reply all" [disabled]
+            - button "Forward" [disabled]
+            - button "More" [disabled]
+        - img "Flint" [ref=f1e4207]
+  - generic [ref=f1e450]: Newsletters
+  - textbox "Ask anything" [ref=f1e3371]

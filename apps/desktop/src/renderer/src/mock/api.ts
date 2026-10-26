@@ -11,7 +11,7 @@ import { mockCategoryApi } from "./categories";
 import { mockSparkApi } from "./spark";
 import { buildState } from "./seed";
 import { deepMerge, liveDrafts, nextId, type MThread, type MockState } from "./state";
-import { hiddenAccounts, isQueuedDraft, matchesSearch, parseSearch, queryThreads, sortedOlder, unreadCount } from "./threads";
+import { hiddenAccounts, isQueuedDraft, matchesSearch, parseSearch, queryThreads, sortedOlder, unreadCount, withCode } from "./threads";
 
 export type MockOptions = { now?: number; seed?: number; latencyMs?: number };
 
@@ -209,9 +209,9 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
     async getThread(id): Promise<ThreadDetail> {
       await delay();
       const t = find(id);
-      return { id: t.id, accountId: t.accountId, subject: t.subject, category: t.category, pinned: t.pinned, muted: t.muted, snoozedUntil: t.snoozedUntil, messages: t.messages, draftIds: t.draftIds.filter((d) => !isQueuedDraft(state, d)) };
+      return { id: t.id, accountId: t.accountId, subject: t.subject, category: t.category, pinned: t.pinned, muted: t.muted, snoozedUntil: t.snoozedUntil, messages: t.messages.map((m) => withCode(state, m)), draftIds: t.draftIds.filter((d) => !isQueuedDraft(state, d)) };
     },
-    async getMessage(id) { await delay(); return findMessage(id); },
+    async getMessage(id) { await delay(); return withCode(state, findMessage(id)); },
     async allowRemoteImages(id, always) {
       const m = findMessage(id);
       const out = replaceMessage(id, (x) => ({ ...x, remoteImages: "allowed", hasTrackers: always ? false : x.hasTrackers }));
@@ -380,6 +380,19 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
     },
     async aiRunToText(task) { requireAi(); return { text: fakeAiText(state, task) }; },
     async aiCancel(runId) { aiRuns.get(runId)?.(); aiRuns.delete(runId); },
+
+    // Verification codes (demo: one KAYAK code so the preview shows the UI)
+    async recentCodes() { return state.codes; },
+    async markCodeUsed(id) { state.codes = state.codes.map((c) => (c.id === id ? { ...c, used: true } : c)); },
+    async browserHelperStatus() { return state.helper; },
+    async installBrowserHelper() {
+      state.helper = { ...state.helper, wrapperInstalled: true, browsers: state.helper.browsers.map((b) => ({ ...b, installed: b.detected && !b.foreign })) };
+      return state.helper;
+    },
+    async removeBrowserHelper() {
+      state.helper = { ...state.helper, wrapperInstalled: false, browsers: state.helper.browsers.map((b) => ({ ...b, installed: false })) };
+      return state.helper;
+    },
 
     // Agents
     async listAgentActivity(opts) {

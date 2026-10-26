@@ -1,4 +1,5 @@
 import { FLINT_METHODS, type FlintMethod } from "@flint/core/api";
+import { join } from "node:path";
 import { z } from "zod";
 
 const METHOD_SET: ReadonlySet<string> = new Set(FLINT_METHODS);
@@ -11,6 +12,12 @@ const callSchema = z.object({
 export type ParsedCall = { method: FlintMethod; args: unknown[] };
 export type SerializedError = { code: string; message: string };
 export type CallResult = { ok: true; value: unknown } | { ok: false; error: SerializedError };
+
+/** The folder of the built extension for one browser family inside the bundled extension folder, or null for anything else. */
+export function extensionFolder(extensionDir: string | null, family: unknown): string | null {
+  if (!extensionDir || (family !== "chromium" && family !== "firefox")) return null;
+  return join(extensionDir, family);
+}
 
 /** Validates the raw arguments of a 'flint:call' invocation. Throws on anything unexpected. */
 export function parseCall(method: unknown, args: unknown): ParsedCall {

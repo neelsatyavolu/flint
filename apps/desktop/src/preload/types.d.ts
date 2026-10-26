@@ -11,6 +11,8 @@ export interface FlintHost {
   onOpenThread(cb: (threadId: number) => void): () => void;
   /** Fires on native menu clicks and mailto links ("compose" with the address as arg). */
   onMenu(cb: (action: MenuAction, arg?: string) => void): () => void;
+  /** Opens the bundled browser extension folder ("chromium" or "firefox") in Finder. Rejects when this build does not ship it. */
+  revealExtension(family: "chromium" | "firefox"): Promise<void>;
   /** Absolute path of a dropped or picked file, or an empty string when it has none. */
   getPathForFile(file: File): string;
 }

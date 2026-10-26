@@ -4,6 +4,7 @@ import { AccountsSection } from "./sections/AccountsSection";
 import { AgentsSection } from "./sections/AgentsSection";
 import { AiSection } from "./sections/AiSection";
 import { AppearanceSection } from "./sections/AppearanceSection";
+import { CodesSection } from "./sections/CodesSection";
 import { BlockedSection } from "./sections/BlockedSection";
 import { GeneralSection } from "./sections/GeneralSection";
 import { InboxSection } from "./sections/InboxSection";
@@ -16,7 +17,7 @@ import { TemplatesSection } from "./sections/TemplatesSection";
 
 export type SectionId =
   | "general" | "accounts" | "appearance" | "inbox" | "signatures" | "templates" | "rules"
-  | "receipts" | "notifications" | "ai" | "agents" | "shortcuts" | "blocked" | "about";
+  | "receipts" | "notifications" | "codes" | "ai" | "agents" | "shortcuts" | "blocked" | "about";
 
 export const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "general", label: "General" },
@@ -28,6 +29,7 @@ export const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "rules", label: "Rules" },
   { id: "receipts", label: "Read Receipts" },
   { id: "notifications", label: "Notifications" },
+  { id: "codes", label: "Verification codes" },
   { id: "ai", label: "+AI" },
   { id: "agents", label: "Agents" },
   { id: "shortcuts", label: "Shortcuts" },
@@ -45,6 +47,7 @@ export const SECTION_VIEWS: Record<SectionId, ComponentType<{ page?: string }>> 
   rules: RulesSection,
   receipts: ReceiptsSection,
   notifications: NotificationsSection,
+  codes: CodesSection,
   ai: AiSection,
   agents: AgentsSection,
   shortcuts: ShortcutsSection,

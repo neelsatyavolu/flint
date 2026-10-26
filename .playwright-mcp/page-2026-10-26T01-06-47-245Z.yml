@@ -1,0 +1,161 @@
+- generic [ref=f1e4]:
+  - complementary [ref=f1e5]:
+    - navigation "Mailboxes" [ref=f1e2854]:
+      - generic [ref=f1e8]:
+        - generic [ref=f1e4294]:
+          - button "Show sidebar" [ref=f1e4295]
+          - button "Sync now" [ref=f1e4298]
+        - generic [ref=f1e19]:
+          - button "Home" [ref=f1e4304]
+          - button "Inbox, 14 unread" [ref=f1e4308]
+          - button "Agent Activity, 1 awaiting approval" [ref=f1e4313]
+          - button "Pins" [ref=f1e4317]
+          - button "Drafts, 2" [ref=f1e4320]
+          - button "Sent" [ref=f1e4325]
+          - button "Scheduled, 2" [ref=f1e4329]
+          - button "Snoozed" [ref=f1e4335]
+          - button "Trash" [ref=f1e4339]
+          - button "Spam, 1 unread" [ref=f1e4343]
+        - generic [ref=f1e64]:
+          - generic [ref=f1e65]: Folders
+          - button "Archive" [ref=f1e4348]
+          - button "Blocked" [ref=f1e4352]
+          - button "Read Receipts" [ref=f1e4356]
+          - button "More" [ref=f1e4360]
+      - generic [ref=f1e84]:
+        - button "Agents & CLI" [ref=f1e4365]
+        - button "Settings" [ref=f1e4369]
+  - main [ref=f1e95]:
+    - generic [ref=f1e4376]:
+      - navigation "Settings sections" [ref=f1e4377]:
+        - generic [ref=f1e4378]:
+          - generic [ref=f1e4379]: Settings
+          - button "Close settings" [ref=f1e4380]
+        - searchbox "Filter settings" [ref=f1e4385]
+        - generic [ref=f1e4386]:
+          - button "General" [ref=f1e4387]
+          - button "Accounts" [ref=f1e4389]
+          - button "Appearance" [active] [ref=f1e4393]
+          - button "Inbox" [ref=f1e4400]
+          - button "Signatures" [ref=f1e4404]
+          - button "Templates" [ref=f1e4407]
+          - button "Rules" [ref=f1e4411]
+          - button "Read Receipts" [ref=f1e4414]
+          - button "Notifications" [ref=f1e4418]
+          - button "+AI" [ref=f1e4422]
+          - button "Agents" [ref=f1e4426]
+          - button "Shortcuts" [ref=f1e4430]
+          - button "Blocked" [ref=f1e4433]
+          - button "About" [ref=f1e4437]
+      - main [ref=f1e4440]:
+        - region "Appearance" [ref=f1e4510]:
+          - heading "Appearance" [level=2] [ref=f1e4512]
+          - generic [ref=f1e4513]:
+            - generic [ref=f1e4517]:
+              - generic [ref=f1e4518]: Layout
+              - generic [ref=f1e4519]: Split shows the list beside the reader. Full screen opens a thread over the list.
+            - combobox "Layout" [ref=f1e4522]:
+              - option "Split view" [selected]
+              - option "Full screen"
+          - generic [ref=f1e4523]:
+            - generic [ref=f1e4531]: Theme
+            - combobox "Theme" [ref=f1e4535]:
+              - option "As in system" [selected]
+              - option "Graphite (dark)"
+              - option "Paper (light)"
+          - generic [ref=f1e4536]:
+            - generic [ref=f1e4540]:
+              - generic [ref=f1e4541]: Text size
+              - generic [ref=f1e4542]: Scales the whole window. Saved on this computer.
+            - radiogroup "Text size" [ref=f1e4544]:
+              - radio "Small" [ref=f1e4545]
+              - radio "Default" [checked] [ref=f1e4546]
+              - radio "Large" [ref=f1e4547]
+              - radio "Larger" [ref=f1e4548]
+          - generic [ref=f1e4549]:
+            - generic [ref=f1e4554]: Show avatars
+            - combobox "Show avatars" [ref=f1e4558]:
+              - option "Everywhere" [selected]
+              - option "In the list only"
+              - option "Off"
+          - generic [ref=f1e4559]:
+            - generic [ref=f1e4564]:
+              - generic [ref=f1e4565]: Sender logos
+              - generic [ref=f1e4566]: Website icons for senders that are not people. Flint does not fetch these yet, so this setting does nothing for now.
+            - switch "Sender logos" [ref=f1e4568]
+          - generic [ref=f1e4569]:
+            - generic [ref=f1e4575]:
+              - generic [ref=f1e4576]: Sender photos
+              - generic [ref=f1e4577]: Off by default. When on, Flint asks gravatar.com for a photo for each sender it shows, sending a SHA-256 hash of their address (Gravatar can match that hash to a known address) and your IP address. Photos are kept on this computer for 7 days.
+            - switch "Sender photos" [ref=f1e4579]
+          - generic [ref=f1e4580]:
+            - generic [ref=f1e4584]:
+              - generic [ref=f1e4585]: Email in dark mode
+              - generic [ref=f1e4586]: Match adapts the colors of HTML mail to the dark theme. Light always shows the original white page.
+            - combobox "Email in dark mode" [ref=f1e4589]:
+              - option "Match the theme" [selected]
+              - option "Always original"
+          - generic [ref=f1e4590]:
+            - generic [ref=f1e4593]: Lines in preview
+            - combobox "Lines in preview" [ref=f1e4597]:
+              - option "None"
+              - option "1 line" [selected]
+              - option "2 lines"
+          - generic [ref=f1e4598]:
+            - generic [ref=f1e4602]: Mail list view
+            - combobox "Mail list view" [ref=f1e4606]:
+              - option "Comfortable" [selected]
+              - option "Compact"
+          - generic [ref=f1e4607]:
+            - generic [ref=f1e4613]:
+              - generic [ref=f1e4614]: Color coding for accounts
+              - generic [ref=f1e4615]: Mark each account's mail with its color in unified lists.
+            - switch "Color coding for accounts" [checked] [ref=f1e4617]
+          - generic [ref=f1e4618]:
+            - generic [ref=f1e4619]: Account colors
+            - generic [ref=f1e4620]:
+              - img [ref=f1e4622]:
+                - generic [aria-hidden] [ref=f1e4623]: AR
+              - generic [ref=f1e4624]:
+                - generic [ref=f1e4625]: alex@northwind.dev
+                - generic [ref=f1e4626]: Alex Rivera
+              - radiogroup "Color for alex@northwind.dev" [ref=f1e4628]:
+                - radio "#b6706b" [ref=f1e4629]
+                - radio "#ae794c" [ref=f1e4630]
+                - radio "#978642" [ref=f1e4631]
+                - radio "#5d9669" [ref=f1e4632]
+                - radio "#339797" [ref=f1e4633]
+                - radio "#4a8fb5" [ref=f1e4634]
+                - radio "#7b80bc" [ref=f1e4635]
+                - radio "#a572a0" [ref=f1e4636]
+            - generic [ref=f1e4637]:
+              - img [ref=f1e4639]:
+                - generic [aria-hidden] [ref=f1e4640]: AR
+              - generic [ref=f1e4641]:
+                - generic [ref=f1e4642]: alex@studio-orbit.com
+                - generic [ref=f1e4643]: Alex Rivera
+              - radiogroup "Color for alex@studio-orbit.com" [ref=f1e4645]:
+                - radio "#b6706b" [ref=f1e4646]
+                - radio "#ae794c" [ref=f1e4647]
+                - radio "#978642" [ref=f1e4648]
+                - radio "#5d9669" [ref=f1e4649]
+                - radio "#339797" [ref=f1e4650]
+                - radio "#4a8fb5" [ref=f1e4651]
+                - radio "#7b80bc" [ref=f1e4652]
+                - radio "#a572a0" [ref=f1e4653]
+            - generic [ref=f1e4654]:
+              - img [ref=f1e4656]:
+                - generic [aria-hidden] [ref=f1e4657]: AR
+              - generic [ref=f1e4658]:
+                - generic [ref=f1e4659]: alex.rivera@gmail.com
+                - generic [ref=f1e4660]: Alex Rivera
+              - radiogroup "Color for alex.rivera@gmail.com" [ref=f1e4662]:
+                - radio "#b6706b" [ref=f1e4663]
+                - radio "#ae794c" [ref=f1e4664]
+                - radio "#978642" [ref=f1e4665]
+                - radio "#5d9669" [ref=f1e4666]
+                - radio "#339797" [ref=f1e4667]
+                - radio "#4a8fb5" [ref=f1e4668]
+                - radio "#7b80bc" [ref=f1e4669]
+                - radio "#a572a0" [ref=f1e4670]
+  - generic [ref=f1e450]: Settings

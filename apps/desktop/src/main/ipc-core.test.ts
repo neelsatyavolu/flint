@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 import { FlintError } from "@flint/core/types";
-import { dispatchCall, isSafeExternalUrl, isTrustedFrameUrl, parseCall, serializeError } from "./ipc-core";
+import { dispatchCall, extensionFolder, isSafeExternalUrl, isTrustedFrameUrl, parseCall, serializeError } from "./ipc-core";
 
 describe("parseCall", () => {
   it("accepts a known method with an args array", () => {
@@ -66,5 +66,14 @@ describe("isSafeExternalUrl", () => {
     expect(isSafeExternalUrl("x-apple.systempreferences:")).toBe(false);
     expect(isSafeExternalUrl(12)).toBe(false);
     expect(isSafeExternalUrl("nope")).toBe(false);
+  });
+});
+
+describe("extensionFolder", () => {
+  it("joins only the two known browser families onto the bundled folder", () => {
+    expect(extensionFolder("/r/browser-extension", "chromium")).toBe("/r/browser-extension/chromium");
+    expect(extensionFolder("/r/browser-extension", "firefox")).toBe("/r/browser-extension/firefox");
+    expect(extensionFolder("/r/browser-extension", "../../etc")).toBeNull();
+    expect(extensionFolder(null, "chromium")).toBeNull();
   });
 });
