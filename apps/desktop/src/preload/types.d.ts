@@ -13,6 +13,8 @@ export interface FlintHost {
   onMenu(cb: (action: MenuAction, arg?: string) => void): () => void;
   /** Scales the whole window (Settings, Appearance, Text size). Values outside 0.5 to 2 are ignored. */
   setZoomFactor(factor: number): void;
+  /** Sets what runs when the app quits, before the mail engine closes; quitting waits for it (with a cap). */
+  onFlushDrafts(cb: () => Promise<unknown>): void;
   /** Absolute path of a dropped or picked file, or an empty string when it has none. */
   getPathForFile(file: File): string;
 }

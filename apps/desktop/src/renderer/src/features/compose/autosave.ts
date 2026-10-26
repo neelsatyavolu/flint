@@ -24,14 +24,19 @@ export const RETRY_MS = [2000, 5000, 15000] as const;
 const unsaved = new Set<Autosaver<object>>();
 let exitHooked = false;
 
-/** Starts a save for every autosaver that has unsaved work. Runs on pagehide and beforeunload. */
-export function flushAllAutosavers(): void {
-  for (const saver of unsaved) void saver.flush().catch(() => undefined);
+/** Saves every autosaver that has unsaved work; resolves when all have finished or failed. */
+export function flushAllAutosavers(): Promise<void> {
+  return Promise.allSettled([...unsaved].map((saver) => saver.flush())).then(() => undefined);
 }
+
+/** The preload hook (Electron only) that quitting waits on before the mail engine closes its database. */
+type QuitHost = { onFlushDrafts?(cb: () => Promise<unknown>): void };
 
 function hookExit(): void {
   if (exitHooked || typeof window === "undefined") return;
   exitHooked = true;
+  // Quit (Cmd+Q) stops the service before the page unloads, so the unload events alone would save too late.
+  (window as unknown as { flintHost?: QuitHost }).flintHost?.onFlushDrafts?.(flushAllAutosavers);
   window.addEventListener("pagehide", flushAllAutosavers);
   window.addEventListener("beforeunload", flushAllAutosavers);
 }

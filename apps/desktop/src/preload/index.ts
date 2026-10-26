@@ -51,6 +51,16 @@ function subscribe(listener: (event: FlintEvent) => void): () => void {
 
 const flint = { ...methods, subscribe } as unknown as FlintApi;
 
+// On quit, main asks for unsaved drafts first and closes the database once answered. With nothing registered (no
+// composer opened yet) the answer goes straight back, so quitting never waits on a missing handler.
+let flushDrafts: (() => Promise<unknown>) | null = null;
+ipcRenderer.on(CHANNELS.flushDrafts, () => {
+  void Promise.resolve()
+    .then(() => flushDrafts?.())
+    .catch(() => undefined)
+    .finally(() => ipcRenderer.send(CHANNELS.draftsFlushed));
+});
+
 const flintHost: FlintHost = {
   platform: process.platform,
   openExternal: (url) => ipcRenderer.invoke(CHANNELS.openExternal, url) as Promise<void>,
@@ -58,6 +68,9 @@ const flintHost: FlintHost = {
   onMenu: (cb) => listen<[string, string | undefined]>(CHANNELS.menu, cb),
   setZoomFactor: (factor) => {
     if (Number.isFinite(factor) && factor >= 0.5 && factor <= 2) webFrame.setZoomFactor(factor);
+  },
+  onFlushDrafts: (cb) => {
+    flushDrafts = cb;
   },
   getPathForFile: (file) => {
     try {
