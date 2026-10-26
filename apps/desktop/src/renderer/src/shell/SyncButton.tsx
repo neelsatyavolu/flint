@@ -2,12 +2,13 @@ import { RefreshCw, TriangleAlert } from "lucide-react";
 import clsx from "clsx";
 import { flint } from "../lib/api";
 import { Button, IconButton, Popover } from "../ui";
-import { navStore } from "../state/nav";
 import { type SyncSummary } from "../state/sidebarModel";
+import { useSignInAgain } from "./AuthBanner";
 import styles from "./Sidebar.module.css";
 
 /** Sync button. Spins while any account syncs; with problems it opens a short list of what failed. */
 export function SyncButton({ sync }: { sync: SyncSummary }) {
+  const signInAgain = useSignInAgain();
   const icon = sync.problems.length ? <TriangleAlert size={16} strokeWidth={1.5} color="var(--warn)" /> : <RefreshCw size={16} strokeWidth={1.5} className={clsx(sync.syncing && styles.spin)} />;
   const button = (
     <IconButton label={sync.problems.length ? "Sync problems" : sync.syncing ? "Syncing" : "Sync now"} className="no-drag" onClick={sync.problems.length ? undefined : () => void flint.syncNow()}>
@@ -26,7 +27,7 @@ export function SyncButton({ sync }: { sync: SyncSummary }) {
                 <span className={styles.problemMsg}>{p.message}</span>
               </div>
               {p.needsSignIn ? (
-                <Button size="sm" variant="ghost" onClick={() => { navStore.getState().openSettings("accounts"); close(); }}>Sign in again</Button>
+                <Button size="sm" variant="ghost" onClick={() => { signInAgain(p.accountId); close(); }}>Sign in again</Button>
               ) : (
                 <Button size="sm" variant="ghost" onClick={() => { void flint.syncNow(p.accountId); close(); }}>Retry</Button>
               )}

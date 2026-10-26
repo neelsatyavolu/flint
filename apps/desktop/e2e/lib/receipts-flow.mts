@@ -40,7 +40,7 @@ export async function trackedSendBecomesOpened(win: Page, receipts: ReceiptsServ
   if (!before) throw new Error("tracked message missing from listTracked");
   if (before.opened !== 0) throw new Error(`self hit counted as an open: ${JSON.stringify(before)}`);
 
-  await goTo(win, "Read Statuses");
+  await goTo(win, "Read Receipts");
   await win.getByText(subject).first().waitFor({ state: "visible", timeout: 10_000 });
   await shot("23-read-statuses-sent");
 

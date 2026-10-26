@@ -7,7 +7,7 @@ export const CATEGORY_TITLES: Record<Category, string> = { people: "People", not
 
 const TITLES: Record<string, string> = {
   home: "Home", inbox: "Inbox", pinned: "Pins", drafts: "Drafts", sent: "Sent", trash: "Trash", spam: "Spam", archive: "Archive",
-  snoozed: "Snoozed", scheduled: "Scheduled", blocked: "Blocked", receipts: "Read Statuses", agent_activity: "Agent Activity",
+  snoozed: "Snoozed", scheduled: "Scheduled", blocked: "Blocked", receipts: "Read Receipts", agent_activity: "Agent Activity",
 };
 
 export function viewTitle(nav: MetaInput, folders: Folder[] = []): string {

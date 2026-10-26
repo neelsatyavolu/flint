@@ -114,7 +114,7 @@ describe("Sidebar", () => {
       </ToastProvider>,
     );
     const labels = screen.getAllByRole("button").map((b) => b.textContent ?? "");
-    const order = ["Home", "Inbox", "Agent Activity", "Pins", "Drafts", "Sent", "Scheduled", "Snoozed", "Trash", "Spam", "Archive", "Blocked", "Read Statuses", "More", "AI Agents", "Settings"];
+    const order = ["Home", "Inbox", "Agent Activity", "Pins", "Drafts", "Sent", "Scheduled", "Snoozed", "Trash", "Spam", "Archive", "Blocked", "Read Receipts", "More", "Agents & CLI", "Settings"];
     let at = -1;
     for (const name of order) {
       const idx = labels.findIndex((l, i) => i > at && l.startsWith(name));
