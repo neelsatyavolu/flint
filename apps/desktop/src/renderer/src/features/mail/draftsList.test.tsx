@@ -10,6 +10,7 @@ import { ToastProvider } from "../../ui";
 import { ThreadList } from "./ThreadList";
 import { ThreadRow, type ThreadRowProps } from "./ThreadRow";
 import { rowMenuItems } from "./rowMenu";
+import { DRAFT_UNDO_MS } from "./mailCommands";
 
 const NOW = Date.UTC(2026, 9, 25, 15);
 const hoisted = vi.hoisted(() => ({
@@ -48,7 +49,7 @@ describe("draft rows", () => {
     expect(screen.getByText("Here is the plan")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Archive" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Pin" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Delete draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete draft", hidden: true }));
     expect(p.onTrash).toHaveBeenCalledWith(localDraft);
   });
 
@@ -107,11 +108,35 @@ describe("Drafts view clicks", () => {
     expect(await screen.findByText("Couldn't open the draft. Try again.")).toBeTruthy();
   });
 
-  it("deletes a local draft from its row action", async () => {
+  it("deletes a local draft from its row action once the Undo toast has passed", async () => {
     hoisted.deleteDraft.mockResolvedValue(undefined);
     await mountDrafts();
-    const row = screen.getByText("Here is the plan").closest("[role=option]") as HTMLElement;
-    await act(async () => { fireEvent.click(row.querySelector("button[aria-label='Delete draft']")!); });
-    expect(hoisted.deleteDraft).toHaveBeenCalledWith(4);
+    vi.useFakeTimers();
+    try {
+      const row = screen.getByText("Here is the plan").closest("[role=option]") as HTMLElement;
+      await act(async () => { fireEvent.click(row.querySelector("button[aria-label='Delete draft']")!); });
+      expect(screen.queryByText("Here is the plan")).toBeNull();
+      expect(screen.getByText("Draft deleted")).toBeTruthy();
+      expect(hoisted.deleteDraft).not.toHaveBeenCalled();
+      await act(async () => { vi.advanceTimersByTime(DRAFT_UNDO_MS); });
+      expect(hoisted.deleteDraft).toHaveBeenCalledWith(4);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("brings a deleted draft back on Undo and never deletes it", async () => {
+    await mountDrafts();
+    vi.useFakeTimers();
+    try {
+      const row = screen.getByText("Here is the plan").closest("[role=option]") as HTMLElement;
+      await act(async () => { fireEvent.click(row.querySelector("button[aria-label='Delete draft']")!); });
+      await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Undo" })); });
+      expect(screen.getByText("Here is the plan")).toBeTruthy();
+      await act(async () => { vi.advanceTimersByTime(DRAFT_UNDO_MS * 2); });
+      expect(hoisted.deleteDraft).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
