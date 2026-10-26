@@ -4,14 +4,21 @@ import { useFlintQuery } from "../../lib/hooks";
 import { formatListTime } from "../../lib/format";
 import { Avatar } from "../../ui";
 import { navStore } from "../../state/nav";
-import { parseNeedsReply, REASON_LABEL } from "./replyRows";
+import { parseNeedsReply, REASON_LABEL, type NeedsReplyRow } from "./replyRows";
 import { HomeBlock } from "./HomeBlock";
 import styles from "./HomeView.module.css";
 
 /** People threads where someone asked something and nobody has answered. Found locally by a heuristic, so it works without +AI. */
+export function useNeedsReply() {
+  return useFlintQuery(async (api) => parseNeedsReply((await api.aiRunToText({ kind: "needsReply" })).text), []);
+}
+
 export function NeedsReply({ now }: { now: number }): JSX.Element | null {
-  const q = useFlintQuery(async (api) => parseNeedsReply((await api.aiRunToText({ kind: "needsReply" })).text), []);
-  const rows = q.data ?? [];
+  return <NeedsReplyList rows={useNeedsReply().data ?? []} now={now} />;
+}
+
+/** The block for rows loaded elsewhere (Home also needs them to know whether anything is waiting). */
+export function NeedsReplyList({ rows, now }: { rows: readonly NeedsReplyRow[]; now: number }): JSX.Element | null {
   if (rows.length === 0) return null;
   return (
     <HomeBlock title="Needs reply">
