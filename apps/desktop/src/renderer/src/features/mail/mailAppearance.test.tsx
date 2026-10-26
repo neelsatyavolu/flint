@@ -79,6 +79,13 @@ describe("useMailAppearance", () => {
     expect(result.current.html).toBe(GMAIL_REPLY);
   });
 
+  it("adapts nothing until enabled, e.g. before the message menu opens", () => {
+    const { result, rerender } = renderHook(({ on }) => useMailAppearance(message(), on), { wrapper: wrapperFor("match"), initialProps: { on: false } });
+    expect(result.current.canToggle).toBe(false);
+    rerender({ on: true });
+    expect(result.current.canToggle).toBe(true);
+  });
+
   it("keeps the choice per message", () => {
     const a = renderHook(() => useMailAppearance(message({ id: 1 })), { wrapper: wrapperFor("match") });
     const b = renderHook(() => useMailAppearance(message({ id: 2 })), { wrapper: wrapperFor("match") });
