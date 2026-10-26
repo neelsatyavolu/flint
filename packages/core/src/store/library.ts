@@ -7,12 +7,20 @@ import type { Reminder, ReminderStatus } from "./types";
 
 const signatureSchema = z.object({
   id: z.number().int().optional(), name: z.string().min(1).max(120), html: z.string().max(200_000),
-  accountId: z.string().nullable(), defaultNew: z.boolean(), defaultReply: z.boolean(),
+  accountIds: z.array(z.string().min(1)).max(100), defaultNew: z.boolean(), defaultReply: z.boolean(),
 });
 const templateSchema = z.object({ id: z.number().int().optional(), name: z.string().min(1).max(120), subject: z.string().max(500), html: z.string().max(200_000) });
 
-type SigRow = { id: number; name: string; html: string; account_id: string | null; default_new: number; default_reply: number };
-const toSig = (r: SigRow): Signature => ({ id: r.id, name: r.name, html: r.html, accountId: r.account_id, defaultNew: bool(r.default_new), defaultReply: bool(r.default_reply) });
+type SigRow = { id: number; name: string; html: string; account_ids: string; default_new: number; default_reply: number };
+const parseIds = (json: string): string[] => {
+  try {
+    const v: unknown = JSON.parse(json);
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch { return []; }
+};
+/** Two scopes overlap when either is every account or they share an account. */
+const scopesOverlap = (a: string[], b: string[]): boolean => a.length === 0 || b.length === 0 || a.some((x) => b.includes(x));
+const toSig = (r: SigRow): Signature => ({ id: r.id, name: r.name, html: r.html, accountIds: parseIds(r.account_ids), defaultNew: bool(r.default_new), defaultReply: bool(r.default_reply) });
 
 export class LibraryRepo {
   constructor(protected q: Sql) {}
@@ -26,20 +34,24 @@ export class LibraryRepo {
     return r ? toSig(r) : null;
   }
 
-  /** Insert or update. Only one signature per account scope can be the default for new mail or for replies. */
+  /** Insert or update. A default for new mail or for replies is unique per account: saving one clears the flag on signatures whose accounts overlap. */
   saveSignature(input: Omit<Signature, "id"> & { id?: number }, now: number = Date.now()): Signature {
     const p = signatureSchema.safeParse(input);
     if (!p.success) throw new FlintError("invalid", "That signature is not valid.");
-    const s = p.data;
+    const s = { ...p.data, accountIds: [...new Set(p.data.accountIds)] };
+    const ids = JSON.stringify(s.accountIds);
     let id = s.id;
     if (id !== undefined) {
       if (!this.getSignature(id)) throw new FlintError("not_found", "That signature no longer exists.");
-      this.q.run("UPDATE signatures SET name=?, html=?, account_id=?, default_new=?, default_reply=?, updated_at=? WHERE id=?", s.name, s.html, s.accountId, s.defaultNew, s.defaultReply, now, id);
+      this.q.run("UPDATE signatures SET name=?, html=?, account_ids=?, default_new=?, default_reply=?, updated_at=? WHERE id=?", s.name, s.html, ids, s.defaultNew, s.defaultReply, now, id);
     } else {
-      id = this.q.run("INSERT INTO signatures (name, html, account_id, default_new, default_reply, updated_at) VALUES (?,?,?,?,?,?)", s.name, s.html, s.accountId, s.defaultNew, s.defaultReply, now).lastInsertRowid;
+      id = this.q.run("INSERT INTO signatures (name, html, account_ids, default_new, default_reply, updated_at) VALUES (?,?,?,?,?,?)", s.name, s.html, ids, s.defaultNew, s.defaultReply, now).lastInsertRowid;
     }
-    if (s.defaultNew) this.q.run("UPDATE signatures SET default_new = 0 WHERE id <> ? AND account_id IS ?", id, s.accountId);
-    if (s.defaultReply) this.q.run("UPDATE signatures SET default_reply = 0 WHERE id <> ? AND account_id IS ?", id, s.accountId);
+    for (const other of this.listSignatures()) {
+      if (other.id === id || !scopesOverlap(other.accountIds, s.accountIds)) continue;
+      if (s.defaultNew && other.defaultNew) this.q.run("UPDATE signatures SET default_new = 0 WHERE id = ?", other.id);
+      if (s.defaultReply && other.defaultReply) this.q.run("UPDATE signatures SET default_reply = 0 WHERE id = ?", other.id);
+    }
     return this.getSignature(id)!;
   }
 

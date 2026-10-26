@@ -120,7 +120,7 @@ macOS window with `titleBarStyle: hiddenInset`. Traffic lights sit over the side
 - Opens as its own window (or a sheet over the reader for inline replies). plane-2.
 - Top bar: close, pop-out/in, then right: +AI, attach, template, reminder, send later, receipts toggle (eye), separator, From selector (address over name in Data), Send (accent icon button; the only accent fill).
 - Fields, no boxes: Subject (Compose subject style, placeholder `--fg-3`), then "To, Cc, Bcc" recipient line with chips (4px radius, `--active`, avatar 16), then the body. Hairlines between fields only on focus.
-- Body: rich text (TipTap) in Geist 14.5/22. Signature renders as part of the body, set off by a short dashed hairline (view only), and stays editable. It is sent exactly as written, so a `--` divider appears only when the signature contains one. Quoted text collapses behind a "···" pill.
+- Body: rich text (TipTap) in Geist 14.5/22. Signature renders as part of the body, one short gap below the text, with no marker, and stays editable. It is sent exactly as written, so a `--` divider appears only when the signature contains one. Quoted text collapses behind a "···" pill.
 - The caret is `--accent`.
 - +AI opens an inline prompt bar under the toolbar: field with a blinking accent caret, suggestion chips (Write a reply, Shorter, More formal, Fix grammar, Translate). Results stream into a preview block with Insert / Replace / Discard.
 

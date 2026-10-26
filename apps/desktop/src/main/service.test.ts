@@ -69,6 +69,6 @@ describe("mock service", () => {
     off();
     await s.updateSettings({ appearance: { theme: "light" } });
     expect(events).toHaveLength(1);
-    expect(await s.saveSignature({ name: "a", html: "", accountId: null, defaultNew: false, defaultReply: false })).toMatchObject({ id: 1 });
+    expect(await s.saveSignature({ name: "a", html: "", accountIds: [], defaultNew: false, defaultReply: false })).toMatchObject({ id: 1 });
   });
 });

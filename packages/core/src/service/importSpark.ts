@@ -94,15 +94,19 @@ export function importSparkApi(ctx: ServiceContext): Pick<FlintApi, Methods> {
       const saved: Signature[] = [];
       const defaults: Record<string, number> = {};
       const bindings = readBindings(ctx);
+      const accounts = store.listAccounts();
       for (const item of input.items) {
         const source = bySparkId.get(item.sparkId)!;
         const prior = existing(source.sparkId, source.html);
-        // Spark signatures aren't per account, so these stay shared; the per-account defaults live in settings.
+        // One Spark signature used by several of the owner's accounts becomes one signature shared by exactly those accounts.
+        // A re-import adds to the accounts it already had; a shared (all accounts) signature stays shared.
+        const matched = accountsFor(source.accounts, accounts).map((m) => m.accountId);
+        const accountIds = prior && prior.accountIds.length === 0 ? [] : [...new Set([...(prior?.accountIds ?? []), ...matched, ...(matched.length > 0 || prior ? item.setDefaultFor : [])])];
         const sig = store.saveSignature({
           ...(prior ? { id: prior.id } : {}),
           name: item.name?.trim() || source.name,
           html: source.html,
-          accountId: null,
+          accountIds,
           defaultNew: prior?.defaultNew ?? false,
           defaultReply: prior?.defaultReply ?? false,
         }, ctx.now());

@@ -94,7 +94,7 @@ describe("importSparkSignatures", () => {
       { sparkId: "B", setDefaultFor: [nenu.id] },
     ] });
     expect(out.map((s) => s.name)).toEqual(["Work", "Thanks,"]);
-    expect(out.every((s) => s.accountId === null)).toBe(true);
+    expect(out.map((s) => s.accountIds)).toEqual([[xanom.id], [nenu.id]]);
     expect(out[0]!.html.length).toBeGreaterThan(80_000);
     expect(out[0]!.html.startsWith("<div>--</div><div>Neel Satyavolu</div>")).toBe(true);
     expect(ctx.getSettings().compose.defaultSignatureByAccount).toEqual({ [xanom.id]: out[0]!.id, [nenu.id]: out[1]!.id });
@@ -103,6 +103,25 @@ describe("importSparkSignatures", () => {
       expect(defaultSignature(ctx.store, ctx.getSettings(), xanom.id, mode)?.id).toBe(out[0]!.id);
       expect(defaultSignature(ctx.store, ctx.getSettings(), nenu.id, mode)?.id).toBe(out[1]!.id);
     }
+  });
+
+  it("merges a Spark signature used by several accounts into one signature with several accountIds", async () => {
+    const { api, ctx, xanom, nenu } = rig();
+    const path = sparkDb([sig("A", "<div>Neel</div>"), bindings({ "neel@xanom.co": "A", "hello@nenu.co": "A" })]);
+    const out = await api.importSparkSignatures({ path, items: [{ sparkId: "A", setDefaultFor: [xanom.id, nenu.id] }] });
+    expect(out).toHaveLength(1);
+    expect([...out[0]!.accountIds].sort()).toEqual([xanom.id, nenu.id].sort());
+    expect(ctx.store.listSignatures()).toHaveLength(1);
+    const again = await api.importSparkSignatures({ path, items: [{ sparkId: "A", setDefaultFor: [] }] });
+    expect(again[0]!.id).toBe(out[0]!.id);
+    expect([...again[0]!.accountIds].sort()).toEqual([xanom.id, nenu.id].sort());
+  });
+
+  it("keeps a signature with no matching Flint account shared by every account", async () => {
+    const { api } = rig();
+    const path = sparkDb([sig("A", "<div>Neel</div>"), bindings({ "stranger@x.org": "A" })]);
+    const [out] = await api.importSparkSignatures({ path, items: [{ sparkId: "A", setDefaultFor: [] }] });
+    expect(out!.accountIds).toEqual([]);
   });
 
   it("applies Spark's defaults again on re-import, even over an explicit None", async () => {
@@ -170,7 +189,7 @@ describe("importSparkSignatures", () => {
     const path = fixture();
     const scan = await api.findSparkSignatures(path);
     const b = scan!.signatures.find((s) => s.sparkId === "B")!;
-    const mine = ctx.store.saveSignature({ name: "Mine", html: b.html, accountId: null, defaultNew: false, defaultReply: false });
+    const mine = ctx.store.saveSignature({ name: "Mine", html: b.html, accountIds: [], defaultNew: false, defaultReply: false });
     const [out] = await api.importSparkSignatures({ path, items: [{ sparkId: "B", setDefaultFor: [] }] });
     expect(out!.id).toBe(mine.id);
   });

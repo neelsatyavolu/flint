@@ -32,7 +32,7 @@ describe("SparkImportSheet", () => {
 
   it("imports only the checked rows, with the new name and toggled defaults", async () => {
     vi.spyOn(flint, "findSparkSignatures").mockResolvedValue(scan);
-    const imp = vi.spyOn(flint, "importSparkSignatures").mockResolvedValue([{ id: 7, name: "Work", html: "", accountId: null, defaultNew: false, defaultReply: false }]);
+    const imp = vi.spyOn(flint, "importSparkSignatures").mockResolvedValue([{ id: 7, name: "Work", html: "", accountIds: [], defaultNew: false, defaultReply: false }]);
     const onImported = vi.fn();
     const onClose = vi.fn();
     mount(onClose, onImported);

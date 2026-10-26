@@ -180,10 +180,14 @@ describe("mutations", () => {
     await expect(api.addAccount({ email: "new@fastmail.com", name: "New", password: "pw" })).rejects.toThrow(/already added/);
     await api.removeAccount(acct.id);
     expect((await api.listAccounts()).length).toBe(3);
-    const sig = await api.saveSignature({ name: "Test", html: "x", accountId: null, defaultNew: false, defaultReply: false });
+    const sig = await api.saveSignature({ name: "Test", html: "x", accountIds: [], defaultNew: false, defaultReply: false });
     await api.saveSignature({ ...sig, name: "Renamed" });
     expect((await api.listSignatures()).find((s) => s.id === sig.id)!.name).toBe("Renamed");
     await api.deleteSignature(sig.id);
+    const [first, second] = (await api.listAccounts()).map((a) => a.id);
+    const shared = await api.saveSignature({ name: "Shared", html: "x", accountIds: [first!, second!], defaultNew: true, defaultReply: false });
+    await expect(api.saveSignature({ name: "Bad", html: "x", accountIds: ["nope"], defaultNew: false, defaultReply: false })).rejects.toMatchObject({ code: "invalid" });
+    expect((await api.listSignatures()).filter((s) => s.defaultNew && s.accountIds.includes(first!)).map((s) => s.id)).toEqual([shared.id]);
     const tpl = await api.saveTemplate({ name: "T", subject: "S", html: "h" });
     await api.deleteTemplate(tpl.id);
     const rule = await api.saveRule({ name: "R", enabled: true, accountId: null, match: "all", conditions: [], actions: [], sortOrder: 9 });

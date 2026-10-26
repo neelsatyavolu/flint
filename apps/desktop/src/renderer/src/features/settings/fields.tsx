@@ -37,6 +37,7 @@ export function ChoiceSelect<T extends string | number>({ label, value, choices,
   return (
     <Select
       aria-label={label}
+      title={choices.find((c) => String(c.value) === String(value))?.label}
       value={String(value)}
       disabled={disabled}
       onChange={(e) => {
@@ -45,7 +46,7 @@ export function ChoiceSelect<T extends string | number>({ label, value, choices,
       }}
     >
       {choices.map((c) => (
-        <option key={String(c.value)} value={String(c.value)}>{c.label}</option>
+        <option key={String(c.value)} value={String(c.value)} title={c.label}>{c.label}</option>
       ))}
     </Select>
   );

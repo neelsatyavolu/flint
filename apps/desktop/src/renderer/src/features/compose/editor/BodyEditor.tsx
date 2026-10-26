@@ -54,7 +54,9 @@ function signaturePos(editor: Editor): number | null {
  * docked reply grow by a line right after it opened.
  */
 export function withLeadingParagraph(html: string): string {
-  const lead = html.trimStart().startsWith("<p") ? html : `<p></p>${html}`;
+  // A new draft's body is "<br>" + the signature block; the editor would turn that <br> into a second empty line.
+  const body = html.replace(/^\s*(?:<br\s*\/?>\s*)+(?=<div\b[^>]*\bflint_signature\b)/i, "");
+  const lead = body.trimStart().startsWith("<p") ? body : `<p></p>${body}`;
   return /<\/div>\s*$/.test(lead) ? `${lead}<p></p>` : lead;
 }
 

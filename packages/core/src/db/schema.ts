@@ -307,4 +307,9 @@ export const MIGRATIONS: readonly string[] = [
   ALTER TABLE accounts ADD COLUMN avatar_source TEXT;           -- 'google' | 'custom' | NULL
   ALTER TABLE accounts ADD COLUMN avatar_updated_at INTEGER;
   `,
+  /* 8: a signature can be shared by several accounts. account_ids is a JSON array of account ids; [] = every account.
+        The old account_id column stays (unused) so the migration is additive. */ `
+  ALTER TABLE signatures ADD COLUMN account_ids TEXT NOT NULL DEFAULT '[]';
+  UPDATE signatures SET account_ids = json_array(account_id) WHERE account_id IS NOT NULL;
+  `,
 ];

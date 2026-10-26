@@ -24,6 +24,13 @@ function offers(state: MockState, now: number): SparkSignatureOffer[] {
   }));
 }
 
+/** Same rule as the service: the matched accounts (plus the ones chosen as default), kept on a re-import; shared stays shared. */
+function sharedIds(prior: Signature | undefined, offer: SparkSignatureOffer, setDefaultFor: string[]): string[] {
+  if (prior && prior.accountIds.length === 0) return [];
+  const matched = offer.matches.map((m) => m.accountId);
+  return [...new Set([...(prior?.accountIds ?? []), ...matched, ...(matched.length > 0 || prior ? setDefaultFor : [])])];
+}
+
 /** findSparkSignatures and importSparkSignatures over the mock state, with the same re-import rule as the real service. */
 export function mockSparkApi(state: MockState, now: () => number, nextSigId: () => number, emit: (e: FlintEvent) => void): Pick<FlintApi, "findSparkSignatures" | "importSparkSignatures"> {
   const imported = new Map<string, number>();
@@ -38,7 +45,7 @@ export function mockSparkApi(state: MockState, now: () => number, nextSigId: () 
         const offer = found.get(item.sparkId);
         if (!offer) throw new FlintError("not_found", "Spark no longer has one of those signatures. Reopen the import and try again.");
         const prior = state.signatures.find((s) => s.id === imported.get(item.sparkId));
-        const sig: Signature = { id: prior?.id ?? nextSigId(), name: item.name?.trim() || offer.name, html: offer.html, accountId: null, defaultNew: prior?.defaultNew ?? false, defaultReply: prior?.defaultReply ?? false };
+        const sig: Signature = { id: prior?.id ?? nextSigId(), name: item.name?.trim() || offer.name, html: offer.html, accountIds: sharedIds(prior, offer, item.setDefaultFor), defaultNew: prior?.defaultNew ?? false, defaultReply: prior?.defaultReply ?? false };
         state.signatures = prior ? state.signatures.map((s) => (s.id === sig.id ? sig : s)) : [...state.signatures, sig];
         imported.set(item.sparkId, sig.id);
         for (const accountId of item.setDefaultFor) {

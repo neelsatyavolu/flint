@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Settings, Signature } from "@flint/core";
-import { defaultPatch, needsDefaultHint, pickerValue } from "./signatureDefaults";
+import { defaultPatch, needsDefaultHint, pickerValue, withAccount } from "./signatureDefaults";
 
-const sig = (id: number, over: Partial<Signature> = {}): Signature => ({ id, name: `S${id}`, html: "", accountId: null, defaultNew: false, defaultReply: false, ...over });
+const sig = (id: number, over: Partial<Signature> = {}): Signature => ({ id, name: `S${id}`, html: "", accountIds: [], defaultNew: false, defaultReply: false, ...over });
 const compose = (forNew: Record<string, number | null>, forReply: Record<string, number | null> = {}) =>
   ({ undoSendSeconds: 10, plainTextOnly: false, defaultSignatureByAccount: forNew, defaultReplySignatureByAccount: forReply }) as Settings["compose"];
 
 describe("pickerValue", () => {
-  const sigs = [sig(1), sig(2, { accountId: "a" })];
+  const sigs = [sig(1), sig(2, { accountIds: ["a"] })];
   it("shows the chosen signature, or None when None was chosen", () => {
     expect(pickerValue(sigs, compose({ a: 2 }), "a", "new")).toBe(2);
     expect(pickerValue(sigs, compose({ a: null }), "a", "new")).toBeNull();
@@ -39,7 +39,21 @@ describe("needsDefaultHint", () => {
     expect(needsDefaultHint([sig(1)], compose({}), "a")).toBe(true);
     expect(needsDefaultHint([sig(1)], compose({ a: 1 }), "a")).toBe(false);
     expect(needsDefaultHint([sig(1)], compose({ a: null }), "a")).toBe(false);
-    expect(needsDefaultHint([sig(1, { accountId: "b" })], compose({}), "a")).toBe(false);
+    expect(needsDefaultHint([sig(1, { accountIds: ["b"] })], compose({}), "a")).toBe(false);
     expect(needsDefaultHint([], compose({}), "a")).toBe(false);
+  });
+});
+
+describe("shared signatures", () => {
+  const shared = sig(1, { accountIds: ["a", "b"], defaultNew: true });
+  it("applies to every listed account and no other", () => {
+    expect(pickerValue([shared], compose({}), "a", "new")).toBe(1);
+    expect(pickerValue([shared], compose({}), "b", "new")).toBe(1);
+    expect(pickerValue([shared], compose({}), "c", "new")).toBe("unset");
+  });
+  it("withAccount adds an account only when the signature isn't available for it yet", () => {
+    expect(withAccount(shared, "a")).toBeNull();
+    expect(withAccount(sig(2), "z")).toBeNull();
+    expect(withAccount(shared, "c")).toEqual({ ...shared, accountIds: ["a", "b", "c"] });
   });
 });

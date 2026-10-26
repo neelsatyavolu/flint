@@ -1,6 +1,6 @@
 import { FlintError } from "@flint/core/types";
 import type {
-  Account, AccountId, AddAccountInput, DeepPartial, FlintApi, FlintEvent, Folder, HomeData,
+  Account, AccountId, AddAccountInput, DeepPartial, FlintApi, FlintEvent, Folder, HomeData, Signature,
   MessageView, ServerConfig, Settings, SidebarData, SyncStatus, ThreadDetail, ThreadId, ThreadQuery,
 } from "@flint/core";
 import { streamFakeAi, fakeAiText } from "./ai";
@@ -314,8 +314,13 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
     // Signatures, templates, rules
     async listSignatures() { return state.signatures; },
     async saveSignature(sig) {
-      const saved = { ...sig, id: sig.id ?? nextId(state, "sig") + 100 };
-      state.signatures = state.signatures.some((s) => s.id === saved.id) ? state.signatures.map((s) => (s.id === saved.id ? saved : s)) : [...state.signatures, saved];
+      const saved = { ...sig, accountIds: [...new Set(sig.accountIds)], id: sig.id ?? nextId(state, "sig") + 100 };
+      if (saved.accountIds.some((id) => !state.accounts.some((a) => a.id === id))) throw new FlintError("invalid", "One of the accounts for that signature doesn't exist.");
+      const overlaps = (o: Signature) => o.id !== saved.id && (o.accountIds.length === 0 || saved.accountIds.length === 0 || o.accountIds.some((id) => saved.accountIds.includes(id)));
+      const others = state.signatures.filter((s) => s.id !== saved.id).map((o) => (overlaps(o) ? { ...o, defaultNew: o.defaultNew && !saved.defaultNew, defaultReply: o.defaultReply && !saved.defaultReply } : o));
+      state.signatures = state.signatures.some((s) => s.id === saved.id)
+        ? state.signatures.map((s) => (s.id === saved.id ? saved : (others.find((o) => o.id === s.id) ?? s)))
+        : [...others, saved];
       return saved;
     },
     async deleteSignature(id) { state.signatures = state.signatures.filter((s) => s.id !== id); },

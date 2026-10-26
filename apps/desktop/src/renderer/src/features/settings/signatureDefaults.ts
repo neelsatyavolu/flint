@@ -1,5 +1,5 @@
 import type { AccountId, DeepPartial, Settings, Signature } from "@flint/core";
-import { defaultSignatureFor, signaturesForAccount } from "../compose/signature";
+import { availableFor, defaultSignatureFor, signaturesForAccount } from "../compose/signature";
 
 export type DefaultKind = "new" | "reply";
 type Compose = Settings["compose"];
@@ -30,4 +30,9 @@ export function defaultPatch(kind: DefaultKind, accountId: AccountId, value: num
 export function needsDefaultHint(signatures: Signature[], compose: Compose, accountId: AccountId): boolean {
   if (signaturesForAccount(signatures, accountId).length === 0) return false;
   return (["new", "reply"] as const).some((kind) => pickerValue(signatures, compose, accountId, kind) === "unset");
+}
+
+/** What saving must change before `signature` can be an account's default: itself plus the account, or null when it already applies. */
+export function withAccount(signature: Signature, accountId: AccountId): Signature | null {
+  return availableFor(signature, accountId) ? null : { ...signature, accountIds: [...signature.accountIds, accountId] };
 }

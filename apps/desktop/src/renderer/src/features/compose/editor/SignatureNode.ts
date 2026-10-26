@@ -47,15 +47,12 @@ export const Signature = Node.create({
       const dom = document.createElement("div");
       dom.className = SIGNATURE_CLASS;
       dom.contentEditable = "false";
-      const marker = document.createElement("div");
-      marker.className = "flint-sig-marker";
-      marker.setAttribute("aria-hidden", "true");
       const inner = document.createElement("div");
       inner.className = "flint-sig-body";
       inner.contentEditable = "true";
       inner.setAttribute("aria-label", "Signature");
       inner.innerHTML = current.attrs.html as string;
-      dom.append(marker, inner);
+      dom.append(inner);
 
       inner.addEventListener("input", () => {
         const pos = getPos();

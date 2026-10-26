@@ -250,7 +250,7 @@ export type ScheduledSend = {
 
 export type SendResult = { scheduledId: number; sendAt: number; undoUntil: number; status: ScheduledSend["status"] };
 
-export type Signature = { id: number; name: string; html: string; accountId: AccountId | null; defaultNew: boolean; defaultReply: boolean };
+export type Signature = { id: number; name: string; html: string; /** Accounts that can use it; empty = every account. */ accountIds: AccountId[]; defaultNew: boolean; defaultReply: boolean };
 export type Template = { id: number; name: string; subject: string; html: string };
 
 export type RuleField = "from" | "to" | "cc" | "subject" | "body" | "any_recipient" | "list_id" | "has_attachment";

@@ -42,6 +42,10 @@ export function libraryApi(ctx: ServiceContext): LibraryApi {
     if (accountId !== null && !store.getAccount(accountId)) throw new FlintError("not_found", "That account no longer exists.");
   }
 
+  function requireAccounts(accountIds: string[]): void {
+    if (accountIds.some((id) => !store.getAccount(id))) throw new FlintError("invalid", "One of the accounts for that signature doesn't exist.");
+  }
+
   /** Every non-sent message in the inbox's threads, evaluated against the rules. Actions are listed per thread. */
   async function planActions(rules: Rule[], threadIds: ThreadId[]): Promise<Map<ThreadId, RuleAction[]>> {
     if (rules.some((r) => r.conditions.some((c) => c.field === "body"))) {
@@ -102,7 +106,7 @@ export function libraryApi(ctx: ServiceContext): LibraryApi {
   return {
     async listSignatures() { return store.listSignatures(); },
     async saveSignature(sig) {
-      requireAccountOrNull(sig.accountId ?? null);
+      requireAccounts(sig.accountIds ?? []);
       return store.saveSignature(sig, ctx.now());
     },
     async deleteSignature(sigId) { store.deleteSignature(parseId(sigId)); },

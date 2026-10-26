@@ -66,5 +66,5 @@ export function defaultSignature(source: SignatureSource, settings: Settings, ac
   }
   const flag = isReply(mode) ? "defaultReply" : "defaultNew";
   const all = source.listSignatures().filter((s) => s[flag]);
-  return all.find((s) => s.accountId === accountId) ?? all.find((s) => s.accountId === null) ?? null;
+  return all.find((s) => s.accountIds.includes(accountId)) ?? all.find((s) => s.accountIds.length === 0) ?? null;
 }

@@ -36,7 +36,7 @@ describe.skipIf(!gm)("compose and send against GreenMail", { timeout: 90_000 }, 
   afterAll(async () => { await rig?.service.stop(); });
 
   it("creates drafts with the default signature, templates and the creator", async () => {
-    const sig = await svc().saveSignature({ name: "Work", html: "<p>Alice, Acme</p>", accountId: null, defaultNew: true, defaultReply: true });
+    const sig = await svc().saveSignature({ name: "Work", html: "<p>Alice, Acme</p>", accountIds: [], defaultNew: true, defaultReply: true });
     const draft = await svc().createDraft({ mode: "new", to: [person("bob")], subject: "Hello" });
     expect(draft).toMatchObject({ accountId: rig.accountId, from: addrOf("alice"), mode: "new", track: true, createdBy: "user", signatureId: sig.id });
     expect(draft.html).toContain("flint_signature");
@@ -48,7 +48,7 @@ describe.skipIf(!gm)("compose and send against GreenMail", { timeout: 90_000 }, 
     const back = await svc().updateDraft(draft.id, { signatureId: sig.id, html: `<p>Body</p>${none.html}` });
     expect(back.html.match(/flint_signature/g)).toHaveLength(1);
 
-    const second = await svc().saveSignature({ name: "Short", html: "<p>A.</p>", accountId: null, defaultNew: false, defaultReply: false });
+    const second = await svc().saveSignature({ name: "Short", html: "<p>A.</p>", accountIds: [], defaultNew: false, defaultReply: false });
     const swapped = await svc().updateDraft(draft.id, { signatureId: second.id });
     expect(swapped.html).toContain("<p>A.</p>");
     expect(swapped.html).not.toContain("Alice, Acme");

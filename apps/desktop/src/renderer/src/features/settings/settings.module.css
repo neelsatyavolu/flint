@@ -70,6 +70,8 @@
 .defaultRow { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; padding: var(--s-3) 0; border-bottom: 1px solid var(--line); }
 .defaultPick { display: flex; flex-direction: column; gap: 4px; width: 220px; }
 .defaultPick > span:last-child, .defaultPick select { width: 100%; }
+.defaultPick select { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.useWith { display: flex; flex-direction: column; gap: var(--s-2); align-items: flex-start; }
 
 .linkButton { all: unset; color: var(--accent); cursor: default; border-radius: var(--r-control); }
 .linkButton:hover { text-decoration: underline; }

@@ -32,9 +32,9 @@ export const defaultAi = (): AiStatus => ({
 });
 
 export const makeSignatures = (): Signature[] => [
-  { id: 1, name: "Short", html: SIGNATURES.short, accountId: ACCOUNT_IDS.gmail, defaultNew: true, defaultReply: true },
-  { id: 2, name: "Northwind (links and logo)", html: SIGNATURES.rich, accountId: ACCOUNT_IDS.northwind, defaultNew: true, defaultReply: false },
-  { id: 3, name: "Studio Orbit", html: SIGNATURES.plain.replace("Northwind", "Studio Orbit"), accountId: ACCOUNT_IDS.orbit, defaultNew: true, defaultReply: true },
+  { id: 1, name: "Short", html: SIGNATURES.short, accountIds: [ACCOUNT_IDS.gmail], defaultNew: true, defaultReply: true },
+  { id: 2, name: "Northwind (links and logo)", html: SIGNATURES.rich, accountIds: [ACCOUNT_IDS.northwind], defaultNew: true, defaultReply: false },
+  { id: 3, name: "Studio Orbit", html: SIGNATURES.plain.replace("Northwind", "Studio Orbit"), accountIds: [ACCOUNT_IDS.orbit], defaultNew: true, defaultReply: true },
 ];
 
 export const makeTemplates = (): Template[] => [

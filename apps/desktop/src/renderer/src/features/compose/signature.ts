@@ -22,7 +22,7 @@ export function chosenSignatureId(defaults: SignatureDefaults, accountId: Accoun
 
 /**
  * The default signature for an account, following the same rules as the backend: the settings choice (null = none),
- * else the signature flagged for new mail or replies, the account's own before a shared one.
+ * else the signature flagged for new mail or replies, one listing the account before an all-accounts one.
  * A choice that points at a deleted signature counts as no choice.
  */
 export function defaultSignatureFor(signatures: Signature[], accountId: AccountId, mode: ComposeMode, defaults: SignatureDefaults): Signature | null {
@@ -31,12 +31,17 @@ export function defaultSignatureFor(signatures: Signature[], accountId: AccountI
   const picked = chosen === undefined ? undefined : signatures.find((s) => s.id === chosen);
   if (picked) return picked;
   const flagged = signatures.filter((s) => (isReply(mode) ? s.defaultReply : s.defaultNew));
-  return flagged.find((s) => s.accountId === accountId) ?? flagged.find((s) => s.accountId === null) ?? null;
+  return flagged.find((s) => s.accountIds.includes(accountId)) ?? flagged.find((s) => s.accountIds.length === 0) ?? null;
 }
 
-/** Signatures the user can pick for a From account: that account's own and the shared ones. */
+/** True when a signature is offered for an account: it lists the account, or lists none (every account). */
+export function availableFor(signature: Signature, accountId: AccountId): boolean {
+  return signature.accountIds.length === 0 || signature.accountIds.includes(accountId);
+}
+
+/** Signatures the user can pick for a From account: those that list it and those shared by every account. */
 export function signaturesForAccount(signatures: Signature[], accountId: AccountId): Signature[] {
-  return signatures.filter((s) => s.accountId === null || s.accountId === accountId);
+  return signatures.filter((s) => availableFor(s, accountId));
 }
 
 /** Replaces (or removes, with null) the signature block in a body. Pure string in, string out. */

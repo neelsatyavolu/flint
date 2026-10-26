@@ -133,14 +133,38 @@ describe("drafts, scheduled sends, reminders, library", () => {
     expect(store.getReminder(r2.id)!.status).toBe("cancelled");
   });
 
+  it("a shared signature round-trips its accounts; defaults clear only where account sets overlap", () => {
+    const store = makeStore();
+    const base = { provider: "imap" as const, authKind: "password" as const, imapHost: "x", imapPort: 993, imapSecure: true, smtpHost: "x", smtpPort: 465, smtpSecure: true };
+    const [a, b, c] = ["a", "b", "c"].map((n) => store.createAccount({ ...base, email: `${n}@x.co`, username: n }).id);
+    const flags = { defaultNew: true, defaultReply: false };
+    const ab = store.saveSignature({ name: "AB", html: "", accountIds: [a!, b!, a!], ...flags });
+    expect(ab.accountIds).toEqual([a, b]);
+    const bOnly = store.saveSignature({ name: "B", html: "", accountIds: [b!], ...flags });
+    const cOnly = store.saveSignature({ name: "C", html: "", accountIds: [c!], ...flags });
+    const defaults = () => store.listSignatures().filter((x) => x.defaultNew).map((x) => x.name);
+    expect(defaults()).toEqual(["B", "C"]);
+    store.saveSignature({ name: "All", html: "", accountIds: [], ...flags });
+    expect(defaults()).toEqual(["All"]);
+    store.saveSignature({ ...cOnly, defaultNew: true });
+    expect(defaults()).toEqual(["C"]);
+    expect(store.getSignature(bOnly.id)!.accountIds).toEqual([b]);
+    expect(() => store.saveSignature({ name: "x", html: "", accountIds: [""], ...flags })).toThrowError(FlintError);
+    store.deleteAccount(a!);
+    expect(store.getSignature(ab.id)!.accountIds).toEqual([b]);
+    store.deleteAccount(b!);
+    expect(store.getSignature(ab.id)).toBeNull();
+    expect(store.getSignature(bOnly.id)).toBeNull();
+  });
+
   it("signatures keep one default per scope; templates round-trip", () => {
     const store = makeStore();
     const s = seedImap(store);
-    const a = store.saveSignature({ name: "Work", html: "<p>W</p>", accountId: s.account.id, defaultNew: true, defaultReply: false });
-    const b = store.saveSignature({ name: "Work 2", html: "<p>W2</p>", accountId: s.account.id, defaultNew: true, defaultReply: true });
+    const a = store.saveSignature({ name: "Work", html: "<p>W</p>", accountIds: [s.account.id], defaultNew: true, defaultReply: false });
+    const b = store.saveSignature({ name: "Work 2", html: "<p>W2</p>", accountIds: [s.account.id], defaultNew: true, defaultReply: true });
     expect(store.listSignatures().map((x) => [x.name, x.defaultNew])).toEqual([["Work", false], ["Work 2", true]]);
     expect(store.saveSignature({ ...a, name: "Renamed" }).name).toBe("Renamed");
-    expect(() => store.saveSignature({ name: "", html: "", accountId: null, defaultNew: false, defaultReply: false })).toThrowError(FlintError);
+    expect(() => store.saveSignature({ name: "", html: "", accountIds: [], defaultNew: false, defaultReply: false })).toThrowError(FlintError);
     expect(() => store.saveSignature({ ...a, id: 999 })).toThrowError(/no longer exists/);
     store.deleteSignature(b.id);
     expect(store.listSignatures()).toHaveLength(1);

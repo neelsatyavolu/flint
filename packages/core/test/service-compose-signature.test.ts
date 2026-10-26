@@ -3,7 +3,7 @@ import { defaultSignature, hasSignature, replaceSignature, signatureBlock } from
 import { DEFAULT_SETTINGS } from "../src/store";
 import type { Signature } from "../src/types";
 
-const sig = (over: Partial<Signature> = {}): Signature => ({ id: 1, name: "Work", html: "<div>Alice</div><p>Acme</p>", accountId: null, defaultNew: false, defaultReply: false, ...over });
+const sig = (over: Partial<Signature> = {}): Signature => ({ id: 1, name: "Work", html: "<div>Alice</div><p>Acme</p>", accountIds: [], defaultNew: false, defaultReply: false, ...over });
 
 describe("signature block", () => {
   it("appends, swaps in place and removes, even when the signature holds nested divs", () => {
@@ -18,9 +18,17 @@ describe("signature block", () => {
 });
 
 describe("defaultSignature", () => {
-  const all = [sig({ id: 1, defaultNew: true }), sig({ id: 2, accountId: "a", defaultNew: true, defaultReply: true }), sig({ id: 3, defaultReply: true })];
+  const all = [sig({ id: 1, defaultNew: true }), sig({ id: 2, accountIds: ["a"], defaultNew: true, defaultReply: true }), sig({ id: 3, defaultReply: true })];
   const source = { getSignature: (id: number) => all.find((s) => s.id === id) ?? null, listSignatures: () => all };
   const settings = (map: Record<string, number | null>) => ({ ...DEFAULT_SETTINGS, compose: { ...DEFAULT_SETTINGS.compose, defaultSignatureByAccount: map } });
+
+  it("resolves shared signatures: a specific match, including one shared by several accounts, before all-accounts", () => {
+    const shared = [sig({ id: 1, defaultNew: true }), sig({ id: 2, accountIds: ["a", "b"], defaultNew: true })];
+    const src = { getSignature: (id: number) => shared.find((s) => s.id === id) ?? null, listSignatures: () => shared };
+    expect(defaultSignature(src, settings({}), "a", "new")?.id).toBe(2);
+    expect(defaultSignature(src, settings({}), "b", "new")?.id).toBe(2);
+    expect(defaultSignature(src, settings({}), "c", "new")?.id).toBe(1);
+  });
 
   it("prefers the account's flagged signature, then a shared one", () => {
     expect(defaultSignature(source, settings({}), "a", "new")?.id).toBe(2);

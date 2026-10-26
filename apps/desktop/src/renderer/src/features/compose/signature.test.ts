@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { Signature } from "@flint/core";
 import { defaultSignatureFor, isBodyEmpty, signaturesForAccount, swapSignatureHtml } from "./signature";
 
-const sig = (id: number, o: Partial<Signature> = {}): Signature => ({ id, name: `S${id}`, html: `<b>sig${id}</b>`, accountId: null, defaultNew: true, defaultReply: false, ...o });
+const sig = (id: number, o: Partial<Signature> = {}): Signature => ({ id, name: `S${id}`, html: `<b>sig${id}</b>`, accountIds: [], defaultNew: true, defaultReply: false, ...o });
 
 describe("defaultSignatureFor", () => {
-  const sigs = [sig(1, { accountId: "a" }), sig(2, { defaultNew: false, defaultReply: true })];
+  const sigs = [sig(1, { accountIds: ["a"] }), sig(2, { defaultNew: false, defaultReply: true })];
   const forNew = (m: Record<string, number | null>, r: Record<string, number | null> = {}) => ({ defaultSignatureByAccount: m, defaultReplySignatureByAccount: r });
   it("uses the settings choice even when the signature carries no default flag", () => {
     expect(defaultSignatureFor(sigs, "a", "new", forNew({ a: 2 }))?.id).toBe(2);
@@ -27,7 +27,7 @@ describe("defaultSignatureFor", () => {
     expect(defaultSignatureFor([sig(3, { defaultNew: false })], "a", "new", forNew({}))).toBeNull();
   });
   it("lists shared and account-specific signatures", () => {
-    const list = signaturesForAccount([sig(1), sig(2, { accountId: "a" }), sig(3, { accountId: "b" })], "a");
+    const list = signaturesForAccount([sig(1), sig(2, { accountIds: ["a"] }), sig(3, { accountIds: ["b"] })], "a");
     expect(list.map((s) => s.id)).toEqual([1, 2]);
   });
 });
@@ -59,9 +59,24 @@ describe("core signature class", () => {
   it("recognises and writes the class core uses", () => {
     const core = '<p>Hi</p><div class="flint_signature" data-signature-id="1"><b>old</b></div>';
     expect(isBodyEmpty('<p></p><div class="flint_signature"><b>x</b></div>')).toBe(true);
-    const out = swapSignatureHtml(core, { id: 2, name: "n", html: "<i>new</i>", accountId: null, defaultNew: true, defaultReply: true });
+    const out = swapSignatureHtml(core, { id: 2, name: "n", html: "<i>new</i>", accountIds: [], defaultNew: true, defaultReply: true });
     expect(out).toContain('class="flint_signature"');
     expect(out).not.toContain("old");
     expect(out.match(/flint_signature/g)).toHaveLength(1);
+  });
+});
+
+describe("signatures shared by several accounts", () => {
+  const shared = sig(5, { accountIds: ["a", "b"], defaultNew: true });
+  const all = sig(6, { defaultNew: true });
+  it("is offered for each listed account only (plus all-accounts ones)", () => {
+    expect(signaturesForAccount([shared, all], "a").map((s) => s.id)).toEqual([5, 6]);
+    expect(signaturesForAccount([shared, all], "b").map((s) => s.id)).toEqual([5, 6]);
+    expect(signaturesForAccount([shared, all], "c").map((s) => s.id)).toEqual([6]);
+  });
+  it("is the flagged default for each listed account, before an all-accounts one", () => {
+    const empty = { defaultSignatureByAccount: {}, defaultReplySignatureByAccount: {} };
+    expect(defaultSignatureFor([all, shared], "b", "new", empty)?.id).toBe(5);
+    expect(defaultSignatureFor([all, shared], "c", "new", empty)?.id).toBe(6);
   });
 });

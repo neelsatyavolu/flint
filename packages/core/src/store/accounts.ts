@@ -83,8 +83,25 @@ export class AccountsRepo {
     tx(this.q.db, () => {
       this.q.run("DELETE FROM messages_fts WHERE rowid IN (SELECT id FROM messages WHERE account_id = ?)", id);
       this.q.run("DELETE FROM messages WHERE account_id = ?", id);
+      this.dropAccountFromSignatures(id);
       this.q.run("DELETE FROM accounts WHERE id = ?", id);
     });
+  }
+
+  /**
+   * Signatures list their accounts in a JSON column, so no foreign key follows them. A signature only this account used goes
+   * with it (as before); one shared with others just loses the account. The legacy account_id column is cleared so its
+   * ON DELETE CASCADE can't remove a signature that other accounts still use.
+   */
+  private dropAccountFromSignatures(id: AccountId): void {
+    this.q.run("UPDATE signatures SET account_id = NULL WHERE account_id = ?", id);
+    for (const r of this.q.all<{ id: number; account_ids: string }>("SELECT id, account_ids FROM signatures WHERE account_ids <> '[]'")) {
+      const ids: unknown = JSON.parse(r.account_ids);
+      if (!Array.isArray(ids) || !ids.includes(id)) continue;
+      const rest = ids.filter((x) => x !== id);
+      if (rest.length === 0) this.q.run("DELETE FROM signatures WHERE id = ?", r.id);
+      else this.q.run("UPDATE signatures SET account_ids = ? WHERE id = ?", JSON.stringify(rest), r.id);
+    }
   }
 
   /** Lowercase addresses (primary and aliases) of every account: what counts as "me". */

@@ -3,20 +3,19 @@ import { Download, Type } from "lucide-react";
 import type { Account, Signature } from "@flint/core";
 import { flint } from "../../../lib/api";
 import { useFlintQuery } from "../../../lib/hooks";
-import { Button, Input, MailFrame, SectionLabel, useToast } from "../../../ui";
+import { Button, Checkbox, Input, MailFrame, SectionLabel, useToast } from "../../../ui";
 import { RichEditor } from "../editor/RichEditor";
 import { applyFlintFont, hasCustomFont, sanitizeHtml } from "../editor/richText";
 import { ChoiceSelect, SectionPage } from "../fields";
 import { ListEditor } from "../ListEditor";
 import { SparkImportSheet } from "../spark/SparkImportSheet";
-import { defaultPatch, needsDefaultHint, pickerValue, type DefaultKind, type PickerValue } from "../signatureDefaults";
-import { signaturesForAccount } from "../../compose/signature";
+import { defaultPatch, needsDefaultHint, pickerValue, withAccount, type DefaultKind, type PickerValue } from "../signatureDefaults";
 import { useSettingsStore } from "../settingsStore";
 import { useAccounts, errorText } from "../useAccounts";
 import styles from "../settings.module.css";
 
 type Draft = Omit<Signature, "id"> & { id?: number };
-const blank = (): Draft => ({ name: "", html: "", accountId: null, defaultNew: false, defaultReply: false });
+const blank = (): Draft => ({ name: "", html: "", accountIds: [], defaultNew: false, defaultReply: false });
 
 export function SignaturesSection() {
   const toast = useToast();
@@ -28,7 +27,7 @@ export function SignaturesSection() {
   // The first signature is open by default so the editor pane is never an empty box.
   const active = sel ?? list[0]?.id ?? null;
   const current: Draft | null = active === "new" ? blank() : (list.find((s) => s.id === active) ?? null);
-  const accountName = (id: string | null) => (id ? (accounts?.find((a) => a.id === id)?.email ?? "Unknown account") : "All accounts");
+  const scopeLabel = (ids: string[]) => (ids.length === 0 ? "All accounts" : ids.length === 1 ? (accounts?.find((a) => a.id === ids[0])?.email ?? "Unknown account") : `${ids.length} accounts`);
 
   const onSave = async (draft: Draft) => {
     try {
@@ -73,7 +72,7 @@ export function SignaturesSection() {
           </Button>
         ) : null}
       </div>
-      <SignatureDefaults accounts={accounts ?? []} signatures={list} onImport={() => setImporting(true)} />
+      <SignatureDefaults accounts={accounts ?? []} signatures={list} onImport={() => setImporting(true)} onSignatureChanged={() => sigs.refetch()} />
       <ListEditor
         items={list}
         selectedId={active}
@@ -81,7 +80,7 @@ export function SignaturesSection() {
         onNew={() => setSel("new")}
         newLabel="New signature"
         empty="No signatures yet."
-        render={(s) => ({ title: s.name || "Untitled", sub: accountName(s.accountId) })}
+        render={(s) => ({ title: s.name || "Untitled", sub: scopeLabel(s.accountIds) })}
       >
         {current ? (
           <SignatureEditor key={active === "new" ? "new" : current.id} initial={current} accounts={accounts ?? []} onSave={onSave} onDelete={onDelete} />
@@ -109,8 +108,25 @@ function toChoice(v: PickerValue): string {
 }
 
 /** Per account: which signature new mail and replies start with. None is a choice of its own. */
-function SignatureDefaults({ accounts, signatures, onImport }: { accounts: Account[]; signatures: Signature[]; onImport: () => void }) {
+function SignatureDefaults({ accounts, signatures, onImport, onSignatureChanged }: { accounts: Account[]; signatures: Signature[]; onImport: () => void; onSignatureChanged: () => void }) {
   const { settings, save } = useSettingsStore();
+  const toast = useToast();
+
+  /** Picking a signature the account can't use yet adds the account to it first, so the composer offers it too. */
+  const choose = async (kind: DefaultKind, accountId: string, id: number | null) => {
+    const sig = id === null ? undefined : signatures.find((s) => s.id === id);
+    const widened = sig ? withAccount(sig, accountId) : null;
+    if (widened) {
+      try {
+        await flint.saveSignature(widened);
+        onSignatureChanged();
+      } catch (err) {
+        toast.show({ message: errorText(err, "Couldn't add the account to that signature. Try again."), level: "error" });
+        return;
+      }
+    }
+    await save(defaultPatch(kind, accountId, id));
+  };
   const enabled = accounts.filter((a) => a.enabled);
   if (enabled.length === 0 || signatures.length === 0) return null;
 
@@ -119,7 +135,7 @@ function SignatureDefaults({ accounts, signatures, onImport }: { accounts: Accou
     const choices = [
       ...(value === "unset" ? [{ value: UNSET, label: "Not chosen" }] : []),
       { value: NONE, label: "None" },
-      ...signaturesForAccount(signatures, account.id).map((s) => ({ value: String(s.id), label: s.name || "Untitled" })),
+      ...signatures.map((s) => ({ value: String(s.id), label: s.name || "Untitled" })),
     ];
     return (
       <label className={styles.defaultPick}>
@@ -129,7 +145,7 @@ function SignatureDefaults({ accounts, signatures, onImport }: { accounts: Accou
           value={toChoice(value)}
           choices={choices}
           onChange={(v) => {
-            if (v !== UNSET) void save(defaultPatch(kind, account.id, v === NONE ? null : Number(v)));
+            if (v !== UNSET) void choose(kind, account.id, v === NONE ? null : Number(v));
           }}
         />
       </label>
@@ -172,9 +188,19 @@ export function SignatureEditor({ initial, accounts, onSave, onDelete }: { initi
         <span className={`t-label ${styles.fieldLabel}`}>Name</span>
         <Input value={draft.name} onChange={(e) => patch({ name: e.target.value })} placeholder="Work" />
       </label>
-      <div className={styles.field}>
-        <span className={`t-label ${styles.fieldLabel}`}>Account</span>
-        <ChoiceSelect label="Account" value={draft.accountId ?? ""} choices={[{ value: "", label: "All accounts" }, ...accounts.map((a) => ({ value: a.id, label: a.email }))]} onChange={(v) => patch({ accountId: v === "" ? null : v })} />
+      <div className={styles.field} role="group" aria-label="Use with">
+        <span className={`t-label ${styles.fieldLabel}`}>Use with</span>
+        <div className={styles.useWith}>
+          <Checkbox label="All accounts" checked={draft.accountIds.length === 0} onChange={() => patch({ accountIds: [] })} />
+          {accounts.map((a) => (
+            <Checkbox
+              key={a.id}
+              label={a.email}
+              checked={draft.accountIds.includes(a.id)}
+              onChange={(on) => patch({ accountIds: on ? [...draft.accountIds, a.id] : draft.accountIds.filter((id) => id !== a.id) })}
+            />
+          ))}
+        </div>
       </div>
       <RichEditor key={editorKey} label="Signature" initial={editorKey === 0 ? initial.html : draft.html} onChange={(html) => patch({ html })} />
       <div className={styles.inline}>
