@@ -45,8 +45,7 @@ struct InboxViewModelTests {
         task.cancel()
         viewModel.filter = .unread
         let filtered = Task { await viewModel.watch(.unifiedInbox) }
-        #expect(await eventually { !viewModel.items.isEmpty })
-        #expect(viewModel.items.allSatisfy { $0.unreadCount > 0 })
+        #expect(await eventually { !viewModel.items.isEmpty && viewModel.items.allSatisfy { $0.unreadCount > 0 } })
         #expect(viewModel.visibleBundles.isEmpty)
         filtered.cancel()
         await app.tearDown()
@@ -61,8 +60,7 @@ struct InboxViewModelTests {
         viewModel.open(bundle)
         #expect(viewModel.title == ThreadAction.title(of: bundle.category))
         let opened = Task { await viewModel.watch(.unifiedInbox) }
-        #expect(await eventually { !viewModel.items.isEmpty })
-        #expect(viewModel.items.allSatisfy { $0.category == bundle.category })
+        #expect(await eventually { !viewModel.items.isEmpty && viewModel.items.allSatisfy { $0.category == bundle.category } })
         #expect(viewModel.visibleBundles.isEmpty)
         opened.cancel()
         await app.tearDown()
@@ -178,9 +176,7 @@ struct InboxViewModelTests {
         let (viewModel, task) = await start(app)
         task.cancel()
         let pinned = Task { await viewModel.watch(.pinned) }
-        #expect(await eventually { !viewModel.items.isEmpty })
-        #expect(viewModel.items.allSatisfy { $0.pinned })
-        #expect(viewModel.bundles.isEmpty)
+        #expect(await eventually { !viewModel.items.isEmpty && viewModel.items.allSatisfy { $0.pinned } && viewModel.bundles.isEmpty })
         pinned.cancel()
         await app.tearDown()
     }

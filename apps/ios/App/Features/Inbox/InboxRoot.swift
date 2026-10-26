@@ -46,6 +46,7 @@ private struct InboxScreen: View {
         } message: { triage in
             Text(triage.kind == .read ? "\(triage.ids.count) unread conversations will be marked as read." : "\(triage.ids.count) conversations will leave your inbox.", tableName: "Inbox")
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("inbox.root")
     }
 
