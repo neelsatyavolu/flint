@@ -13,6 +13,8 @@ export type MergeEnv = {
   account: Pick<Account, "provider" | "authKind" | "calendarScope">;
   /** Zone for the text in `changes`. Defaults to this machine's zone. */
   zone?: string;
+  /** A calendar account (Settings > Calendars) that covers the invited address and so answers instead of the mail account's own sign-in. */
+  calendarVia?: "google-calendar" | "caldav" | null;
 };
 
 export type MergeInput = {
@@ -136,11 +138,14 @@ function ownResponse(inv: ParsedInvite, response: StoredResponse | null, isOrgan
   return { yourResponse: carried, respondedAt: null, yourNote: null };
 }
 
-function rsvpRoute(account: MergeEnv["account"], inv: ParsedInvite, state: InviteState, isOrganizer: boolean): Invite["rsvpVia"] {
+function rsvpRoute(env: MergeEnv, inv: ParsedInvite, state: InviteState, isOrganizer: boolean): Invite["rsvpVia"] {
+  const { account } = env;
   if (state !== "new" && state !== "updated") return "none";
   if (inv.method !== "REQUEST" || !inv.invitedAs || isOrganizer || !inv.organizer) return "none";
-  if (account.provider === "gmail" && account.authKind === "oauth_google") return account.calendarScope ? "google-calendar" : "google-needs-scope";
-  return "imip";
+  const gmail = account.provider === "gmail" && account.authKind === "oauth_google";
+  if (gmail && account.calendarScope) return "google-calendar";
+  if (env.calendarVia) return env.calendarVia;
+  return gmail ? "google-needs-scope" : "imip";
 }
 
 export function mergeInvite(input: MergeInput, env: MergeEnv): Invite {
@@ -153,7 +158,7 @@ export function mergeInvite(input: MergeInput, env: MergeEnv): Invite {
   const base = { ...inv, ...yours, changes: [] as InviteChange[], newerMessageId: null as number | null };
 
   const finish = (state: InviteState, extra: Partial<Pick<Invite, "changes" | "newerMessageId" | "start" | "end" | "startDate" | "endDate">> = {}): Invite =>
-    ({ ...base, ...extra, state, rsvpVia: rsvpRoute(env.account, inv, state, isOrganizer) });
+    ({ ...base, ...extra, state, rsvpVia: rsvpRoute(env, inv, state, isOrganizer) });
 
   if (inv.method === "REPLY") return finish("reply");
   if (inv.method !== "REQUEST" && inv.method !== "PUBLISH" && inv.method !== "CANCEL") return finish("counter");

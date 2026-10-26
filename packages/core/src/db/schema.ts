@@ -350,4 +350,31 @@ export const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (account_id, uid, recurrence_id)
   );
   `,
+  /* 10: calendar accounts, separate from mail accounts, so invitations can be answered on a calendar (Google or CalDAV) even when
+        the mail comes through IMAP. Secrets (Google tokens, CalDAV password) live in the secret store under calendar:<id>, never here.
+        extra_addresses / discovered_addresses are JSON arrays of lower-case addresses; calendars_json is the discovered CalDAV
+        calendars [{url,name}]. Gmail sign-ins that already have accounts.calendar_scope are resolved at routing time, no rows. */ `
+  CREATE TABLE calendar_accounts (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,                        -- 'google' | 'caldav'
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,                       -- google account email, or the caldav login when it is an address
+    extra_addresses TEXT NOT NULL DEFAULT '[]',
+    discovered_addresses TEXT NOT NULL DEFAULT '[]',
+    preset TEXT,                               -- 'icloud' | 'fastmail' | 'custom' (caldav)
+    server_url TEXT,
+    username TEXT,
+    principal_url TEXT,
+    home_url TEXT,
+    outbox_url TEXT,
+    default_calendar_url TEXT,
+    default_calendar_name TEXT,
+    calendars_json TEXT NOT NULL DEFAULT '[]',
+    scheduling INTEGER NOT NULL DEFAULT 0,     -- the server sends replies itself (RFC 6638)
+    status TEXT NOT NULL DEFAULT 'ok',         -- 'ok' | 'needs-signin' | 'error'
+    status_message TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+  );
+  `,
 ];

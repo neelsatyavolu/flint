@@ -1,4 +1,5 @@
 import type { Address, Invite, InviteAttendee, InviteChip, InviteConflicts, InviteListItem, InviteResponse, MessageRowId, RsvpResponse } from "@flint/core";
+import { mockListCalendars } from "./calendars";
 import { ME, PEOPLE as P } from "./people";
 import { DAY, type SeedThread } from "./seedTypes";
 import type { MockState } from "./state";
@@ -175,8 +176,9 @@ export function mockConflicts(state: MockState, messageId: MessageRowId, now: nu
   const found = findInviteMessage(state, messageId);
   if (!found) return { status: "unknown", reason: "no-time" };
   const account = state.accounts.find((a) => a.id === found.accountId);
-  if (account?.authKind !== "oauth_google") return { status: "unknown", reason: "not-google" };
-  if (!account.calendarScope) return { status: "unknown", reason: "no-scope" };
+  const covering = found.invite.invitedAs ? mockListCalendars(state).find((c) => c.addresses.includes(found.invite.invitedAs!.address.toLowerCase())) : undefined;
+  if (!covering && account?.authKind !== "oauth_google") return { status: "unknown", reason: "no-calendar" };
+  if (!covering && !account?.calendarScope) return { status: "unknown", reason: "no-scope" };
   // The weekly Design sync collides with one invented event; everything else is free.
   if (found.invite.uid.startsWith("design-sync")) {
     return { status: "conflict", checkedAt: now, events: [{ title: "1:1 with Tomas", start: found.invite.start + 15 * MIN, end: found.invite.start + 45 * MIN, allDay: false }] };

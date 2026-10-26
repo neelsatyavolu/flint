@@ -5,6 +5,7 @@ import { AgentsSection } from "./sections/AgentsSection";
 import { AiSection } from "./sections/AiSection";
 import { AppearanceSection } from "./sections/AppearanceSection";
 import { CodesSection } from "./sections/CodesSection";
+import { CalendarsSection } from "./sections/CalendarsSection";
 import { BlockedSection } from "./sections/BlockedSection";
 import { GeneralSection } from "./sections/GeneralSection";
 import { InboxSection } from "./sections/InboxSection";
@@ -16,13 +17,14 @@ import { SignaturesSection } from "./sections/SignaturesSection";
 import { TemplatesSection } from "./sections/TemplatesSection";
 
 export type SectionId =
-  | "general" | "accounts" | "appearance" | "inbox" | "signatures" | "templates" | "rules"
+  | "general" | "accounts" | "calendars" | "appearance" | "inbox" | "signatures" | "templates" | "rules"
   | "receipts" | "notifications" | "codes" | "ai" | "agents" | "shortcuts" | "blocked" | "about";
 
 /** `keywords` are the settings inside a section, so the nav filter finds "theme" under Appearance. */
 export const SECTIONS: { id: SectionId; label: string; keywords: string }[] = [
   { id: "general", label: "General", keywords: "mark as read after archive undo send sort storage mail kept plain text" },
   { id: "accounts", label: "Accounts", keywords: "email add remove sign in again password aliases color photo unified sync" },
+  { id: "calendars", label: "Calendars", keywords: "calendar invitations invites rsvp google icloud fastmail caldav app-specific password" },
   { id: "appearance", label: "Appearance", keywords: "theme dark light layout full screen density avatars sender logos photos preview lines text size" },
   { id: "inbox", label: "Inbox", keywords: "focused remote images trackers privacy" },
   { id: "signatures", label: "Signatures", keywords: "signature default" },
@@ -51,6 +53,7 @@ export function filterSections<T extends { label: string; keywords: string }>(se
 export const SECTION_VIEWS: Record<SectionId, ComponentType<{ page?: string }>> = {
   general: GeneralSection,
   accounts: AccountsSection,
+  calendars: CalendarsSection,
   appearance: AppearanceSection,
   inbox: InboxSection,
   signatures: SignaturesSection,

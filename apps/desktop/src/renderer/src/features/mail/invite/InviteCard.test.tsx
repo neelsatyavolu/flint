@@ -4,10 +4,11 @@ import type { Invite, MessageView } from "@flint/core/types";
 import { InviteCard } from "./InviteCard";
 import { InviteChip } from "./InviteChip";
 import { ToastProvider } from "../../../ui";
+import { navStore } from "../../../state/nav";
 import { flint } from "../../../lib/api";
 import * as host from "../../../lib/host";
 
-vi.mock("../../../lib/api", () => ({ flint: { rsvp: vi.fn(), inviteConflicts: vi.fn(), connectGoogleCalendar: vi.fn(), subscribe: vi.fn(() => () => {}) } }));
+vi.mock("../../../lib/api", () => ({ flint: { rsvp: vi.fn(), inviteConflicts: vi.fn(), connectGoogleCalendar: vi.fn(), addGoogleCalendarAccount: vi.fn(), subscribe: vi.fn(() => () => {}) } }));
 
 const rsvp = vi.mocked(flint.rsvp), conflicts = vi.mocked(flint.inviteConflicts), connect = vi.mocked(flint.connectGoogleCalendar);
 const start = new Date(2026, 9, 27, 15).getTime();
@@ -118,6 +119,18 @@ describe("InviteCard", () => {
     fireEvent.click(btn);
     await waitFor(() => expect(connect).toHaveBeenCalledWith("a1"));
     await waitFor(() => expect(onUpdated).toHaveBeenCalled());
+  });
+
+  it("offers adding a calendar for the invited address when answers go by email", async () => {
+    const onUpdated = vi.fn();
+    vi.mocked(flint.addGoogleCalendarAccount).mockResolvedValue({} as never);
+    show(invite({ rsvpVia: "imip", invitedAs: { address: "neel@xanom.co", role: "required", rsvp: true } }), onUpdated);
+    expect(screen.getByText("Invites to neel@xanom.co are answered by email. Add a calendar to update your calendar too.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Add Google Calendar" }));
+    await waitFor(() => expect(flint.addGoogleCalendarAccount).toHaveBeenCalledWith({ loginHint: "neel@xanom.co" }));
+    await waitFor(() => expect(onUpdated).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "Add iCloud or other calendar" }));
+    expect(navStore.getState().settingsSection).toBe("calendars/neel@xanom.co");
   });
 
   it("shows conflicts", async () => {

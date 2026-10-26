@@ -5,6 +5,7 @@ import type {
 } from "@flint/core";
 import { streamFakeAi, fakeAiText } from "./ai";
 import { approveSend, cancelSend, createDraft, deleteDraft, getDraft, sendDraft, updateDraft, type Ctx } from "./compose";
+import { mockAddCalDav, mockAddGoogleCalendar, mockListCalendars, mockRemoveCalendar, mockUpdateCalendar, refreshInviteRoutes } from "./calendars";
 import { mockConflicts, mockListInvites, mockRsvp } from "./invites";
 import { ALL_CONTACTS } from "./people";
 import { mockAvatarApi } from "./avatars";
@@ -234,10 +235,39 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
       const next = { ...current, calendarScope: true };
       state.accounts = state.accounts.map((a) => (a.id === accountId ? next : a));
       state.threads = state.threads.map((t) => t.accountId !== accountId ? t : { ...t, messages: t.messages.map((m) => m.invite?.rsvpVia === "google-needs-scope" ? { ...m, invite: { ...m.invite, rsvpVia: "google-calendar" as const } } : m) });
+      refreshInviteRoutes(state);
       emit({ type: "mail_changed", accountId, threadIds: [] });
       return next;
     },
     async listInvites(opts) { await delay(); return mockListInvites(state, opts, now()); },
+    async listCalendarAccounts() { await delay(); return mockListCalendars(state); },
+    async addGoogleCalendarAccount(input) {
+      await sleep(Math.max(latency, 700));
+      const added = mockAddGoogleCalendar(state, input, now(), nextId(state, "calendar"));
+      refreshInviteRoutes(state);
+      emit({ type: "mail_changed", accountId: "", threadIds: [] });
+      return added;
+    },
+    async addCalDavAccount(input) {
+      await sleep(Math.max(latency, 900));
+      const added = mockAddCalDav(state, input, now(), nextId(state, "calendar"));
+      refreshInviteRoutes(state);
+      emit({ type: "mail_changed", accountId: "", threadIds: [] });
+      return added;
+    },
+    async updateCalendarAccount(id, patch) {
+      await delay();
+      const next = mockUpdateCalendar(state, id, patch);
+      refreshInviteRoutes(state);
+      emit({ type: "mail_changed", accountId: "", threadIds: [] });
+      return next;
+    },
+    async removeCalendarAccount(id) {
+      await delay();
+      mockRemoveCalendar(state, id);
+      refreshInviteRoutes(state);
+      emit({ type: "mail_changed", accountId: "", threadIds: [] });
+    },
     async allowRemoteImages(id, always) {
       const m = findMessage(id);
       const out = replaceMessage(id, (x) => ({ ...x, remoteImages: "allowed", hasTrackers: always ? false : x.hasTrackers }));

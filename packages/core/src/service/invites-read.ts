@@ -5,6 +5,7 @@ import { MAX_ICS_BYTES, decodeIcs, isCalendarAttachment, ownAddressesOf, parseAn
 import { allDayToday, mergeInvite } from "../calendar/merge";
 import { localZone } from "../calendar/zones";
 import { logger } from "../log";
+import { resolveRoute } from "./calendarRouting";
 import type { AccountId, Invite, InviteChip, InviteListItem, MessageRowId, MessageView, ThreadId } from "../types";
 import { FlintError } from "../types";
 import type { ServiceContext } from "./context";
@@ -82,7 +83,9 @@ export function mergedInvite(ctx: ServiceContext, stored: StoredInvite): Invite 
   const versions = store.invitesForEvent(stored.accountId, stored.invite.uid, key);
   if (!versions.some((v) => v.messageId === stored.messageId)) versions.push(stored);
   const response = store.getResponse(stored.accountId, stored.invite.uid, key) ?? (key ? store.getResponse(stored.accountId, stored.invite.uid, "") : null);
-  return mergeInvite({ stored, versions, response }, { now: ctx.now(), ownAddresses: ownAddressesOf(account), account });
+  const route = resolveRoute(store, account, stored.invite);
+  const calendarVia = route.kind === "caldav" ? "caldav" : route.kind === "google" && route.via === "calendar" ? "google-calendar" : null;
+  return mergeInvite({ stored, versions, response }, { now: ctx.now(), ownAddresses: ownAddressesOf(account), account, calendarVia });
 }
 
 /** The merged invite for a message from what is already stored (no download). Null when the message has none. */

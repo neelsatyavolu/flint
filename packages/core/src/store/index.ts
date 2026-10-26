@@ -1,5 +1,6 @@
 import { tx, type Db } from "../db/open";
 import { AccountsRepo } from "./accounts";
+import { CalendarAccountsRepo } from "./calendarAccounts";
 import { ContactsRepo } from "./contacts";
 import { DashboardRepo } from "./dashboard";
 import { DraftsRepo, ScheduledRepo } from "./drafts";
@@ -24,7 +25,7 @@ type Pub<T> = { [K in keyof T]: T[K] };
 export interface Store extends
   Pub<AccountsRepo>, Pub<FoldersRepo>, Pub<ContactsRepo>, Pub<RulesRepo>, Pub<ReceiptsRepo>, Pub<IngestRepo>, Pub<MessagesRepo>,
   Pub<ThreadListRepo>, Pub<ThreadActionsRepo>, Pub<SettingsRepo>, Pub<KvRepo>, Pub<ActivityRepo>, Pub<DraftsRepo>, Pub<ScheduledRepo>,
-  Pub<LibraryRepo>, Pub<RemindersRepo>, Pub<DashboardRepo>, Pub<RecategorizeRepo>, Pub<PendingOpsRepo>, Pub<InvitesRepo> {}
+  Pub<LibraryRepo>, Pub<RemindersRepo>, Pub<DashboardRepo>, Pub<RecategorizeRepo>, Pub<PendingOpsRepo>, Pub<InvitesRepo>, Pub<CalendarAccountsRepo> {}
 
 /**
  * The data layer. Synchronous (node:sqlite) and the only place SQL lives besides the schema.
@@ -49,7 +50,7 @@ export class Store {
       new IngestRepo(q, accounts, folders, contacts, rules, receipts),
       new ThreadActionsRepo(q, accounts, folders, messages),
       new SettingsRepo(q), new KvRepo(q), new ActivityRepo(q), new DraftsRepo(q), new ScheduledRepo(q),
-      new LibraryRepo(q), new RemindersRepo(q, accounts), new RecategorizeRepo(q), new PendingOpsRepo(q), new InvitesRepo(q),
+      new LibraryRepo(q), new RemindersRepo(q, accounts), new RecategorizeRepo(q), new PendingOpsRepo(q), new InvitesRepo(q), new CalendarAccountsRepo(q),
       new DashboardRepo(q, accounts, folders, lists, receipts, rules),
     ];
     for (const repo of repos) {
@@ -76,6 +77,7 @@ export { encodeCursor, decodeCursor } from "./threadList";
 export { htmlToPlain, bodyTextFor } from "./fts";
 export type * from "./types";
 export type { NewAccount, AccountPatch } from "./accounts";
+export type { StoredCalendarAccount, CalDavCalendarRef, NewCalendarAccount, CalendarAccountPatch } from "./calendarAccounts";
 export type { FolderInput } from "./folders";
 export type { NewDraft, DraftUpdate, DraftMeta, ScheduledSendRow } from "./drafts";
 export type { CalendarAttachment } from "./invites";

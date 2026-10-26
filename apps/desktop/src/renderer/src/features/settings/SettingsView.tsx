@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState, type JSX, type KeyboardEvent } from "react";
 import {
-  Bot, Eye, FileText, Filter, Info, Inbox, Keyboard, KeyRound, type LucideIcon, Bell, Ban, Palette, PenLine, Search, SlidersHorizontal, Sparkles, UserRound, X,
+  Bot, CalendarDays, Eye, FileText, Filter, Info, Inbox, Keyboard, KeyRound, type LucideIcon, Bell, Ban, Palette, PenLine, Search, SlidersHorizontal, Sparkles, UserRound, X,
 } from "lucide-react";
 import { useShortcut } from "../../lib/useShortcut";
 import { IconButton, Input, Skeleton } from "../../ui";
@@ -10,7 +10,7 @@ import { SettingsProvider } from "./settingsStore";
 import styles from "./settings.module.css";
 
 const ICONS: Record<SectionId, LucideIcon> = {
-  general: SlidersHorizontal, accounts: UserRound, appearance: Palette, inbox: Inbox, signatures: PenLine, templates: FileText,
+  general: SlidersHorizontal, accounts: UserRound, calendars: CalendarDays, appearance: Palette, inbox: Inbox, signatures: PenLine, templates: FileText,
   rules: Filter, receipts: Eye, notifications: Bell, codes: KeyRound, ai: Sparkles, agents: Bot, shortcuts: Keyboard, blocked: Ban, about: Info,
 };
 

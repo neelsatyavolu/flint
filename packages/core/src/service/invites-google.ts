@@ -65,29 +65,32 @@ export async function rsvpViaGoogle(
   }
 }
 
-const unknown = (reason: "no-scope" | "not-google" | "no-time" | "error", message?: string): InviteConflicts =>
+export const unknown = (reason: "no-scope" | "no-calendar" | "no-time" | "error", message?: string): InviteConflicts =>
   ({ status: "unknown", reason, ...(message ? { message } : {}) });
 
-/**
- * Overlap of the invite's time with the primary calendar. Never throws: Google problems become status "unknown".
- * Results are cached for CONFLICT_CACHE_MS per event, time and account.
- */
-export async function conflictsFor(ctx: ServiceContext, account: Account, invite: ParsedInvite): Promise<InviteConflicts> {
-  if (account.authKind !== "oauth_google") return unknown("not-google");
-  if (!account.calendarScope) return unknown("no-scope");
-  if (invite.allDay || !(invite.end > invite.start)) return unknown("no-time");
-  if (invite.method === "CANCEL" || invite.method === "REPLY") return unknown("no-time");
+/** Events that clash with the invite: strict overlap (back-to-back is fine), and the event being answered never clashes with itself. */
+export type CalendarEventLite = { uid: string; title: string; start: number; end: number; allDay: boolean };
 
-  const key = `inviteConflicts:${account.id}:${invite.uid}:${invite.recurrenceId ?? ""}:${invite.start}:${invite.end}`;
+/** Why an invite has no time to compare, or null when it has one. */
+export const noTimeReason = (invite: ParsedInvite): "no-time" | null =>
+  invite.allDay || !(invite.end > invite.start) || invite.method === "CANCEL" || invite.method === "REPLY" ? "no-time" : null;
+
+/**
+ * Looks for overlap with the events `load` returns, caching the answer for CONFLICT_CACHE_MS per source, event and time.
+ * Never throws: problems become status "unknown". `onAuthError` runs for an "auth" FlintError and returns whether the
+ * reason is a missing calendar permission ("no-scope") rather than something the next attempt may fix.
+ */
+export async function checkConflicts(
+  ctx: ServiceContext, source: string, invite: ParsedInvite, load: () => Promise<CalendarEventLite[]>, onAuthError: (e: FlintError) => void,
+): Promise<InviteConflicts> {
+  const key = `inviteConflicts:${source}:${invite.uid}:${invite.recurrenceId ?? ""}:${invite.start}:${invite.end}`;
   const cached = ctx.store.kvGet(key, ctx.now());
   if (cached) {
     try { return JSON.parse(cached) as InviteConflicts; } catch { /* fall through and look again */ }
   }
   try {
-    const events = await calendarClient(ctx).listEvents({ accessToken: await accessTokenFor(ctx, account), from: invite.start, to: invite.end });
-    const clashes = events
-      // Overlap is strict (back-to-back is fine) and the event being answered does not conflict with itself.
-      .filter((e) => e.start < invite.end && e.end > invite.start && e.iCalUID !== invite.uid)
+    const clashes = (await load())
+      .filter((e) => e.start < invite.end && e.end > invite.start && e.uid !== invite.uid)
       .map((e) => ({ title: e.title, start: e.start, end: e.end, allDay: e.allDay }));
     const checkedAt = ctx.now();
     const result: InviteConflicts = clashes.length ? { status: "conflict", checkedAt, events: clashes } : { status: "free", checkedAt };
@@ -95,13 +98,30 @@ export async function conflictsFor(ctx: ServiceContext, account: Account, invite
     return result;
   } catch (error) {
     if (error instanceof FlintError && error.code === "auth") {
-      // Only a 403 for a missing scope means the grant lost it; a 401 may be a token that the next refresh fixes.
-      if (isScopeMissing(error)) dropCalendarScope(ctx, account);
+      onAuthError(error);
       return unknown("no-scope", error.message);
     }
     log.info("conflict check failed", { reason: (error as Error).message });
     return unknown("error", error instanceof FlintError ? error.message : "Could not check your calendar.");
   }
+}
+
+/**
+ * Overlap of the invite's time with the primary calendar. Never throws: Google problems become status "unknown".
+ * Results are cached for CONFLICT_CACHE_MS per event, time and account.
+ */
+export async function conflictsFor(ctx: ServiceContext, account: Account, invite: ParsedInvite): Promise<InviteConflicts> {
+  if (account.authKind !== "oauth_google") return { status: "unknown", reason: "not-google" };
+  if (!account.calendarScope) return unknown("no-scope");
+  const none = noTimeReason(invite);
+  if (none) return unknown(none);
+  return checkConflicts(
+    ctx, account.id, invite,
+    async () => (await calendarClient(ctx).listEvents({ accessToken: await accessTokenFor(ctx, account), from: invite.start, to: invite.end }))
+      .map((e) => ({ uid: e.iCalUID, title: e.title, start: e.start, end: e.end, allDay: e.allDay })),
+    // Only a 403 for a missing scope means the grant lost it; a 401 may be a token that the next refresh fixes.
+    (error) => { if (isScopeMissing(error)) dropCalendarScope(ctx, account); },
+  );
 }
 
 /**

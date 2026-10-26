@@ -1,6 +1,6 @@
 import type {
   AgentSkillStatus,
-  Account, AccountId, AgentActivity, BrowserHelperStatus, AutofillStatus, VerificationCode, AiStatus, Category, Draft, Folder, FolderId, MessageView, Rule, ReceiptDetail,
+  Account, AccountId, AgentActivity, CalendarAccount, BrowserHelperStatus, AutofillStatus, VerificationCode, AiStatus, Category, Draft, Folder, FolderId, MessageView, Rule, ReceiptDetail,
   ScheduledSend, Settings, Signature, SyncStatus, Template, ThreadId, TrackedMessage,
 } from "@flint/core";
 
@@ -24,6 +24,8 @@ export type MThread = {
 
 export type MockState = {
   accounts: Account[];
+  /** Calendar accounts the user added (Settings > Calendars). Gmail sign-ins with the calendar scope are derived from `accounts`. */
+  calendars: CalendarAccount[];
   folders: Folder[];
   threads: MThread[];
   drafts: Draft[];

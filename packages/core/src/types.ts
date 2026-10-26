@@ -555,11 +555,12 @@ export type Invite = {
   /** Row id of the newest message about the same event when this one is superseded, else null. */
   newerMessageId: MessageRowId | null;
   /**
-   * How an RSVP will be delivered from this account: the Google Calendar API, an iMIP reply by mail, or not at all
-   * (cancelled, past, a REPLY, or the user is not a guest). The card shows "Connect Google Calendar" for
-   * "google-needs-scope".
+   * How an RSVP will be delivered: the Google Calendar API ("google-calendar": a Gmail account with the calendar scope or a
+   * Google calendar account covering the invited address), a CalDAV calendar account ("caldav"), an iMIP reply by mail
+   * ("imip": no calendar covers the invited address, so the card can offer to add one), or not at all (cancelled, past, a
+   * REPLY, or the user is not a guest). The card shows "Connect Google Calendar" for "google-needs-scope".
    */
-  rsvpVia: "google-calendar" | "imip" | "google-needs-scope" | "none";
+  rsvpVia: "google-calendar" | "caldav" | "imip" | "google-needs-scope" | "none";
 };
 
 export type InviteRecurrence = {
@@ -588,14 +589,88 @@ export type InviteListItem = { threadId: ThreadId; accountId: AccountId; subject
 
 export type InviteConflict = { title: string; start: number; end: number; allDay: boolean };
 /**
- * inviteConflicts result. status "unknown" says why in `reason`: "no-scope" (Google account without the calendar scope),
- * "not-google" (any other account), "no-time" (nothing to compare), "error" (Google was unreachable; `message` has the text).
+ * inviteConflicts result. status "unknown" says why in `reason`: "no-scope" (Gmail account without the calendar scope and
+ * no calendar account covering the address), "no-calendar" (no calendar account covers the invited address; this replaces
+ * "not-google", which is no longer produced), "no-time" (nothing to compare), "error" (Google was unreachable; `message` has the text).
  * "free" means the primary calendar has nothing overlapping that the user has not declined, ignoring this event itself.
  */
 export type InviteConflicts =
   | { status: "free"; checkedAt: number }
   | { status: "conflict"; checkedAt: number; events: InviteConflict[] }
-  | { status: "unknown"; reason: "no-scope" | "not-google" | "no-time" | "error"; message?: string };
+  | { status: "unknown"; reason: "no-scope" | "no-calendar" | "not-google" | "no-time" | "error"; message?: string };
+
+// ---------- Calendar accounts (Settings > Calendars) ----------
+
+/** CalDAV servers Flint knows the address of. */
+export type CalDavPreset = "icloud" | "fastmail";
+export const CALDAV_PRESETS: Record<CalDavPreset, { name: string; url: string }> = {
+  icloud: { name: "iCloud Calendar", url: "https://caldav.icloud.com" },
+  fastmail: { name: "Fastmail Calendar", url: "https://caldav.fastmail.com/dav/" },
+};
+
+/**
+ * A calendar Flint answers invitations on, independent of the mail account the invitation arrived on. Besides the rows the
+ * user added, every Gmail sign-in with the calendar scope appears here as an implicit entry (id "mail:<accountId>",
+ * viaMailAccountId set): it covers its own address and aliases, is managed from its mail account, and cannot be edited or
+ * removed here.
+ */
+export type CalendarAccount = {
+  id: string;
+  kind: "google" | "caldav";
+  name: string;
+  /** Which server a caldav account talks to; null for Google. */
+  preset: CalDavPreset | "custom" | null;
+  /** The account's own address: the Google account email, or the CalDAV username when it is an address (else the first discovered one). */
+  email: string;
+  /** Every address this calendar answers invitations for, lower case: `email`, the ones the server reported, and `extraAddresses`. */
+  addresses: string[];
+  /** Addresses the user added by hand (aliases, another mailbox that invites into this calendar). */
+  extraAddresses: string[];
+  /** CalDAV only. */
+  serverUrl: string | null;
+  username: string | null;
+  /** Name of the calendar new events and answers go to (CalDAV default calendar); null for Google (the primary calendar). */
+  calendarName: string | null;
+  /** CalDAV: the server sends your answer to the organizer itself (RFC 6638). Null for Google. */
+  scheduling: boolean | null;
+  /** "needs-signin": the saved sign-in or password stopped working. */
+  status: "ok" | "needs-signin" | "error";
+  statusMessage: string | null;
+  /** Set on the implicit entry for a Gmail account with the calendar scope. */
+  viaMailAccountId: AccountId | null;
+  createdAt: number;
+};
+
+/** True when one of the calendar accounts covers the mail account's address or one of its aliases. */
+export function calendarCovers(account: Pick<Account, "email" | "aliases">, calendars: readonly Pick<CalendarAccount, "addresses">[]): boolean {
+  const own = [account.email, ...account.aliases].map((a) => a.toLowerCase());
+  return calendars.some((c) => c.addresses.some((a) => own.includes(a.toLowerCase())));
+}
+
+/** The calendar accounts covering an address (case-insensitive). */
+export const calendarsFor = <C extends Pick<CalendarAccount, "addresses">>(address: string, calendars: readonly C[]): C[] =>
+  calendars.filter((c) => c.addresses.some((a) => a.toLowerCase() === address.trim().toLowerCase()));
+
+export type AddCalDavAccountInput = {
+  /** A known server; or give `url`. */
+  preset?: CalDavPreset;
+  /** Server address for "other CalDAV" (https only). */
+  url?: string;
+  /** Account login. For iCloud the Apple ID; for Fastmail the full address. */
+  username: string;
+  /** App-specific password (iCloud: appleid.apple.com > Sign-In and Security > App-Specific Passwords). Saved in the secret store only. */
+  password: string;
+  name?: string;
+  /** Extra addresses this calendar should answer invitations for. */
+  extraAddresses?: string[];
+};
+
+export type AddGoogleCalendarInput = {
+  /** Pre-selects this Google account in the consent window (the invited address). The account that signs in decides what is saved. */
+  loginHint?: string;
+  name?: string;
+  extraAddresses?: string[];
+};
 
 // ---------- Home ----------
 

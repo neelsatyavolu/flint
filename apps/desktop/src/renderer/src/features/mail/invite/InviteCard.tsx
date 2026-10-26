@@ -7,6 +7,7 @@ import { flint } from "../../../lib/api";
 import { openExternal } from "../../../lib/host";
 import { Button, TextArea, useToast } from "../../../ui";
 import { displayName } from "../../../lib/format";
+import { navStore } from "../../../state/nav";
 import { durationText, localZoneAbbr, organizerZoneText, RESPONSE_LABEL, whenText } from "./inviteFormat";
 import styles from "./InviteCard.module.css";
 
@@ -129,6 +130,20 @@ export function InviteCard({ message, onUpdated }: Props) {
     }
   }
 
+  async function addGoogleCalendar() {
+    const address = i.invitedAs?.address;
+    if (!address) return;
+    setConnecting(true);
+    try {
+      await flint.addGoogleCalendarAccount({ loginHint: address });
+      onUpdated();
+    } catch (e) {
+      toast.show({ message: e instanceof FlintError && e.message ? e.message : "Couldn't connect Google Calendar. Try again.", level: "error" });
+    } finally {
+      setConnecting(false);
+    }
+  }
+
   async function connect() {
     setConnecting(true);
     try {
@@ -204,6 +219,13 @@ export function InviteCard({ message, onUpdated }: Props) {
             <p className={styles.connect}>
               <span className={styles.dim}>Answers are sent as an email reply. Connect Google Calendar to update your calendar and see conflicts.</span>
               <button type="button" className={styles.link} disabled={connecting} onClick={() => void connect()}>{connecting ? "Connecting" : "Connect Google Calendar"}</button>
+            </p>
+          ) : null}
+          {i.rsvpVia === "imip" && i.invitedAs ? (
+            <p className={styles.connect}>
+              <span className={styles.dim}>Invites to {i.invitedAs.address} are answered by email. Add a calendar to update your calendar too.</span>
+              <button type="button" className={styles.link} disabled={connecting} onClick={() => void addGoogleCalendar()}>{connecting ? "Connecting" : "Add Google Calendar"}</button>
+              <button type="button" className={styles.link} onClick={() => navStore.getState().openSettings(`calendars/${i.invitedAs!.address}`)}>Add iCloud or other calendar</button>
             </p>
           ) : null}
         </div>

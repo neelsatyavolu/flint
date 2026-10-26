@@ -38,6 +38,7 @@ function setup(opts: { account?: Partial<Account>; invite?: Partial<Invite>; goo
     requireAccount: () => account,
     updateAccount: (_id: string, patch: Partial<Account>) => Object.assign(account, patch),
     ownAddresses: () => new Set(["me@example.com"]),
+    listCalendarAccountRows: () => [],
   };
   const ctx = { store, invites: hooks, now: () => NOW, emit: vi.fn(), platform: { secrets: {} }, googleClient: () => null, fetch: vi.fn() } as unknown as ServiceContext;
   const reload = vi.fn(async () => {

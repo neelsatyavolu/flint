@@ -9,6 +9,8 @@ export const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 export const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 /** Scopes for a new Google sign-in: mail, who you are, and calendar events (to answer invitations). */
 export const GOOGLE_SCOPES = `https://mail.google.com/ openid email profile ${GOOGLE_CALENDAR_SCOPE}`;
+/** A calendar account added in Settings > Calendars: who you are and calendar events, no Gmail access. */
+export const GOOGLE_CALENDAR_ONLY_SCOPES = `openid email profile ${GOOGLE_CALENDAR_SCOPE}`;
 /** The scopes an account that signed in before calendar support has. */
 export const GOOGLE_BASE_SCOPES = "https://mail.google.com/ openid email profile";
 /** True when a granted-scope string (the token response's `scope`) includes the Calendar events scope. */
@@ -38,6 +40,8 @@ export type GoogleAuthOptions = {
   scopes?: string;
   /** Incremental consent for an existing account: pre-selects it (login_hint) and adds to what it already granted (include_granted_scopes=true). */
   incremental?: { loginHint: string };
+  /** Pre-selects an account in the consent window without adding what that account granted before (no include_granted_scopes). */
+  loginHint?: string;
 };
 
 const tokenResponse = z.object({
@@ -57,14 +61,14 @@ export function createPkce(): { verifier: string; challenge: string } {
   return { verifier, challenge: b64url(createHash("sha256").update(verifier).digest()) };
 }
 
-export function buildAuthUrl(p: { clientId: string; redirectUri: string; challenge: string; state: string; scopes?: string; loginHint?: string }): string {
+export function buildAuthUrl(p: { clientId: string; redirectUri: string; challenge: string; state: string; scopes?: string; loginHint?: string; hintOnly?: boolean }): string {
   const q = new URLSearchParams({
     client_id: p.clientId, redirect_uri: p.redirectUri, response_type: "code", scope: p.scopes ?? GOOGLE_SCOPES,
     code_challenge: p.challenge, code_challenge_method: "S256", access_type: "offline", prompt: "consent", state: p.state,
   });
   if (p.loginHint) {
     q.set("login_hint", p.loginHint);
-    q.set("include_granted_scopes", "true");
+    if (!p.hintOnly) q.set("include_granted_scopes", "true");
   }
   return `${GOOGLE_AUTH_URL}?${q.toString()}`;
 }
@@ -157,7 +161,8 @@ export async function startGoogleAuth(opts: GoogleAuthOptions): Promise<GoogleSi
     codePromise.catch(() => undefined);
     await opts.openExternal(buildAuthUrl({
       clientId: opts.clientId, redirectUri, challenge, state,
-      ...(opts.scopes ? { scopes: opts.scopes } : {}), ...(opts.incremental ? { loginHint: opts.incremental.loginHint } : {}),
+      ...(opts.scopes ? { scopes: opts.scopes } : {}),
+      ...(opts.incremental ? { loginHint: opts.incremental.loginHint } : opts.loginHint ? { loginHint: opts.loginHint, hintOnly: true } : {}),
     }));
     const code = await codePromise;
     const t = await postToken(f, {

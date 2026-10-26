@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { buildAuthUrl, createPkce, hasCalendarScope, parseIdToken, refreshGoogleToken, startGoogleAuth, type FetchLike } from "./google-oauth";
+import { buildAuthUrl, createPkce, GOOGLE_CALENDAR_ONLY_SCOPES, hasCalendarScope, parseIdToken, refreshGoogleToken, startGoogleAuth, type FetchLike } from "./google-oauth";
 
 const idToken = (claims: object): string => `e30.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.sig`;
 const json = (status: number, body: unknown) => ({ ok: status < 400, status, json: async () => body });
@@ -40,6 +40,15 @@ describe("PKCE and URLs", () => {
     const u = new URL(buildAuthUrl({ clientId: "cid", redirectUri: "http://127.0.0.1:1/oauth2callback", challenge: "ch", state: "st", loginHint: "me@gmail.com" }));
     expect(u.searchParams.get("login_hint")).toBe("me@gmail.com");
     expect(u.searchParams.get("include_granted_scopes")).toBe("true");
+  });
+
+  it("hints the account for a calendar-only sign-in without pulling in scopes granted before (no include_granted_scopes, no Gmail)", () => {
+    const u = new URL(buildAuthUrl({
+      clientId: "cid", redirectUri: "http://127.0.0.1:1/oauth2callback", challenge: "ch", state: "st", loginHint: "neel@xanom.co", hintOnly: true, scopes: GOOGLE_CALENDAR_ONLY_SCOPES,
+    }));
+    expect(u.searchParams.get("login_hint")).toBe("neel@xanom.co");
+    expect(u.searchParams.get("include_granted_scopes")).toBeNull();
+    expect(u.searchParams.get("scope")).toBe("openid email profile https://www.googleapis.com/auth/calendar.events");
   });
 
   it("detects the calendar scope in a granted-scope string", () => {

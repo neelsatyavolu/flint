@@ -49,7 +49,7 @@ export type StoredInvite = {
 
 export type StoredResponse = {
   accountId: AccountId; uid: string; recurrenceId: string;
-  response: RsvpResponse; note: string | null; via: "google-calendar" | "imip" | "server"; sequence: number; respondedAt: number;
+  response: RsvpResponse; note: string | null; via: "google-calendar" | "caldav" | "imip" | "server"; sequence: number; respondedAt: number;
 };
 
 export interface InviteStore {

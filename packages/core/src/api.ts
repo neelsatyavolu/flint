@@ -4,6 +4,7 @@ import type {
   DeepPartial, Draft, DraftInit, DraftPatch, FlintEvent, Folder, FolderId, HomeData, MessageRowId,
   MessageView, ReceiptDetail, Rule, ScheduledSend, SendResult, ServerConfig, Settings, SidebarData, AvatarRef,
   Invite, InviteConflicts, InviteListItem, RsvpResponse,
+  CalendarAccount, AddCalDavAccountInput, AddGoogleCalendarInput,
   Signature, SyncStatus, VerificationCode, BrowserHelperStatus, AutofillStatus, Template, ThreadDetail, ThreadId, ThreadPage, ThreadQuery, LoadOlderResult, ServerSearchResult, TrackedMessage,
 } from "./types";
 
@@ -188,6 +189,17 @@ export interface FlintApi {
   inviteConflicts(messageId: MessageRowId): Promise<InviteConflicts>;
   /** Runs Google's consent screen for the Calendar scope on an account that signed in without it (include_granted_scopes). Resolves with the updated account. */
   connectGoogleCalendar(accountId: AccountId): Promise<Account>;
+  // Calendar accounts: calendars Flint answers invitations on, separate from the mail accounts (Settings > Calendars)
+  /** Every calendar account: the ones the user added plus an implicit entry per Gmail sign-in that has the calendar scope. Cheap and local. */
+  listCalendarAccounts(): Promise<CalendarAccount[]>;
+  /** Opens Google's consent screen for the calendar scope only (no Gmail access). Re-adding an account that exists refreshes its sign-in. */
+  addGoogleCalendarAccount(input?: AddGoogleCalendarInput): Promise<CalendarAccount>;
+  /** Validates the login by discovery (principal, calendar home, calendars) before saving anything; the password goes to the secret store. */
+  addCalDavAccount(input: AddCalDavAccountInput): Promise<CalendarAccount>;
+  /** Renames a calendar account or changes the extra addresses it covers. Not for the implicit Gmail entries. */
+  updateCalendarAccount(id: string, patch: { name?: string; extraAddresses?: string[] }): Promise<CalendarAccount>;
+  /** Forgets a calendar account and its saved sign-in. Not for the implicit Gmail entries. Invitations are answered by email again. */
+  removeCalendarAccount(id: string): Promise<void>;
   /** Upcoming invitations (not cancelled, not past) soonest first, newest version per event. `from` / `to` are epoch ms; default from now. */
   listInvites(opts?: { accountId?: AccountId; from?: number; to?: number; limit?: number }): Promise<InviteListItem[]>;
 
@@ -235,6 +247,7 @@ export const METHOD_TIERS: Record<FlintMethod, "read" | "modify" | "send" | "adm
   recentCodes: "admin", markCodeUsed: "admin", browserHelperStatus: "admin", installBrowserHelper: "admin", removeBrowserHelper: "admin",
   autofillStatus: "admin", requestAutofillPermission: "admin", tryAutofillDemo: "admin",
   getInvite: "read", rsvp: "send", inviteConflicts: "read", connectGoogleCalendar: "admin", listInvites: "read",
+  listCalendarAccounts: "admin", addGoogleCalendarAccount: "admin", addCalDavAccount: "admin", updateCalendarAccount: "admin", removeCalendarAccount: "admin",
   getSettings: "admin", updateSettings: "admin", sendTestNotification: "admin",
 };
 

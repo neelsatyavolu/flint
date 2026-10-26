@@ -2,9 +2,12 @@ import { buildImipReply } from "../calendar/imip";
 import type { InviteStore, ParsedInvite, SendImip, StoredInvite } from "../calendar/contracts";
 import { logger } from "../log";
 import { sendUntracked } from "../mail/send";
+import type { StoredResponse } from "../calendar/contracts";
 import { FlintError, type Account, type Address, type Invite, type MessageRowId, type RsvpResponse } from "../types";
 import type { ServiceContext } from "./context";
+import { resolveRoute, selfAddressesOf } from "./calendarRouting";
 import { rsvpViaGoogle } from "./invites-google";
+import { rsvpViaCalDav, rsvpViaGoogleCalendar, serverReplies } from "./invites-calendars";
 import { openTransport, sentFolders } from "./send";
 
 const log = logger("service.invites-imip");
@@ -58,15 +61,25 @@ function invitedAddress(invite: ParsedInvite, account: Account): Address {
   return { name: account.name, address: wanted ?? account.email };
 }
 
-/** Answers through the Calendar API. False when the event is not on this calendar (invited at another address, or not filed yet): answer by mail instead. */
-async function viaGoogle(ctx: ServiceContext, account: Account, invite: ParsedInvite, response: RsvpResponse, note: string | undefined): Promise<boolean> {
+/** Runs a calendar attempt. False when the event is not on that calendar (invited at another address, or not filed yet): answer by mail instead. */
+async function attempt(run: () => Promise<unknown>): Promise<boolean> {
   try {
-    await rsvpViaGoogle(ctx, account, invite, response, note);
+    await run();
     return true;
   } catch (e) {
     if (e instanceof FlintError && e.code === "not_found") return false;
     throw e;
   }
+}
+
+/** CalDAV failures after which the iMIP mail reply is still the way to answer. */
+const CALDAV_FALLBACK: ReadonlySet<FlintError["code"]> = new Set(["network", "permission", "auth", "invalid"]);
+
+/** Why a reply cannot go to the organizer by mail, or null when it can. */
+function unmailable(ctx: ServiceContext, invite: ParsedInvite): string | null {
+  if (!invite.organizer?.address) return "This invitation has no organizer to reply to.";
+  if (ctx.store.ownAddresses().has(invite.organizer.address.toLowerCase())) return "You organized this event, so there is no one to reply to.";
+  return null;
 }
 
 async function viaImip(ctx: ServiceContext, account: Account, stored: StoredInvite, response: RsvpResponse, note: string | undefined): Promise<void> {
@@ -102,12 +115,41 @@ export function createRsvp(ctx: ServiceContext, deps: RsvpDeps) {
     if (why) throw new FlintError("invalid", why);
 
     const account = ctx.store.requireAccount(stored.accountId);
-    let via: "google-calendar" | "imip" = "imip";
-    if (account.authKind === "oauth_google" && account.calendarScope && await viaGoogle(ctx, account, invite, response, note)) via = "google-calendar";
-    if (via === "imip") {
-      if (!invite.organizer?.address) throw new FlintError("invalid", "This invitation has no organizer to reply to.");
-      if (ctx.store.ownAddresses().has(invite.organizer.address.toLowerCase())) throw new FlintError("invalid", "You organized this event, so there is no one to reply to.");
-      await viaImip(ctx, account, stored, response, note);
+    // The calendar that covers the invited address answers (Google API or CalDAV); otherwise, or when that calendar does not
+    // have the event, an iMIP reply goes out by mail.
+    const route = resolveRoute(ctx.store, account, invite);
+    let via: StoredResponse["via"] = "imip";
+    let mail = true;
+    let mailOptional = false;
+    if (route.kind === "google") {
+      const done = await attempt(() => route.via === "mail"
+        ? rsvpViaGoogle(ctx, route.account, invite, response, note)
+        : rsvpViaGoogleCalendar(ctx, route.row, account, invite, response, note));
+      if (done) { via = "google-calendar"; mail = false; }
+    } else if (route.kind === "caldav") {
+      const row = route.row;
+      let address = "";
+      let done = false;
+      try {
+        done = await attempt(async () => { address = (await rsvpViaCalDav(ctx, row, stored, selfAddressesOf(account, invite, row), response)).address; });
+      } catch (e) {
+        // The calendar server is down, read-only or rejected the password: the mail reply still works, so answer that way
+        // (rsvpViaCalDav has already flagged a rejected password on the calendar). Nothing to mail: show the calendar's error.
+        if (!(e instanceof FlintError) || !CALDAV_FALLBACK.has(e.code) || unmailable(ctx, invite)) throw e;
+        log.warn("calendar server unavailable, answering by mail", { calendar: row.id, code: e.code });
+      }
+      if (done) {
+        // A server that does scheduling (RFC 6638) and knows this address as the user's tells the organizer itself; its reply
+        // cannot carry the person's note, so a note also goes by mail.
+        via = "caldav";
+        mail = !serverReplies(row, address) || Boolean(note);
+        mailOptional = true;
+      }
+    }
+    if (mail) {
+      const why = unmailable(ctx, invite);
+      if (why && !mailOptional) throw new FlintError("invalid", why);
+      if (!why) await viaImip(ctx, account, stored, response, note);
     }
     store.setResponse({ accountId: stored.accountId, uid: invite.uid, recurrenceId, response, note: note ?? null, via, sequence: invite.sequence, respondedAt: ctx.now() });
     const fresh = await deps.reload(messageId);
