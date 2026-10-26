@@ -58,7 +58,7 @@ export function CalendarsSection({ page }: { page?: string }) {
 
   return (
     <SectionPage title="Calendars" description="Where Flint answers invitations, whatever mail account they arrive on. Changes apply at once.">
-      <div className={styles.listActions}>
+      <div className={styles.calendarAdds}>
         {KINDS.map((k) => (
           <Button key={k} size="sm" variant={k === "google" ? "primary" : "ghost"} icon={<Plus size={14} strokeWidth={1.5} />} onClick={() => start(k)}>{ADD_LABEL[k]}</Button>
         ))}

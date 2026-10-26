@@ -99,3 +99,7 @@
 
 .disclosure { cursor: pointer; padding: var(--s-2) 0; font-weight: 600; color: var(--fg-2); }
 .disclosure:hover { color: var(--fg-1); }
+
+/* Settings > Calendars: the four add buttons sit in an even 2 x 2 grid instead of wrapping 3 + 1. */
+.calendarAdds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); margin-bottom: var(--s-4); }
+.calendarAdds > * { justify-content: center; }
