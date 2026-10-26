@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Pin, BellOff, ChevronDown as CaretDown } from "lucide-react";
 import clsx from "clsx";
-import type { MessageView, ThreadDetail } from "@flint/core";
+import type { FlintApi, MessageView, ThreadDetail, ThreadId } from "@flint/core";
 import { flint } from "../../lib/api";
 import { formatPresetTime } from "../../lib/time";
 import { Badge, Button, Dialog, EmptyState, Menu, Skeleton, useToast } from "../../ui";
@@ -83,6 +83,18 @@ export function ThreadHeader({ thread }: { thread: ThreadDetail }) {
   );
 }
 
+/** Every Inbox conversation from `address`, read 200 at a time. */
+export async function inboxThreadIdsFrom(address: string, api: Pick<FlintApi, "listThreads"> = flint): Promise<ThreadId[]> {
+  let ids: ThreadId[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await api.listThreads({ view: "search", search: `from:${address} in:inbox`, limit: 200, ...(cursor ? { cursor } : {}) });
+    ids = [...ids, ...page.items.map((t) => t.id)];
+    cursor = page.nextCursor ?? undefined;
+  } while (cursor);
+  return ids;
+}
+
 /** Says how Flint will unsubscribe before it does, then offers to archive what that sender already sent. */
 function UnsubscribeDialog({ message, open, onClose }: { message: MessageView; open: boolean; onClose: () => void }) {
   const toast = useToast();
@@ -92,8 +104,7 @@ function UnsubscribeDialog({ message, open, onClose }: { message: MessageView; o
 
   const archiveTheirs = async (address: string) => {
     try {
-      const page = await flint.listThreads({ view: "search", search: `from:${address} in:inbox`, limit: 200 });
-      const ids = page.items.map((t) => t.id);
+      const ids = await inboxThreadIdsFrom(address);
       if (ids.length) await run({ type: "archive" }, ids);
       else toast.show({ message: `No mail from ${name} is left in your Inbox` });
     } catch {
@@ -401,10 +412,14 @@ function useInputModality() {
   }, []);
 }
 
-/** Focus stays where the user is typing; otherwise keyboard opens land on the subject. */
-function focusIsBusy(): boolean {
+/**
+ * Focus stays where the user is typing, and in the conversation list, so arrowing through it (which opens each thread
+ * in the split view) keeps the list's own keys working; the opened subject is announced instead. Otherwise keyboard
+ * opens land on the subject.
+ */
+export function focusIsBusy(): boolean {
   const el = document.activeElement;
-  return el instanceof HTMLElement && (el.isContentEditable || el.closest("input, textarea, select, [role='dialog'], [data-composer], [data-inline-reply-mount]") !== null);
+  return el instanceof HTMLElement && (el.isContentEditable || el.closest("input, textarea, select, [role='dialog'], [role='listbox'], [data-composer], [data-inline-reply-mount]") !== null);
 }
 
 /** Prints the open thread when File > Print or the More menu asks. */
