@@ -50,9 +50,16 @@
 .rowTitle { font-weight: 600; }
 .rowSub { color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
-.swatches { display: flex; gap: 6px; }
-.swatch { width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent; padding: 0; }
-.swatchOn { border-color: var(--fg); }
+/* 28px hit targets around 22px swatches; the chosen one gets a ring with a gap and a check. */
+.swatches { display: flex; flex-wrap: wrap; gap: 2px; }
+.swatch { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.swatchFill {
+  display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: #fff;
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+.swatch:hover .swatchFill { transform: scale(1.1); }
+.swatchOn .swatchFill { box-shadow: 0 0 0 2px var(--plane-2), 0 0 0 4px var(--fg); }
+.swatch:focus-visible { outline-offset: 0; }
 .chips { display: flex; flex-wrap: wrap; gap: var(--s-1); }
 .chip { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 4px 0 8px; border-radius: var(--r-control); background: var(--active); font: 400 var(--text-data) / 1 var(--font-mono); }
 .panel { padding: var(--s-4); border: 1px solid var(--line); border-radius: var(--r-control); margin-top: var(--s-4); }

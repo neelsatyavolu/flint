@@ -24,7 +24,7 @@ export function stepTextSize(step: -1 | 0 | 1): void {
 
 export function AppearanceSection() {
   const { settings: s, save } = useSettingsStore();
-  const { accounts } = useAccounts();
+  const { accounts, refetch: refetchAccounts } = useAccounts();
   const updateAccount = useUpdateAccount();
   const [textSize, setTextSize] = useState<TextSize>(readTextSize);
   useEffect(() => {
@@ -119,7 +119,7 @@ export function AppearanceSection() {
               <ColorSwatches
                 value={acc.color}
                 label={`Color for ${acc.email}`}
-                onChange={(c) => void updateAccount(acc.id, { color: c })}
+                onChange={(c) => void updateAccount(acc.id, { color: c }).then((ok) => ok && refetchAccounts())}
               />
             </SettingsRow>
           ))}
