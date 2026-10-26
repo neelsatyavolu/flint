@@ -8,7 +8,8 @@ export type SendCheck = "ok" | "no_recipients" | SoftStop;
 
 type Checked = { to: Address[]; cc: Address[]; bcc: Address[]; subject: string; html?: string; attachments?: readonly unknown[] };
 
-const MENTIONS_ATTACHMENT = /\b(attach(ed|ment|ing)|enclosed)\b/i;
+// Bare "attach"/"attaches" counts only with an object ("attach the deck"), so "attach no meaning" stays quiet.
+const MENTIONS_ATTACHMENT = /\b(attach(ed|ments?|ing)|enclos(ed|ing)|attach(es)?\s+(it|them|this|these|that|those|the|a|an|my|our|your))\b/i;
 const QUOTE_SELECTOR = ".flint_quote, .gmail_quote, blockquote";
 
 /** True when the text the user wrote (not the signature or quoted mail) talks about an attachment. */

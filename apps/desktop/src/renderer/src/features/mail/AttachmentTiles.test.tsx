@@ -30,6 +30,22 @@ describe("fileKind", () => {
     expect(previewable({ contentType: "image/svg+xml", filename: "logo.svg" })).toBe(false);
     expect(previewable({ contentType: "image/jpeg", filename: "a.jpg" })).toBe(true);
   });
+
+  it("previews only image types Chromium can decode", () => {
+    expect(previewable({ contentType: "image/heic", filename: "IMG_0001.HEIC" })).toBe(false);
+    expect(previewable({ contentType: "image/tiff", filename: "scan.tif" })).toBe(false);
+    expect(previewable({ contentType: "IMAGE/PNG", filename: "a.png" })).toBe(true);
+  });
+});
+
+describe("AttachmentTiles with non-web images", () => {
+  it("opens a HEIC photo in the system viewer instead of a broken preview", () => {
+    const { container } = show([file(1, "IMG_0001.HEIC", "image/heic")]);
+    expect(container.querySelector("img")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Open IMG_0001.HEIC" }));
+    expect(flint.openAttachment).toHaveBeenCalledWith(1);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
 });
 
 describe("AttachmentTiles", () => {

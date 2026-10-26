@@ -29,9 +29,12 @@ export function fileKind(a: Pick<AttachmentInfo, "contentType" | "filename">): F
   return EXT[ext] ?? "file";
 }
 
+/** Raster types Chromium decodes. HEIC, TIFF and other image types open in the system viewer instead. */
+const WEB_IMAGE = /^image\/(png|jpe?g|gif|webp|avif|bmp|x-icon|vnd\.microsoft\.icon)$/i;
+
 /** Raster images the reader can show inline (thumbnail and preview). */
 export function previewable(a: Pick<AttachmentInfo, "contentType" | "filename">): boolean {
-  return fileKind(a) === "image" && !/svg/i.test(a.contentType);
+  return WEB_IMAGE.test(a.contentType.trim());
 }
 
 const ICONS: Record<FileKind, LucideIcon> = { image: FileImage, pdf: FileText, doc: FileText, sheet: FileSpreadsheet, zip: FileArchive, file: File };

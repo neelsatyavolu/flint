@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { Draft, MessageView } from "@flint/core";
 import { MessageItem, hasSingleRecipient } from "./MessageItem";
-import { Reader } from "./Reader";
+import { Reader, focusIsBusy, inboxThreadIdsFrom } from "./Reader";
 import { navStore } from "../../state/nav";
 import { DraftCard, draftPreviewText } from "./DraftCard";
 import { FrameGateContext } from "./frameGate";
@@ -116,6 +116,29 @@ describe("DraftCard", () => {
   });
   it("turns draft HTML into plain preview text", () => {
     expect(draftPreviewText("<p>One</p><p>Two<br>three</p>")).toBe("One\nTwo\nthree");
+  });
+});
+
+describe("focusIsBusy", () => {
+  it("keeps focus in the conversation list, so arrowing through it doesn't jump to the reader", () => {
+    const { container } = render(<div><div role="listbox" tabIndex={0} /><button type="button">Elsewhere</button></div>);
+    (container.querySelector("[role='listbox']") as HTMLElement).focus();
+    expect(focusIsBusy()).toBe(true);
+    screen.getByRole("button", { name: "Elsewhere" }).focus();
+    expect(focusIsBusy()).toBe(false);
+  });
+});
+
+describe("inboxThreadIdsFrom", () => {
+  it("pages past the first 200 so Also archive these gets every conversation", async () => {
+    const listThreads = vi.fn()
+      .mockResolvedValueOnce({ items: [{ id: 1 }, { id: 2 }], nextCursor: "c2" })
+      .mockResolvedValueOnce({ items: [{ id: 3 }], nextCursor: null });
+    expect(await inboxThreadIdsFrom("news@x.com", { listThreads })).toEqual([1, 2, 3]);
+    expect(listThreads).toHaveBeenCalledTimes(2);
+    expect(listThreads.mock.calls[0]?.[0]).toMatchObject({ search: "from:news@x.com in:inbox" });
+    expect(listThreads.mock.calls[0]?.[0]).not.toHaveProperty("cursor");
+    expect(listThreads.mock.calls[1]?.[0]).toMatchObject({ cursor: "c2" });
   });
 });
 

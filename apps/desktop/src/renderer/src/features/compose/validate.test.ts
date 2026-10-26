@@ -33,6 +33,11 @@ describe("mentionsAttachment", () => {
       expect(mentionsAttachment(`<p>${text}</p>`)).toBe(true);
     }
   });
+  it("matches the plural, the bare verb with an object, and enclosing", () => {
+    for (const text of ["Please find the attachments", "I will attach it", "I'll attach the deck", "She attaches a copy", "enclosing the form"]) {
+      expect(mentionsAttachment(`<p>${text}</p>`)).toBe(true);
+    }
+  });
   it("ignores words that only contain the stem", () => {
     expect(mentionsAttachment("<p>I'm attachedness-free and unattached</p>")).toBe(false);
     expect(mentionsAttachment("<p>We should attach no meaning to it</p>")).toBe(false);

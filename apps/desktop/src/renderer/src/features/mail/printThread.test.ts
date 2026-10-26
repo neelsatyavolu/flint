@@ -46,6 +46,20 @@ describe("buildPrintDocument", () => {
     expect(buildPrintDocument("S", [message({ html, remoteImages: "allowed" })])).toContain("https://track.test/a.png");
   });
 
+  it("keeps each message's <style> blocks inside that message's own shadow root", () => {
+    const loud = '<style>body{background:#000!important} h1{display:none}</style><h1>Sale</h1>';
+    const doc = buildPrintDocument("S", [message({ html: loud }), message({ html: "<p>Quiet</p>" })]);
+    const parsed = new DOMParser().parseFromString(doc, "text/html");
+    // Only the print sheet styles the document; the mail's rules live in template content, out of the page's tree.
+    expect(parsed.querySelectorAll("style")).toHaveLength(1);
+    expect(parsed.querySelector("style")?.textContent).not.toContain("#000");
+    const roots = Array.from(parsed.querySelectorAll<HTMLTemplateElement>(".msg .body > template[shadowrootmode='open']"));
+    expect(roots).toHaveLength(2);
+    expect(roots[0]?.content.querySelectorAll("style")[1]?.textContent).toContain("display:none");
+    expect(roots[1]?.content.textContent).toContain("Quiet");
+    expect(roots.every((t) => t.content.querySelector("style")?.textContent?.includes(".flint-blocked-img{display:none}"))).toBe(true);
+  });
+
   it("names a missing subject", () => {
     expect(buildPrintDocument("", [message()])).toContain("<h1>(no subject)</h1>");
   });
