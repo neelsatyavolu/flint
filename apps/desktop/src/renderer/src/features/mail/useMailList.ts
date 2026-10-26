@@ -11,22 +11,26 @@ const SERVER_SEARCH_DELAY_MS = 700;
 
 /** Keeps the list store on the query for the current navigation, and refetches on mail events. */
 export function useMailList(enabled: boolean): void {
-  const { settings } = useApp();
+  const { settings, sidebar } = useApp();
   const view = useNav((s) => s.view);
   const accountId = useNav((s) => s.accountId);
   const folderId = useNav((s) => s.folderId);
   const category = useNav((s) => s.category);
   const search = useNav((s) => s.search);
   const searchOpen = useNav((s) => s.searchOpen);
+  const listFilter = useNav((s) => s.listFilter);
+  // Only the open folder's path matters to the query; a sidebar refresh with the same path does not refetch.
+  const folderPath = sidebar?.accounts.flatMap((a) => a.folders).find((f) => f.id === folderId)?.path;
   const focused = settings.inbox.focused;
   const sort = settings.inbox.sort;
 
   useEffect(() => {
     if (!enabled) return;
-    const query = buildQuery({ view, accountId, folderId, category, search, searchOpen }, { inbox: { ...settings.inbox, focused, sort } });
+    const folders = folderId !== undefined && folderPath !== undefined ? [{ id: folderId, path: folderPath }] : [];
+    const query = buildQuery({ view, accountId, folderId, category, search, searchOpen, listFilter }, { inbox: { ...settings.inbox, focused, sort } }, folders);
     listStore.getState().setQuery(query);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, view, accountId, folderId, category, search, searchOpen, focused, sort]);
+  }, [enabled, view, accountId, folderId, category, search, searchOpen, focused, sort, listFilter, folderPath]);
 
   useEffect(() => {
     if (!enabled || !searchOpen || !search.trim()) return;

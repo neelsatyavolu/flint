@@ -181,4 +181,46 @@ describe("list store", () => {
     s.getState().setQuery({ view: "inbox" });
     expect(s.getState().items.map((i) => i.id)).toEqual([1, 3]);
   });
+
+  it("keeps the rows and reports a page error when a later page fails", async () => {
+    const a = api();
+    const s = createListStore(a);
+    s.getState().setQuery({ view: "inbox" });
+    await vi.waitFor(() => expect(s.getState().status).toBe("ready"));
+    a.listThreads.mockRejectedValueOnce(new Error("offline"));
+    await s.getState().loadMore();
+    expect(s.getState()).toMatchObject({ status: "ready", pageError: "offline", loadingMore: false, error: null });
+    expect(s.getState().items).toHaveLength(50);
+    await s.getState().loadMore();
+    expect(s.getState().pageError).toBeNull();
+    expect(s.getState().items).toHaveLength(100);
+  });
+
+  it("keeps the rows when a refresh fails", async () => {
+    const a = api();
+    const s = createListStore(a);
+    s.getState().setQuery({ view: "inbox" });
+    await vi.waitFor(() => expect(s.getState().status).toBe("ready"));
+    a.listThreads.mockRejectedValueOnce(new Error("offline"));
+    await s.getState().refresh();
+    expect(s.getState()).toMatchObject({ status: "ready", pageError: "offline" });
+    expect(s.getState().items).toHaveLength(50);
+  });
+
+  it("restores the scroll position and cursor of a list you return to", async () => {
+    const s = createListStore(api());
+    s.getState().setQuery({ view: "inbox" });
+    await vi.waitFor(() => expect(s.getState().status).toBe("ready"));
+    expect(s.getState().restored).toBeNull();
+    s.getState().savePlace({ scrollTop: 640 });
+    s.getState().savePlace({ cursorKey: "t12" });
+    s.getState().setQuery({ view: "sent" });
+    await vi.waitFor(() => expect(s.getState().status).toBe("ready"));
+    expect(s.getState().restored).toBeNull();
+    s.getState().savePlace({ scrollTop: 80 });
+    s.getState().setQuery({ view: "inbox" });
+    expect(s.getState().restored).toEqual({ scrollTop: 640, cursorKey: "t12" });
+    s.getState().setQuery({ view: "sent" });
+    expect(s.getState().restored).toEqual({ scrollTop: 80, cursorKey: null });
+  });
 });

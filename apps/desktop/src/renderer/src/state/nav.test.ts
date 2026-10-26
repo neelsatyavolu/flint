@@ -100,6 +100,35 @@ describe("buildQuery", () => {
     expect(buildQuery({ ...base, view: "folder", folderId: 4 }, settings)).toMatchObject({ view: "folder", folderId: 4 });
     expect(buildQuery({ ...base, view: "sent", accountId: "a1" }, undefined)).toMatchObject({ view: "sent", accountId: "a1", sort: "newest" });
   });
+  it("passes unreadOnly for the unread filter in inbox, bundle and folder views only", () => {
+    expect(buildQuery({ ...base, listFilter: "unread" }, settings)).toMatchObject({ view: "inbox", focused: true, unreadOnly: true });
+    expect(buildQuery({ ...base, category: "newsletters", listFilter: "unread" }, settings)).toMatchObject({ category: "newsletters", unreadOnly: true });
+    expect(buildQuery({ ...base, view: "folder", folderId: 4, listFilter: "unread" }, settings)).toMatchObject({ view: "folder", unreadOnly: true });
+    expect(buildQuery({ ...base, view: "sent", listFilter: "unread" }, settings)?.unreadOnly).toBeUndefined();
+    expect(buildQuery(base, settings)?.unreadOnly).toBeUndefined();
+    expect(buildQuery({ ...base, searchOpen: true, search: "x", listFilter: "unread" }, settings)).toEqual({ view: "search", search: "x", accountId: undefined, sort: "newest" });
+  });
+  it("searches the view for attachments", () => {
+    expect(buildQuery({ ...base, accountId: "a1", listFilter: "attachments" }, settings)).toMatchObject({ view: "search", search: 'in:"inbox" has:attachment', accountId: "a1" });
+    const folders = [{ id: 4, path: 'Work/"Q3"' }];
+    expect(buildQuery({ ...base, view: "folder", folderId: 4, listFilter: "attachments" }, settings, folders)).toMatchObject({ view: "search", search: 'in:"Work/Q3" has:attachment' });
+    expect(buildQuery({ ...base, view: "folder", folderId: 5, listFilter: "attachments" }, settings, folders)).toMatchObject({ view: "folder", folderId: 5 });
+    expect(buildQuery({ ...base, category: "notifications", listFilter: "attachments" }, settings)).toMatchObject({ view: "inbox", category: "notifications" });
+  });
+});
+
+describe("list filter", () => {
+  it("resets when the view changes and clears the selection when set", () => {
+    const nav = createNavStore();
+    nav.getState().setSelected([1, 2]);
+    nav.getState().setListFilter("unread");
+    expect(nav.getState()).toMatchObject({ listFilter: "unread", selected: [] });
+    nav.getState().openCategory("notifications");
+    expect(nav.getState().listFilter).toBe("all");
+    nav.getState().setListFilter("unread");
+    nav.getState().go({ view: "sent" });
+    expect(nav.getState().listFilter).toBe("all");
+  });
 });
 
 describe("targetIds", () => {

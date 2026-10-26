@@ -1,5 +1,5 @@
 import { createStore, useStore, type StoreApi } from "zustand";
-import type { AccountId, Category, FolderId, Settings, ThreadId, ThreadQuery, View } from "@flint/core";
+import type { AccountId, Category, Folder, FolderId, Settings, ThreadId, ThreadQuery, View } from "@flint/core";
 import { readStored, writeStored } from "../lib/storage";
 import { bundleKey, threadKey } from "./grouping";
 
@@ -7,6 +7,8 @@ export type NavView = Exclude<View, "search">;
 export type Overlay = "palette" | "shortcuts" | "snooze" | "move" | null;
 export type Recent = { id: string; label: string; view: NavView; accountId?: AccountId; folderId?: FolderId };
 export type NavTarget = { view: NavView; accountId?: AccountId; folderId?: FolderId; category?: Category };
+/** Quick filter over the list in view. Not saved: every view opens on "all". */
+export type ListFilter = "all" | "unread" | "attachments";
 
 const RECENTS_KEY = "flint.recents";
 const COLLAPSED_KEY = "flint.sidebarCollapsed";
@@ -47,6 +49,7 @@ export type NavState = NavTarget & {
   overlay: Overlay;
   overlayIds: ThreadId[];
   lastUndoToken: string | null;
+  listFilter: ListFilter;
 
   go(target: NavTarget, recentLabel?: string): void;
   openCategory(category: Category): void;
@@ -67,6 +70,7 @@ export type NavState = NavTarget & {
   showOverlay(overlay: Exclude<Overlay, null>, ids?: ThreadId[]): void;
   closeOverlay(): void;
   setLastUndo(token: string | null): void;
+  setListFilter(filter: ListFilter): void;
 };
 
 export type NavStore = StoreApi<NavState>;
@@ -91,20 +95,21 @@ export function createNavStore(): NavStore {
     overlay: null,
     overlayIds: [],
     lastUndoToken: null,
+    listFilter: "all",
 
     go(target, recentLabel) {
       const recents = recentLabel ? pushRecent(get().recents, { id: recentId(target), label: recentLabel, view: target.view, accountId: target.accountId, folderId: target.folderId }) : get().recents;
       if (recents !== get().recents) writeStored(RECENTS_KEY, JSON.stringify(recents));
       set({
         view: target.view, accountId: target.accountId, folderId: target.folderId, category: target.category,
-        search: "", searchOpen: false, settingsOpen: false, openId: null, cursorKey: null, selected: [], recents,
+        search: "", searchOpen: false, settingsOpen: false, openId: null, cursorKey: null, selected: [], recents, listFilter: "all",
       });
     },
     openCategory(category) {
-      set({ category, openId: null, cursorKey: null, selected: [], view: "inbox", settingsOpen: false });
+      set({ category, openId: null, cursorKey: null, selected: [], view: "inbox", settingsOpen: false, listFilter: "all" });
     },
     closeCategory() {
-      set({ category: undefined, openId: null, cursorKey: null, selected: [] });
+      set({ category: undefined, openId: null, cursorKey: null, selected: [], listFilter: "all" });
     },
     setSearch(search) {
       set({ search, openId: null, cursorKey: null, selected: [] });
@@ -123,7 +128,7 @@ export function createNavStore(): NavStore {
     },
     openThread(id, opts) {
       if (opts?.fromOutside && id !== null) {
-        set({ view: "inbox", accountId: undefined, folderId: undefined, category: undefined, search: "", searchOpen: false, settingsOpen: false, openId: id, cursorKey: threadKey(id), selected: [] });
+        set({ view: "inbox", accountId: undefined, folderId: undefined, category: undefined, search: "", searchOpen: false, settingsOpen: false, openId: id, cursorKey: threadKey(id), selected: [], listFilter: "all" });
         return;
       }
       set({ openId: id, cursorKey: id === null ? get().cursorKey : threadKey(id), selected: [] });
@@ -167,6 +172,9 @@ export function createNavStore(): NavStore {
     setLastUndo(token) {
       set({ lastUndoToken: token });
     },
+    setListFilter(listFilter) {
+      if (listFilter !== get().listFilter) set({ listFilter, selected: [] });
+    },
   }));
 }
 
@@ -176,11 +184,37 @@ export function useNav<T>(selector: (s: NavState) => T): T {
   return useStore(navStore, selector);
 }
 
-/** The list query for the current navigation, or null for views that are not thread lists. */
-export function buildQuery(nav: Pick<NavState, "view" | "accountId" | "folderId" | "category" | "search" | "searchOpen">, settings: Pick<Settings, "inbox"> | undefined): ThreadQuery | null {
+type QueryNav = Pick<NavState, "view" | "accountId" | "folderId" | "category" | "search" | "searchOpen"> & { listFilter?: ListFilter };
+
+/** Views that offer the quick filter (account views are the inbox scoped to one account). */
+export function filterable(nav: Pick<NavState, "view" | "searchOpen" | "search">): boolean {
+  return (nav.view === "inbox" || nav.view === "folder") && !(nav.searchOpen && nav.search.trim());
+}
+
+/** Whether "Has attachments" can apply: it runs as a search scoped to the view, which cannot name a bundle. */
+export function attachmentsFilterable(nav: Pick<NavState, "view" | "searchOpen" | "search" | "category">): boolean {
+  return filterable(nav) && !nav.category;
+}
+
+/**
+ * The list query for the current navigation, or null for views that are not thread lists. `folders` names the open
+ * folder for the "Has attachments" filter, which searches `in:<folder> has:attachment` because the list query has no
+ * attachment flag.
+ */
+export function buildQuery(nav: QueryNav, settings: Pick<Settings, "inbox"> | undefined, folders: Pick<Folder, "id" | "path">[] = []): ThreadQuery | null {
   const sort = settings?.inbox.sort ?? "newest";
   const trimmed = nav.search.trim();
   if (nav.searchOpen && trimmed) return { view: "search", search: trimmed, accountId: nav.accountId, sort };
+  const filter = nav.listFilter ?? "all";
+  if (filter === "attachments" && attachmentsFilterable(nav)) {
+    const path = nav.view === "folder" ? folders.find((f) => f.id === nav.folderId)?.path : "inbox";
+    if (path) return { view: "search", search: `in:"${path.replace(/"/g, "")}" has:attachment`, accountId: nav.accountId, sort };
+  }
+  const base = viewQuery(nav, settings, sort);
+  return base && filter === "unread" && filterable(nav) ? { ...base, unreadOnly: true } : base;
+}
+
+function viewQuery(nav: QueryNav, settings: Pick<Settings, "inbox"> | undefined, sort: "newest" | "oldest"): ThreadQuery | null {
   switch (nav.view) {
     case "home":
     case "receipts":

@@ -26,7 +26,7 @@ describe("ThreadRow", () => {
     expect(screen.getByText("Quarterly plan")).toBeTruthy();
     expect(screen.getByText("4")).toBeTruthy();
     expect(screen.getByText("Preview text")).toBeTruthy();
-    expect(screen.getByLabelText("Unread")).toBeTruthy();
+    expect(screen.getByText("Unread").className).toBe("sr-only");
     expect(screen.getByLabelText("Pinned")).toBeTruthy();
     expect(screen.getByLabelText("Has attachments")).toBeTruthy();
   });
@@ -46,10 +46,10 @@ describe("ThreadRow", () => {
     render(<ThreadRow {...p} />);
     fireEvent.click(screen.getByRole("option"));
     expect(p.onSelect).toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
-    fireEvent.click(screen.getByRole("button", { name: "Trash" }));
-    fireEvent.click(screen.getByRole("button", { name: "Unpin" }));
-    fireEvent.click(screen.getByRole("button", { name: "Snooze" }));
+    fireEvent.click(screen.getByRole("button", { name: "Archive", hidden: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Trash", hidden: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Unpin", hidden: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Snooze", hidden: true }));
     expect(p.onArchive).toHaveBeenCalled();
     expect(p.onTrash).toHaveBeenCalled();
     expect(p.onPin).toHaveBeenCalled();
@@ -59,6 +59,27 @@ describe("ThreadRow", () => {
   it("reflects open and checked", () => {
     render(<ThreadRow {...props({ open: true })} />);
     expect(screen.getByRole("option").getAttribute("aria-selected")).toBe("true");
+  });
+  it("names itself for the listbox and keeps quick actions out of the accessibility tree", () => {
+    render(<ThreadRow {...props()} />);
+    expect(screen.getByRole("option").id).toBe("row-t1");
+    expect(screen.queryByRole("button", { name: "Archive" })).toBeNull();
+    expect(screen.getByRole("img", { name: "Has attachments" })).toBeTruthy();
+  });
+  it("checks the row from its avatar checkbox without opening it", () => {
+    const p = props({ onCheck: vi.fn() });
+    render(<ThreadRow {...p} />);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Quarterly plan" }));
+    expect(p.onCheck).toHaveBeenCalledWith(p.item);
+    expect(p.onSelect).not.toHaveBeenCalled();
+  });
+  it("starts a drag only when asked to", () => {
+    const onDragStart = vi.fn();
+    const { rerender } = render(<ThreadRow {...props()} />);
+    expect(screen.getByRole("option").getAttribute("draggable")).toBeNull();
+    rerender(<ThreadRow {...props({ onDragStart })} />);
+    fireEvent.dragStart(screen.getByRole("option"));
+    expect(onDragStart).toHaveBeenCalled();
   });
 });
 
@@ -70,6 +91,17 @@ describe("BundleRow", () => {
     expect(screen.getByText("3 new")).toBeTruthy();
     fireEvent.click(screen.getByRole("option"));
     expect(onOpen).toHaveBeenCalled();
+    expect(screen.getByRole("option").id).toBe("row-b:newsletters");
+  });
+  it("offers bundle triage on hover without opening the bundle", () => {
+    const onOpen = vi.fn();
+    const onTriage = vi.fn();
+    const b = bundle("notifications", NOW - 1000, 2);
+    render(<BundleRow bundle={b} compact={false} cursor={false} now={NOW} onOpen={onOpen} onTriage={onTriage} />);
+    fireEvent.click(screen.getByRole("button", { name: "Mark all as read", hidden: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Archive all", hidden: true }));
+    expect(onTriage.mock.calls).toEqual([[b, "read"], [b, "archive"]]);
+    expect(onOpen).not.toHaveBeenCalled();
   });
 });
 

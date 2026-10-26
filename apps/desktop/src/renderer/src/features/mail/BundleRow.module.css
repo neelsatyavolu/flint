@@ -1,12 +1,12 @@
-.row { position: relative; display: flex; gap: 12px; height: 100%; padding: 12px 16px; background: var(--plane-1); border-bottom: 1px solid var(--line); cursor: default; transition: background-color var(--dur-fast) var(--ease); }
-.row:hover { background: color-mix(in srgb, var(--plane-1) 95.5%, var(--fg)); }
-.cursor, .cursor:hover { background: color-mix(in srgb, var(--plane-1) 92%, var(--fg)); }
+.row { --row-bg: var(--plane-1); position: relative; display: flex; gap: 12px; height: 100%; padding: 10px 16px; background: var(--row-bg); border-bottom: 1px solid var(--line); cursor: default; transition: background-color var(--dur-fast) var(--ease); }
+.row:hover { --row-bg: color-mix(in srgb, var(--plane-1) 95.5%, var(--fg)); }
+.cursor, .cursor:hover { --row-bg: color-mix(in srgb, var(--plane-1) 92%, var(--fg)); box-shadow: inset 2px 0 var(--accent); }
 .compact { padding-top: 0; padding-bottom: 0; align-items: center; }
 .glyph { flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--active); color: var(--fg-2); }
 .g32 { width: 32px; height: 32px; align-self: flex-start; }
 .g24 { width: 24px; height: 24px; }
 .body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 1px; }
-.line { display: flex; align-items: center; gap: 8px; height: 20px; min-width: 0; }
+.line { display: flex; align-items: center; gap: 8px; height: 18px; min-width: 0; }
 .title { font-weight: 500; }
 .unread .title { font-weight: 600; }
 .count { color: var(--accent); }
@@ -14,5 +14,12 @@
 .time { color: var(--fg-3); }
 .latest { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-3); }
 .latest b { font-weight: 500; color: var(--fg-2); }
-.dot { position: absolute; left: 6px; top: 22px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-.compact .dot { top: 25px; }
+/* Same placement as the thread row's dot: static position inside line 1, left gutter of the row. */
+.dot { position: absolute; left: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.actions {
+  position: absolute; right: 12px; top: 8px; display: flex; gap: 2px; padding: 0 0 0 4px; background: var(--row-bg);
+  opacity: 0; pointer-events: none; transition: opacity var(--dur-fast) var(--ease);
+}
+.compact .actions { top: 16px; }
+.row:hover .actions { opacity: 1; pointer-events: auto; }
+.row:hover .time { visibility: hidden; }

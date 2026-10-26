@@ -17,18 +17,21 @@ type Handlers = {
 const CATEGORY_ORDER: Category[] = ["people", "notifications", "newsletters"];
 
 /**
- * "Move to People / Notifications / Newsletters" for threads currently filed under `current` (omitted from the list).
- * `run` is the thread-action runner; it shows the toast that offers "Always for <sender>". The reader's ... menu
- * mounts the same items with its open thread's category.
+ * "Move to People / Notifications / Newsletters" for threads currently filed under `current` (omitted from the list;
+ * null for a selection spread over several). `run` is the thread-action runner; it shows the toast that offers
+ * "Always for <sender>". The reader's ... menu mounts the same items with its open thread's category.
  */
-export function categoryMenuItems(current: Category, run: (action: ThreadAction) => void): MenuItem[] {
+export function categoryMenuItems(current: Category | null, run: (action: ThreadAction) => void): MenuItem[] {
   return CATEGORY_ORDER.filter((c) => c !== current).map((c) => ({
     id: `category-${c}`, label: `Move to ${CATEGORY_TITLES[c]}`, onSelect: () => run({ type: "category", category: c }),
   }));
 }
 
-/** Right-click menu for a row. `ids` is the multi-selection when the row is part of it, else just this row. */
-export function rowMenuItems(item: ThreadListItem, ids: number[], h: Handlers, inInboxLike: boolean): MenuItem[] {
+/**
+ * Right-click menu for a row. `ids` is the multi-selection when the row is part of it, else just this row. In Spam
+ * the spam item undoes the verdict instead.
+ */
+export function rowMenuItems(item: ThreadListItem, ids: number[], h: Handlers, inInboxLike: boolean, view?: string): MenuItem[] {
   if (item.draft && h.openDraft && h.deleteDraft) {
     const { openDraft, deleteDraft } = h;
     return [
@@ -59,7 +62,9 @@ export function rowMenuItems(item: ThreadListItem, ids: number[], h: Handlers, i
     ...(inInboxLike ? categoryMenuItems(item.category, (action) => h.run(action, ids)) : []),
     { type: "separator", id: "s2" },
     { id: "mute", label: item.muted ? "Unmute" : "Mute", shortcut: "m", onSelect: () => h.run({ type: "mute", muted: !item.muted }, ids) },
-    { id: "spam", label: "Mark as spam", shortcut: "!", onSelect: () => h.run({ type: "spam", spam: true }, ids) },
+    view === "spam"
+      ? { id: "spam", label: `Not spam${subject}`, onSelect: () => h.run({ type: "spam", spam: false }, ids) }
+      : { id: "spam", label: "Mark as spam", shortcut: "!", onSelect: () => h.run({ type: "spam", spam: true }, ids) },
   );
   if (!many) items.push({ id: "block", label: "Block sender", onSelect: () => h.block(item) });
   return items;

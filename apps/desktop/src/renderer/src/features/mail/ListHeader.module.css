@@ -1,4 +1,4 @@
 .scoped { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
-.titleBtn { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 4px 0 0; margin-left: 0; border: 0; border-radius: var(--r-control); background: transparent; color: var(--fg); align-self: flex-start; }
+.titleBtn { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 4px; margin-left: -4px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--fg); align-self: flex-start; }
 .titleBtn:hover { color: var(--fg); background: var(--hover); }
 .subtitle { color: var(--fg-3); line-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
