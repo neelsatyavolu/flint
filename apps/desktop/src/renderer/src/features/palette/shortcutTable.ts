@@ -1,7 +1,10 @@
 export type ShortcutEntry = { combo: string; label: string };
 export type ShortcutGroup = { title: string; entries: ShortcutEntry[] };
 
-/** Shown in the shortcut sheet. Mirrors SPEC section 11 and shell/useGlobalShortcuts. */
+/**
+ * The one shortcut list, shown in the shortcut sheet (?) and in Settings, Shortcuts.
+ * Mirrors SPEC section 11, shell/useGlobalShortcuts and the list and composer key handlers.
+ */
 export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: "Compose",
@@ -11,7 +14,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { combo: "a", label: "Reply all" },
       { combo: "f", label: "Forward" },
       { combo: "mod+Enter", label: "Send" },
-      { combo: "l", label: "Send later (in composer)" },
+      { combo: "mod+shift+Enter", label: "Send later" },
     ],
   },
   {
@@ -23,9 +26,9 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { combo: "h", label: "Snooze" },
       { combo: "v", label: "Move to folder" },
       { combo: "u", label: "Mark read or unread" },
-      { combo: "!", label: "Mark as spam" },
+      { combo: "!", label: "Mark as spam or not spam" },
       { combo: "m", label: "Mute" },
-      { combo: "mod+shift+z", label: "Undo" },
+      { combo: "mod+z", label: "Undo" },
     ],
   },
   {
@@ -35,9 +38,13 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { combo: "k", label: "Previous conversation" },
       { combo: "Enter", label: "Open" },
       { combo: "x", label: "Select" },
+      { combo: "mod+a", label: "Select all" },
+      { combo: "shift+u", label: "Unread only" },
+      { combo: "shift+F10", label: "Conversation menu" },
       { combo: "Escape", label: "Back or close" },
       { combo: "/", label: "Search" },
       { combo: "mod+k", label: "Command palette" },
+      { combo: "F6", label: "Next pane" },
     ],
   },
   {
@@ -54,9 +61,13 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: "App",
     entries: [
+      { combo: "mod+p", label: "Print" },
+      { combo: "mod+=", label: "Zoom in" },
+      { combo: "mod+-", label: "Zoom out" },
+      { combo: "mod+0", label: "Actual size" },
       { combo: "mod+,", label: "Settings" },
       { combo: "mod+\\", label: "Show or hide sidebar" },
-      { combo: "?", label: "This sheet" },
+      { combo: "?", label: "Show shortcuts" },
     ],
   },
 ];

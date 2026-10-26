@@ -5,6 +5,32 @@ import { navStore } from "../state/nav";
 import { handleMenuAction } from "./menuActions";
 import type { AppCommands } from "./useAppCommands";
 
+/** Window event the reader listens for to print the open conversation (File, Print). */
+export const PRINT_EVENT = "flint:print";
+
+/** True when focus is in a field or editor, where Cmd+Z should undo typing rather than a mail action. */
+function editingText(): boolean {
+  const el = document.activeElement as HTMLElement | null;
+  if (!el || el === document.body) return false;
+  const tag = el.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
+}
+
+/** Menu actions that act on the page itself rather than on app state. Returns false for anything else. */
+export function handleHostAction(action: string, cmds: Pick<AppCommands, "undo">): boolean {
+  switch (action) {
+    case "undo":
+      if (editingText()) document.execCommand("undo");
+      else void cmds.undo();
+      return true;
+    case "print":
+      window.dispatchEvent(new Event(PRINT_EVENT));
+      return true;
+    default:
+      return false;
+  }
+}
+
 /**
  * Notification clicks open their thread; native menu clicks and mailto links run app commands.
  * Also handles the window events the AI surfaces dispatch (open settings, open a cited thread).
@@ -17,7 +43,9 @@ export function useHostBridge(cmds: AppCommands): void {
     const offHost = host
       ? [
           host.onOpenThread((id) => navStore.getState().openThread(id, { fromOutside: true })),
-          host.onMenu((action, arg) => void handleMenuAction(action, arg, ref.current)),
+          host.onMenu((action, arg) => {
+            if (!handleHostAction(action, ref.current)) handleMenuAction(action, arg, ref.current);
+          }),
         ]
       : [];
     const onSettings = (e: Event) => navStore.getState().openSettings((e as CustomEvent<{ section?: string }>).detail?.section);
