@@ -65,12 +65,23 @@ async function specialUsePath(runner: ImapRunner, use: string): Promise<string |
   return runner.run(async (c) => (await c.list()).find((m) => m.specialUse === use)?.path ?? null);
 }
 
+/** How many of the newest messages to read envelopes of when the server's header search comes back empty. */
+const ENVELOPE_SCAN = 50;
+
+const bareId = (id: string | undefined): string => (id ?? "").trim().replace(/^<|>$/g, "").toLowerCase();
+
 async function findUids(runner: ImapRunner, path: string, messageId: string): Promise<number[]> {
   return runner.run(async (c) => {
     if (!(await c.list()).some((m) => m.path === path)) return [];
     return withMailbox(c, path, async () => {
       const found = await c.search({ header: { "message-id": `<${messageId}>` } }, { uid: true });
-      return found || [];
+      if (found && found.length > 0) return found;
+      // Some servers (Proton Bridge) answer SEARCH HEADER with nothing: match the newest envelopes instead.
+      const exists = c.mailbox ? c.mailbox.exists : 0;
+      if (exists === 0) return [];
+      const rows = await c.fetchAll(`${Math.max(1, exists - ENVELOPE_SCAN + 1)}:*`, { uid: true, envelope: true });
+      const want = bareId(messageId);
+      return (rows || []).filter((r) => bareId(r.envelope?.messageId) === want).map((r) => r.uid);
     }, true);
   });
 }

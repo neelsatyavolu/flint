@@ -284,3 +284,22 @@ describe("ingest: search index and bodies", () => {
     expect(store.listLocalUids(s.inbox.id)).toEqual([]);
   });
 });
+
+describe("getThreadRows: one message per Message-ID", () => {
+  it("shows a message once when the server keeps several copies of it", () => {
+    const store = makeStore();
+    const s = seedImap(store);
+    const [orig] = store.ingestMessages(s.account.id, s.inbox.id, [msg({ uid: 1, messageId: "q@x", subject: "Trip" })]);
+    const reply = { messageId: "r@x", inReplyTo: "q@x", references: ["q@x"], subject: "Re: Trip", from: [me()], flags: seen };
+    // A tracked send through Proton Bridge: one saved copy per envelope recipient, plus Flint's clean copy with everyone.
+    store.ingestMessages(s.account.id, s.sent.id, [
+      msg({ uid: 637, ...reply, to: [person("Guest Relations")] }),
+      msg({ uid: 638, ...reply, to: [person("Group")] }),
+      msg({ uid: 639, ...reply, to: [person("Guest Relations"), person("Group")] }),
+    ]);
+    const rows = store.getThreadRows(orig!.threadId)!;
+    expect(rows.messages.map((m) => m.messageId)).toEqual(["q@x", "r@x"]);
+    expect(rows.messages[1]!.to).toHaveLength(2);
+    expect(rows.messages[1]!.inSent).toBe(true);
+  });
+});

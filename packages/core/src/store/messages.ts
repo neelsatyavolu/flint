@@ -1,4 +1,4 @@
-import type { AccountId, AttachmentInfo, FolderId, MailboxRole, MessageRowId, Provider, ThreadId } from "../types";
+import type { AccountId, AttachmentInfo, FolderId, MailboxRole, MessageRowId, OutgoingSend, Provider, ThreadId } from "../types";
 import { addresses, asCategory } from "./mappers";
 import { parseJson, Sql, bool, chunks } from "./sql";
 import type { MessageLocation, StoredMessage, StoredThreadMessage, ThreadRows } from "./types";
@@ -23,6 +23,24 @@ export function rowToStored(r: MessageRow): StoredMessage {
     hasAttachments: bool(r.has_attachments), size: r.size, headers: parseJson<Record<string, string>>(r.headers_json, {}),
     bodyLoaded: r.body_state === "full", text: r.text_body, rawHtml: r.html_body, category: asCategory(r.category),
   };
+}
+
+/**
+ * One message per Message-ID, in thread order. A server can keep several copies of one message (Proton Bridge saves one
+ * per SMTP envelope of a tracked send, with only that recipient in To): the copy naming the most recipients wins.
+ */
+function oneCopyEach(messages: StoredThreadMessage[]): StoredThreadMessage[] {
+  const best = new Map<string, StoredThreadMessage>();
+  const reach = (m: StoredThreadMessage) => m.to.length + m.cc.length;
+  for (const m of messages) {
+    if (!m.messageId) continue;
+    const prev = best.get(m.messageId);
+    if (!prev || reach(m) > reach(prev) || (reach(m) === reach(prev) && m.id > prev.id)) best.set(m.messageId, m);
+  }
+  const inSent = new Set(messages.filter((m) => m.inSent && m.messageId).map((m) => m.messageId));
+  return messages
+    .filter((m) => !m.messageId || best.get(m.messageId) === m)
+    .map((m) => (m.messageId && inSent.has(m.messageId) && !m.inSent ? { ...m, inSent: true } : m));
 }
 
 type AttachmentRow = { id: number; message_id: number; part: string; filename: string; content_type: string; size: number; content_id: string | null; inline: number; cached_path: string | null };
@@ -83,14 +101,18 @@ export class MessagesRepo {
        UNION SELECT mf.message_id FROM message_folders mf JOIN folders f ON f.id = mf.folder_id JOIN messages m ON m.id = mf.message_id
        WHERE m.thread_id = ? AND f.role = 'sent'`, threadId, threadId,
     ).map((r) => r.id));
-    const messages: StoredThreadMessage[] = rows.map((r) => {
+    const messages: StoredThreadMessage[] = oneCopyEach(rows.map((r) => {
       const m = rowToStored(r);
       return { ...m, isFromMe: m.from.some((a) => own.has(lowerAddr(a))), inSent: sentIds.has(m.id), attachments: byMsg.get(m.id) ?? [], unsubscribe: parseUnsubscribe(m.headers) };
-    });
+    }));
     const draftIds = this.q.all<{ id: number }>(`SELECT id FROM drafts WHERE thread_id = ? AND ${NOT_QUEUED_DRAFT} ORDER BY id`, threadId).map((d) => d.id);
+    const outgoing = this.q.all<{ id: number; draft_id: number; send_at: number; status: OutgoingSend["status"] }>(
+      `SELECT s.id, s.draft_id, s.send_at, s.status FROM scheduled_sends s JOIN drafts d ON d.id = s.draft_id
+       WHERE d.thread_id = ? AND s.status IN ('pending','awaiting_approval','sending') ORDER BY s.send_at, s.id`, threadId,
+    ).map((r) => ({ scheduledId: r.id, draftId: r.draft_id, sendAt: r.send_at, status: r.status }));
     return {
       id: t.id, accountId: t.account_id, subject: t.subject, category: asCategory(t.category) ?? "people",
-      pinned: bool(t.pinned), muted: bool(t.muted), snoozedUntil: t.snoozed_until, resurfacedAt: t.resurfaced_at, messages, draftIds,
+      pinned: bool(t.pinned), muted: bool(t.muted), snoozedUntil: t.snoozed_until, resurfacedAt: t.resurfaced_at, messages, draftIds, outgoing,
     };
   }
 
