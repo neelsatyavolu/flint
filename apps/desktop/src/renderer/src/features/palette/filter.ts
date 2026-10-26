@@ -1,3 +1,5 @@
+import { rank } from "./fuzzy";
+
 export type PickItem = {
   id: string;
   label: string;
@@ -9,19 +11,15 @@ export type PickItem = {
 };
 
 /**
- * Case-insensitive match where every word of the query must appear in the label or keywords.
- * Labels that start with a word of the query rank first, then shorter labels, then the original order.
+ * Fuzzy filter for the small pickers: every word of the query must match the label or keywords.
+ * Prefix matches rank first, then word starts, acronyms, substrings and scattered letters; ties keep the original order.
  */
 export function filterItems<T extends PickItem>(items: T[], query: string): T[] {
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return items;
+  if (!query.trim()) return items;
   const scored: { item: T; score: number; at: number }[] = [];
   items.forEach((item, at) => {
-    const label = item.label.toLowerCase();
-    const hay = `${label} ${item.keywords?.toLowerCase() ?? ""}`;
-    if (!words.every((w) => hay.includes(w))) return;
-    const starts = words.every((w) => label.split(/[\s/]+/).some((part) => part.startsWith(w)));
-    scored.push({ item, score: (label.startsWith(words[0]!) ? 0 : starts ? 1 : 2) * 1000 + label.length, at });
+    const m = rank(query, item.label, item.keywords);
+    if (m) scored.push({ item, score: m.score, at });
   });
-  return scored.sort((a, b) => a.score - b.score || a.at - b.at).map((s) => s.item);
+  return scored.sort((a, b) => b.score - a.score || a.at - b.at).map((s) => s.item);
 }

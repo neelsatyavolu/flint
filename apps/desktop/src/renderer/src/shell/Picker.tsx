@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import clsx from "clsx";
 import { filterItems, type PickItem } from "../features/palette/filter";
 import { Kbd } from "../ui";
@@ -19,6 +19,7 @@ type Props = {
 
 /** Typeahead list in a modal: type to filter, arrows to move, Enter to pick. */
 export function Picker({ label, placeholder, items, onPick, onClose, emptyText = "Nothing matches.", width }: Props) {
+  const uid = useId().replace(/:/g, "");
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null);
@@ -51,13 +52,14 @@ export function Picker({ label, placeholder, items, onPick, onClose, emptyText =
         aria-label={label}
         role="combobox"
         aria-expanded
-        aria-controls="picker-list"
+        aria-controls={`${uid}-list`}
+        aria-activedescendant={shown[at] ? `${uid}-opt-${at}` : undefined}
         onChange={(e) => { setQuery(e.target.value); setActive(0); }}
         onKeyDown={onKeyDown}
         spellCheck={false}
         autoComplete="off"
       />
-      <div ref={list} id="picker-list" role="listbox" className={styles.list}>
+      <div ref={list} id={`${uid}-list`} role="listbox" aria-label={label} className={styles.list}>
         {shown.length === 0 ? <p className={clsx("t-body", styles.empty)}>{emptyText}</p> : null}
         {shown.map((item, i) => {
           const header = !query && item.group && item.group !== lastGroup ? item.group : null;
@@ -67,6 +69,7 @@ export function Picker({ label, placeholder, items, onPick, onClose, emptyText =
               {header ? <div className={clsx("t-label", styles.group)}>{header}</div> : null}
               <button
                 type="button"
+                id={`${uid}-opt-${i}`}
                 role="option"
                 aria-selected={i === at}
                 data-active={i === at}

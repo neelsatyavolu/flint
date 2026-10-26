@@ -21,6 +21,7 @@ describe("App shell with the mock API", () => {
     await act(async () => { fireEvent.keyDown(document.body, { key: "k", ctrlKey: true }); });
     await screen.findByRole("combobox", { name: "Command palette" });
     await act(async () => { fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" }); });
+    await waitFor(() => expect(navStore.getState().overlay).toBeNull());
 
     await act(async () => { fireEvent.keyDown(document.body, { key: "?" }); });
     await screen.findByText("Keyboard shortcuts");

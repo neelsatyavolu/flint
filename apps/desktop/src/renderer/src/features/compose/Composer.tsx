@@ -8,6 +8,7 @@ import { Dialog } from "../../ui/Dialog";
 import { AiBar } from "../ai/AiBar";
 import { AttachmentChips } from "./AttachmentChips";
 import { ComposerBar } from "./ComposerBar";
+import { COMPOSER_COMMAND_EVENT, type ComposerCommand } from "../palette/composerBridge";
 import { closeComposer, minimizeComposer, type ComposerEntry } from "./composerStore";
 import { BodyEditor, type BodyEditorHandle } from "./editor/BodyEditor";
 import { sanitizeSignatureHtml } from "./editor/sanitize";
@@ -34,6 +35,17 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
   const flow = useSendFlow(session, () => closeComposer(entry.id));
   const selfAddresses = useContext(AppContext)?.selfAddresses ?? [];
   const closeRef = useRef<() => void>(() => undefined);
+  const commandRef = useRef<(c: ComposerCommand) => void>(() => undefined);
+
+  // The command palette applies a template or switches From in this composer.
+  useEffect(() => {
+    const onCommand = (e: Event) => {
+      const c = (e as CustomEvent<ComposerCommand>).detail;
+      if (c.composerId === entry.id) commandRef.current(c);
+    };
+    window.addEventListener(COMPOSER_COMMAND_EVENT, onCommand);
+    return () => window.removeEventListener(COMPOSER_COMMAND_EVENT, onCommand);
+  }, [entry.id]);
 
   // Escape closes the composer (draft saved) even when focus is on the page rather than inside it.
   useEffect(() => {
@@ -75,6 +87,14 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
   const applySignature = (sig: Signature | null) => {
     patch({ signatureId: sig?.id ?? null });
     body.current?.setSignature(sig);
+  };
+  commandRef.current = (c) => {
+    if ("template" in c) {
+      applyTemplate(c.template);
+      return;
+    }
+    const option = session.fromOptions.find((o) => o.address === c.from);
+    if (option) body.current?.setSignature(session.chooseFrom(option));
   };
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
