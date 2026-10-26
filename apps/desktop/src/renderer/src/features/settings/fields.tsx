@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { Input, SettingsRow, TextArea, Toggle, Select } from "../../ui";
+import rowStyles from "../../ui/SettingsRow.module.css";
 import styles from "./settings.module.css";
 
 export function SectionPage({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
@@ -55,12 +56,12 @@ export function ChoiceSelect<T extends string | number>({ label, value, choices,
 export function LinkRow({ icon, title, description, onClick }: { icon?: ReactNode; title: string; description?: ReactNode; onClick: () => void }) {
   return (
     <button type="button" className={styles.rowBtn} onClick={onClick}>
-      {icon ? <span style={{ color: "var(--accent)", display: "inline-flex", width: 20 }} aria-hidden>{icon}</span> : null}
-      <span className={styles.rowGrow}>
-        <span className={styles.rowTitle} style={{ display: "block", font: "600 var(--text-setting) / 20px var(--font-ui)" }}>{title}</span>
-        {description ? <span className={styles.muted} style={{ display: "block", marginTop: 2 }}>{description}</span> : null}
+      {icon ? <span className={rowStyles.icon} aria-hidden>{icon}</span> : null}
+      <span className={rowStyles.text}>
+        <span className={rowStyles.title}>{title}</span>
+        {description ? <span className={rowStyles.desc}>{description}</span> : null}
       </span>
-      <ChevronRight size={16} strokeWidth={1.5} color="var(--fg-3)" aria-hidden />
+      <ChevronRight size={16} strokeWidth={1.5} aria-hidden />
     </button>
   );
 }

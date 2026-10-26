@@ -37,7 +37,7 @@ export function PersonalizationPage() {
 export function WritingPage() {
   const { settings: s, save } = useSettingsStore();
   return (
-    <SectionPage title="Writing and Replies">
+    <SectionPage title="Writing and replies">
       <ToggleRow icon={<MessageSquareReply size={18} strokeWidth={1.5} />} title="Smart replies" description="Suggest three short replies under a thread." checked={s.ai.smartReplies} onChange={(v) => void save({ ai: { smartReplies: v } })} />
       <SettingsRow icon={<Languages size={18} strokeWidth={1.5} />} title="Reply language" description="By default replies match the language of the thread.">
         <ChoiceSelect label="Reply language" value={s.ai.replyLanguage} choices={languageChoices(s.ai.replyLanguage, "Match the thread")} onChange={(v) => void save({ ai: { replyLanguage: v } })} />
@@ -49,7 +49,7 @@ export function WritingPage() {
 export function AutomationPage() {
   const { settings: s, save } = useSettingsStore();
   return (
-    <SectionPage title="Inbox Automation">
+    <SectionPage title="Inbox automation">
       <ToggleRow icon={<ListChecks size={18} strokeWidth={1.5} />} title="AI categorization" description="When Flint can't tell if mail is from a person, a second opinion from AI decides." checked={s.ai.autoCategorize} onChange={(v) => void save({ ai: { autoCategorize: v } })} />
       <ToggleRow icon={<Wand2 size={18} strokeWidth={1.5} />} title="Summarize long threads" description="Show a summary card above threads with three or more messages." checked={s.ai.autoSummarize} onChange={(v) => void save({ ai: { autoSummarize: v } })} />
     </SectionPage>

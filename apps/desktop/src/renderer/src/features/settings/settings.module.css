@@ -1,6 +1,12 @@
 .root { display: grid; grid-template-columns: 216px minmax(0, 1fr); height: 100%; min-height: 0; background: var(--plane-2); color: var(--fg); }
 .nav { display: flex; flex-direction: column; min-height: 0; background: var(--plane-1); border-right: 1px solid var(--line); }
-.navTop { display: flex; align-items: center; justify-content: space-between; height: 38px; padding: 0 var(--s-2) 0 var(--s-4); flex: none; }
+/* Clears the traffic lights when the sidebar is collapsed and they sit over the settings nav. */
+.navTop { display: flex; align-items: center; justify-content: space-between; height: var(--titlebar-h); padding: 0 var(--s-2) 0 max(var(--s-4), var(--lights-inset, 0px)); flex: none; }
+.navFilter { position: relative; display: flex; align-items: center; flex: none; padding: var(--s-1) var(--s-2) 0; }
+.navFilterIcon { position: absolute; left: 18px; color: var(--fg-3); pointer-events: none; }
+.navFilter .navFilterInput { padding-left: 30px; }
+.navFilter .navFilterInput::-webkit-search-cancel-button { display: none; }
+.navEmpty { padding: var(--s-2); color: var(--fg-3); }
 .navList { flex: 1; overflow-y: auto; padding: var(--s-2); display: flex; flex-direction: column; gap: 1px; }
 .navItem { display: flex; align-items: center; gap: var(--s-2); height: 30px; padding: 0 var(--s-2); border: 0; border-radius: var(--r-control); background: transparent; color: var(--fg-2); font: 400 var(--text-body) / 1 var(--font-ui); text-align: left; }
 .navItem:hover { background: var(--hover); }
@@ -24,9 +30,23 @@
 .warn { color: var(--warn); }
 .hair { border-bottom: 1px solid var(--line); }
 .row { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) 0; border-bottom: 1px solid var(--line); }
-.rowBtn { width: 100%; border: 0; background: transparent; color: inherit; text-align: left; padding: var(--s-3) 0; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: var(--s-3); }
+/* A settings row that opens a page. SettingsRow metrics; the hover tint reaches 8px past the column so text never touches its edge. */
+.rowBtn { position: relative; display: flex; align-items: center; gap: var(--s-4); width: calc(100% + 16px); margin: 0 -8px; padding: var(--s-5) 8px; border: 0; border-radius: var(--r-control); background: transparent; color: inherit; text-align: left; }
+.rowBtn::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: 0; height: 1px; background: var(--line); }
 .rowBtn:hover { background: var(--hover); }
+.rowBtn > svg { flex: none; color: var(--fg-3); }
 .rowGrow { flex: 1; min-width: 0; }
+.block { display: block; }
+/* Buttons that look like the row content they wrap. */
+.bareBtn { min-width: 0; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
+.disclosure { display: flex; align-items: center; gap: var(--s-3); }
+.rowBare { border-bottom: 0; }
+/* Actions above a list, right-aligned. */
+.listActions { display: flex; align-items: center; justify-content: flex-end; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-2); }
+.listTop { margin-top: var(--s-2); border-top: 1px solid var(--line); }
+.empty { padding: var(--s-5) 0; color: var(--fg-3); }
+.padTop { padding-top: var(--s-4); }
+.detail { padding: var(--s-4) 0 var(--s-5); gap: var(--s-5); }
 .rowTitle { font-weight: 600; }
 .rowSub { color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
@@ -53,7 +73,7 @@
 .actRow { display: grid; grid-template-columns: 150px minmax(0, 1fr) 28px; gap: var(--s-2); align-items: center; }
 .editor { border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--plane-2); }
 .editorBar { display: flex; align-items: center; gap: 2px; padding: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-.editorBody { padding: var(--s-3); min-height: 140px; max-height: 320px; overflow-y: auto; font: 400 14.5px / 22px var(--font-ui); user-select: text; -webkit-user-select: text; }
+.editorBody { padding: var(--s-3); min-height: 140px; max-height: 320px; overflow-y: auto; font: 400 var(--text-message) / var(--lh-message) var(--font-ui); user-select: text; -webkit-user-select: text; }
 .editorBody :global(.ProseMirror) { outline: none; min-height: 112px; caret-color: var(--accent); }
 .editorBody :global(.ProseMirror) p { margin: 0 0 8px; }
 .editorBody :global(.ProseMirror) a { color: var(--accent); text-decoration: underline; }

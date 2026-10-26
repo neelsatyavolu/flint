@@ -72,7 +72,7 @@ export function RulesSection() {
   if (editing) {
     return (
       <SectionPage title={editing.id === undefined ? "New rule" : "Edit rule"}>
-        <div style={{ paddingTop: "var(--s-4)" }}>
+        <div className={styles.padTop}>
           <RuleEditor initial={editing} accounts={accounts ?? []} onSave={save} onCancel={() => setEditing(null)} onDelete={editing.id === undefined ? undefined : () => remove(editing.id!)} />
         </div>
       </SectionPage>
@@ -81,23 +81,23 @@ export function RulesSection() {
 
   return (
     <SectionPage title="Rules" description="Sort incoming mail. Rules run top to bottom as mail arrives.">
-      <div className={styles.inline} style={{ justifyContent: "flex-end", marginTop: "var(--s-2)" }}>
+      <div className={styles.listActions}>
         <Button variant="ghost" disabled={applying || list.length === 0} onClick={() => void applyAll()}>{applying ? "Applying…" : "Apply to existing mail"}</Button>
         <Button variant="primary" icon={<Plus size={14} strokeWidth={1.5} />} onClick={() => setEditing(newRule(list.length === 0 ? 0 : Math.max(...list.map((r) => r.sortOrder)) + 1))}>New rule</Button>
       </div>
-      <div style={{ marginTop: "var(--s-2)", borderTop: "1px solid var(--line)" }}>
+      <div className={styles.listTop}>
         {list.map((r, i) => (
           <div key={r.id} className={styles.row}>
             <Toggle checked={r.enabled} label={`Enable ${r.name}`} onChange={(v) => void toggle(r, v)} />
-            <button type="button" className={styles.rowGrow} onClick={() => setEditing(r)} style={{ border: 0, background: "transparent", color: "inherit", textAlign: "left", padding: 0, minWidth: 0 }}>
-              <span className={styles.rowTitle} style={{ display: "block" }}>{r.name}</span>
-              <span className={`${styles.rowSub} ${styles.mono}`} style={{ display: "block" }}>{summarizeRule(r)}</span>
+            <button type="button" className={`${styles.rowGrow} ${styles.bareBtn}`} onClick={() => setEditing(r)}>
+              <span className={`${styles.rowTitle} ${styles.block}`}>{r.name}</span>
+              <span className={`${styles.rowSub} ${styles.mono} ${styles.block}`}>{summarizeRule(r)}</span>
             </button>
             <IconButton label="Move up" size={28} disabled={i === 0} onClick={() => void move(r, -1)}><ArrowUp size={14} strokeWidth={1.5} /></IconButton>
             <IconButton label="Move down" size={28} disabled={i === list.length - 1} onClick={() => void move(r, 1)}><ArrowDown size={14} strokeWidth={1.5} /></IconButton>
           </div>
         ))}
-        {!rules.loading && list.length === 0 ? <p className={styles.muted} style={{ padding: "var(--s-5) 0" }}>No rules yet. A rule can archive, pin, mute or file mail from senders you pick.</p> : null}
+        {!rules.loading && list.length === 0 ? <p className={styles.empty}>No rules yet. A rule can archive, pin, mute or file mail from senders you pick.</p> : null}
       </div>
     </SectionPage>
   );

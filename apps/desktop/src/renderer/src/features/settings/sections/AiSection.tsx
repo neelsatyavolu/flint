@@ -59,7 +59,7 @@ function AiHome({ onOpen }: { onOpen: (p: AiPage) => void }) {
       <ToggleRow
         icon={<Sparkles size={18} strokeWidth={1.5} />}
         title="Enable +AI"
-        description="Flint uses your own ChatGPT or Grok subscription. Nothing is billed by Flint. Mail text is sent to the provider you choose only when you use an AI feature."
+        description="Flint uses your own ChatGPT or Grok subscription. Nothing is billed by Flint. Mail text goes to the provider you choose only when you use an AI feature, and for the automatic catch-up on Home every 3 hours, which you can turn off there."
         checked={s.ai.enabled}
         onChange={(v) => void save({ ai: { enabled: v } })}
       />
@@ -86,8 +86,8 @@ function AiHome({ onOpen }: { onOpen: (p: AiPage) => void }) {
 
       <div className={styles.group}>
         <LinkRow icon={<UserRound size={18} strokeWidth={1.5} />} title="Personalization" description="How you write" onClick={() => onOpen("personalization")} />
-        <LinkRow icon={<MessageSquareReply size={18} strokeWidth={1.5} />} title="Writing and Replies" description="Smart replies, reply language" onClick={() => onOpen("writing")} />
-        <LinkRow icon={<ListChecks size={18} strokeWidth={1.5} />} title="Inbox Automation" description="Categorization and summaries" onClick={() => onOpen("automation")} />
+        <LinkRow icon={<MessageSquareReply size={18} strokeWidth={1.5} />} title="Writing and replies" description="Smart replies, reply language" onClick={() => onOpen("writing")} />
+        <LinkRow icon={<ListChecks size={18} strokeWidth={1.5} />} title="Inbox automation" description="Categorization and summaries" onClick={() => onOpen("automation")} />
         <LinkRow icon={<Languages size={18} strokeWidth={1.5} />} title="Translation" description="Default language" onClick={() => onOpen("translation")} />
         <LinkRow icon={<Sparkles size={18} strokeWidth={1.5} />} title="Assistant" description="Ask anything about your mail" onClick={() => onOpen("assistant")} />
       </div>

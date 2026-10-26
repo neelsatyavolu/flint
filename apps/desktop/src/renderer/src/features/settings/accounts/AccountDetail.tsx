@@ -31,7 +31,7 @@ export function AccountDetail({ account, sync, onPatch, onRemove, onSignIn, onCh
   };
 
   return (
-    <div className={styles.fields} style={{ padding: "var(--s-4) 0 var(--s-5)", gap: "var(--s-5)" }}>
+    <div className={`${styles.fields} ${styles.detail}`}>
       <label className={styles.field}>
         <span className={`t-label ${styles.fieldLabel}`}>Name</span>
         <DebouncedText label="Account name" value={account.name} onCommit={(name) => name.trim() !== "" && onPatch({ name: name.trim() })} />

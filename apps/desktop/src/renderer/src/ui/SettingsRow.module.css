@@ -1,6 +1,7 @@
 .row { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-5) 0; border-bottom: 1px solid var(--line); }
 .icon { display: inline-flex; flex: none; width: 20px; color: var(--accent); }
 .text { flex: 1; min-width: 0; }
-.title { font: 600 var(--text-setting) / 20px var(--font-ui); color: var(--fg); }
-.desc { margin-top: 2px; color: var(--fg-3); }
+/* Block so the same classes work on spans inside a button (LinkRow). */
+.title { display: block; font: 600 var(--text-setting) / 20px var(--font-ui); color: var(--fg); }
+.desc { display: block; margin-top: 2px; color: var(--fg-3); }
 .control { flex: none; display: flex; align-items: center; gap: var(--s-2); }

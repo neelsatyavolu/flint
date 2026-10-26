@@ -3,7 +3,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { shortcuts } from "../../lib/shortcuts";
 import { ToastProvider } from "../../ui";
 import { SettingsView } from "./SettingsView";
-import { parseSection } from "./sections";
+import { SECTIONS, filterSections, parseSection } from "./sections";
+import { accountPage } from "./sections/AccountsSection";
 
 const mount = (props: { section?: string; onClose?: () => void }) =>
   render(<ToastProvider><SettingsView section={props.section} onClose={props.onClose ?? (() => {})} /></ToastProvider>);
@@ -15,6 +16,33 @@ describe("parseSection", () => {
     expect(parseSection("+AI")).toEqual({ id: "ai" });
     expect(parseSection("nope")).toEqual({ id: "general" });
     expect(parseSection(undefined)).toEqual({ id: "general" });
+  });
+
+  it("keeps the account id's case in account deep links", () => {
+    expect(parseSection("accounts/AbC_x-12/reauth")).toEqual({ id: "accounts", page: "AbC_x-12/reauth" });
+    expect(parseSection("Accounts/AbC_x-12/REAUTH")).toEqual({ id: "accounts", page: "AbC_x-12/reauth" });
+    expect(parseSection("accounts/AbC_x-12")).toEqual({ id: "accounts", page: "AbC_x-12" });
+    expect(parseSection("accounts")).toEqual({ id: "accounts" });
+  });
+});
+
+describe("accountPage", () => {
+  it("reads the account and whether to sign in again", () => {
+    expect(accountPage("AbC/reauth")).toEqual({ accountId: "AbC", reauth: true });
+    expect(accountPage("AbC")).toEqual({ accountId: "AbC", reauth: false });
+    expect(accountPage(undefined)).toBeNull();
+  });
+});
+
+describe("filterSections", () => {
+  it("matches labels and keywords, every word, ignoring case", () => {
+    const ids = (q: string) => filterSections(SECTIONS, q).map((s) => s.id);
+    expect(ids("")).toHaveLength(SECTIONS.length);
+    expect(ids("RUL")).toEqual(["rules"]);
+    expect(ids("theme")).toEqual(["appearance"]);
+    expect(ids("dark theme")).toEqual(["appearance"]);
+    expect(ids("chatgpt")).toEqual(["ai"]);
+    expect(ids("zzz")).toEqual([]);
   });
 });
 
@@ -44,6 +72,29 @@ describe("SettingsView", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     shortcuts.dispatch(new KeyboardEvent("keydown", { key: "Escape" }));
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("filters the nav; Enter opens the first match and Esc clears, then closes", async () => {
+    const onClose = vi.fn();
+    mount({ onClose });
+    const filter = screen.getByRole("searchbox", { name: "Filter settings" });
+    fireEvent.change(filter, { target: { value: "theme" } });
+    expect(screen.getByRole("button", { name: "Appearance" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Rules" })).toBeNull();
+    fireEvent.keyDown(filter, { key: "Enter" });
+    expect(await screen.findByRole("region", { name: "Appearance" })).toBeTruthy();
+    fireEvent.keyDown(filter, { key: "Escape" });
+    expect((filter as HTMLInputElement).value).toBe("");
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.keyDown(filter, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens Sign in again for an account from accounts/<id>/reauth", async () => {
+    mount({ section: "accounts/acc_orbit/reauth" });
+    expect(await screen.findByRole("dialog", { name: "Sign in again" })).toBeTruthy();
+    // The modal hides the page behind it from the accessibility tree, hence hidden: true. Only that account is expanded.
+    expect(screen.getAllByRole("button", { name: /hide details$/, hidden: true })).toHaveLength(1);
   });
 
   it("renders every section without errors", async () => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Plus } from "lucide-react";
 import type { Account } from "@flint/core";
 import { flint } from "../../../lib/api";
@@ -10,13 +10,29 @@ import { SectionPage } from "../fields";
 import { errorText, useAccounts, useUpdateAccount } from "../useAccounts";
 import styles from "../settings.module.css";
 
-export function AccountsSection() {
+/** The deep-link page under Accounts: "<id>" expands that account, "<id>/reauth" also starts signing in again. */
+export function accountPage(page: string | undefined): { accountId: string; reauth: boolean } | null {
+  const [accountId, action] = (page ?? "").split("/");
+  return accountId ? { accountId, reauth: action === "reauth" } : null;
+}
+
+export function AccountsSection({ page }: { page?: string }) {
   const toast = useToast();
   const { accounts, loading, refetch, syncOf } = useAccounts();
   const update = useUpdateAccount();
-  const [open, setOpen] = useState<string | null>(null);
+  const target = accountPage(page);
+  const [open, setOpen] = useState<string | null>(target?.accountId ?? null);
   const [adding, setAdding] = useState(false);
   const [reauth, setReauth] = useState<Account | null>(null);
+  const linked = useRef(false);
+
+  // "accounts/<id>/reauth" (the sync button's Sign in again): open the password dialog once the account has loaded.
+  useEffect(() => {
+    if (linked.current || !target?.reauth || !accounts) return;
+    linked.current = true;
+    const a = accounts.find((x) => x.id === target.accountId);
+    if (a && a.authKind !== "oauth_google") setReauth(a);
+  }, [accounts, target?.accountId, target?.reauth]);
 
   const patch = async (id: string, p: Parameters<typeof update>[1]) => {
     if (await update(id, p)) refetch();
@@ -48,29 +64,28 @@ export function AccountsSection() {
   const list = accounts ?? [];
   return (
     <SectionPage title="Accounts" description="Mail accounts Flint syncs. Changes apply at once.">
-      <div className={styles.inline} style={{ justifyContent: "flex-end", marginTop: "var(--s-2)" }}>
+      <div className={styles.listActions}>
         <Button variant="primary" icon={<Plus size={14} strokeWidth={1.5} />} onClick={() => setAdding(true)}>Add account</Button>
       </div>
-      <div style={{ marginTop: "var(--s-2)", borderTop: "1px solid var(--line)" }}>
+      <div className={styles.listTop}>
         {list.map((a) => {
           const status = describeStatus(syncOf(a.id), a.enabled);
           const isOpen = open === a.id;
           return (
             <div key={a.id} className={styles.hair}>
-              <div className={styles.row} style={{ borderBottom: 0 }}>
+              <div className={`${styles.row} ${styles.rowBare}`}>
                 <button
                   type="button"
-                  className={styles.rowGrow}
+                  className={`${styles.rowGrow} ${styles.bareBtn} ${styles.disclosure}`}
                   aria-expanded={isOpen}
                   aria-label={`${a.email}, ${isOpen ? "hide" : "show"} details`}
                   onClick={() => setOpen(isOpen ? null : a.id)}
-                  style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", border: 0, background: "transparent", color: "inherit", textAlign: "left", padding: 0 }}
                 >
                   {isOpen ? <ChevronDown size={14} strokeWidth={1.5} color="var(--fg-3)" aria-hidden /> : <ChevronRight size={14} strokeWidth={1.5} color="var(--fg-3)" aria-hidden />}
                   <Avatar address={a.email} name={a.name} accountId={a.id} size={32} />
                   <span className={styles.rowGrow}>
-                    <span className={styles.rowTitle} style={{ display: "block" }}>{a.email}</span>
-                    <span className={`${styles.mono} ${styles[status.tone]}`} style={{ display: "block" }}>{a.name} · {status.text}</span>
+                    <span className={`${styles.rowTitle} ${styles.block}`}>{a.email}</span>
+                    <span className={`${styles.mono} ${styles[status.tone]} ${styles.block}`}>{a.name} · {status.text}</span>
                   </span>
                   <span className={styles.dot} style={{ background: a.color ?? "var(--line-strong)" }} aria-hidden />
                 </button>
@@ -90,7 +105,7 @@ export function AccountsSection() {
             </div>
           );
         })}
-        {!loading && list.length === 0 ? <p className={styles.muted} style={{ padding: "var(--s-5) 0" }}>No accounts yet. Add one to start syncing.</p> : null}
+        {!loading && list.length === 0 ? <p className={styles.empty}>No accounts yet. Add one to start syncing.</p> : null}
       </div>
 
       <Dialog open={adding} onClose={() => setAdding(false)} title="Add account" width={520}>
