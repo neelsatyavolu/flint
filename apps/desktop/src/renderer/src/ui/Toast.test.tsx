@@ -67,6 +67,31 @@ describe("Toast", () => {
     expect(screen.queryByText("Hold on")).toBeNull();
   });
 
+  it("pauses the timer while focus is inside", () => {
+    mount();
+    act(() => void show({ message: "Hold on", timeout: 1000, action: { label: "Undo", onClick: () => undefined } }));
+    const undo = screen.getByRole("button", { name: "Undo" });
+    fireEvent.focus(undo);
+    act(() => void vi.advanceTimersByTime(5000));
+    expect(screen.queryByText("Hold on")).not.toBeNull();
+    fireEvent.blur(undo);
+    act(() => void vi.advanceTimersByTime(1100));
+    expect(screen.queryByText("Hold on")).toBeNull();
+  });
+
+  it("closes from its X button", () => {
+    mount();
+    act(() => void show({ message: "Sticky", timeout: 0 }));
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    expect(screen.queryByText("Sticky")).toBeNull();
+  });
+
+  it("announces through each toast's role, not a live viewport", () => {
+    mount();
+    act(() => void show({ message: "Archived" }));
+    expect(screen.getByRole("status").closest("[aria-live]")).toBeNull();
+  });
+
   it("keeps at most three toasts and marks errors as alerts", () => {
     mount();
     act(() => {
