@@ -1,4 +1,4 @@
-/* Flint design tokens. Source of truth: DESIGN.md §2-§7. Components never use raw hex. */
+/* Flint design tokens. Source of truth: DESIGN.md §2-§7. Components never use raw hex. tokens.test.ts checks the contrast floors. */
 
 :root,
 [data-theme="dark"] {
@@ -9,7 +9,7 @@
   --plane-3: #232321;
   --fg: #edebe5;
   --fg-2: rgba(237, 235, 229, 0.7);
-  --fg-3: rgba(237, 235, 229, 0.46);
+  --fg-3: rgba(237, 235, 229, 0.52);
   --fg-4: rgba(237, 235, 229, 0.26);
   --hover: rgba(237, 235, 229, 0.045);
   --active: rgba(237, 235, 229, 0.08);
@@ -18,7 +18,7 @@
   --accent: #4c8dff;
   --accent-fg: #0b1424;
   --accent-soft: rgba(76, 141, 255, 0.14);
-  --accent-ring: rgba(76, 141, 255, 0.5);
+  --accent-ring: rgba(76, 141, 255, 0.68);
   --danger: #e5483a;
   --ok: #4fbf85;
   --warn: #d9a441;
@@ -37,7 +37,7 @@
   --plane-3: #ffffff;
   --fg: #1a1a17;
   --fg-2: rgba(26, 26, 23, 0.68);
-  --fg-3: rgba(26, 26, 23, 0.48);
+  --fg-3: rgba(26, 26, 23, 0.62);
   --fg-4: rgba(26, 26, 23, 0.28);
   --hover: rgba(26, 26, 23, 0.04);
   --active: rgba(26, 26, 23, 0.07);
@@ -46,7 +46,7 @@
   --accent: #2f6fe0;
   --accent-fg: #ffffff;
   --accent-soft: rgba(47, 111, 224, 0.1);
-  --accent-ring: rgba(47, 111, 224, 0.45);
+  --accent-ring: rgba(47, 111, 224, 0.81);
   --danger: #c8352a;
   --ok: #24894f;
   --warn: #9c6b12;
@@ -78,6 +78,9 @@
   --text-prose: 16.5px;
   --lh-prose: 26px;
   --text-setting: 14.5px;
+  /* Plain-text mail bodies and the compose editor, matching HTML mail. */
+  --text-message: 14.5px;
+  --lh-message: 22px;
 
   /* Spacing, 4px grid */
   --s-1: 4px;
@@ -107,8 +110,8 @@
   --dur-panel: 180ms;
   --dur-collapse: 160ms;
 
-  /* Focus */
-  --focus-ring: 2px solid var(--accent-ring);
+  /* Focus: the solid accent clears 3:1 on every plane in both themes. */
+  --focus-ring: 2px solid var(--accent);
   --focus-offset: 1px;
 
   /* Layout */
@@ -128,7 +131,7 @@
     --plane-3: #ffffff;
     --fg: #1a1a17;
     --fg-2: rgba(26, 26, 23, 0.68);
-    --fg-3: rgba(26, 26, 23, 0.48);
+    --fg-3: rgba(26, 26, 23, 0.62);
     --fg-4: rgba(26, 26, 23, 0.28);
     --hover: rgba(26, 26, 23, 0.04);
     --active: rgba(26, 26, 23, 0.07);
@@ -137,7 +140,7 @@
     --accent: #2f6fe0;
     --accent-fg: #ffffff;
     --accent-soft: rgba(47, 111, 224, 0.1);
-    --accent-ring: rgba(47, 111, 224, 0.45);
+    --accent-ring: rgba(47, 111, 224, 0.81);
     --danger: #c8352a;
     --ok: #24894f;
     --warn: #9c6b12;
@@ -145,6 +148,42 @@
     --avatar-c: 0.08;
     --scrollbar-thumb: rgba(26, 26, 23, 0.18);
     --scrollbar-thumb-hover: rgba(26, 26, 23, 0.32);
+  }
+}
+
+/* Increase contrast (macOS Accessibility): stronger secondary text and borders that reach 3:1. */
+@media (prefers-contrast: more) {
+  :root,
+  [data-theme="dark"] {
+    --fg-2: rgba(237, 235, 229, 0.84);
+    --hover: rgba(237, 235, 229, 0.07);
+    --active: rgba(237, 235, 229, 0.12);
+    --line-strong: rgba(237, 235, 229, 0.42);
+  }
+
+  [data-theme="light"] {
+    --fg-2: rgba(26, 26, 23, 0.8);
+    --hover: rgba(26, 26, 23, 0.06);
+    --active: rgba(26, 26, 23, 0.1);
+    --line-strong: rgba(26, 26, 23, 0.5);
+  }
+
+  /* Hover and selection tints are too faint to rely on here, so they also get a 1px outline. */
+  [role="menuitem"]:hover:not(:disabled, :focus-visible),
+  [role="option"]:hover:not(:focus-visible),
+  [role="option"][aria-selected="true"]:not(:focus-visible),
+  [aria-current="page"]:not(:focus-visible) {
+    outline: 1px solid var(--line-strong);
+    outline-offset: -1px;
+  }
+}
+
+@media (prefers-contrast: more) and (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --fg-2: rgba(26, 26, 23, 0.8);
+    --hover: rgba(26, 26, 23, 0.06);
+    --active: rgba(26, 26, 23, 0.1);
+    --line-strong: rgba(26, 26, 23, 0.5);
   }
 }
 
@@ -169,4 +208,5 @@
   letter-spacing: 0.08em;
   color: var(--fg-3);
 }
+.t-message { font: 400 var(--text-message) / var(--lh-message) var(--font-ui); }
 .t-prose { font: 400 var(--text-prose) / var(--lh-prose) var(--font-prose); max-width: 68ch; }
