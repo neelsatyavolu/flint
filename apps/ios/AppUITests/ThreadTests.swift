@@ -11,8 +11,8 @@ final class ThreadTests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["thread.subject"].waitForExistence(timeout: 10))
         let card = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'thread.message.'")).firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.descendants(matching: .any)["thread.archive"].exists)
-        XCTAssertTrue(app.descendants(matching: .any)["thread.reply"].exists || app.descendants(matching: .any)["thread.replyAll"].exists)
+        XCTAssertTrue(app.buttons["thread.archive"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["thread.reply"].waitForExistence(timeout: 10))
 
         let collapsed = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'thread.collapsed.'")).firstMatch
         if collapsed.exists {
@@ -20,8 +20,8 @@ final class ThreadTests: XCTestCase {
             XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'thread.messageHeader.'")).element(boundBy: 1).waitForExistence(timeout: 5))
         }
 
-        let forward = app.descendants(matching: .any)["thread.forward"]
-        XCTAssertTrue(forward.exists)
+        let forward = app.buttons["thread.forward"]
+        XCTAssertTrue(forward.waitForExistence(timeout: 10))
         forward.tap()
         XCTAssertTrue(app.descendants(matching: .any)["composer.root"].waitForExistence(timeout: 10) || app.otherElements.matching(NSPredicate(format: "identifier BEGINSWITH 'composer'")).firstMatch.waitForExistence(timeout: 10))
     }

@@ -33,6 +33,7 @@ struct ThreadRoot: View {
         } message: { message in
             if let info = message.unsubscribe { Text(ThreadLogic.unsubscribeExplanation(info)) }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("thread.root")
     }
 
