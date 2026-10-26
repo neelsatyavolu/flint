@@ -16,10 +16,24 @@ import { receiptBlocker } from "./receiptNote";
 import { QuotedPill } from "./QuotedPill";
 import { RecipientField } from "./RecipientField";
 import { useComposerSession } from "./useComposerSession";
-import { useSendFlow } from "./useSendFlow";
+import { NO_ATTACHMENT, NO_RECIPIENTS, useSendFlow } from "./useSendFlow";
 import styles from "./Composer.module.css";
 
 type Props = { entry: ComposerEntry; hidden: boolean };
+
+const THREAD_LIST = '[role="listbox"][aria-label="Conversations"]';
+
+/** Puts focus back where it was before the composer opened, or on the thread list when that element is gone. */
+export function restoreFocus(previous: Element | null): void {
+  if (previous instanceof HTMLElement && previous.isConnected && previous !== document.body) {
+    previous.focus({ preventScroll: true });
+    return;
+  }
+  const list = document.querySelector<HTMLElement>(THREAD_LIST);
+  list?.focus({ preventScroll: true });
+  // A list that can't take focus: leave it on the page, where the list shortcuts work, not on the closing composer.
+  if (document.activeElement !== list && document.activeElement instanceof HTMLElement) document.activeElement.blur();
+}
 
 /** The full composer. Stays mounted while minimized so the editor keeps its state. */
 export function Composer({ entry, hidden }: Props): JSX.Element {
@@ -32,7 +46,14 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
   const [showBcc, setShowBcc] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const flow = useSendFlow(session, () => closeComposer(entry.id));
+  const [sendLaterOpen, setSendLaterOpen] = useState(false);
+  // Read during the first render, before the composer's own fields take focus.
+  const [opener] = useState(() => document.activeElement);
+  const finish = () => {
+    closeComposer(entry.id);
+    restoreFocus(opener);
+  };
+  const flow = useSendFlow(session, finish);
   const selfAddresses = useContext(AppContext)?.selfAddresses ?? [];
   const closeRef = useRef<() => void>(() => undefined);
   const commandRef = useRef<(c: ComposerCommand) => void>(() => undefined);
@@ -69,16 +90,17 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
   // The live check wins. Core's reason on the draft is a snapshot from when it opened, so it only stands in until settings load.
   const blocker = receiptBlocker({ settings: session.settings, recipients: [...fields.to, ...fields.cc, ...fields.bcc], selfAddresses }) ?? (session.settings ? null : draft.trackingBlockedReason ?? null);
   const sendProblem = flow.problem;
-  const recipientProblem = sendProblem === "Add at least one recipient.";
+  const recipientProblem = sendProblem === NO_RECIPIENTS;
+  const attachStop = flow.confirm?.stop === "no_attachment";
 
   const close = async () => {
     await session.close();
-    closeComposer(entry.id);
+    finish();
   };
   closeRef.current = () => void close();
   const discard = async () => {
     await session.discard();
-    closeComposer(entry.id);
+    finish();
   };
   const applyTemplate = (t: Template) => {
     if (t.subject && fields.subject.trim() === "") patch({ subject: t.subject });
@@ -97,10 +119,13 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
     if (option) body.current?.setSignature(session.chooseFrom(option));
   };
   const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+      e.preventDefault();
+      setSendLaterOpen(true);
+    } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       void flow.attempt();
-    } else if (e.key === "Escape" && !e.defaultPrevented && !hidden && e.currentTarget.contains(e.target as Node) && !document.querySelector("[role=menu]") && !e.currentTarget.querySelector("[role=listbox]")) {
+    } else if (e.key === "Escape" && !e.defaultPrevented && !hidden && e.currentTarget.contains(e.target as Node) && !document.querySelector("[role=menu]") && !document.querySelector("[role=listbox]:not([aria-label=Conversations])")) {
       e.preventDefault();
       void close();
     }
@@ -140,6 +165,8 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
         onTemplate={applyTemplate}
         onRemind={(at) => patch({ remindAt: at })}
         onSendLater={(at) => void flow.attempt({ sendAt: at })}
+        sendLaterOpen={sendLaterOpen}
+        onSendLaterOpenChange={setSendLaterOpen}
         onToggleTrack={() => patch({ track: !fields.track })}
         onFrom={(o) => body.current?.setSignature(session.chooseFrom(o))}
         onSignature={applySignature}
@@ -193,17 +220,21 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
       </div>
       {dragging ? <div className={`t-body ${styles.drop}`}>Drop files to attach</div> : null}
       <Dialog
-        open={flow.confirmSubject !== null}
+        open={flow.confirm !== null}
         onClose={flow.dismissConfirm}
-        title="Send without a subject?"
+        title={attachStop ? NO_ATTACHMENT.title : "Send without a subject?"}
         footer={
           <>
-            <Button variant="ghost" onClick={flow.dismissConfirm}>Add a subject</Button>
-            <Button variant="primary" onClick={() => { const opts = flow.confirmSubject ?? undefined; flow.dismissConfirm(); void flow.attempt(opts?.sendAt ? opts : undefined, true); }}>Send anyway</Button>
+            {attachStop ? (
+              <Button variant="ghost" onClick={() => { flow.dismissConfirm(); fileInput.current?.click(); }}>Attach a file</Button>
+            ) : (
+              <Button variant="ghost" onClick={flow.dismissConfirm}>Add a subject</Button>
+            )}
+            <Button variant="primary" onClick={flow.confirmSend}>Send anyway</Button>
           </>
         }
       >
-        <p className="t-body" style={{ color: "var(--fg-2)" }}>This message has no subject line.</p>
+        <p className="t-body" style={{ color: "var(--fg-2)" }}>{attachStop ? NO_ATTACHMENT.body : "This message has no subject line."}</p>
       </Dialog>
       <Dialog
         open={confirmDiscard}

@@ -19,7 +19,7 @@ import { RecipientField } from "./RecipientField";
 import { ReplyHeader } from "./ReplyHeader";
 import { ReplyToolbar } from "./ReplyToolbar";
 import { useComposerSession } from "./useComposerSession";
-import { useSendFlow } from "./useSendFlow";
+import { NO_ATTACHMENT, NO_RECIPIENTS, useSendFlow } from "./useSendFlow";
 import styles from "./InlineReplyDock.module.css";
 
 /**
@@ -44,6 +44,7 @@ function Dock({ request, onClose }: InlineReplyDockProps): JSX.Element {
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [sendLaterOpen, setSendLaterOpen] = useState(false);
   const finished = useRef(false);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -97,7 +98,8 @@ function Dock({ request, onClose }: InlineReplyDockProps): JSX.Element {
   }
 
   const blocker = receiptBlocker({ settings: session.settings, recipients: [...fields.to, ...fields.cc, ...fields.bcc], selfAddresses }) ?? (session.settings ? null : draft.trackingBlockedReason ?? null);
-  const recipientProblem = flow.problem === "Add at least one recipient.";
+  const recipientProblem = flow.problem === NO_RECIPIENTS;
+  const attachStop = flow.confirm?.stop === "no_attachment";
   const forward = draft.mode === "forward";
 
   const close = async () => {
@@ -124,7 +126,10 @@ function Dock({ request, onClose }: InlineReplyDockProps): JSX.Element {
     body.current?.setSignature(sig);
   };
   const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+      e.preventDefault();
+      setSendLaterOpen(true);
+    } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       void flow.attempt();
     } else if (e.key === "Escape" && !document.querySelector("[role=menu],[role=listbox]:not([aria-label=Conversations]),[role=dialog]")) {
@@ -190,6 +195,8 @@ function Dock({ request, onClose }: InlineReplyDockProps): JSX.Element {
           onTemplate={applyTemplate}
           onRemind={(at) => patch({ remindAt: at })}
           onSendLater={(at) => void flow.attempt({ sendAt: at })}
+          sendLaterOpen={sendLaterOpen}
+          onSendLaterOpenChange={setSendLaterOpen}
           onToggleTrack={() => patch({ track: !fields.track })}
           onFrom={(o) => body.current?.setSignature(session.chooseFrom(o))}
           onSignature={applySignature}
@@ -197,17 +204,21 @@ function Dock({ request, onClose }: InlineReplyDockProps): JSX.Element {
           onSend={() => void flow.attempt()}
         />
         <Dialog
-          open={flow.confirmSubject !== null}
+          open={flow.confirm !== null}
           onClose={flow.dismissConfirm}
-          title="Send without a subject?"
+          title={attachStop ? NO_ATTACHMENT.title : "Send without a subject?"}
           footer={
             <>
-              <Button variant="ghost" onClick={flow.dismissConfirm}>Cancel</Button>
-              <Button variant="primary" onClick={() => { const opts = flow.confirmSubject ?? undefined; flow.dismissConfirm(); void flow.attempt(opts?.sendAt ? opts : undefined, true); }}>Send anyway</Button>
+              {attachStop ? (
+                <Button variant="ghost" onClick={() => { flow.dismissConfirm(); fileInput.current?.click(); }}>Attach a file</Button>
+              ) : (
+                <Button variant="ghost" onClick={flow.dismissConfirm}>Cancel</Button>
+              )}
+              <Button variant="primary" onClick={flow.confirmSend}>Send anyway</Button>
             </>
           }
         >
-          <p className="t-body" style={{ color: "var(--fg-2)" }}>This reply has no subject line.</p>
+          <p className="t-body" style={{ color: "var(--fg-2)" }}>{attachStop ? NO_ATTACHMENT.body : "This reply has no subject line."}</p>
         </Dialog>
         <Dialog
           open={confirmDiscard}
