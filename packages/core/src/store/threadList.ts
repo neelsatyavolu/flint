@@ -132,6 +132,7 @@ export class ThreadListRepo {
     const having: string[] = [];
     const params: Param[] = [...where.params];
     if (query.unreadOnly) having.push("SUM(m.seen = 0 AND m.draft = 0) > 0");
+    if (query.hasAttachments) having.push("SUM(m.has_attachments) > 0");
     if (query.cursor) {
       const [k, id] = decodeCursor(query.cursor);
       const [cmp] = asc ? [">"] : ["<"];
