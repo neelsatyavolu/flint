@@ -7,6 +7,16 @@ import { handleHostAction, PRINT_EVENT } from "./useHostBridge";
 import { triageAction } from "./useAppCommands";
 import type { AppCommands } from "./useAppCommands";
 
+const sendUndo = vi.hoisted(() => ({ armed: false, undone: 0 }));
+vi.mock("../features/compose/useSendFlow", () => ({
+  undoLatestSend: () => {
+    if (!sendUndo.armed) return false;
+    sendUndo.armed = false;
+    sendUndo.undone++;
+    return true;
+  },
+}));
+
 function setup() {
   const archive = vi.fn();
   const undo = vi.fn();
@@ -125,6 +135,54 @@ describe("host menu actions", () => {
     handleHostAction("undo", { undo });
     expect(undo).toHaveBeenCalledTimes(1);
     expect(exec).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets an armed send undo win over the last mail action, from the menu and from Cmd+Z", () => {
+    const { undo } = setup();
+    document.body.innerHTML = `<button id="btn">x</button>`;
+    document.getElementById("btn")!.focus();
+    sendUndo.armed = true;
+    handleHostAction("undo", { undo });
+    expect(sendUndo.undone).toBe(1);
+    expect(undo).not.toHaveBeenCalled();
+    sendUndo.armed = true;
+    expect(press("z", { ctrlKey: true })).toBe(true);
+    expect(sendUndo.undone).toBe(2);
+    expect(undo).not.toHaveBeenCalled();
+    press("z", { ctrlKey: true });
+    expect(undo).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves Cmd+Z in a text field to text undo even while a send can be undone", () => {
+    const exec = vi.fn(() => true);
+    Object.defineProperty(document, "execCommand", { value: exec, configurable: true });
+    const { undo } = setup();
+    document.body.innerHTML = `<input id="field" />`;
+    const field = document.getElementById("field")!;
+    field.focus();
+    sendUndo.armed = true;
+    const before = sendUndo.undone;
+    expect(shortcuts.dispatch(new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true, cancelable: true }))).toBe(false);
+    handleHostAction("undo", { undo });
+    expect(exec).toHaveBeenCalledWith("undo");
+    expect(sendUndo.undone).toBe(before);
+    expect(undo).not.toHaveBeenCalled();
+    sendUndo.armed = false;
+  });
+
+  it("does nothing from Edit > Undo while an overlay or menu is open", () => {
+    const undo = vi.fn();
+    document.body.innerHTML = `<button id="btn">x</button>`;
+    document.getElementById("btn")!.focus();
+    navStore.setState({ overlay: "snooze" });
+    sendUndo.armed = true;
+    handleHostAction("undo", { undo });
+    navStore.setState({ overlay: null });
+    document.body.insertAdjacentHTML("beforeend", `<div role="menu"></div>`);
+    handleHostAction("undo", { undo });
+    expect(undo).not.toHaveBeenCalled();
+    expect(sendUndo.armed).toBe(true);
+    sendUndo.armed = false;
   });
 
   it("turns Print into the flint:print window event and leaves other actions alone", () => {

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { undoLatestSend } from "../features/compose/useSendFlow";
 import { parseCombo, shortcuts } from "../lib/shortcuts";
 import { readStored, writeStored } from "../lib/storage";
 import { listStore } from "../state/listStore";
@@ -8,6 +9,23 @@ import type { AppCommands } from "./useAppCommands";
 /** Whether a key press should be left to a menu or dialog that is open. */
 function surfaceOpen(): boolean {
   return navStore.getState().overlay !== null || document.querySelector('[role="menu"]') !== null;
+}
+
+/** True when focus is in a field or editor, where Cmd+Z should undo typing rather than a mail action. */
+function editingText(): boolean {
+  const el = document.activeElement as HTMLElement | null;
+  if (!el || el === document.body) return false;
+  const tag = el.tagName;
+  return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
+}
+
+/**
+ * The one undo behind both Cmd+Z and Edit > Undo. In a text field it is always text undo. Otherwise, unless a menu
+ * or overlay is open, a send still inside its undo window wins, then the last mail action.
+ */
+export function undoAction(cmds: Pick<AppCommands, "undo">): void {
+  if (editingText()) document.execCommand("undo");
+  else if (!surfaceOpen() && !undoLatestSend()) void cmds.undo();
 }
 
 /**
@@ -134,7 +152,7 @@ export function useGlobalShortcuts(cmds: AppCommands): void {
       reg("Escape", () => (escapeStep() ? undefined : false), () => true),
       reg(["/", "mod+f"], () => nav().openSearch(), () => !surfaceOpen() && !nav().settingsOpen, { allowInInput: false }),
       reg("mod+k", () => nav().showOverlay("palette"), () => nav().overlay === null, { allowInInput: true }),
-      reg(["mod+z", "mod+shift+z"], () => void c().undo(), any),
+      reg(["mod+z", "mod+shift+z"], () => undoAction(c()), any),
       reg("g i", () => nav().go({ view: "inbox" }), any),
       reg("g s", () => nav().go({ view: "sent" }), any),
       reg("g d", () => nav().go({ view: "drafts" }), any),
