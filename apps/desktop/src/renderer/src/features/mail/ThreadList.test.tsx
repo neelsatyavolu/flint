@@ -8,6 +8,8 @@ import { listStore } from "../../state/listStore";
 import { navStore } from "../../state/nav";
 import { item } from "../../state/testFixtures";
 import { detectMac } from "../../lib/shortcuts";
+import { flint } from "../../lib/api";
+import { setSingleKeyShortcuts } from "../../shell/useGlobalShortcuts";
 import { ToastProvider } from "../../ui";
 import { THREADS_MIME, ThreadList, firstSyncProgress } from "./ThreadList";
 
@@ -61,6 +63,30 @@ describe("ThreadList keyboard and screen-reader access", () => {
     expect(navStore.getState().listFilter).toBe("unread");
     fireEvent.keyDown(listbox(), { key: "U", shiftKey: true });
     expect(navStore.getState().listFilter).toBe("all");
+  });
+
+  it("leaves shift+U alone when single-key shortcuts are off", async () => {
+    setSingleKeyShortcuts(false);
+    try {
+      await mount();
+      fireEvent.keyDown(listbox(), { key: "U", shiftKey: true });
+      expect(navStore.getState().listFilter).toBe("all");
+    } finally {
+      setSingleKeyShortcuts(true);
+    }
+  });
+
+  it("blocks the sender from the row menu without archiving the row", async () => {
+    const block = vi.spyOn(flint, "blockSender").mockResolvedValue(undefined);
+    const archive = vi.spyOn(flint, "archive");
+    const sender = { name: "Spammy", address: "spam@x.test" };
+    await mount([item(1, { participants: [{ name: "me", address: "me@x.test" }, sender] })]);
+    fireEvent.contextMenu(document.getElementById("row-t1")!);
+    await act(async () => { fireEvent.click(await screen.findByRole("menuitem", { name: /Block sender/ })); });
+    expect(block).toHaveBeenCalledWith("spam@x.test");
+    expect(archive).not.toHaveBeenCalled();
+    expect(await screen.findByText("Blocked spam@x.test. Their mail goes to Blocked")).toBeTruthy();
+    vi.restoreAllMocks();
   });
 
   it("opens the row menu at the cursor row with shift+F10", async () => {
