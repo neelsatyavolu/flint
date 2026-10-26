@@ -1,4 +1,6 @@
 .scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; background: var(--plane-1); contain: strict; }
+/* The ring sits inside the pane: the scroller clips anything drawn outside it. */
+.scroll:focus-visible { outline-offset: -2px; }
 /* The previous list, kept while the next one loads. */
 .stale { opacity: 0.5; transition: opacity var(--dur-fast) var(--ease); }
 .fill { flex: 1; min-height: 0; height: 100%; background: var(--plane-1); }
@@ -6,5 +8,14 @@
 .row, .label { position: absolute; top: 0; left: 0; width: 100%; }
 /* Rows slide into place when a neighbour is archived or moved; reduced motion zeroes the duration token. */
 .row { transition: transform var(--dur-fast) var(--ease); }
-.label { display: flex; align-items: center; padding: 0 16px; background: var(--plane-1); }
+/* In-flow and sticky labels share one band: same height, same hairline under the text. */
+.label { display: flex; align-items: center; padding: 0 16px; background: var(--plane-1); border-bottom: 1px solid var(--line); }
 .sticky { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; height: 28px; margin-bottom: -28px; padding: 0 16px; background: var(--plane-1); border-bottom: 1px solid var(--line); }
+.clearance { height: var(--ask-clearance, 0px); }
+.progress { width: 160px; height: 1px; background: var(--line-strong); }
+.progress span { display: block; height: 100%; background: var(--accent); transition: width var(--dur-fast) var(--ease); }
+/* Drawn off screen just long enough to be captured as the drag image. */
+.dragImage {
+  position: fixed; top: -100px; left: 0; padding: 4px 8px; border: 1px solid var(--line-strong); border-radius: var(--r-control);
+  background: var(--plane-3); color: var(--fg); white-space: nowrap;
+}

@@ -12,17 +12,27 @@
 }
 .compact { padding-top: 0; padding-bottom: 0; align-items: center; }
 .row:hover { --row-tint: var(--hover); }
-.cursor { --row-tint: var(--active); }
+.cursor { --row-tint: var(--active); box-shadow: inset 2px 0 var(--accent); }
 .selected, .selected:hover { --row-tint: var(--accent-soft); }
 /* Registered so the hover, cursor and selected tints fade instead of snapping. */
 @property --row-tint { syntax: "<color>"; inherits: true; initial-value: transparent; }
 .row { background-image: linear-gradient(var(--row-tint), var(--row-tint)); transition: --row-tint var(--dur-fast) var(--ease); }
 .selected::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); }
 .checked::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); }
-.dot { position: absolute; left: 6px; top: 20px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-.compact .dot { top: 25px; }
-.avatar { flex: none; align-self: flex-start; margin-top: 0; }
-.compact .avatar { align-self: center; }
+/*
+ * The dot sits inside line 1 but is placed against the row: with no top set it keeps its static position, which a
+ * centring flex line puts on the line's middle, so it lines up with the sender at every density.
+ */
+.dot { position: absolute; left: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+/* The avatar slot doubles as the selection checkbox: on hover or focus, and on every row while any is checked. */
+.lead { position: relative; flex: none; align-self: flex-start; display: grid; place-items: center; }
+.lead32 { width: 32px; height: 32px; }
+.lead24 { width: 24px; height: 24px; }
+.compact .lead { align-self: center; }
+.avatar { grid-area: 1 / 1; }
+.check { grid-area: 1 / 1; display: none; place-items: center; }
+.row:hover .check, .row:focus-within .check, .cursor .check, .selecting .check { display: grid; }
+.row:hover .lead:has(.check) .avatar, .row:focus-within .lead:has(.check) .avatar, .cursor .lead:has(.check) .avatar, .selecting .lead:has(.check) .avatar { visibility: hidden; }
 .noAvatar { display: none; }
 .body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 1px; }
 .line { display: flex; align-items: center; gap: 8px; min-width: 0; height: 18px; }
@@ -30,7 +40,8 @@
 .unread .sender { font-weight: 600; }
 .draftTag { color: var(--accent); }
 .meta { display: flex; align-items: center; gap: 6px; flex: none; color: var(--fg-3); }
-.time { color: var(--fg-3); white-space: nowrap; }
+.time { display: inline-flex; align-items: center; gap: 4px; color: var(--fg-3); white-space: nowrap; }
+.snoozed { flex: none; }
 .pin { color: var(--fg-3); flex: none; }
 .receipt { display: inline-flex; align-items: center; gap: 3px; color: var(--fg-3); }
 .receiptOk { color: var(--ok); }
