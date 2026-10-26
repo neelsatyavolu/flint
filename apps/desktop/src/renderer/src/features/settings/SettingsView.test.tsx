@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { shortcuts } from "../../lib/shortcuts";
 import { ToastProvider } from "../../ui";
 import { SettingsView } from "./SettingsView";
 import { SECTIONS, filterSections, parseSection } from "./sections";
 import { accountPage } from "./sections/AccountsSection";
+import { stepTextSize } from "./sections/AppearanceSection";
 
 const mount = (props: { section?: string; onClose?: () => void }) =>
   render(<ToastProvider><SettingsView section={props.section} onClose={props.onClose ?? (() => {})} /></ToastProvider>);
@@ -52,6 +53,18 @@ describe("SettingsView", () => {
     expect(await screen.findByRole("region", { name: "Shortcuts" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "About" }));
     expect(await screen.findByText("Flint is free. No account, no tracking of you.")).toBeTruthy();
+  });
+
+  it("Appearance's Text size follows View > Zoom", async () => {
+    mount({ section: "appearance" });
+    const group = await screen.findByRole("radiogroup", { name: "Text size" });
+    const checked = () => group.querySelector('[aria-checked="true"]')?.textContent;
+    expect(checked()).toBe("Default");
+    act(() => stepTextSize(1));
+    expect(checked()).toBe("Large");
+    act(() => stepTextSize(0));
+    expect(checked()).toBe("Default");
+    window.localStorage.clear();
   });
 
   it("General lets the user pick how much mail is kept locally", async () => {

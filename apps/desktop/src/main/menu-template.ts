@@ -70,11 +70,12 @@ export function buildMenuTemplate(opts: { isMac: boolean; isDev: boolean; send: 
       item("Split Layout", "layout:split"),
       item("Full Screen Layout", "layout:full"),
       { type: "separator" },
-      { role: "resetZoom" },
-      { role: "zoomIn" },
+      // Zoom steps through Settings > Appearance > Text size in the renderer, so the two stay one saved setting.
+      item("Actual Size", "text-size:reset", "CmdOrCtrl+0"),
+      item("Zoom In", "text-size:bigger", "CmdOrCtrl+Plus"),
       // Hidden twin so Cmd+= zooms in without Shift.
-      { role: "zoomIn", accelerator: "CmdOrCtrl+=", visible: false },
-      { role: "zoomOut" },
+      { ...item("Zoom In", "text-size:bigger", "CmdOrCtrl+="), visible: false },
+      item("Zoom Out", "text-size:smaller", "CmdOrCtrl+-"),
       { type: "separator" },
       { role: "togglefullscreen" },
       ...(isDev

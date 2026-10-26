@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { OPEN_SETTINGS_EVENT, OPEN_THREAD_EVENT } from "../features/ai/events";
+import { stepTextSize } from "../features/settings/sections/AppearanceSection";
 import { getHost } from "../lib/host";
 import { navStore } from "../state/nav";
 import { handleMenuAction } from "./menuActions";
@@ -14,6 +15,11 @@ export function handleHostAction(action: string, cmds: Pick<AppCommands, "undo">
   switch (action) {
     case "undo":
       undoAction(cmds);
+      return true;
+    case "text-size:bigger":
+    case "text-size:smaller":
+    case "text-size:reset":
+      stepTextSize(action === "text-size:bigger" ? 1 : action === "text-size:smaller" ? -1 : 0);
       return true;
     case "print":
       window.dispatchEvent(new Event(PRINT_EVENT));

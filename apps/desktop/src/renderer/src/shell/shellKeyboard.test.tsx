@@ -5,6 +5,8 @@ import { navStore } from "../state/nav";
 import { cyclePanes, isSingleKeyCombo, nextPaneIndex, setSingleKeyShortcuts, singleKeyShortcutsOn, useGlobalShortcuts } from "./useGlobalShortcuts";
 import { handleHostAction, PRINT_EVENT } from "./useHostBridge";
 import { triageAction } from "./useAppCommands";
+import { readTextSize } from "../lib/host";
+import { TEXT_SIZE_EVENT } from "../features/settings/sections/AppearanceSection";
 import type { AppCommands } from "./useAppCommands";
 
 const sendUndo = vi.hoisted(() => ({ armed: false, undone: 0 }));
@@ -183,6 +185,31 @@ describe("host menu actions", () => {
     expect(undo).not.toHaveBeenCalled();
     expect(sendUndo.armed).toBe(true);
     sendUndo.armed = false;
+  });
+
+  it("steps the saved Text size from View > Zoom and tells an open Settings page", () => {
+    const setZoomFactor = vi.fn();
+    (window as unknown as { flintHost: unknown }).flintHost = { platform: "darwin", setZoomFactor };
+    const heard = vi.fn();
+    window.addEventListener(TEXT_SIZE_EVENT, heard);
+    const zoom = (a: string) => expect(handleHostAction(`text-size:${a}`, { undo: vi.fn() })).toBe(true);
+    zoom("bigger");
+    expect(readTextSize()).toBe("large");
+    zoom("bigger");
+    zoom("bigger");
+    expect(readTextSize()).toBe("larger");
+    expect(setZoomFactor).toHaveBeenLastCalledWith(1.25);
+    zoom("smaller");
+    expect(readTextSize()).toBe("large");
+    zoom("reset");
+    expect(readTextSize()).toBe("default");
+    expect(setZoomFactor).toHaveBeenLastCalledWith(1);
+    zoom("smaller");
+    zoom("smaller");
+    expect(readTextSize()).toBe("small");
+    expect(heard).toHaveBeenCalledTimes(7);
+    window.removeEventListener(TEXT_SIZE_EVENT, heard);
+    delete (window as unknown as { flintHost?: unknown }).flintHost;
   });
 
   it("turns Print into the flint:print window event and leaves other actions alone", () => {
