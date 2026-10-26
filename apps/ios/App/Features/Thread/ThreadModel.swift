@@ -29,6 +29,12 @@ struct LinkPrompt: Identifiable, Equatable {
     var id: String { url.absoluteString }
 }
 
+/// A message's HTML split into what the sender wrote and the quoted history, with the HTML it was computed from.
+struct HTMLSplit: Equatable, Sendable {
+    let source: String
+    let parts: QuotedText.HTMLParts
+}
+
 /// State of one open conversation: which messages are expanded, the Original / Adapted flips, adapter verdicts, images the
 /// person loaded, sends waiting in their undo window, and the link being confirmed. The views read it; `ThreadRoot` feeds it.
 @MainActor @Observable
@@ -39,6 +45,7 @@ final class ThreadModel {
     private(set) var verdicts: [MessageRowID: Bool] = [:]
     private(set) var overrides: [MessageRowID: MessageView] = [:]
     private(set) var queued: [QueuedReply] = []
+    private(set) var splits: [MessageRowID: HTMLSplit] = [:]
     var linkPrompt: LinkPrompt?
     var safariURL: URL?
 
@@ -67,6 +74,7 @@ final class ThreadModel {
         verdicts = [:]
         overrides = [:]
         queued = []
+        splits = [:]
         knownMessages = []
         draftThreads = [:]
         linkPrompt = nil
@@ -78,6 +86,22 @@ final class ThreadModel {
     }
 
     var messages: [MessageView] { (detail?.messages ?? []).map(shown) }
+
+    // MARK: Quoted text
+
+    /// The split for the HTML the message has now, or nil until `prepareSplit` has run for it.
+    func cachedSplit(for message: MessageView) -> QuotedText.HTMLParts? {
+        guard let html = message.html, let hit = splits[message.id], hit.source == html else { return nil }
+        return hit.parts
+    }
+
+    /// Splits the message's HTML off the main actor and keeps the result, so a re-render or a fold and unfold costs nothing.
+    func prepareSplit(for message: MessageView) async {
+        guard let html = message.html, cachedSplit(for: message) == nil else { return }
+        let subject = message.subject
+        let parts = await Task.detached(priority: .userInitiated) { QuotedText.splitHTML(html, subject: subject) }.value
+        splits[message.id] = HTMLSplit(source: html, parts: parts)
+    }
 
     // MARK: Per message
 

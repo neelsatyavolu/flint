@@ -73,7 +73,7 @@ struct MessageCardView: View {
                             if let receipt = message.receipt { MessageReceiptCheck(receipt: receipt) }
                         }
                         Text(recipientsLine).flintText(.body, color: FlintColor.fg3).lineLimit(1)
-                        Text(FlintTime.current.fullDate(message.date)).flintText(.data, color: FlintColor.fg3).lineLimit(1)
+                        Text(FlintTime.current.fullDate(message.date)).flintText(.data, color: FlintColor.fg3).fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

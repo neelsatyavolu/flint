@@ -71,6 +71,9 @@
     "Copy" : {
 
     },
+    "Couldn't load folders." : {
+
+    },
     "Couldn't load images. Try again." : {
 
     },
@@ -122,10 +125,16 @@
     "More" : {
 
     },
+    "Move to" : {
+
+    },
     "Move to Inbox" : {
 
     },
     "Move to category" : {
+
+    },
+    "Move to folder" : {
 
     },
     "Mute" : {
@@ -171,6 +180,9 @@
     "Original" : {
 
     },
+    "Pick a date and time" : {
+
+    },
     "Pin" : {
 
     },
@@ -213,6 +225,12 @@
     "Shows the message" : {
 
     },
+    "Snooze" : {
+
+    },
+    "Snooze until" : {
+
+    },
     "Snoozed until %@" : {
 
     },
@@ -227,6 +245,9 @@
       }
     },
     "Trash" : {
+
+    },
+    "Try again" : {
 
     },
     "Undo" : {
