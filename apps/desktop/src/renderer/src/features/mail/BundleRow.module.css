@@ -12,8 +12,9 @@
 .count { color: var(--accent); }
 .spacer { flex: 1; }
 .time { color: var(--fg-3); }
-.latest { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-3); }
-.latest b { font-weight: 500; color: var(--fg-2); }
+.latest { flex: 1; min-width: 0; display: flex; gap: 12px; overflow: hidden; white-space: nowrap; color: var(--fg-3); }
+.sender { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.name { overflow: hidden; text-overflow: ellipsis; }
 /* Same placement as the thread row's dot: static position inside line 1, left gutter of the row. */
 .dot { position: absolute; left: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 .actions {

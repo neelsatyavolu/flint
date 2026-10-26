@@ -93,6 +93,21 @@ describe("BundleRow", () => {
     expect(onOpen).toHaveBeenCalled();
     expect(screen.getByRole("option").id).toBe("row-b:newsletters");
   });
+  it("shows only the distinct senders of the latest threads", () => {
+    const b = {
+      ...bundle("newsletters", NOW - 1000),
+      latest: [
+        { from: { name: "Tare", address: "t@x.test" }, subject: "Issue 4" },
+        { from: { name: "Substack", address: "s@x.test" }, subject: "Weekly" },
+        { from: { name: "Tare", address: "t@x.test" }, subject: "Issue 3" },
+      ],
+    };
+    const { container } = render(<BundleRow bundle={b} compact={false} cursor={false} now={NOW} onOpen={vi.fn()} />);
+    const senders = [...container.querySelectorAll("[data-sender]")];
+    expect(senders.map((s) => s.querySelector('[role="img"]')?.getAttribute("aria-label"))).toEqual(["Tare", "Substack"]);
+    expect(screen.getByText("Tare")).toBeTruthy();
+    expect(screen.queryByText(/Issue 4/)).toBeNull();
+  });
   it("offers bundle triage on hover without opening the bundle", () => {
     const onOpen = vi.fn();
     const onTriage = vi.fn();

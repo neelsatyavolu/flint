@@ -102,7 +102,7 @@ macOS window with `titleBarStyle: hiddenInset`. Traffic lights sit over the side
 - Unread: 6px `--accent` dot in the left gutter, vertically centred on line 1.
 - Selected: `--accent-soft` background with a 2px `--accent` bar on the left edge. Keyboard focus without selection: `--active` background.
 - Hover reveals a quick-action cluster at the right of line 1 (Pin, Archive, Trash, Snooze), 24px icon buttons on a `--plane-1` backing so text never shows through.
-- Bundle row (Focused mode): same height as a thread row; avatar slot holds a category glyph (bell for Notifications, newspaper for Newsletters) on `--active`; title is the category name with unread count in Data; line 2 shows the latest sender and subject.
+- Bundle row (Focused mode): same height as a thread row; avatar slot holds a category glyph (bell for Notifications, newspaper for Newsletters) on `--active`; title is the category name with unread count in Data; line 2 shows only the distinct senders of the latest threads, each as a 16px avatar and name, 12px apart.
 - Read receipt marker on sent threads: a small eye glyph plus "2/3" in Data; `--ok` when every recipient opened, `--fg-3` otherwise.
 - Pinned threads show a 12px pin glyph before the time.
 - Virtualized; scrolling stays at 60fps with 10,000 rows.

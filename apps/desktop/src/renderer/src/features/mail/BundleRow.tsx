@@ -2,7 +2,7 @@ import { memo } from "react";
 import { Archive, Bell, ChevronRight, MailOpen, Newspaper } from "lucide-react";
 import clsx from "clsx";
 import type { Bundle } from "@flint/core";
-import { IconButton } from "../../ui";
+import { Avatar, IconButton } from "../../ui";
 import { formatListTime, displayName } from "../../lib/format";
 import { rowDomId } from "./ThreadRow";
 import styles from "./BundleRow.module.css";
@@ -21,7 +21,7 @@ type Props = {
 
 function BundleRowImpl({ bundle, compact, cursor, now, onOpen, onTriage }: Props) {
   const Glyph = bundle.category === "notifications" ? Bell : Newspaper;
-  const first = bundle.latest[0];
+  const senders = [...new Map(bundle.latest.map((l) => [l.from.address.toLowerCase(), l.from])).values()];
   const unread = bundle.unreadCount > 0;
   return (
     <div
@@ -43,9 +43,16 @@ function BundleRowImpl({ bundle, compact, cursor, now, onOpen, onTriage }: Props
           <span className={clsx("t-data", styles.time)}>{formatListTime(bundle.lastDate, now)}</span>
           <ChevronRight size={12} strokeWidth={1.5} color="var(--fg-3)" aria-hidden />
         </div>
-        {!compact && first ? (
+        {!compact && senders.length ? (
           <div className={clsx(styles.line)}>
-            <span className={styles.latest}><b>{displayName(first.from)}</b> {first.subject}</span>
+            <span className={styles.latest}>
+              {senders.map((s) => (
+                <span key={s.address} className={styles.sender} data-sender>
+                  <Avatar address={s.address} name={s.name} size={16} />
+                  <span className={styles.name}>{displayName(s)}</span>
+                </span>
+              ))}
+            </span>
           </div>
         ) : null}
       </div>
