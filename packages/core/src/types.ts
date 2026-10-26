@@ -40,6 +40,12 @@ export type Account = ServerConfig & {
   avatarSource: "google" | "custom" | null;
   /** Epoch ms the picture last changed; null with no picture. Lets the UI drop cached copies. */
   avatarUpdatedAt: number | null;
+  /**
+   * Google accounts only: the sign-in was granted the Calendar events scope, so RSVPs go through the Google Calendar API
+   * and the invite card can show conflicts. False for every other account and for Google accounts that signed in before
+   * the scope was added (they can grant it with FlintApi.connectGoogleCalendar).
+   */
+  calendarScope: boolean;
 };
 
 /** What getAvatars is asked for: one of the user's accounts, or a sender's address. */
@@ -118,6 +124,8 @@ export type ThreadListItem = {
   receipt: ReceiptSummary | null; // only for threads whose latest sent mail is tracked
   /** A verification code that arrived in this thread and is still valid (not expired). Absent otherwise. */
   verificationCode?: CodeBadge;
+  /** The calendar invitation in this thread that matters most for the row chip ("Invite · Tue 3 PM"). Absent when the thread has none. */
+  invite?: InviteChip;
   /**
    * Drafts view only. `draftId` set: a local draft (an item for a draft without a thread has a negative `id`; do not
    * pass that id to thread actions). `messageId` set: a server Drafts copy with no local draft, opened with openServerDraft.
@@ -185,6 +193,12 @@ export type MessageView = {
   receipt: ReceiptDetail | null; // when this is a tracked mail the user sent
   /** The verification code found in this message, only while it is still valid (not expired). Absent otherwise. */
   verificationCode?: CodeBadge;
+  /**
+   * The calendar invitation in this message (a text/calendar part or .ics attachment), parsed and merged with the user's
+   * recorded response. Absent when the message has none, or when it has not been checked yet and the body is not loaded.
+   * getThread / getMessage fill it from the stored parse and parse lazily for older mail.
+   */
+  invite?: Invite;
 };
 
 export type ThreadDetail = {
@@ -435,6 +449,153 @@ export type BrowserHelperStatus = {
   extensionDir: string | null;
   browsers: BrowserHelperBrowser[];
 };
+
+// ---------- Calendar invitations ----------
+
+/** iTIP METHOD values Flint recognizes. REQUEST is a new or updated invite; REPLY is a guest answering one. */
+export type InviteMethod = "REQUEST" | "CANCEL" | "REPLY" | "PUBLISH" | "COUNTER" | "DECLINECOUNTER" | "REFRESH" | "ADD";
+
+/** A guest's answer (iCalendar PARTSTAT folded to four values: DELEGATED and the rest count as needs-action). */
+export type InviteResponse = "accepted" | "tentative" | "declined" | "needs-action";
+/** What the user can send back: needs-action is a state, never an answer. */
+export type RsvpResponse = Exclude<InviteResponse, "needs-action">;
+
+/**
+ * What the card shows, worked out by the service at read time (never stored):
+ *  new        a REQUEST (or PUBLISH) with the highest SEQUENCE Flint has seen for this event
+ *  updated    a REQUEST whose SEQUENCE is higher than an earlier invite for the same event Flint has seen; `changes` says what
+ *  cancelled  METHOD:CANCEL, or a later CANCEL for the same UID has arrived; no RSVP
+ *  past       the event has ended (and is not cancelled); RSVP is off
+ *  superseded a newer invite for the same event is in another message; the card links to it instead of taking an RSVP
+ *  reply      METHOD:REPLY, a guest answering an invite the user sent: shown as "Carla accepted"
+ *  counter    COUNTER / DECLINECOUNTER / REFRESH / ADD: shown plainly, no actions
+ */
+export type InviteState = "new" | "updated" | "cancelled" | "past" | "superseded" | "reply" | "counter";
+
+export type InviteAttendee = {
+  name: string;
+  address: string;                 // lower case
+  response: InviteResponse;
+  role: "chair" | "required" | "optional" | "non-participant";
+  /** The invite asks this guest to respond (RSVP=TRUE). */
+  rsvp: boolean;
+  /** One of the user's own addresses (account email or alias). */
+  isYou: boolean;
+};
+
+export type ConferenceKind = "meet" | "zoom" | "teams" | "webex" | "other";
+export type InviteConference = {
+  kind: ConferenceKind;
+  /** The join link (https). */
+  url: string;
+  /** "Google Meet", "Zoom", "Microsoft Teams", "Webex", or the host name for "other". */
+  label: string;
+  /** Meeting ID / access code when the invite lists one. */
+  code: string | null;
+  /** Dial-in number (E.164-ish text as sent) when the invite lists one. */
+  phone: string | null;
+};
+
+/** One thing that differs from the earlier invite of the same event (shown on the Updated card). Values are display text in the viewer's locale and zone. */
+export type InviteChange = { field: "time" | "location" | "title" | "guests" | "description" | "recurrence" | "conference"; before: string | null; after: string | null };
+
+/**
+ * A parsed calendar invitation. JSON-only, so it crosses IPC and HTTP. `ParsedInvite` is the part that is stored per message
+ * (everything above the "merged at read time" line); the service adds the rest when it builds a MessageView.
+ */
+export type Invite = {
+  // ---- stored per message (the parser's output) ----
+  uid: string;
+  method: InviteMethod;
+  sequence: number;
+  /** RECURRENCE-ID as the calendar sent it ("20261027T150000Z", "20261027"), or null for the whole event / series. Needed to answer a single occurrence. */
+  recurrenceId: string | null;
+  title: string;
+  /** Plain text, boilerplate such as "Invitation from Google Calendar" and join-link blocks removed. Null when empty. */
+  description: string | null;
+  /**
+   * Timed events: epoch ms. All-day events: epoch ms of 00:00 UTC on `startDate` / `endDate` (use the date strings, not the
+   * instant, to display them; they never shift with the viewer's zone).
+   */
+  start: number;
+  end: number;
+  allDay: boolean;
+  /** All-day only: "2026-10-27" first day, and the day AFTER the last day (iCalendar's exclusive DTEND). */
+  startDate: string | null;
+  endDate: string | null;
+  /** IANA zone the organizer set on DTSTART ("America/Los_Angeles"; Windows names like "Pacific Standard Time" are mapped). "UTC" for Z times, null when floating or all-day. */
+  timeZone: string | null;
+  recurrence: InviteRecurrence | null;
+  location: string | null;
+  /** The event's URL property, when it differs from the conference link. */
+  url: string | null;
+  conference: InviteConference | null;
+  organizer: Address | null;
+  attendees: InviteAttendee[];
+  /** The PARTSTAT the invite itself carried for the user (usually needs-action); local responses are layered on top in `yourResponse`. */
+  invitedAs: { address: string; role: InviteAttendee["role"]; rsvp: boolean } | null;
+  /** DTSTAMP, epoch ms; orders two invites with the same SEQUENCE. */
+  dtstamp: number | null;
+  /** Who made it, from PRODID. Decides the "Open in Google Calendar" link and nothing else. */
+  source: "google" | "outlook" | "apple" | "zoom" | "other";
+  /** Google event link ("https://www.google.com/calendar/event?eid=...") when the invite carries one. */
+  googleEventUrl: string | null;
+  /** REPLY only: who answered and what they said. */
+  reply: { from: Address; response: InviteResponse; comment: string | null } | null;
+
+  // ---- merged at read time (the service fills these) ----
+  state: InviteState;
+  /** The user's answer: the recorded local response when there is one, else the PARTSTAT the invite carried. */
+  yourResponse: InviteResponse;
+  respondedAt: number | null;
+  /** The note sent with the last answer, or null. */
+  yourNote: string | null;
+  /** What differs from the earlier version, for state "updated". Empty otherwise. */
+  changes: InviteChange[];
+  /** Row id of the newest message about the same event when this one is superseded, else null. */
+  newerMessageId: MessageRowId | null;
+  /**
+   * How an RSVP will be delivered from this account: the Google Calendar API, an iMIP reply by mail, or not at all
+   * (cancelled, past, a REPLY, or the user is not a guest). The card shows "Connect Google Calendar" for
+   * "google-needs-scope".
+   */
+  rsvpVia: "google-calendar" | "imip" | "google-needs-scope" | "none";
+};
+
+export type InviteRecurrence = {
+  /** "Weekly on Tuesday until Dec 12", "Every weekday", "Monthly on the 3rd". Never empty. */
+  summary: string;
+  /** The RRULE value without the "RRULE:" prefix, for CLI/agents. */
+  rrule: string;
+  /** EXDATE / RDATE present, or this message is a single-occurrence update inside a series. */
+  hasExceptions: boolean;
+  /** EXDATE instants (epoch ms; all-day: 00:00 UTC). Absent on invites parsed before parser version 2. */
+  excluded?: number[];
+  /** RDATE instants, same units. */
+  added?: number[];
+};
+
+/** The few fields the thread row and the CLI list need. Derived from Invite. */
+export type InviteChip = Pick<Invite, "uid" | "method" | "title" | "start" | "end" | "allDay" | "startDate" | "state" | "yourResponse"> & {
+  /** Organizer's display name or address. */
+  organizerName: string | null;
+  /** The message the chip comes from. */
+  messageId: MessageRowId;
+};
+
+/** One row of listInvites / `flint invites`. */
+export type InviteListItem = { threadId: ThreadId; accountId: AccountId; subject: string; invite: InviteChip };
+
+export type InviteConflict = { title: string; start: number; end: number; allDay: boolean };
+/**
+ * inviteConflicts result. status "unknown" says why in `reason`: "no-scope" (Google account without the calendar scope),
+ * "not-google" (any other account), "no-time" (nothing to compare), "error" (Google was unreachable; `message` has the text).
+ * "free" means the primary calendar has nothing overlapping that the user has not declined, ignoring this event itself.
+ */
+export type InviteConflicts =
+  | { status: "free"; checkedAt: number }
+  | { status: "conflict"; checkedAt: number; events: InviteConflict[] }
+  | { status: "unknown"; reason: "no-scope" | "not-google" | "no-time" | "error"; message?: string };
 
 // ---------- Home ----------
 

@@ -55,6 +55,21 @@ describe("Google account without a Gmail inbox", () => {
     expect(account).toMatchObject({ email: "me@gmail.com", provider: "gmail", authKind: "oauth_google" });
   });
 
+  it("records the calendar scope Google granted, in the account and the saved sign-in", async () => {
+    const scope = "https://mail.google.com/ openid email https://www.googleapis.com/auth/calendar.events";
+    const { service, secrets } = await boot({ googleAuth: async () => ({ ...signIn, email: "me@gmail.com", scope }), googleMailboxCheck: async () => undefined });
+    await service.updateSettings({ google: { clientId: "cid", clientSecret: "sec" } });
+    const account = await service.addGoogleAccount();
+    expect(account.calendarScope).toBe(true);
+    expect(JSON.parse((await secrets.get(`account:${account.id}`))!).scope).toBe(scope);
+  });
+
+  it("leaves calendarScope off when the user did not grant it", async () => {
+    const { service } = await boot({ googleAuth: async () => ({ ...signIn, email: "me@gmail.com", scope: "https://mail.google.com/ openid email" }), googleMailboxCheck: async () => undefined });
+    await service.updateSettings({ google: { clientId: "cid", clientSecret: "sec" } });
+    expect((await service.addGoogleAccount()).calendarScope).toBe(false);
+  });
+
   it("names Microsoft 365, Zoho, Fastmail, iCloud, or another provider", async () => {
     const mx = (exchange: string) => async () => [{ exchange, priority: 1 }];
     expect(await mailHostName("a@x.test", mx("x.mail.protection.outlook.com"))).toBe("Microsoft 365");

@@ -274,6 +274,18 @@ describe("agent server", () => {
     expect((await deny.call({ method: "unsubscribe", params: [5] })).status).toBe(403);
   });
 
+  it("refuses rsvp for agents when sending needs approval or is denied, and allows it otherwise", async () => {
+    const ask = await boot({ settings: settings({ send: "ask" }) });
+    expect((await ask.call({ method: "rsvp", params: [5, "accepted"] })).status).toBe(403);
+    expect(ask.api.calls).toHaveLength(0);
+    await ask.h.close();
+    const allow = await boot({ api: fakeApi({ rsvp: () => ({ uid: "u" }) }), settings: settings({ send: "allow" }) });
+    expect((await allow.call({ method: "rsvp", params: [5, "accepted"] })).status).toBe(200);
+    await allow.h.close();
+    const deny = await boot({ settings: settings({ send: "deny" }) });
+    expect((await deny.call({ method: "rsvp", params: [5, "accepted"] })).status).toBe(403);
+  });
+
   it("removes the socket on close", async () => {
     const { h } = await boot();
     await h.close();

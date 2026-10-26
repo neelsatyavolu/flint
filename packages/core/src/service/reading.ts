@@ -7,6 +7,7 @@ import type { ServiceContext } from "./context";
 import { hasOlderOnServer } from "./historyFolders";
 import { allowImages } from "./imagePolicy";
 import { badgeFor } from "./codes";
+import { chipsForThreads, ensureInvitesFor, withInvite } from "./invites-read";
 import { toMessageView, viewEnv } from "./messageView";
 
 const log = logger("service.reading");
@@ -71,7 +72,9 @@ export function readingApi(ctx: ServiceContext): ReadingApi {
     const rows = await loadThread(row.threadId);
     const stored = rows.messages.find((m) => m.id === messageId);
     if (!stored) throw new FlintError("not_found", "That message no longer exists.");
-    return withBadge(toMessageView(viewEnv(store, ctx.getSettings()), stored, stored.flagged));
+    const view = toMessageView(viewEnv(store, ctx.getSettings()), stored, stored.flagged);
+    await ensureInvitesFor(ctx, [view]);
+    return withInvite(ctx, withBadge(view));
   }
 
   /** Adds the message's unexpired verification code, when it has one. */
@@ -96,7 +99,15 @@ export function readingApi(ctx: ServiceContext): ReadingApi {
     async listThreads(query) {
       await syncUserFolderOnce(query);
       const listed = store.listThreads(query, ctx.now());
-      const page = { ...listed, items: listed.items.map((t) => { const verificationCode = badgeFor(ctx, { threadId: t.id }); return verificationCode ? { ...t, verificationCode } : t; }) };
+      const chips = chipsForThreads(ctx, listed.items.map((t) => t.id));
+      const page = {
+        ...listed,
+        items: listed.items.map((t) => {
+          const verificationCode = badgeFor(ctx, { threadId: t.id });
+          const invite = chips.get(t.id);
+          return { ...t, ...(verificationCode ? { verificationCode } : {}), ...(invite ? { invite } : {}) };
+        }),
+      };
       return page.nextCursor ? page : { ...page, olderOnServer: hasOlderOnServer(store, query) };
     },
 
@@ -104,6 +115,8 @@ export function readingApi(ctx: ServiceContext): ReadingApi {
       id.parse(threadId);
       const rows = await loadThread(threadId);
       const env = viewEnv(store, ctx.getSettings());
+      const views = rows.messages.map((m) => toMessageView(env, m));
+      await ensureInvitesFor(ctx, views);
       return {
         id: rows.id,
         accountId: rows.accountId,
@@ -112,7 +125,7 @@ export function readingApi(ctx: ServiceContext): ReadingApi {
         pinned: rows.pinned,
         muted: rows.muted,
         snoozedUntil: rows.snoozedUntil,
-        messages: rows.messages.map((m) => withBadge(toMessageView(env, m))),
+        messages: views.map((v) => withInvite(ctx, withBadge(v))),
         draftIds: rows.draftIds,
       };
     },

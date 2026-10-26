@@ -28,7 +28,7 @@ export async function openTransport(ctx: ServiceContext, account: Account): Prom
   return transport;
 }
 
-function sentFolders(ctx: ServiceContext, account: Account): SentFolders {
+export function sentFolders(ctx: ServiceContext, account: Account): SentFolders {
   const { store } = ctx;
   const gmail = account.provider === "gmail";
   const sent = store.getFolderByRole(account.id, "sent") ?? (gmail ? null : store.ensureFolderByRole(account.id, "sent"));

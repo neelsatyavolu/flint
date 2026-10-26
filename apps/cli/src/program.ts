@@ -4,6 +4,7 @@ import { act, categorize, move, snooze, VERBS } from "./commands/actions";
 import { attachment, block, blocked, cancel, contacts, deleteDraft, drafts, folders, queue, undo, unsubscribe } from "./commands/manage";
 import { AGENT_GUIDE } from "./agent-guide";
 import { draft, forward, reply, send } from "./commands/compose";
+import { invites, rsvp } from "./commands/invites";
 import { list, read, search } from "./commands/read";
 import { accounts, activity, ask, receipts, status, summarize, watch } from "./commands/misc";
 import { makeStyle } from "./style";
@@ -52,6 +53,8 @@ const EXAMPLES: Record<string, string> = {
   unblock: "flint unblock spammer@example.com",
   folders: "flint folders\n  flint folders --account me@example.com",
   contacts: "flint contacts cin\n  flint contacts cin --limit 5",
+  invites: "flint invites\n  flint invites --account me@example.com --limit 10 --json",
+  rsvp: 'flint rsvp 1234 yes\n  flint rsvp 1234 maybe --note "Might be 10 minutes late"\n  flint rsvp 1234 no',
   watch: "flint watch --type new_mail,receipt --reconnect",
 };
 
@@ -175,6 +178,12 @@ export function buildProgram(deps: Deps, jsonMode = false): Command {
   command("receipts", "List tracked mail, or show one tracked message's recipients")
     .argument("[trackedId]").option("--limit <n>", "how many (1 to 200)", "25")
     .action(async (id: string | undefined, o, cmd: Command) => receipts(ctxFor(cmd), id, o));
+  command("invites", "List upcoming calendar invitations with your answer")
+    .option("--account <email>", "only this account").option("--limit <n>", "how many (1 to 200)", "25")
+    .action(async (o, cmd: Command) => invites(ctxFor(cmd), o));
+  command("rsvp", "Answer the calendar invitation in a thread (sends your answer to the organizer)")
+    .argument("<threadId>").argument("<answer>", "yes, maybe or no").option("--note <text>", "a short note sent with your answer")
+    .action(async (id: string, answer: string, o, cmd: Command) => rsvp(ctxFor(cmd), id, answer, o));
   command("summarize", "Summarize a thread with your connected AI")
     .argument("<threadId>").action(async (id: string, _o, cmd: Command) => summarize(ctxFor(cmd), id));
   command("ask", "Ask a question about your mail with your connected AI")

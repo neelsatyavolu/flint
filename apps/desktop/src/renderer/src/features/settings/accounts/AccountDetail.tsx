@@ -1,10 +1,11 @@
 import { useState } from "react";
 import type { Account, SyncStatus } from "@flint/core";
-import { Button, Dialog, SettingsRow, Toggle } from "../../../ui";
+import { flint } from "../../../lib/api";
+import { Button, Dialog, SettingsRow, Toggle, useToast } from "../../../ui";
 import { ColorSwatches } from "../ColorSwatches";
 import { DebouncedText } from "../fields";
 import styles from "../settings.module.css";
-import type { AccountPatch } from "../useAccounts";
+import { errorText, type AccountPatch } from "../useAccounts";
 import { AccountPhoto } from "./AccountPhoto";
 import { AliasEditor } from "./AliasEditor";
 import { describeStatus } from "./accountStatus";
@@ -23,12 +24,22 @@ type Props = {
 export function AccountDetail({ account, sync, onPatch, onRemove, onSignIn, onChanged }: Props) {
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
+  const toast = useToast();
   const status = describeStatus(sync, account.enabled);
 
   const run = (fn: () => Promise<void>) => {
     setBusy(true);
     void fn().finally(() => setBusy(false));
   };
+
+  const connectCalendar = () => run(async () => {
+    try {
+      await flint.connectGoogleCalendar(account.id);
+      onChanged?.();
+    } catch (err) {
+      toast.show({ message: errorText(err, "Google Calendar didn't connect. Try again."), level: "error" });
+    }
+  });
 
   return (
     <div className={`${styles.fields} ${styles.detail}`}>
@@ -47,6 +58,16 @@ export function AccountDetail({ account, sync, onPatch, onRemove, onSignIn, onCh
       >
         <Toggle checked={account.showInUnified} label={`Show ${account.email} in the unified inbox`} onChange={(showInUnified) => onPatch({ showInUnified })} />
       </SettingsRow>
+      {account.authKind === "oauth_google" ? (
+        <SettingsRow
+          title="Google Calendar"
+          description={account.calendarScope
+            ? "Connected. Answering an invitation updates your calendar, and Flint shows conflicts."
+            : "Connect to answer invitations from Flint and see conflicts with your calendar."}
+        >
+          {account.calendarScope ? <span className={`${styles.mono} ${styles.muted}`}>Connected</span> : <Button disabled={busy} onClick={connectCalendar}>Connect Google Calendar</Button>}
+        </SettingsRow>
+      ) : null}
       <div className={styles.field}>
         <span className={`t-label ${styles.fieldLabel}`}>Aliases</span>
         <AliasEditor own={account.email} aliases={account.aliases} onChange={(aliases) => onPatch({ aliases })} />

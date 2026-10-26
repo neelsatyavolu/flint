@@ -5,7 +5,7 @@ export type AccountRow = {
   id: string; email: string; name: string; provider: string; auth_kind: string;
   imap_host: string; imap_port: number; imap_secure: number; smtp_host: string; smtp_port: number; smtp_secure: number;
   username: string; color: string | null; sort_order: number; enabled: number; aliases: string; created_at: number;
-  show_in_unified: number; avatar_source: string | null; avatar_updated_at: number | null;
+  show_in_unified: number; avatar_source: string | null; avatar_updated_at: number | null; calendar_scope: number;
 };
 
 export function rowToAccount(r: AccountRow): Account {
@@ -16,7 +16,7 @@ export function rowToAccount(r: AccountRow): Account {
     smtpHost: r.smtp_host, smtpPort: r.smtp_port, smtpSecure: bool(r.smtp_secure),
     username: r.username, color: r.color, sortOrder: r.sort_order, enabled: bool(r.enabled),
     aliases: parseJson<string[]>(r.aliases, []), createdAt: r.created_at,
-    showInUnified: bool(r.show_in_unified), avatarSource: (r.avatar_source as Account["avatarSource"]) ?? null, avatarUpdatedAt: r.avatar_updated_at,
+    showInUnified: bool(r.show_in_unified), avatarSource: (r.avatar_source as Account["avatarSource"]) ?? null, avatarUpdatedAt: r.avatar_updated_at, calendarScope: bool(r.calendar_scope),
   };
 }
 

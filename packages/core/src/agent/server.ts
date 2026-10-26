@@ -123,6 +123,10 @@ function gate(tier: (typeof METHOD_TIERS)[FlintMethod], settings: Settings, meth
   if (method === "unsubscribe" && a.send === "ask") {
     return { ok: false, message: "Agents can't unsubscribe while sending needs your approval. Unsubscribe in the Flint app, or allow sending in Settings, Agents." };
   }
+  // rsvp sends a reply from the account (or answers on the calendar) and, like unsubscribe, has no approval step.
+  if (method === "rsvp" && a.send === "ask") {
+    return { ok: false, message: "Agents can't answer invitations while sending needs your approval. Answer in the Flint app, or allow sending in Settings, Agents." };
+  }
   return { ok: true };
 }
 

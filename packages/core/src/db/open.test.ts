@@ -25,4 +25,21 @@ describe("openDb", () => {
     const rows = db.prepare("SELECT name, account_ids, account_id FROM signatures ORDER BY id").all() as { name: string; account_ids: string; account_id: string | null }[];
     expect(rows.map((r) => [r.name, JSON.parse(r.account_ids), r.account_id])).toEqual([["Mine", ["acc1"], "acc1"], ["Shared", [], null]]);
   });
+
+  it("migration 9 adds the calendar tables and flags without touching existing rows", () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec("PRAGMA foreign_keys = ON");
+    for (let v = 0; v < 8; v++) db.exec(MIGRATIONS[v]!);
+    db.exec("PRAGMA user_version = 8");
+    db.exec(`INSERT INTO accounts (id, email, provider, auth_kind, imap_host, imap_port, imap_secure, smtp_host, smtp_port, smtp_secure, username, created_at)
+             VALUES ('acc1', 'a@x.co', 'gmail', 'oauth_google', 'h', 993, 1, 'h', 465, 1, 'a', 0)`);
+    migrate(db);
+    expect(db.prepare("SELECT calendar_scope FROM accounts WHERE id = 'acc1'").get()).toEqual({ calendar_scope: 0 });
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('invites', 'invite_responses') ORDER BY name").all();
+    expect(tables).toEqual([{ name: "invite_responses" }, { name: "invites" }]);
+    db.exec("INSERT INTO invite_responses (account_id, uid, response, via, responded_at) VALUES ('acc1', 'u1', 'accepted', 'imip', 1)");
+    expect(() => db.exec("INSERT INTO invite_responses (account_id, uid, response, via, responded_at) VALUES ('acc1', 'u1', 'declined', 'imip', 2)")).toThrow();
+    db.exec("DELETE FROM accounts WHERE id = 'acc1'");
+    expect(db.prepare("SELECT COUNT(*) AS n FROM invite_responses").get()).toEqual({ n: 0 });
+  });
 });

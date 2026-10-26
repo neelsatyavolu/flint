@@ -1,0 +1,56 @@
+/* Calendar invitation card (reader). Flat, hairline, one accent (DESIGN.md). State is the left rule. */
+.card { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding: 14px 16px; border: 1px solid var(--line-strong); border-left: 2px solid var(--accent); border-radius: var(--r-control); background: var(--plane-2); }
+.updated { border-left-color: var(--warn); }
+.cancelled { border-left-color: var(--danger); }
+.past, .superseded, .counter { border-left-color: var(--line-strong); }
+.reply { border-left-color: var(--ok); }
+.replyLine { margin: 0; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.dim { color: var(--fg-3); }
+.inlineIcon { vertical-align: -2px; margin-right: 6px; }
+.title { margin: 0; overflow-wrap: anywhere; }
+.struck { text-decoration: line-through; color: var(--fg-3); }
+.notice { margin: 0; color: var(--fg-2); }
+.quote { display: block; margin-top: 4px; padding-left: 10px; border-left: 1px solid var(--line-strong); color: var(--fg-2); font-weight: 400; }
+.changes { margin: 0; padding: 8px 10px; list-style: none; display: flex; flex-direction: column; gap: 2px; background: var(--warn-soft, color-mix(in srgb, var(--warn) 12%, transparent)); border-radius: var(--r-control); }
+.meta { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.meta > div { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: baseline; gap: 8px; }
+.meta dt { color: var(--fg-3); font: 500 var(--text-label) / 1.4 var(--font-mono); text-transform: uppercase; letter-spacing: 0.04em; display: flex; align-items: center; }
+.meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.sub { display: block; }
+.nowrap { white-space: nowrap; }
+.description { margin: 0; max-height: 7.5em; overflow: hidden; white-space: pre-wrap; color: var(--fg-2); overflow-wrap: anywhere; }
+.conflict { margin: 0; color: var(--ok); }
+.clash { color: var(--warn); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.link { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: transparent; color: var(--accent); text-align: left; cursor: pointer; font: inherit; }
+.link:hover { text-decoration: underline; }
+.link:disabled { opacity: 0.4; cursor: default; text-decoration: none; }
+.link:focus-visible, .answer:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 2px; }
+.chev { transition: transform var(--dur-fast) var(--ease); }
+.turned { transform: rotate(90deg); }
+.original { margin-top: 8px; color: var(--fg-3); }
+.original:hover { color: var(--fg); text-decoration: none; }
+
+.guests { display: flex; flex-direction: column; gap: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
+.guestList { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.guest { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
+.guestName { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status { flex: none; color: var(--fg-3); }
+.accepted { color: var(--ok); }
+.declined { color: var(--danger); }
+.tentative { color: var(--warn); }
+
+.rsvp { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.rsvpRow { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.answers { display: inline-flex; gap: 6px; }
+.chosen { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.chosen:hover { background: var(--accent-soft); }
+.chosen:disabled { opacity: 1; }
+.note { width: 100%; resize: vertical; }
+.connect { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+
+@media (max-width: 560px) {
+  .meta > div { grid-template-columns: 28px minmax(0, 1fr); }
+}

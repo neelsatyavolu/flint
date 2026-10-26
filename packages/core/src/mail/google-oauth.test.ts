@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { buildAuthUrl, createPkce, parseIdToken, refreshGoogleToken, startGoogleAuth, type FetchLike } from "./google-oauth";
+import { buildAuthUrl, createPkce, hasCalendarScope, parseIdToken, refreshGoogleToken, startGoogleAuth, type FetchLike } from "./google-oauth";
 
 const idToken = (claims: object): string => `e30.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.sig`;
 const json = (status: number, body: unknown) => ({ ok: status < 400, status, json: async () => body });
@@ -28,11 +28,24 @@ describe("PKCE and URLs", () => {
   it("asks for offline access with the Gmail scope", () => {
     const u = new URL(buildAuthUrl({ clientId: "cid", redirectUri: "http://127.0.0.1:1/oauth2callback", challenge: "ch", state: "st" }));
     expect(u.origin + u.pathname).toBe("https://accounts.google.com/o/oauth2/v2/auth");
-    expect(u.searchParams.get("scope")).toBe("https://mail.google.com/ openid email profile");
+    expect(u.searchParams.get("scope")).toBe("https://mail.google.com/ openid email profile https://www.googleapis.com/auth/calendar.events");
+    expect(u.searchParams.get("include_granted_scopes")).toBeNull();
     expect(u.searchParams.get("access_type")).toBe("offline");
     expect(u.searchParams.get("prompt")).toBe("consent");
     expect(u.searchParams.get("code_challenge_method")).toBe("S256");
     expect(u.searchParams.get("response_type")).toBe("code");
+  });
+
+  it("adds login_hint and include_granted_scopes for incremental consent", () => {
+    const u = new URL(buildAuthUrl({ clientId: "cid", redirectUri: "http://127.0.0.1:1/oauth2callback", challenge: "ch", state: "st", loginHint: "me@gmail.com" }));
+    expect(u.searchParams.get("login_hint")).toBe("me@gmail.com");
+    expect(u.searchParams.get("include_granted_scopes")).toBe("true");
+  });
+
+  it("detects the calendar scope in a granted-scope string", () => {
+    expect(hasCalendarScope("openid https://www.googleapis.com/auth/calendar.events email")).toBe(true);
+    expect(hasCalendarScope("https://mail.google.com/ openid email profile")).toBe(false);
+    expect(hasCalendarScope(undefined)).toBe(false);
   });
 
   it("reads email and name from an ID token", () => {

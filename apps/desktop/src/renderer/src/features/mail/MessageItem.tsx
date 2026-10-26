@@ -15,6 +15,7 @@ import { ReceiptPanel } from "./ReceiptPanel";
 import { ReceiptCheck } from "../receipts/ReceiptCheck";
 import { receiptMarker, recipientStatusLine, summaryOf } from "../../state/receiptText";
 import { CodeBanner } from "../codes/CodeBanner";
+import { InviteCard, OriginalToggle } from "./invite/InviteCard";
 import { RecipientsLine } from "./RecipientsPopover";
 import { PersonCard } from "./PersonCard";
 import { blockSender, unsubscribedMessage } from "./blockSender";
@@ -28,6 +29,9 @@ type Props = {
   onUpdated: () => void;
   now: number;
 };
+
+/** The invite's .ics is shown as the card, not as a file tile. */
+const isCalendarFile = (a: { contentType: string; filename: string }) => /^text\/calendar/i.test(a.contentType) || /\.ics$/i.test(a.filename);
 
 function senderOf(m: MessageView) {
   return m.from[0] ?? { name: "", address: "" };
@@ -142,8 +146,9 @@ function ExpandedMessage({ message: m, selfAddresses, onToggle, onUpdated }: Pro
         </div>
       </header>
       <CodeBanner badge={m.verificationCode} />
-      <MessageBody message={m} onUpdated={onUpdated} />
-      <AttachmentTiles attachments={m.attachments} />
+      {m.invite ? <InviteCard message={m} onUpdated={onUpdated} /> : null}
+      {m.invite ? <OriginalToggle><MessageBody message={m} onUpdated={onUpdated} /></OriginalToggle> : <MessageBody message={m} onUpdated={onUpdated} />}
+      <AttachmentTiles attachments={m.invite ? m.attachments.filter((a) => !isCalendarFile(a)) : m.attachments} />
       {m.receipt ? <ReceiptPanel receipt={m.receipt} /> : null}
       <footer className={styles.cardFoot}>
         {single ? <IconButton size={28} label="Reply" shortcut="r" onClick={() => reply("reply")}><Reply size={16} strokeWidth={1.5} /></IconButton> : null}

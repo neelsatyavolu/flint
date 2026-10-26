@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import type { InviteHooks } from "../calendar/contracts";
 import { createCodeRegistry, type CodeRegistry } from "../codes/registry";
 import { createAiEngine, type AiEngine } from "../ai";
 import { startCategorizer } from "./categorizerWiring";
@@ -66,6 +67,8 @@ export type ServiceContext = {
   readonly agent: { handle: AgentServerHandle | null };
   /** Recent verification codes, in memory only. */
   readonly codes: CodeRegistry;
+  /** Calendar invitation collaborators (Google Calendar client, iMIP sender); from ServiceOptions.calendar, defaults filled by service/invites. */
+  readonly invites: InviteHooks;
 };
 
 export function createContext(platform: Platform, options: ServiceOptions = {}): ServiceContext {
@@ -143,5 +146,6 @@ export function createContext(platform: Platform, options: ServiceOptions = {}):
     googleClient, secretsReady,
     ensureBodies: (ids) => ensureBodies(store, syncs, ids),
     syncs, undo, optimistic, scheduler, receipts, ai, compose, agent: { handle: null }, codes: createCodeRegistry(now),
+    invites: { ...options.calendar },
   };
 }

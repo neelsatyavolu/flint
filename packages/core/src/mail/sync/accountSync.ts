@@ -7,6 +7,7 @@ import { createImapClient, describeConnectError, type MailAuth } from "../connec
 import { withMailbox, type ImapRunner } from "../runner";
 import { attachmentPath, downloadPart, readCached, writeCached } from "./attachments";
 import { loadBody } from "./body";
+import { captureInvite } from "./inviteCapture";
 import { chunks, reconcileExpunges, syncFolder, type Batch, type FolderSyncDeps } from "./folderSync";
 import { FETCH_HEADERS, parseHeaders } from "./headers";
 import { classifyMailboxes, gmailLabelPaths } from "./folders";
@@ -222,7 +223,11 @@ export class AccountSync implements ImapRunner {
     if (msg.bodyLoaded) return;
     const loc = store.getMessageLocations([messageRowId])[0];
     if (!loc) throw new FlintError("not_found", "That message no longer exists.");
-    const body = await this.run((c) => withMailbox(c, loc.folderPath, () => loadBody(c, loc.uid), true));
+    const body = await this.run((c) => withMailbox(c, loc.folderPath, async () => {
+      const loaded = await loadBody(c, loc.uid);
+      if (loaded) await captureInvite(c, { store, accountId: loc.accountId, messageRowId, uid: loc.uid, now: this.#now() });
+      return loaded;
+    }, true));
     if (!body) throw new FlintError("not_found", "That message is no longer on the server.");
     store.setBody(messageRowId, { text: body.text, html: body.html });
     this.#emitChanged([loc.threadId]);
@@ -529,6 +534,7 @@ export class AccountSync implements ImapRunner {
               const body = await loadBody(c, o.uid, batch.structures.get(o.uid));
               if (!body) continue;
               this.#o.store.setBody(o.messageRowId, { text: body.text, html: body.html });
+              await captureInvite(c, { store: this.#o.store, accountId: this.#o.accountId, messageRowId: o.messageRowId, uid: o.uid, now: this.#now() });
               changed.push(o.threadId);
             } catch (error) {
               log.debug("body prefetch skipped a message", { reason: (error as Error).message });

@@ -1,4 +1,4 @@
-import type { Address, Category, ReceiptEventKind, ReceiptStatus } from "@flint/core";
+import type { Address, Category, Invite, ReceiptEventKind, ReceiptStatus } from "@flint/core";
 
 export type AcctKey = "northwind" | "orbit" | "gmail";
 
@@ -24,6 +24,8 @@ export type SeedMsg = {
   signature?: "plain" | "short" | "rich";
   track?: SeedRecipient[];
   seen?: boolean;
+  /** A calendar invitation carried by this message, built from the seed's "now". */
+  invite?: (now: number) => Invite;
 };
 
 export type SeedThread = {

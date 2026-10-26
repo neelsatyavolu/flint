@@ -5,7 +5,7 @@ import type { FlintApi } from "../api";
 import { logger } from "../log";
 import { autoconfig as detectServers, KNOWN_PROVIDERS } from "../mail/autoconfig";
 import { secretKey } from "../mail/connect";
-import { startGoogleAuth } from "../mail/google-oauth";
+import { hasCalendarScope, startGoogleAuth } from "../mail/google-oauth";
 import { safeFilename } from "../mail/sync/attachments";
 import { FlintError, type Account, type AddAccountInput, type AutoconfigResult, type Provider, type ServerConfig } from "../types";
 import { checkConnection, checkGoogleMailbox } from "./connectionCheck";
@@ -119,14 +119,15 @@ export function accountsApi(ctx: ServiceContext): AccountsApi {
       const client = ctx.googleClient();
       if (!client) throw new FlintError("invalid", "Add a Google client ID and secret in Settings, then try again.");
       const signIn = await (ctx.options.googleAuth ?? startGoogleAuth)({ ...client, openExternal: platform.openExternal, now: ctx.now });
-      const secret = { accessToken: signIn.accessToken, refreshToken: signIn.refreshToken, expiresAt: signIn.expiresAt };
+      const secret = { accessToken: signIn.accessToken, refreshToken: signIn.refreshToken, expiresAt: signIn.expiresAt, ...(signIn.scope ? { scope: signIn.scope } : {}) };
+      const calendarScope = hasCalendarScope(signIn.scope);
       const email = signIn.email.toLowerCase();
       // A Google account can exist without Gmail (mail hosted elsewhere). Find out before saving anything.
       await (ctx.options.googleMailboxCheck ?? checkGoogleMailbox)({ ...serverOf({ ...KNOWN_PROVIDERS["gmail.com"]!, username: email }) }, email, signIn.accessToken, ctx.options.resolveMx);
       const existing = store.getAccountByEmail(email);
       let account: Account;
       if (existing) {
-        account = store.updateAccount(existing.id, { authKind: "oauth_google", enabled: true });
+        account = store.updateAccount(existing.id, { authKind: "oauth_google", enabled: true, calendarScope });
         await saveCredentials(account.id, secret);
       } else {
         const gmail = KNOWN_PROVIDERS["gmail.com"]!;
@@ -135,6 +136,7 @@ export function accountsApi(ctx: ServiceContext): AccountsApi {
           imapHost: gmail.imapHost, imapPort: gmail.imapPort, imapSecure: gmail.imapSecure,
           smtpHost: gmail.smtpHost, smtpPort: gmail.smtpPort, smtpSecure: gmail.smtpSecure,
         });
+        if (calendarScope) account = store.updateAccount(account.id, { calendarScope });
         applyRememberedSparkDefaults(ctx, account);
         await saveCredentials(account.id, secret);
       }

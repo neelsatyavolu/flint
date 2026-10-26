@@ -5,6 +5,7 @@ import type {
 } from "@flint/core";
 import { streamFakeAi, fakeAiText } from "./ai";
 import { approveSend, cancelSend, createDraft, deleteDraft, getDraft, sendDraft, updateDraft, type Ctx } from "./compose";
+import { mockConflicts, mockListInvites, mockRsvp } from "./invites";
 import { ALL_CONTACTS } from "./people";
 import { mockAvatarApi } from "./avatars";
 import { mockCategoryApi } from "./categories";
@@ -110,7 +111,7 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
       const cfg = input.server ?? (await api.autoconfig(input.email)) ?? { imapHost: "", imapPort: 993, imapSecure: true, smtpHost: "", smtpPort: 587, smtpSecure: false, username: input.email };
       const account: Account = {
         ...cfg, id: `acc_${nextId(state, "account")}x`, email: input.email, name: input.name, provider: input.provider ?? "imap", authKind: "password", color: "#8f7fb5",
-        sortOrder: state.accounts.length, enabled: true, aliases: [], createdAt: now(), showInUnified: true, avatarSource: null, avatarUpdatedAt: null,
+        sortOrder: state.accounts.length, enabled: true, aliases: [], createdAt: now(), showInUnified: true, avatarSource: null, avatarUpdatedAt: null, calendarScope: false,
       };
       state.accounts = [...state.accounts, account];
       const roles = [["inbox", "Inbox"], ["sent", "Sent"], ["drafts", "Drafts"], ["archive", "Archive"], ["trash", "Trash"], ["spam", "Spam"]] as const;
@@ -212,6 +213,31 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
       return { id: t.id, accountId: t.accountId, subject: t.subject, category: t.category, pinned: t.pinned, muted: t.muted, snoozedUntil: t.snoozedUntil, messages: t.messages.map((m) => withCode(state, m)), draftIds: t.draftIds.filter((d) => !isQueuedDraft(state, d)) };
     },
     async getMessage(id) { await delay(); return withCode(state, findMessage(id)); },
+
+    // Calendar invitations
+    async getInvite(messageId) { await delay(); return findMessage(messageId).invite ?? null; },
+    async rsvp(messageId, response, note) {
+      await sleep(Math.max(latency, 350));
+      const msg = findMessage(messageId);
+      if (!msg.invite) throw new FlintError("not_found", "That message has no invitation.");
+      const next = mockRsvp(msg.invite, response, note, now());
+      replaceMessage(messageId, (m) => ({ ...m, invite: next }));
+      changed([msg.threadId]);
+      return next;
+    },
+    async inviteConflicts(messageId) { await sleep(Math.max(latency, 250)); return mockConflicts(state, messageId, now()); },
+    async connectGoogleCalendar(accountId) {
+      await sleep(Math.max(latency, 600));
+      const current = state.accounts.find((a) => a.id === accountId);
+      if (!current) throw new FlintError("not_found", "That account no longer exists.");
+      if (current.authKind !== "oauth_google") throw new FlintError("invalid", "Only accounts signed in with Google can connect Google Calendar.");
+      const next = { ...current, calendarScope: true };
+      state.accounts = state.accounts.map((a) => (a.id === accountId ? next : a));
+      state.threads = state.threads.map((t) => t.accountId !== accountId ? t : { ...t, messages: t.messages.map((m) => m.invite?.rsvpVia === "google-needs-scope" ? { ...m, invite: { ...m.invite, rsvpVia: "google-calendar" as const } } : m) });
+      emit({ type: "mail_changed", accountId, threadIds: [] });
+      return next;
+    },
+    async listInvites(opts) { await delay(); return mockListInvites(state, opts, now()); },
     async allowRemoteImages(id, always) {
       const m = findMessage(id);
       const out = replaceMessage(id, (x) => ({ ...x, remoteImages: "allowed", hasTrackers: always ? false : x.hasTrackers }));

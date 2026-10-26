@@ -3,6 +3,7 @@ import type {
   Account, AccountId, AddAccountInput, Category, AgentActivity, AgentSkillStatus, AiProvider, AiRun, AiStatus, AiTask, Contact,
   DeepPartial, Draft, DraftInit, DraftPatch, FlintEvent, Folder, FolderId, HomeData, MessageRowId,
   MessageView, ReceiptDetail, Rule, ScheduledSend, SendResult, ServerConfig, Settings, SidebarData, AvatarRef,
+  Invite, InviteConflicts, InviteListItem, RsvpResponse,
   Signature, SyncStatus, VerificationCode, BrowserHelperStatus, AutofillStatus, Template, ThreadDetail, ThreadId, ThreadPage, ThreadQuery, LoadOlderResult, ServerSearchResult, TrackedMessage,
 } from "./types";
 
@@ -174,6 +175,21 @@ export interface FlintApi {
   requestAutofillPermission(): Promise<AutofillStatus>;
   /** "Try it": opens a small demo window with a code field and shows a suggestion with a fake code next to it. */
   tryAutofillDemo(): Promise<void>;
+  // Calendar invitations
+  /** The invitation in this message, parsed now if it has not been (older mail). Null when the message has none. */
+  getInvite(messageId: MessageRowId): Promise<Invite | null>;
+  /**
+   * Answers an invitation. Google accounts with the calendar scope patch the event through the Google Calendar API;
+   * every other account sends an iMIP REPLY to the organizer. Records the answer locally either way and returns the
+   * updated invite. Sends mail or changes the calendar, so agents need the send permission.
+   */
+  rsvp(messageId: MessageRowId, response: RsvpResponse, note?: string): Promise<Invite>;
+  /** Overlap with the user's Google primary calendar for this invite's time (cached briefly). Never throws for a Google problem; check `status`. */
+  inviteConflicts(messageId: MessageRowId): Promise<InviteConflicts>;
+  /** Runs Google's consent screen for the Calendar scope on an account that signed in without it (include_granted_scopes). Resolves with the updated account. */
+  connectGoogleCalendar(accountId: AccountId): Promise<Account>;
+  /** Upcoming invitations (not cancelled, not past) soonest first, newest version per event. `from` / `to` are epoch ms; default from now. */
+  listInvites(opts?: { accountId?: AccountId; from?: number; to?: number; limit?: number }): Promise<InviteListItem[]>;
 
   // Settings
   getSettings(): Promise<Settings>;
@@ -218,6 +234,7 @@ export const METHOD_TIERS: Record<FlintMethod, "read" | "modify" | "send" | "adm
   agentSkillStatus: "admin", installAgentSkill: "admin", removeAgentSkill: "admin",
   recentCodes: "admin", markCodeUsed: "admin", browserHelperStatus: "admin", installBrowserHelper: "admin", removeBrowserHelper: "admin",
   autofillStatus: "admin", requestAutofillPermission: "admin", tryAutofillDemo: "admin",
+  getInvite: "read", rsvp: "send", inviteConflicts: "read", connectGoogleCalendar: "admin", listInvites: "read",
   getSettings: "admin", updateSettings: "admin", sendTestNotification: "admin",
 };
 

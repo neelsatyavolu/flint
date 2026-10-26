@@ -1,5 +1,6 @@
 import type { Address, Bundle, CodeBadge, MessageView, ThreadListItem, ThreadPage, ThreadQuery } from "@flint/core";
 import type { MThread, MockState } from "./state";
+import { threadInvite } from "./invites";
 import { liveDrafts, plainSnippet, stripHtml } from "./state";
 
 const ME_ADDRESS = (state: MockState, t: MThread) => state.accounts.find((a) => a.id === t.accountId)?.email ?? "";
@@ -44,6 +45,7 @@ export function withCode(state: MockState, m: MessageView): MessageView {
 export function toListItem(state: MockState, t: MThread): ThreadListItem {
   const codeMsg = t.messages.find((m) => codeBadge(state, m.id));
   const verificationCode = codeMsg ? codeBadge(state, codeMsg.id) : undefined;
+  const invite = threadInvite(t.messages);
   const lastSent = [...t.messages].reverse().find((m) => m.isFromMe);
   const lastMsg = t.messages.at(-1);
   const draft = state.drafts.find((d) => t.draftIds.includes(d.id));
@@ -55,6 +57,7 @@ export function toListItem(state: MockState, t: MThread): ThreadListItem {
     unreadCount: unreadCount(t), hasAttachments: t.messages.some((m) => m.attachments.length > 0), pinned: t.pinned, muted: t.muted,
     snoozedUntil: t.snoozedUntil, category: t.category, hasDraft: t.draftIds.some((d) => !isQueuedDraft(state, d)), receipt: tracked?.summary ?? null,
     ...(verificationCode ? { verificationCode } : {}),
+    ...(invite ? { invite } : {}),
   };
 }
 

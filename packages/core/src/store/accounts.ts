@@ -14,7 +14,7 @@ const COLUMNS: Record<keyof AccountPatch, string> = {
   imapHost: "imap_host", imapPort: "imap_port", imapSecure: "imap_secure",
   smtpHost: "smtp_host", smtpPort: "smtp_port", smtpSecure: "smtp_secure",
   username: "username", color: "color", sortOrder: "sort_order", enabled: "enabled", aliases: "aliases",
-  showInUnified: "show_in_unified", avatarSource: "avatar_source", avatarUpdatedAt: "avatar_updated_at",
+  showInUnified: "show_in_unified", avatarSource: "avatar_source", avatarUpdatedAt: "avatar_updated_at", calendarScope: "calendar_scope",
 };
 
 export class AccountsRepo {

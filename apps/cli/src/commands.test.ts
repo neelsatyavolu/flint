@@ -362,3 +362,61 @@ describe("management commands", () => {
     expect((await exec(["draft-delete", "12"], f)).out).toBe("Deleted draft 12.\n");
   });
 });
+
+describe("invites and rsvp", () => {
+  const chip = (over: Record<string, unknown> = {}) => ({
+    uid: "u1", method: "REQUEST", title: "Design sync", start: new Date(2026, 9, 27, 15, 0).getTime(), end: new Date(2026, 9, 27, 16, 0).getTime(),
+    allDay: false, startDate: null, state: "new", yourResponse: "needs-action", organizerName: "Dana", messageId: 70, ...over,
+  });
+  const invite = (over: Record<string, unknown> = {}) => ({ ...chip(), rsvpVia: "imip", invitedAs: { address: "me@x.co", role: "required", rsvp: true }, yourNote: null, ...over });
+
+  it("lists upcoming invitations with your answer", async () => {
+    const f = fakeClient({
+      listInvites: [{ threadId: 7, accountId: "a1", subject: "Invitation: Design sync", invite: chip({ yourResponse: "accepted" }) }],
+      listAccounts: [{ id: "a1", email: "me@x.co" }],
+    });
+    const r = await exec(["invites", "--account", "me@x.co", "--limit", "5"], f);
+    expect(r.code).toBe(0);
+    expect(f.calls.find((c) => c.method === "listInvites")?.params[0]).toEqual({ accountId: "a1", limit: 5 });
+    expect(r.out).toMatch(/7\s+2026-10-27 15:00 \(60 min\)\s+yes\s+Design sync\s+Dana/);
+    expect(JSON.parse((await exec(["invites", "--json"], f)).out)[0].threadId).toBe(7);
+    expect((await exec(["invites"], fakeClient({ listInvites: [] }))).out).toBe("No upcoming invitations.\n");
+  });
+
+  it("answers the newest actionable invitation in a thread, with a note", async () => {
+    const f = fakeClient({
+      getThread: { id: 7, accountId: "a1", subject: "x", messages: [
+        { id: 60, date: 1, invite: invite({ rsvpVia: "none", state: "superseded" }) },
+        { id: 70, date: 2, invite: invite() },
+        { id: 71, date: 3 },
+      ] },
+      rsvp: invite({ yourResponse: "tentative" }),
+    });
+    const r = await exec(["rsvp", "7", "Maybe", "--note", "Might be late"], f);
+    expect(r.code).toBe(0);
+    expect(f.calls.find((c) => c.method === "rsvp")?.params).toEqual([70, "tentative", "Might be late"]);
+    expect(r.out).toBe('You answered maybe to "Design sync" (2026-10-27 15:00 (60 min)).\n');
+  });
+
+  it("maps yes and no, and rejects other answers before reading anything", async () => {
+    const f = fakeClient({ getThread: { id: 7, messages: [{ id: 70, date: 1, invite: invite() }] }, rsvp: invite() });
+    await exec(["rsvp", "7", "yes"], f);
+    await exec(["rsvp", "7", "no"], f);
+    expect(f.calls.filter((c) => c.method === "rsvp").map((c) => c.params[1])).toEqual(["accepted", "declined"]);
+    const bad = fakeClient();
+    const r = await exec(["rsvp", "7", "sure"], bad);
+    expect(r.code).toBe(1);
+    expect(r.err).toMatch(/Answer yes, maybe or no/);
+    expect(bad.calls).toHaveLength(0);
+  });
+
+  it("explains why a thread can't be answered", async () => {
+    const none = await exec(["rsvp", "7", "yes"], fakeClient({ getThread: { id: 7, messages: [{ id: 1, date: 1 }] } }));
+    expect(none.code).toBe(1);
+    expect(none.err).toMatch(/no calendar invitation/);
+    const f = fakeClient({ getThread: { id: 7, messages: [{ id: 1, date: 1, invite: invite({ rsvpVia: "none", state: "cancelled" }) }] } });
+    const r = await exec(["rsvp", "7", "yes"], f);
+    expect(r.err).toMatch(/the event was cancelled/);
+    expect(f.calls.some((c) => c.method === "rsvp")).toBe(false);
+  });
+});

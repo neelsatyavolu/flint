@@ -1,0 +1,4 @@
+.chip { flex: none; white-space: nowrap; padding: 0 6px; border-radius: var(--r-control); background: var(--accent-soft); color: var(--accent); letter-spacing: 0.02em; }
+.updated { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); }
+.cancelled { background: transparent; color: var(--fg-3); text-decoration: line-through; }
+.quiet { background: var(--active); color: var(--fg-3); }

@@ -6,14 +6,24 @@ import { FlintError } from "../types";
 
 export const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 export const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-export const GOOGLE_SCOPES = "https://mail.google.com/ openid email profile";
+export const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+/** Scopes for a new Google sign-in: mail, who you are, and calendar events (to answer invitations). */
+export const GOOGLE_SCOPES = `https://mail.google.com/ openid email profile ${GOOGLE_CALENDAR_SCOPE}`;
+/** The scopes an account that signed in before calendar support has. */
+export const GOOGLE_BASE_SCOPES = "https://mail.google.com/ openid email profile";
+/** True when a granted-scope string (the token response's `scope`) includes the Calendar events scope. */
+export const hasCalendarScope = (scope: string | undefined | null): boolean => (scope ?? "").split(/\s+/).includes(GOOGLE_CALENDAR_SCOPE);
 /** Refresh this long before the access token expires. */
 export const REFRESH_MARGIN_MS = 5 * 60 * 1000;
 
 export type FetchLike = (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
 export type GoogleTokens = { accessToken: string; refreshToken: string; expiresAt: number };
-export type GoogleSignIn = GoogleTokens & { email: string; name: string; /** Profile picture URL from the ID token, when Google sent one. */ picture?: string };
+export type GoogleSignIn = GoogleTokens & {
+  email: string; name: string; /** Profile picture URL from the ID token, when Google sent one. */ picture?: string;
+  /** Space-separated scopes Google actually granted (the user can untick some). Check with hasCalendarScope. */
+  scope?: string;
+};
 
 export type GoogleAuthOptions = {
   clientId: string;
@@ -24,6 +34,10 @@ export type GoogleAuthOptions = {
   port?: number;
   timeoutMs?: number;
   now?: () => number;
+  /** Scopes to ask for. Default GOOGLE_SCOPES. */
+  scopes?: string;
+  /** Incremental consent for an existing account: pre-selects it (login_hint) and adds to what it already granted (include_granted_scopes=true). */
+  incremental?: { loginHint: string };
 };
 
 const tokenResponse = z.object({
@@ -31,6 +45,7 @@ const tokenResponse = z.object({
   refresh_token: z.string().optional(),
   expires_in: z.number().default(3600),
   id_token: z.string().optional(),
+  scope: z.string().optional(),
 });
 const errorResponse = z.object({ error: z.string().optional(), error_description: z.string().optional() });
 
@@ -42,11 +57,15 @@ export function createPkce(): { verifier: string; challenge: string } {
   return { verifier, challenge: b64url(createHash("sha256").update(verifier).digest()) };
 }
 
-export function buildAuthUrl(p: { clientId: string; redirectUri: string; challenge: string; state: string }): string {
+export function buildAuthUrl(p: { clientId: string; redirectUri: string; challenge: string; state: string; scopes?: string; loginHint?: string }): string {
   const q = new URLSearchParams({
-    client_id: p.clientId, redirect_uri: p.redirectUri, response_type: "code", scope: GOOGLE_SCOPES,
+    client_id: p.clientId, redirect_uri: p.redirectUri, response_type: "code", scope: p.scopes ?? GOOGLE_SCOPES,
     code_challenge: p.challenge, code_challenge_method: "S256", access_type: "offline", prompt: "consent", state: p.state,
   });
+  if (p.loginHint) {
+    q.set("login_hint", p.loginHint);
+    q.set("include_granted_scopes", "true");
+  }
   return `${GOOGLE_AUTH_URL}?${q.toString()}`;
 }
 
@@ -136,7 +155,10 @@ export async function startGoogleAuth(opts: GoogleAuthOptions): Promise<GoogleSi
     const redirectUri = `http://127.0.0.1:${port}/oauth2callback`;
     const codePromise = waitForCode(server, state, opts.timeoutMs ?? 5 * 60 * 1000);
     codePromise.catch(() => undefined);
-    await opts.openExternal(buildAuthUrl({ clientId: opts.clientId, redirectUri, challenge, state }));
+    await opts.openExternal(buildAuthUrl({
+      clientId: opts.clientId, redirectUri, challenge, state,
+      ...(opts.scopes ? { scopes: opts.scopes } : {}), ...(opts.incremental ? { loginHint: opts.incremental.loginHint } : {}),
+    }));
     const code = await codePromise;
     const t = await postToken(f, {
       code, client_id: opts.clientId, client_secret: opts.clientSecret, redirect_uri: redirectUri,
@@ -144,7 +166,7 @@ export async function startGoogleAuth(opts: GoogleAuthOptions): Promise<GoogleSi
     });
     if (!t.refresh_token) throw new FlintError("auth", "Google did not return a refresh token. Remove Flint from your Google account permissions and try again.");
     if (!t.id_token) throw new FlintError("auth", "Google did not return account details. Try signing in again.");
-    return { accessToken: t.access_token, refreshToken: t.refresh_token, expiresAt: now() + t.expires_in * 1000, ...parseIdToken(t.id_token) };
+    return { accessToken: t.access_token, refreshToken: t.refresh_token, expiresAt: now() + t.expires_in * 1000, ...parseIdToken(t.id_token), ...(t.scope ? { scope: t.scope } : {}) };
   } finally {
     server.close();
     server.closeAllConnections();

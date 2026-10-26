@@ -11,7 +11,7 @@ const log = logger("mail.connect");
 
 export const secretSchema = z.union([
   z.object({ password: z.string() }),
-  z.object({ accessToken: z.string(), refreshToken: z.string(), expiresAt: z.number() }),
+  z.object({ accessToken: z.string(), refreshToken: z.string(), expiresAt: z.number(), /** Granted scopes; absent on secrets written before calendar support. */ scope: z.string().optional() }),
 ]);
 export type AccountSecret = z.infer<typeof secretSchema>;
 
@@ -51,7 +51,7 @@ export async function resolveAuth(account: Account, deps: AuthDeps): Promise<Mai
   const google = deps.google?.();
   if (!google?.clientId || !google.clientSecret) throw new FlintError("auth", "Add a Google client ID and secret in Settings, then sign in again.");
   const next = await refreshGoogleToken({ ...google, refreshToken: secret.refreshToken, fetch: deps.fetch, now: deps.now });
-  await deps.secrets.set(secretKey(account.id), JSON.stringify(next));
+  await deps.secrets.set(secretKey(account.id), JSON.stringify(secret.scope ? { ...next, scope: secret.scope } : next));
   return { user: account.username, accessToken: next.accessToken };
 }
 

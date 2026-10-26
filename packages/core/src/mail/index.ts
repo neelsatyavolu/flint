@@ -4,7 +4,7 @@ export {
   type MailAuth, type AccountSecret, type AuthDeps, type GoogleClient, type TestConnectionResult,
 } from "./connect";
 export {
-  startGoogleAuth, refreshGoogleToken, buildAuthUrl, createPkce, parseIdToken, GOOGLE_SCOPES, REFRESH_MARGIN_MS,
+  startGoogleAuth, refreshGoogleToken, buildAuthUrl, createPkce, parseIdToken, GOOGLE_SCOPES, GOOGLE_BASE_SCOPES, GOOGLE_CALENDAR_SCOPE, hasCalendarScope, REFRESH_MARGIN_MS,
   type GoogleAuthOptions, type GoogleSignIn, type GoogleTokens, type FetchLike, type RefreshOptions,
 } from "./google-oauth";
 export { buildMime, buildReplyDraft, prefixedSubject, extractDataImages, newMessageId, type MimeInput, type ReplySource, type ReplyDraft, type ReplyOptions } from "./compose";

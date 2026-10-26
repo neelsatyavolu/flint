@@ -312,4 +312,42 @@ export const MIGRATIONS: readonly string[] = [
   ALTER TABLE signatures ADD COLUMN account_ids TEXT NOT NULL DEFAULT '[]';
   UPDATE signatures SET account_ids = json_array(account_id) WHERE account_id IS NOT NULL;
   `,
+  /* 9: calendar invitations. `invites` holds the parse of each message's text/calendar part (one invite per message; the
+        first VEVENT of the part). `invite_responses` is the user's own answer per event (UID + RECURRENCE-ID), so it
+        survives restarts and applies to every message about that event. `messages.invite_checked` is 1 once the message was
+        scanned (body or MIME structure), so non-invite mail is not re-scanned. `accounts.calendar_scope` is 1 once a Google
+        account was granted https://www.googleapis.com/auth/calendar.events. */ `
+  ALTER TABLE accounts ADD COLUMN calendar_scope INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE messages ADD COLUMN invite_checked INTEGER NOT NULL DEFAULT 0;
+
+  CREATE TABLE invites (
+    message_id INTEGER PRIMARY KEY REFERENCES messages(id) ON DELETE CASCADE,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    uid TEXT NOT NULL,
+    recurrence_id TEXT NOT NULL DEFAULT '',    -- '' = the whole event or series
+    method TEXT NOT NULL,                      -- InviteMethod
+    sequence INTEGER NOT NULL DEFAULT 0,
+    dtstamp INTEGER,
+    start_at INTEGER,                          -- epoch ms (all-day: 00:00 UTC of the first day), for upcoming lists
+    end_at INTEGER,
+    data_json TEXT NOT NULL,                   -- the stored part of types.Invite
+    ics TEXT NOT NULL,                         -- the calendar part as received, so a better parser can re-read it
+    parser_version INTEGER NOT NULL,
+    parsed_at INTEGER NOT NULL
+  );
+  CREATE INDEX invites_event ON invites (account_id, uid, recurrence_id, sequence DESC, dtstamp DESC);
+  CREATE INDEX invites_start ON invites (account_id, start_at);
+
+  CREATE TABLE invite_responses (
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    uid TEXT NOT NULL,
+    recurrence_id TEXT NOT NULL DEFAULT '',
+    response TEXT NOT NULL,                    -- 'accepted' | 'tentative' | 'declined'
+    note TEXT,
+    via TEXT NOT NULL,                         -- 'google-calendar' | 'imip' | 'server' (learned from a later invite or sync)
+    sequence INTEGER NOT NULL DEFAULT 0,       -- SEQUENCE of the invite it answered
+    responded_at INTEGER NOT NULL,
+    PRIMARY KEY (account_id, uid, recurrence_id)
+  );
+  `,
 ];

@@ -16,6 +16,8 @@ import { notifyApi, wireNotifications } from "./notify";
 import { recategorizeIfStale, refreshHeadersIfStale } from "./recategorize";
 import { historyApi } from "./history";
 import { importSparkApi } from "./importSpark";
+import { invitesApi } from "./invites";
+import { backfillInvites } from "./invites-read";
 import { readingApi } from "./reading";
 import { receiptsApi } from "./receipts";
 import { settingsApi } from "./settings";
@@ -65,11 +67,15 @@ export type ServiceOptions = {
   extensionDir?: string;
   /** Desktop AutofillManager (system-wide code autofill). Absent in tests and the web preview. */
   autofill?: import("../autofill/contract").AutofillHost;
+  /** Calendar invitation collaborators (tests inject fakes so nothing reaches Google or a mail server). */
+  calendar?: import("../calendar/contracts").InviteHooks;
 };
 
 /** Builds the real service. The method groups live in their own files; TypeScript checks the composition covers FlintApi. */
 /** Header refresh waits for the first sync cycles so it doesn't compete with them. */
 const HEADER_REFRESH_DELAY_MS = 20_000;
+/** Older mail is scanned for invitations once the first sync has had time to settle. */
+const INVITE_BACKFILL_DELAY_MS = 45_000;
 
 export async function createFlintService(platform: Platform, opts: ServiceOptions = {}): Promise<FlintService> {
   const ctx = createContext(platform, opts);
@@ -84,6 +90,7 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
     ...composeApi(ctx),
     ...importSparkApi(ctx),
     ...receiptsApi(ctx),
+    ...invitesApi(ctx),
     ...aiApi(ctx),
     ...agentsApi(ctx),
     ...codesApi(ctx),
@@ -97,6 +104,7 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
   const unwire = (): void => { unwireNotifications(); unwireCodes(); };
   let state: "new" | "started" | "stopped" = "new";
   let headerRefresh: ReturnType<typeof setTimeout> | null = null;
+  let inviteBackfill: ReturnType<typeof setTimeout> | null = null;
 
   return {
     ...api,
@@ -111,6 +119,8 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
       // After the first sync settles, bring older mail's headers up to what the categorizer reads.
       headerRefresh = setTimeout(() => void refreshHeadersIfStale(ctx).catch((error: Error) => log.warn("header refresh failed", { reason: error.message })), HEADER_REFRESH_DELAY_MS);
       headerRefresh.unref?.();
+      inviteBackfill = setTimeout(() => void backfillInvites(ctx).catch((error: Error) => log.warn("invite catch-up failed", { reason: error.message })), INVITE_BACKFILL_DELAY_MS);
+      inviteBackfill.unref?.();
       void ctx.optimistic.replayPending().catch((error: Error) => log.warn("replaying pending operations failed", { reason: error.message }));
       await ctx.scheduler.start();
       if (opts.agentServer) ctx.agent.handle = await startAgentWiring(ctx, api);
@@ -121,6 +131,7 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
       if (state === "stopped") return;
       state = "stopped";
       if (headerRefresh) clearTimeout(headerRefresh);
+      if (inviteBackfill) clearTimeout(inviteBackfill);
       unwire();
       ctx.scheduler.stop();
       await stopAgentWiring(ctx);

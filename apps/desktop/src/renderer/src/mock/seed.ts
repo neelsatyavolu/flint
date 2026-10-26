@@ -4,6 +4,7 @@ import { ACCOUNT_IDS, defaultAi, defaultSettings, makeAccounts, makeActivity, ma
 import { generateThreads } from "./generated";
 import { generateOlder } from "./older";
 import { HERO_THREADS } from "./hero";
+import { INVITE_THREADS } from "./invites";
 import { ME, ME_NAME, PEOPLE } from "./people";
 import { createRng } from "./rng";
 import type { AcctKey, SeedMsg, SeedRecipient, SeedThread } from "./seedTypes";
@@ -91,6 +92,7 @@ export function buildThread(state: MockState, seed: SeedThread, now: number, fol
       remoteImages: m.remoteImages ?? "allowed", hasTrackers: m.hasTrackers ?? false,
       attachments: (m.attach ?? []).map((a) => ({ id: nextId(state, "attachment"), filename: a.filename, contentType: a.contentType, size: a.size, inline: a.inline ?? false, contentId: null })),
       unsubscribe: m.unsub ?? null, receipt: null,
+      ...(m.invite ? { invite: m.invite(now) } : {}),
     };
     if (m.track) {
       const tid = registerTracked(state, accountId, threadId, seed.subject, date, m.track);
@@ -156,7 +158,7 @@ export function buildState(now: number, seed = 7): MockState {
   state.sync = state.accounts.map((a) => ({ accountId: a.id, state: "idle", lastSyncAt: now - 40_000 }));
   const folderByName = new Map(state.folders.filter((f) => !f.role).map((f) => [`${f.accountId}:${f.name}`, f.id]));
 
-  const seeds: SeedThread[] = [...HERO_THREADS, ...generateThreads(rng)];
+  const seeds: SeedThread[] = [...HERO_THREADS, ...INVITE_THREADS, ...generateThreads(rng)];
   state.threads = seeds.map((s) => buildThread(state, s, now, folderByName));
   state.older = generateOlder(rng).map((s) => buildThread(state, s, now, folderByName));
   seedDrafts(state, now);

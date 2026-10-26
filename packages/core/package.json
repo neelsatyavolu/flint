@@ -19,6 +19,7 @@
     "@neelsatyavolu/shared-ai-auth": "github:neelsatyavolu/shared-ai-auth#7290ee3",
     "date-fns": "^4.4.0",
     "html-to-text": "^10.0.1",
+    "ical.js": "2.2.1",
     "imapflow": "^2.9.1",
     "mailparser": "^3.12.4",
     "nanoid": "^6.0.2",

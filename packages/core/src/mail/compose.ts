@@ -21,6 +21,8 @@ export type MimeInput = {
   references?: string[];
   headers?: Record<string, string>;
   date?: Date;
+  /** Adds a text/calendar alternative with this iTIP method (an iMIP reply). The content must already carry the same METHOD. */
+  icalEvent?: { method: string; content: string };
   /** Keep the Bcc header (the copy saved to Sent and Drafts). Never set for mail sent over SMTP. */
   keepBcc?: boolean;
 };
@@ -78,6 +80,7 @@ export async function buildMime(input: MimeInput): Promise<Buffer> {
     references: input.references?.length ? input.references.map(bracket).join(" ") : undefined,
     headers: input.headers,
     date: input.date,
+    alternatives: input.icalEvent ? [{ contentType: `text/calendar; charset=utf-8; method=${input.icalEvent.method.toUpperCase()}`, content: input.icalEvent.content }] : undefined,
     attachments: [...inline, ...(input.attachments ?? []).map(attachmentOf)],
   };
   const node = new MailComposer(options).compile();

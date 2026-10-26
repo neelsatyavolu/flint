@@ -5,7 +5,7 @@ Flint must be running. Every command accepts --json (machine output on stdout) a
 --as <name> (the name shown in Agent Activity; default $FLINT_AGENT or "cli").
 
 IDs (all positive integers)
-  thread id       "flint list", "flint search"; used by read, archive, trash, pin, snooze, move, reply, forward, summarize
+  thread id       "flint list", "flint search", "flint invites"; used by read, archive, trash, pin, snooze, move, reply, forward, summarize, rsvp
   message id      printed as "Message N" in "flint read"; used by unsubscribe
   attachment id   printed in "flint read" as "attachment N"; used by "flint attachment"
   draft id        printed by draft, reply, forward; used by send, draft-delete
@@ -34,13 +34,16 @@ JSON on success (stdout)
   folders         [{id,account,name,role,unread}]
   attachment      {path}
   receipts        list: [{trackedId,subject,summary}]; with an id: {recipients:[{email,status,openCount}]}
+  invites         [{threadId,accountId,subject,invite:{title,start,end,allDay,state,yourResponse,organizerName}}]
+  rsvp            the invitation {title,start,end,yourResponse,yourNote,...}
   watch           one event per line: {"type":"new_mail"|"receipt"|"send"|"mail_changed"|"sync"|...}
 
 Approval flow
   Settings, Agents sets what agents may do. With sending on "ask", "flint send" returns status
   awaiting_approval and nothing is sent until the user approves it in Agent Activity (or you
   cancel it with "flint cancel <scheduledId>"). With "deny", send fails with code permission.
-  "flint unsubscribe" is refused while sending is "ask" or "deny", because it can send mail.
+  "flint unsubscribe" and "flint rsvp" are refused while sending is "ask" or "deny", because they send mail
+  (or change the user's calendar) without an approval step.
   With modify on "deny", only read commands work.
 
 Search operators ("flint search <query>")
@@ -60,6 +63,9 @@ Recipes
   Draft a reply (never sends by itself)
     flint reply <threadId> --body "Thanks, on it."   # prints: Draft 12 created.
     flint send 12                         # queues it; with sending on "ask" it waits for the user
+  Answer a calendar invitation
+    flint invites                         # upcoming invitations, YOU = your current answer
+    flint rsvp <threadId> yes             # or maybe, no; --note "text" is sent to the organizer
   Find an attachment
     flint search "has:attachment from:cindy invoice" --json
     flint read <threadId>                 # lists "attachment N"

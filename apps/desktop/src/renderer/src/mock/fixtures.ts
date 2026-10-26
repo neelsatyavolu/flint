@@ -6,9 +6,9 @@ import type { AcctKey } from "./seedTypes";
 export const ACCOUNT_IDS: Record<AcctKey, string> = { northwind: "acc_northwind", orbit: "acc_orbit", gmail: "acc_gmail" };
 
 export function makeAccounts(now: number): Account[] {
-  const base = { imapPort: 993, imapSecure: true, smtpSecure: true, enabled: true, aliases: [] as string[], createdAt: now - 200 * 86400_000, showInUnified: true, avatarSource: null, avatarUpdatedAt: null };
+  const base = { imapPort: 993, imapSecure: true, smtpSecure: true, enabled: true, aliases: [] as string[], createdAt: now - 200 * 86400_000, showInUnified: true, avatarSource: null, avatarUpdatedAt: null, calendarScope: false };
   return [
-    { ...base, id: ACCOUNT_IDS.northwind, email: ME.northwind, name: ME_NAME, provider: "gmail", authKind: "oauth_google", color: "#5f8fb5", sortOrder: 0, imapHost: "imap.gmail.com", smtpHost: "smtp.gmail.com", smtpPort: 465, username: ME.northwind, aliases: ["hello@northwind.dev"] },
+    { ...base, id: ACCOUNT_IDS.northwind, email: ME.northwind, name: ME_NAME, provider: "gmail", authKind: "oauth_google", color: "#5f8fb5", calendarScope: true, sortOrder: 0, imapHost: "imap.gmail.com", smtpHost: "smtp.gmail.com", smtpPort: 465, username: ME.northwind, aliases: ["hello@northwind.dev"] },
     { ...base, id: ACCOUNT_IDS.orbit, email: ME.orbit, name: ME_NAME, provider: "imap", authKind: "password", color: "#b58a5f", sortOrder: 1, imapHost: "imap.studio-orbit.com", smtpHost: "smtp.studio-orbit.com", smtpPort: 587, smtpSecure: false, username: ME.orbit },
     { ...base, id: ACCOUNT_IDS.gmail, email: ME.gmail, name: ME_NAME, provider: "gmail", authKind: "oauth_google", color: "#6aa883", sortOrder: 2, imapHost: "imap.gmail.com", smtpHost: "smtp.gmail.com", smtpPort: 465, username: ME.gmail },
   ];
