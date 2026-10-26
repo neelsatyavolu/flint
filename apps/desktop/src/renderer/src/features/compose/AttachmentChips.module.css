@@ -14,6 +14,8 @@
 .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .remove {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 20px; height: 20px; padding: 0; border: 0; background: transparent; color: var(--fg-3); border-radius: var(--r-control);
+  position: relative; width: 20px; height: 20px; padding: 0; border: 0; background: transparent; color: var(--fg-3); border-radius: var(--r-control);
 }
+/* The glyph stays small; the hit area is 24x24. */
+.remove::before { content: ""; position: absolute; inset: -2px; }
 .remove:hover { color: var(--fg); background: var(--active); }

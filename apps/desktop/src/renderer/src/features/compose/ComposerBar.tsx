@@ -2,9 +2,10 @@ import type { JSX } from "react";
 import { Bell, BellRing, Clock, Eye, EyeOff, FileText, Minus, MoreHorizontal, Paperclip, SendHorizontal, Sparkles, X } from "lucide-react";
 import type { Signature, Template } from "@flint/core";
 import { formatPresetTime } from "../../lib/time";
-import { DateTimePicker } from "../../ui/DateTimePicker";
+import { DateTimePanel } from "../../ui/DateTimePicker";
 import { IconButton } from "../../ui/IconButton";
 import { Menu, type MenuItem } from "../../ui/Menu";
+import { Popover } from "../../ui/Popover";
 import { FromSelector } from "./FromSelector";
 import { ReminderPicker } from "./ReminderPicker";
 import { signaturesForAccount } from "./signature";
@@ -13,6 +14,9 @@ import type { SaveState } from "./autosave";
 import styles from "./Composer.module.css";
 
 export const SAVE_LABEL: Record<SaveState, string> = { idle: "", saving: "Saving", saved: "Saved", error: "Couldn't save" };
+
+/** Opens the Send later picker from the composer and the docked reply. */
+export const SEND_LATER_COMBO = "mod+shift+Enter";
 
 export const RECEIPTS_ON = "Read receipts on: Flint tells you when each recipient opens this";
 export const RECEIPTS_OFF = "Read receipts off: Flint won't track opens for this message";
@@ -34,6 +38,9 @@ type Props = {
   onTemplate: (t: Template) => void;
   onRemind: (at: number | null) => void;
   onSendLater: (at: number) => void;
+  /** The Send later picker's open state, so mod+shift+Enter can open it. Uncontrolled when omitted. */
+  sendLaterOpen?: boolean;
+  onSendLaterOpenChange?: (open: boolean) => void;
   onToggleTrack: () => void;
   onFrom: (o: FromOption) => void;
   onSignature: (s: Signature | null) => void;
@@ -63,6 +70,8 @@ export function ComposerBar(p: Props): JSX.Element {
           onTemplate={p.onTemplate}
           onRemind={p.onRemind}
           onSendLater={p.onSendLater}
+          sendLaterOpen={p.sendLaterOpen}
+          onSendLaterOpenChange={p.onSendLaterOpenChange}
           onToggleTrack={p.onToggleTrack}
         />
         <Menu items={moreItems} placement="bottom-end" trigger={<IconButton label="More"><MoreHorizontal size={18} strokeWidth={1.5} /></IconButton>} />
@@ -76,7 +85,7 @@ export function ComposerBar(p: Props): JSX.Element {
   );
 }
 
-type ToolsProps = Pick<Props, "fields" | "templates" | "receiptsBlockedReason" | "aiOpen" | "onToggleAi" | "onAttach" | "onTemplate" | "onRemind" | "onSendLater" | "onToggleTrack"> & {
+type ToolsProps = Pick<Props, "fields" | "templates" | "receiptsBlockedReason" | "aiOpen" | "onToggleAi" | "onAttach" | "onTemplate" | "onRemind" | "onSendLater" | "sendLaterOpen" | "onSendLaterOpenChange" | "onToggleTrack"> & {
   /** Where menus and pickers open. The docked reply sits at the bottom of the window, so it passes "top-start". */
   placement?: "bottom-start" | "top-start";
 };
@@ -99,7 +108,15 @@ export function ComposerTools(p: ToolsProps): JSX.Element {
           onPick={p.onRemind}
           trigger={<IconButton label={remindLabel} pressed={fields.remindAt !== null}>{fields.remindAt ? <BellRing size={18} strokeWidth={1.5} /> : <Bell size={18} strokeWidth={1.5} />}</IconButton>}
         />
-        <DateTimePicker title="Send later" onPick={p.onSendLater} trigger={<IconButton label="Send later"><Clock size={18} strokeWidth={1.5} /></IconButton>} />
+        <Popover
+          label="Send later"
+          placement="bottom-start"
+          open={p.sendLaterOpen}
+          onOpenChange={p.onSendLaterOpenChange}
+          trigger={<IconButton label="Send later" shortcut={SEND_LATER_COMBO}><Clock size={18} strokeWidth={1.5} /></IconButton>}
+        >
+          {(close) => <DateTimePanel title="Send later" onPick={(at) => { p.onSendLater(at); close(); }} />}
+        </Popover>
         {p.receiptsBlockedReason ? (
           <IconButton label={p.receiptsBlockedReason} aria-disabled className={styles.receiptsBlocked}>
             <EyeOff size={18} strokeWidth={1.5} />

@@ -111,6 +111,49 @@ describe("InlineReplyDock", () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledWith({ draftId: null, reason: "discarded" }));
   });
 
+  it("asks before sending a reply that mentions an attachment it doesn't have", async () => {
+    const { message } = await firstMessage();
+    const draft = await flint.createDraft({ mode: "reply", messageId: message.id });
+    await flint.updateDraft(draft.id, { html: "<p>The deck is attached.</p>" });
+    const { onClose } = await mountDock("reply", { draftId: draft.id });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    await screen.findByRole("dialog", { name: "Send without an attachment?" });
+    expect(screen.getByRole("button", { name: "Attach a file" })).toBeTruthy();
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Send anyway" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalledWith({ draftId: null, reason: "sent" }));
+  });
+
+  it("opens the Send later picker on Cmd+Shift+Enter without sending", async () => {
+    const { onClose } = await mountDock();
+    fireEvent.keyDown(screen.getByRole("region", { name: "Reply" }), { key: "Enter", metaKey: true, shiftKey: true });
+    expect(await screen.findByText("Pick date & time")).toBeTruthy();
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("undoes the send from the keyboard while the toast is up, and reopens the draft", async () => {
+    const cancel = vi.spyOn(flint, "cancelSend");
+    const { onClose } = await mountDock();
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalledWith({ draftId: null, reason: "sent" }));
+    const undo = await screen.findByRole("button", { name: /^Undo (⌘Z|Ctrl\+Z)$/ });
+    const mac = undo.textContent === "Undo ⌘Z";
+    const later = vi.fn();
+    document.addEventListener("keydown", later);
+    fireEvent.keyDown(document.body, { key: "z", metaKey: mac, ctrlKey: !mac });
+    document.removeEventListener("keydown", later);
+    expect(later).not.toHaveBeenCalled();
+    expect(cancel).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByTestId("composers").textContent).toBe("1"));
+    expect(screen.queryByRole("button", { name: /^Undo / })).toBeNull();
+    // This send is disarmed: a second press never cancels it again (it may reach an earlier test's send, still in its window).
+    const first = cancel.mock.calls[0]![0];
+    fireEvent.keyDown(document.body, { key: "z", metaKey: mac, ctrlKey: !mac });
+    expect(cancel.mock.calls.slice(1).map((c) => c[0])).not.toContain(first);
+    cancel.mockRestore();
+  });
+
   it("opens forward with an empty To line", async () => {
     await mountDock("forward");
     expect(screen.getByRole("heading", { level: 3 }).textContent).toMatch(/^Fwd: /);

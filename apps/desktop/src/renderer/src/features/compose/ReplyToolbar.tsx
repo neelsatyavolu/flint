@@ -24,6 +24,8 @@ type Props = {
   onTemplate: (t: Template) => void;
   onRemind: (at: number | null) => void;
   onSendLater: (at: number) => void;
+  sendLaterOpen?: boolean;
+  onSendLaterOpenChange?: (open: boolean) => void;
   onToggleTrack: () => void;
   onFrom: (o: FromOption) => void;
   onSignature: (s: Signature | null) => void;
@@ -48,6 +50,8 @@ export function ReplyToolbar(p: Props): JSX.Element {
           onTemplate={p.onTemplate}
           onRemind={p.onRemind}
           onSendLater={p.onSendLater}
+          sendLaterOpen={p.sendLaterOpen}
+          onSendLaterOpenChange={p.onSendLaterOpenChange}
           onToggleTrack={p.onToggleTrack}
         />
         <Menu items={moreItems} placement="top-start" trigger={<IconButton label="More"><MoreHorizontal size={18} strokeWidth={1.5} /></IconButton>} />
