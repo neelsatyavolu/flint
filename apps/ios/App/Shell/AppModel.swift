@@ -31,8 +31,17 @@ final class AppModel {
 
     // MARK: Navigation
     var mailbox: MailboxSelection = .unifiedInbox
-    var openThread: ThreadID?
+    var openThread: ThreadID? {
+        didSet { if oldValue != nil, openThread == nil { returnToSearchIfNeeded() } }
+    }
     var presented: Presented?
+    /// iPad: the composer panel stays on screen while a thread, search or settings opens. It is held here while another
+    /// sheet is `presented`; `composerPanelRequest` is what the panel shows.
+    internal(set) var parkedCompose: ComposeRequest?
+    /// True when the window is wide enough for the composer panel (set by the root view from the size class).
+    internal(set) var isWide = false
+    /// The query of the search a thread was opened from, so Back returns to the results.
+    internal(set) var searchReturn: String?
     var columnVisibility: NavigationSplitViewVisibility = .all
     /// The last link the app was opened with, until the owning feature takes it with `takePendingLink()`.
     private(set) var pendingLink: DeepLink?
@@ -44,13 +53,17 @@ final class AppModel {
     @ObservationIgnored let defaults: UserDefaults
     @ObservationIgnored private var observers: [Task<Void, Never>] = []
     @ObservationIgnored private var demoDirectory: URL?
+    @ObservationIgnored let backgroundTasking: any BackgroundTasking
+    @ObservationIgnored var backgroundTaskId: Int?
+    @ObservationIgnored var drainTask: Task<SendDrain.Outcome, Never>?
 
-    init(mode: LaunchMode = .fromArguments(), toasts: ToastCenter = ToastCenter(), defaults: UserDefaults = .standard) {
+    init(mode: LaunchMode = .fromArguments(), toasts: ToastCenter = ToastCenter(), defaults: UserDefaults = .standard, backgroundTasking: any BackgroundTasking = SystemBackgroundTasking()) {
         // swift-log is process-wide and SwiftMail logs hosts and commands: install the privacy handler before any transport exists.
         FlintLogging.bootstrap()
         self.mode = mode
         self.toasts = toasts
         self.defaults = defaults
+        self.backgroundTasking = backgroundTasking
         recentSearches = mode.isDemo ? [] : defaults.stringArray(forKey: Self.recentsKey) ?? []
     }
 
@@ -87,11 +100,11 @@ final class AppModel {
         }
     }
 
-    /// Foreground: start sync again. Cheap when already running.
-    func sceneBecameActive() async { await service?.start() }
-
-    /// Background: stop sync sessions and the scheduler pump.
-    func sceneEnteredBackground() async { await service?.stop() }
+    /// Foreground: start sync again and send whatever came due while the app was away. Cheap when already running.
+    func sceneBecameActive() async {
+        await service?.start()
+        await service?.runDueWork()
+    }
 
     /// Stops observing and, for a demo launch, deletes the temporary database.
     func shutdown() async {

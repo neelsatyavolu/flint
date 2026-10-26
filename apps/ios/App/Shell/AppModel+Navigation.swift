@@ -7,25 +7,72 @@ extension AppModel {
         switch route {
         case .mailbox(let selection):
             mailbox = selection
+            searchReturn = nil
             openThread = nil
             if presented == .sidebar { presented = nil }
         case .thread(let id):
-            presented = nil
+            searchReturn = nil
+            present(nil)
             openThread = id
         case .compose(let request):
+            parkedCompose = nil
             presented = .compose(request)
         case .search(let query):
-            presented = .search(query)
+            let start = query ?? searchReturn
+            searchReturn = nil
+            present(.search(start))
         case .settings(let section):
-            presented = .settings(section)
+            present(.settings(section))
         case .onboarding:
-            presented = .onboarding
+            present(.onboarding)
         case .sidebar:
-            presented = .sidebar
+            present(.sidebar)
         case .dismiss:
             if presented != nil { presented = nil } else { openThread = nil }
         }
     }
+
+    /// Opens a search result. Back (or closing the thread) returns to the same search.
+    func openFromSearch(_ id: ThreadID, query: String) {
+        navigate(to: .thread(id))
+        searchReturn = query
+    }
+
+    /// Replaces the sheet. On iPad a composer that is showing as the panel is parked instead of closed.
+    private func present(_ next: Presented?) {
+        if isWide, case .compose(let request)? = presented { parkedCompose = request }
+        presented = next
+    }
+
+    func returnToSearchIfNeeded() {
+        guard let query = searchReturn, presented == nil else { return }
+        searchReturn = nil
+        presented = .search(query)
+    }
+
+    /// What the iPad composer panel shows: the composer being presented, or the one parked behind another sheet.
+    var composerPanelRequest: ComposeRequest? {
+        guard isWide else { return nil }
+        if case .compose(let request)? = presented { return request }
+        return parkedCompose
+    }
+
+    /// Closes the composer wherever it is (sheet or panel). The composer calls it when it is done.
+    func closeComposer() {
+        if case .compose? = presented { presented = nil }
+        parkedCompose = nil
+    }
+
+    /// The root view reports whether the window is wide. A panel composer becomes a sheet again when the window turns compact.
+    func setWide(_ wide: Bool) {
+        isWide = wide
+        guard !wide, let request = parkedCompose else { return }
+        parkedCompose = nil
+        if presented == nil { presented = .compose(request) }
+    }
+
+    /// Letter shortcuts (E, J, K, arrows) are off while text could be typed: a sheet is up or the composer panel is open.
+    var singleKeyShortcutsActive: Bool { presented == nil && composerPanelRequest == nil }
 
     /// Routes a URL the app was opened with. Sign-in redirects normally reach the web sign-in session directly; they are kept
     /// here only for a cold launch from the URL.

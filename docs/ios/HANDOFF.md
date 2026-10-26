@@ -215,3 +215,10 @@ All seven track branches merged into `ios`. Shared-file changes made while integ
 - Tooling note: with this Xcode, `xcodebuild test` sometimes stays idle after the last suite has finished (seen with and without `-resultBundlePath`). `e2e-greenmail.sh` stops it once the suite has reported and the log has been quiet for 90 s.
 - FlintModel `Threads.swift` (thread group, wave 3 fix): added `MessageView.hasRemoteImages`, `ThreadDetail.place` and `ThreadPlace`; `remoteImages` now means "image rule list lifted" only. Other `MessageView`/`ThreadDetail` builders need no change (defaults).
 - Shared `SheetHeader` (App/Shared): the `.header` identifier on the bar hides the close button's `<id>.close` identifier in UI tests (found via the thread sheets; tests use the "Close" label). Snooze and move sheets for the thread are copies of the inbox ones because those take an `InboxViewModel`; they could share a view later.
+
+## Wave 3 review fixes, shell group
+- Decision (finding 20): iPad portrait narrower than 1000 pt (11-inch is 834) keeps two visible columns, list and reader, with the sidebar over the list from the menu button. Three columns would leave the reader under 200 pt. PLAN's "three columns in portrait" holds for the 13-inch (1032 pt) only.
+- `App/Features/Composer/ComposerRoot.swift`: the composer's dismiss closure now calls `model.closeComposer()` instead of `navigate(to: .dismiss)` (one line), so closing the composer never closes a sheet or thread on iPad.
+- `App/Features/Search/SearchRoot.swift`: a tapped result calls `model.openFromSearch(id, query:)` (one line).
+- Sends whose undo window outlasts the ~25 s of background time, and scheduled sends, still wait for the foreground until Wave 4B adds the `BGProcessingTask` (`co.xanom.flint.processing`).
+- `FaceIDLock` moved from `PrivacyAboutPages.swift` to `App/Shell/DeviceAuthentication.swift`.

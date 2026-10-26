@@ -118,7 +118,7 @@ swift test --package-path Packages/FlintCore     # engine, on the Mac
 | 6.8 | iPad: the composer is a floating panel at the bottom right; the list stays usable | Panel shrinks to fit above the keyboard | sim (screenshot); keyboard overlap not checked with a hardware keyboard |
 | 6.9 | Attach from Photos, Files and camera | Attachment rows with sizes | device (O5) for the camera; Photos and Files not yet run |
 | 6.10 | Autosave to the server Drafts folder (GreenMail) | Draft appears in Drafts on the server | not yet run |
-| 6.11 | Hardware keyboard: Cmd-N, Cmd-R, Cmd-Return | Compose, reply, send | device (O5) with a keyboard |
+| 6.11 | iPad hardware keyboard: Cmd-N compose, Cmd-R reply, Shift-Cmd-R reply all, E archive, J/K or Down/Up next and previous, Cmd-F search, Cmd-Return send | Each does its action; letter and arrow keys are off while a sheet or the composer panel is up; the Cmd-hold overlay lists them | auto on iPad simulator (`ShellFixTests`: Cmd-N, Cmd-R, Cmd-F, E, J, Up); Shift-Cmd-R and K by logic only; device (O5) for a real Magic Keyboard |
 
 ## 7. Search (3F)
 
@@ -142,7 +142,7 @@ swift test --package-path Packages/FlintCore     # engine, on the Mac
 | 8.5 | Rule without a name | "Name the rule." | auto |
 | 8.6 | Appearance: Graphite / Paper / System | Whole app switches | sim |
 | 8.7 | Re-authenticate and Remove account (GreenMail) | Remove asks first; mail of that account goes | not yet run |
-| 8.8 | Privacy: Face ID lock | Locks on return from background | device (O5) |
+| 8.8 | Privacy: Face ID lock | Flat lock screen on launch and on return from background; flat cover (no mail) in the app switcher; Unlock asks Face ID or passcode; a cancelled prompt stays locked | state machine auto; lock screen sim (`-FlintFakeAuth`); real Face ID and app switcher device (O5) |
 | 8.9 | About: version and licenses | | sim |
 
 ## 9. End to end on GreenMail
@@ -166,5 +166,5 @@ swift test --package-path Packages/FlintCore     # engine, on the Mac
 | 10.2 | Dynamic Type AX3 on inbox, thread, composer | No clipped rows or fields | sim (`ScreenTourTests.testLargeText`) |
 | 10.3 | Accessibility audit on the main screens | No failures beyond the exceptions listed in the test header | auto (`AccessibilityAuditTests`, iPhone and iPad) |
 | 10.4 | Full VoiceOver pass | Every row and action has a label | device (O5) |
-| 10.5 | iPad rotation and Split View sizes | Columns collapse cleanly | sim (13-inch portrait and landscape); 11-inch, Split View and Stage Manager not run |
+| 10.5 | iPad rotation and Split View sizes | Columns collapse cleanly | sim (13-inch portrait and landscape); 11-inch portrait run (list and reader, sidebar on demand: decided, see HANDOFF); Split View and Stage Manager not run |
 | 10.6 | Background refresh, local network prompt, notifications | Wave 4 | device (O5) |
