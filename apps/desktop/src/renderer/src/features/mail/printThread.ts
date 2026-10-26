@@ -11,11 +11,18 @@ const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").rep
 
 const people = (list: Address[]) => escape(list.map(formatAddress).join(", "));
 
-/** One message: who, when, then the body. core has already sanitized the HTML; blocked remote images stay blocked. */
+/** Base rules for each HTML body. They sit inside the body's shadow root, where the page sheet doesn't reach. */
+const BODY_SHEET = "<style>a{color:#2f6fe0}img{max-width:100%;height:auto}table{max-width:100%}.flint-blocked-img{display:none}</style>";
+
+/**
+ * One message: who, when, then the body. core has already sanitized the HTML; blocked remote images stay blocked.
+ * An HTML body goes in its own declarative shadow root, so its <style> blocks style only that message, the way the
+ * reader's per-message frames do, and can't restyle the header or the other messages.
+ */
 function messageBlock(m: PrintMessage): string {
   const body =
     m.html !== null
-      ? m.remoteImages === "allowed" ? m.html : blockRemoteImages(m.html)
+      ? `<template shadowrootmode="open">${BODY_SHEET}${m.remoteImages === "allowed" ? m.html : blockRemoteImages(m.html)}</template>`
       : `<div class="text">${escape(m.text ?? "")}</div>`;
   const rows = [
     `<div><b>From</b> ${people(m.from)}</div>`,
@@ -44,10 +51,6 @@ h1{margin:0 0 4px;font-size:20px;line-height:28px;font-weight:600}
 .msg header{margin-bottom:12px;color:#3d3c37;font-size:12px}
 .msg header b{display:inline-block;min-width:40px;font-weight:600;color:#1a1a17}
 .text{white-space:pre-wrap}
-a{color:#2f6fe0}
-img{max-width:100%;height:auto}
-table{max-width:100%}
-.flint-blocked-img{display:none}
 @page{margin:16mm}
 </style></head><body>
 <h1>${title}</h1>
