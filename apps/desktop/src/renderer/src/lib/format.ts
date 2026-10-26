@@ -12,6 +12,21 @@ export function formatListTime(ts: number, now: number = Date.now()): string {
   return format(d, "MMM d, yyyy");
 }
 
+/**
+ * Relative time for "edited" and "updated" hints: "just now", "12 min ago", "2h ago", "yesterday", "3 days ago",
+ * then the date. A time in the future (clock skew) reads as "just now".
+ */
+export function formatAgo(ts: number, now: number = Date.now()): string {
+  const minutes = Math.floor((now - ts) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const days = differenceInCalendarDays(new Date(now), new Date(ts));
+  if (days === 0 || minutes < 6 * 60) return `${Math.floor(minutes / 60)}h ago`;
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days} days ago`;
+  return isSameYear(ts, now) ? format(ts, "MMM d") : format(ts, "MMM d, yyyy");
+}
+
 /** Message header time: "Oct 23, 2026, 3:49 PM". */
 export function formatFullDate(ts: number): string {
   return format(new Date(ts), "MMM d, yyyy, h:mm a");
