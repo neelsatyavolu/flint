@@ -4,6 +4,7 @@ import "./styles/base.css";
 import { flint } from "./lib/api";
 import { startThemeSync } from "./lib/theme";
 import { shortcuts } from "./lib/shortcuts";
+import { ErrorBoundary } from "./ui/ErrorBoundary";
 import { ToastProvider } from "./ui/Toast";
 import { App } from "./App";
 
@@ -22,7 +23,9 @@ async function boot() {
   }
   root.render(
     <StrictMode>
-      <ToastProvider>{view}</ToastProvider>
+      <ErrorBoundary>
+        <ToastProvider>{view}</ToastProvider>
+      </ErrorBoundary>
     </StrictMode>,
   );
 }

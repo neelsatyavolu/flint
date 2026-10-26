@@ -6,6 +6,7 @@ export { DateTimePicker, DateTimePanel } from "./DateTimePicker";
 export { Dialog, Sheet } from "./Dialog";
 export { Divider } from "./Divider";
 export { EmptyState } from "./EmptyState";
+export { ErrorBoundary } from "./ErrorBoundary";
 export { FlintMark } from "./FlintMark";
 export { IconButton, type IconButtonProps } from "./IconButton";
 export { Input, TextArea, type InputProps, type TextAreaProps } from "./Input";
