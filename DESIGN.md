@@ -6,7 +6,7 @@ This file wins over `~/DESIGN.md` for this project. It is derived from that syst
 
 ## 1. Principles
 
-1. **Planes, not cards.** Depth comes from three stacked warm-gray planes (sidebar, list, reader) separated by 1px hairlines. No drop shadows, gradients, blur or glass anywhere.
+1. **Planes, not cards.** Depth comes from three stacked warm-gray planes (sidebar, list, reader) separated by 1px hairlines. No drop shadows, gradients, blur or glass anywhere. The one photograph in the app, the Home scene, follows its own rule (§5 Home scene).
 2. **One accent.** Spark blue `#4C8DFF` marks the current selection, focus, unread dots, links, the caret and the single primary action in view. Keep it under about 3% of a screen.
 3. **Three type roles.** Geist for UI. Geist Mono for data: times, counts, group labels, shortcuts, status words. Newsreader for prose the AI wrote (summaries, answers).
 4. **Calm density.** Every row has room to breathe. Nothing jumps on hover; only background shifts.
@@ -25,7 +25,7 @@ Dark ("Graphite") is the default. Light ("Paper") follows the system or the Them
 | `--plane-3` | `#232321` | `#FFFFFF` | Floating layers: menus, popovers, composer window, toasts |
 | `--fg` | `#EDEBE5` | `#1A1A17` | Primary text |
 | `--fg-2` | `rgba(237,235,229,.70)` | `rgba(26,26,23,.68)` | Secondary text, previews |
-| `--fg-3` | `rgba(237,235,229,.46)` | `rgba(26,26,23,.48)` | Meta, placeholders, group labels |
+| `--fg-3` | `rgba(237,235,229,.52)` | `rgba(26,26,23,.62)` | Meta, placeholders, group labels. At least 4.5:1 on every plane |
 | `--fg-4` | `rgba(237,235,229,.26)` | `rgba(26,26,23,.28)` | Disabled, empty-state mark |
 | `--hover` | `rgba(237,235,229,.045)` | `rgba(26,26,23,.04)` | Row/item hover |
 | `--active` | `rgba(237,235,229,.08)` | `rgba(26,26,23,.07)` | Pressed, secondary selected |
@@ -34,10 +34,14 @@ Dark ("Graphite") is the default. Light ("Paper") follows the system or the Them
 | `--accent` | `#4C8DFF` | `#2F6FE0` | The spark |
 | `--accent-fg` | `#0B1424` | `#FFFFFF` | Text on accent fills |
 | `--accent-soft` | `rgba(76,141,255,.14)` | `rgba(47,111,224,.10)` | Selected row, active nav item |
-| `--accent-ring` | `rgba(76,141,255,.50)` | `rgba(47,111,224,.45)` | Focus outline |
+| `--accent-ring` | `rgba(76,141,255,.68)` | `rgba(47,111,224,.81)` | Thin 1px focus outlines inside dense rows (sidebar). At least 3:1 on every plane |
 | `--danger` | `#E5483A` | `#C8352A` | Destructive actions, errors |
 | `--ok` | `#4FBF85` | `#24894F` | Success state only (e.g. "Opened") |
 | `--warn` | `#D9A441` | `#9C6B12` | Sync warnings, "can't confirm" receipts |
+
+Every text token from `--fg-3` up meets WCAG AA (4.5:1) on every plane in both themes; `tokens.test.ts` checks this. `--fg-4` is for disabled text and marks only.
+
+**Increase contrast.** Under `prefers-contrast: more` (macOS Accessibility → Increase contrast), `--fg-2` rises to `.84` / `.80`, `--line-strong` to `.42` / `.50` (3:1 on every plane), `--hover` and `--active` get a little stronger, and hovered menu items, selected options and the current nav item also get a 1px `--line-strong` inset outline, so no state depends on a faint tint alone.
 
 **Avatar tints** are the only other colors. Eight muted hues, picked by hashing the address, so a sender keeps their color: `oklch(0.58 0.09 h)` in dark and `oklch(0.68 0.08 h)` in light for h in 25, 60, 95, 150, 195, 235, 280, 330, with initials in `#F4F2EC`. They never appear outside avatars and account color chips.
 
@@ -57,7 +61,9 @@ Fonts are bundled (`@fontsource`), never loaded from the network.
 | Data | Geist Mono | 11.5 / 16 | 400 | Times, counts, badges, shortcut hints |
 | Label | Geist Mono | 11 / 16 | 500 | UPPERCASE, tracking `0.08em`, `--fg-3`: date groups ("TODAY"), section heads |
 | Prose | Newsreader | 16.5 / 26 | 400 | AI summaries and answers, max 68ch |
-| Message | Geist | 14.5 / 22 | 400 | Plain-text mail bodies and draft previews, matching HTML mail |
+| Message | Geist | 14.5 / 22 | 400 | Plain-text mail bodies, the compose editor, signature and template editors, draft previews, matching HTML mail |
+
+Each role has tokens in `tokens.css` (`--text-*` / `--lh-*`) and a `.t-*` class; Message is `--text-message`, `--lh-message` and `.t-message`. Components use these instead of off-scale sizes: tooltips and chips are UI body, counts are Data. A 16px avatar shows a single initial at 9px; 24px and up show two.
 
 Numbers use `font-variant-numeric: tabular-nums`. Italics appear only in prose.
 
@@ -78,7 +84,7 @@ macOS window with `titleBarStyle: hiddenInset`. Traffic lights sit over the side
 - Sidebar collapses with the toggle in its header or `⌘\`. Under 1100px window width the sidebar auto-collapses to a 56px icon rail.
 - **Full Screen layout** (Settings → Appearance → Layout): the list takes the whole content area; opening a thread replaces it, Esc returns.
 - 4px base grid. Spacing steps: 4 · 8 · 12 · 16 · 20 · 24 · 32 · 48.
-- Radius: `0` for planes, rows and panes. `4px` for controls (buttons, inputs, selects, chips, badges, menus, popovers, toasts, composer window). `12px` (`--r-card`) for message cards, draft cards and the reply dock only: they are the one place a surface holds a document. Circles and pills (`999px`) only for avatars, unread dots, toggles and the small quote pill.
+- Radius: `0` for planes, rows and panes. `4px` for controls (buttons, inputs, selects, chips, badges, menus, popovers, toasts, composer window). `12px` (`--r-card`) for message cards, draft cards, the reply dock and the Home sheet only: they are the places a surface holds a document or floats over the Home photo. Circles and pills (`999px`) only for avatars, unread dots, toggles and the small quote pill.
 
 ## 5. Components
 
@@ -126,21 +132,32 @@ macOS window with `titleBarStyle: hiddenInset`. Traffic lights sit over the side
 
 ### Ask anything
 - Floating field bottom-right of the reader (320px, 40px tall, 4px radius, `--plane-3`, `--line-strong` border, sparkle glyph in `--accent`). Opens a side panel (380px) over the reader with the conversation in Prose and cited threads as clickable rows.
+- Streamed AI text (Ask, thread summary, translation, bundle summary) is announced through a visually hidden polite live region: one line when it starts ("Answering") and one when it ends ("Answer ready"), never token by token. When an answer the user asked for finishes, focus moves to it unless they have moved elsewhere. Errors are `role="alert"`.
+
+### Home scene
+- Home is the only photographic surface in Flint. A landscape photo, bundled with the app and picked by time of day, fills the Home view behind its content. No other view gets a photo or illustration.
+- The only treatment allowed on the photo is one flat, uniform scrim (`--scene-scrim`: ink at 30% in Graphite, 18% in Paper). No gradient, blur, glass, vignette, Ken Burns or parallax.
+- Text appears on the photo only in the top band (about 200px: greeting, date and time), in `--on-scene` (`#F4F2EC`). Everything else readable (catch-up, needs reply, lists, buttons) sits on solid planes: a `--plane-2` sheet, max 720px, `--r-card` radius, 1px `--line` border, no shadow or blur.
+- The photo is decorative (`alt=""`). It shows only once it has loaded, cross-fades over `--dur-panel`, and gives way to plain `--plane-2` under Reduce transparency or Increase contrast.
+- Photos are CC0 or public domain, bundled with the app (credits in `assets/scenes/LICENSES.md`) and never fetched at runtime.
 
 ### Settings
-- Opens as a full view replacing list and reader. Left: section nav (General, Accounts, Appearance, Inbox, Signatures, Templates, Rules, Read Receipts, Notifications, +AI, Agents, Shortcuts, Blocked, About).
-- Content column max 720px. Each setting is a row: 20px icon in `--accent` at left, title (Geist 14.5, 600) and description (13.5, `--fg-3`) stacked, control at right (select, toggle, button). Rows separated by `--line` hairlines, 20px vertical padding. Section title in Title style above.
+- Opens as a full view replacing list and reader. Left: section nav (General, Accounts, Appearance, Inbox, Signatures, Templates, Rules, Read Receipts, Notifications, +AI, Agents, Shortcuts, Blocked, About). Its header is the 38px drag region and clears the traffic lights when the sidebar is collapsed. Under it, a Filter field narrows the nav by section name and the settings inside each section; Enter opens the first match, Esc clears it, then closes Settings.
+- Content column max 720px. Each setting is a row: 20px icon in `--accent` at left, title (Geist 14.5, 600) and description (13.5, `--fg-3`) stacked, control at right (select, toggle, button). Rows separated by `--line` hairlines, 20px vertical padding, 16px gap. Section title in Title style above.
+- A row that opens a page (+AI → Personalization) uses the same metrics with a chevron at right. Its hover tint reaches 8px past the column on each side with a 4px radius, so the text never touches the tint's edge.
+- Deep links: `openSettings("rules")`, `"ai/writing"`, `"accounts/<id>"` (expands that account) and `"accounts/<id>/reauth"` (also opens Sign in again). Account ids keep their case.
 - Select: 32px, 4px radius, `--line-strong` border, transparent background, chevrons at right.
-- Toggle: 32×18 pill, off `--active`, on `--accent` with `--accent-fg` knob.
+- Toggle: 32×18 pill. Off: `--active` track with a 1px `--fg-3` edge (the tint alone is under 3:1 on Paper) and an `--fg-2` knob. On: `--accent` track and edge with an `--accent-fg` knob.
 
 ### Buttons and inputs
 - Primary (one per view): `--accent` fill, `--accent-fg` text, 32px, 4px radius, Geist 13.5 600.
 - Secondary: `--fg` fill, `--plane-1` text. Ghost: transparent, `--line-strong` border. Icon button: 28px square, no border.
 - Input: 32px, transparent, `--line-strong` border, `--accent` border and caret on focus.
-- Focus ring: 2px `--accent-ring` outline, offset 1px, on every focusable element via `:focus-visible`.
+- Focus ring (`--focus-ring`): 2px solid `--accent` outline, offset 1px, on every focusable element via `:focus-visible`. The solid accent is at least 3:1 on every plane in both themes; a translucent ring was not.
 
 ### Menus, popovers, toasts
-- `--plane-3`, 1px `--line-strong` border, 4px radius, no shadow. Menu items 28px with shortcut hints in Data at right.
+- `--plane-3`, 1px `--line-strong` border, 4px radius, no shadow. Menu items 28px with shortcut hints in Data at right. Checked items show a lucide `Check` (14px, stroke 1.5, `--accent`), never a text glyph.
+- Menu items and picker rows show keyboard focus as the `--active` tint plus a 1px `--line-strong` inset outline; pointer hover is the tint alone.
 - Toasts bottom-right, resting on top of the Ask field so they never cover the list or the field: "Archived · Undo" with the action as a text button in `--accent`. 5s.
 - Snooze / send-later pickers: list of presets (Later today, Tomorrow, This weekend, Next week, Pick date & time) with the resolved time in Data at right.
 
@@ -161,9 +178,9 @@ Plain and short. Buttons say what happens: "Send", "Archive", "Load images", "Co
 
 ## 9. Don'ts
 
-- No drop shadows, gradients, glassmorphism, glow.
+- No drop shadows, gradients, glassmorphism, glow. That includes the Home photo: a flat scrim is the only treatment.
+- No photos or illustrations outside the Home scene, and no text on the photo below its top band.
 - No second accent; avatar tints are not accents.
 - No Inter, no system-ui as the main face.
-- No rounded corners above 4px except message, draft and dock cards (`--r-card`), the quote pill, avatars, dots and toggles.
-- No spinners over content, no layout shift when data arrives.
+- No rounded corners above 4px except message, draft and dock cards and the Home sheet (`--r-card`), the quote pill, avatars, dots and toggles.- No spinners over content, no layout shift when data arrives.
 - No centered-everything layouts.
