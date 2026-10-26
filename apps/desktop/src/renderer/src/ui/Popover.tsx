@@ -1,6 +1,6 @@
 import { cloneElement, useState, type ReactElement, type ReactNode, type Ref } from "react";
 import {
-  FloatingFocusManager, FloatingPortal, autoUpdate, flip, offset, shift, useClick, useDismiss, useFloating,
+  FloatingFocusManager, FloatingPortal, autoUpdate, flip, offset, shift, size, useClick, useDismiss, useFloating,
   useInteractions, useMergeRefs, useRole, type Placement,
 } from "@floating-ui/react";
 import clsx from "clsx";
@@ -31,7 +31,11 @@ export function Popover({ trigger, children, placement = "bottom-start", open: c
     onOpenChange: setOpen,
     placement,
     whileElementsMounted: autoUpdate,
-    middleware: [offset(4), flip({ padding: 8 }), shift({ padding: 8 })],
+    middleware: [
+      offset(4), flip({ padding: 8 }), shift({ padding: 8 }),
+      // Long content (a big Cc list, the sync problems list) scrolls inside the panel instead of running off-screen.
+      size({ apply({ elements, availableHeight }) { elements.floating.style.maxHeight = `${Math.max(120, availableHeight)}px`; }, padding: 8 }),
+    ],
   });
   const { getReferenceProps, getFloatingProps } = useInteractions([
     useClick(context),

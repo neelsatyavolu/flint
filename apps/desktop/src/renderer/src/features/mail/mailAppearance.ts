@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { create } from "zustand";
 import type { MessageView } from "@flint/core";
-import { adaptMailForDark } from "../../lib/mailDark";
+import { adaptMailForDarkCached } from "../../lib/mailDark";
 import { useResolvedTheme } from "../../lib/theme";
 import { useApp } from "../../state/AppContext";
 
@@ -32,17 +32,18 @@ export const useOriginalChoice = create<{ original: Record<number, boolean>; tog
  * Decides how a message's HTML is shown. Plain text returns html null (it follows the theme on its own).
  * Light theme or emailAppearance "light" shows the original on the light sheet. Dark theme with "match"
  * adapts the colors, or falls back to the light sheet when adapting would break the design.
+ * With `enabled` false nothing is adapted (canToggle stays false), for callers that only need it later, like a menu.
  */
-export function useMailAppearance(message: MessageView): MailAppearance {
+export function useMailAppearance(message: MessageView, enabled = true): MailAppearance {
   const { settings } = useApp();
   const theme = useResolvedTheme();
   const flipped = useOriginalChoice((s) => s.original[message.id] === true);
   const toggle = useOriginalChoice((s) => s.toggle);
   const toggleOriginal = () => toggle(message.id);
 
-  const wantsDark = theme === "dark" && settings.appearance.emailAppearance === "match";
+  const wantsDark = enabled && theme === "dark" && settings.appearance.emailAppearance === "match";
   const original = message.html;
-  const adapted = useMemo(() => (wantsDark && original ? adaptMailForDark(original) : null), [wantsDark, original]);
+  const adapted = useMemo(() => (wantsDark && original ? adaptMailForDarkCached(message.id, original) : null), [wantsDark, original, message.id]);
 
   if (original === null) return { html: null, sheet: "theme", canToggle: false, showingOriginal: false, toggleOriginal };
   if (!adapted) return { html: original, sheet: "light-sheet", canToggle: false, showingOriginal: true, toggleOriginal };

@@ -3,6 +3,7 @@
   min-width: 240px;
   max-width: 360px;
   padding: 4px;
+  overflow-y: auto;
   background: var(--plane-3);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-control);

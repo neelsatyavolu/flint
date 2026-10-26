@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Forward, MoreHorizontal, Reply, ReplyAll } from "lucide-react";
 import clsx from "clsx";
 import type { MessageView } from "@flint/core";
@@ -15,6 +15,8 @@ import { ReceiptPanel } from "./ReceiptPanel";
 import { ReceiptCheck } from "../receipts/ReceiptCheck";
 import { receiptMarker, recipientStatusLine, summaryOf } from "../../state/receiptText";
 import { RecipientsLine } from "./RecipientsPopover";
+import { PersonCard } from "./PersonCard";
+import { blockSender, unsubscribedMessage } from "./blockSender";
 import styles from "./Message.module.css";
 
 type Props = {
@@ -37,29 +39,43 @@ export function hasSingleRecipient(m: MessageView, selfAddresses: string[]): boo
   return others.size <= 1;
 }
 
-function MessageItemImpl({ message: m, expanded, selfAddresses, onToggle, onUpdated, now }: Props) {
-  const toast = useToast();
-  const appearance = useMailAppearance(m);
+// Each tracked message you sent carries its own check, so a thread with several of your messages shows each one.
+function receiptOf(m: MessageView) {
+  return m.receipt
+    ? { marker: receiptMarker(summaryOf(m.receipt)), detail: m.receipt.recipients.filter((r) => r.status !== "untracked").map((r) => `${displayName({ name: r.name, address: r.email })}: ${recipientStatusLine(r, m.receipt)}`).join("\n") }
+    : null;
+}
+
+function MessageItemImpl(props: Props) {
+  return props.expanded ? <ExpandedMessage {...props} /> : <CollapsedMessage {...props} />;
+}
+
+/** A 48px row. It never touches the mail's HTML, so a long thread's older messages cost nothing to show. */
+function CollapsedMessage({ message: m, onToggle, now }: Props) {
   const sender = senderOf(m);
   const name = m.isFromMe ? "me" : displayName(sender);
   const avatar = m.isFromMe ? { accountId: m.accountId } : {};
-  // Each tracked message you sent carries its own check, so a thread with several of your messages shows each one.
-  const receipt = m.receipt
-    ? { marker: receiptMarker(summaryOf(m.receipt)), detail: m.receipt.recipients.filter((r) => r.status !== "untracked").map((r) => `${displayName({ name: r.name, address: r.email })}: ${recipientStatusLine(r, m.receipt)}`).join("\n") }
-    : null;
+  const receipt = receiptOf(m);
+  return (
+    <button type="button" className={clsx(styles.collapsed, !m.seen && styles.unread)} aria-expanded={false} onClick={() => onToggle(m.id)}>
+      <Avatar address={sender.address} name={sender.name} size={24} {...avatar} />
+      <span className={styles.cName}>{name}</span>
+      <span className={styles.cSnippet}>{m.snippet}</span>
+      {receipt ? <ReceiptCheck marker={receipt.marker} detail={receipt.detail} /> : null}
+      <span className={clsx("t-data", styles.time)}>{formatListTime(m.date, now)}</span>
+    </button>
+  );
+}
 
-  if (!expanded) {
-    return (
-      <button type="button" className={clsx(styles.collapsed, !m.seen && styles.unread)} aria-expanded={false} onClick={() => onToggle(m.id)}>
-        <Avatar address={sender.address} name={sender.name} size={24} {...avatar} />
-        <span className={styles.cName}>{name}</span>
-        <span className={styles.cSnippet}>{m.snippet}</span>
-        {receipt ? <ReceiptCheck marker={receipt.marker} detail={receipt.detail} /> : null}
-        <span className={clsx("t-data", styles.time)}>{formatListTime(m.date, now)}</span>
-      </button>
-    );
-  }
-
+function ExpandedMessage({ message: m, selfAddresses, onToggle, onUpdated }: Props) {
+  const toast = useToast();
+  // "Show original" needs the adapted HTML; work it out only once the ... menu is opened (the body has its own copy).
+  const [menuOpened, setMenuOpened] = useState(false);
+  const appearance = useMailAppearance(m, menuOpened);
+  const sender = senderOf(m);
+  const name = m.isFromMe ? "me" : displayName(sender);
+  const avatar = m.isFromMe ? { accountId: m.accountId } : {};
+  const receipt = receiptOf(m);
   const reply = (mode: InlineReplyMode) => useInlineReply.getState().open({ threadId: m.threadId, messageId: m.id, mode });
   const single = hasSingleRecipient(m, selfAddresses);
 
@@ -83,11 +99,7 @@ function MessageItemImpl({ message: m, expanded, selfAddresses, onToggle, onUpda
           id: "block",
           label: "Block sender",
           danger: true,
-          onSelect: () =>
-            void flint.blockSender(sender.address).then(
-              () => toast.show({ message: `Blocked ${sender.address}` }),
-              () => toast.show({ message: "Couldn't block that sender. Try again.", level: "error" }),
-            ),
+          onSelect: () => void blockSender(flint, toast, sender.address),
         } as MenuItem]
       : []),
   ];
@@ -95,7 +107,7 @@ function MessageItemImpl({ message: m, expanded, selfAddresses, onToggle, onUpda
   async function unsubscribe() {
     try {
       const { method } = await flint.unsubscribe(m.id);
-      toast.show({ message: method === "browser" ? "Opened the unsubscribe page" : method === "mailto" ? "Sent an unsubscribe email" : "Unsubscribed" });
+      toast.show({ message: unsubscribedMessage(method) });
     } catch {
       toast.show({ message: "Couldn't unsubscribe. Try again.", level: "error" });
     }
@@ -107,13 +119,25 @@ function MessageItemImpl({ message: m, expanded, selfAddresses, onToggle, onUpda
       <header className={styles.head} onClick={() => onToggle(m.id)}>
         <Avatar address={sender.address} name={sender.name} size={32} className={styles.headAvatar} {...avatar} />
         <div className={styles.headText}>
-          <span className={clsx("t-strong", styles.fromName)} title={m.isFromMe ? undefined : sender.address}>{name}</span>
+          {sender.address ? (
+            <PersonCard
+              person={sender}
+              self={m.isFromMe}
+              trigger={
+                <button type="button" className={clsx("t-strong", styles.fromName)} title={m.isFromMe ? undefined : sender.address} onClick={(e) => e.stopPropagation()} aria-label={`${name}, ${sender.address}. Show card`}>
+                  {name}
+                </button>
+              }
+            />
+          ) : (
+            <span className={clsx("t-strong", styles.fromName)}>{name}</span>
+          )}
           <RecipientsLine message={m} selfAddresses={selfAddresses} />
         </div>
         <div className={styles.headRight} onClick={act}>
           {receipt ? <ReceiptCheck marker={receipt.marker} detail={receipt.detail} className={styles.headCheck} /> : null}
           <time className={clsx("t-data", styles.time)} dateTime={new Date(m.date).toISOString()}>{formatFullDate(m.date)}</time>
-          <Menu items={menu} placement="bottom-end" trigger={<IconButton size={24} label="More"><MoreHorizontal size={14} strokeWidth={1.5} /></IconButton>} />
+          <Menu items={menu} placement="bottom-end" trigger={<IconButton size={24} label="More" onPointerDown={() => setMenuOpened(true)} onKeyDown={() => setMenuOpened(true)}><MoreHorizontal size={14} strokeWidth={1.5} /></IconButton>} />
         </div>
       </header>
       <MessageBody message={m} onUpdated={onUpdated} />

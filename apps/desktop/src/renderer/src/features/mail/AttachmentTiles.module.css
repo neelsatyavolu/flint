@@ -1,0 +1,19 @@
+/* Attachment tiles under a message (DESIGN.md, Reader): 4px radius, 200px wide, glyph or thumbnail, name, size in Data. */
+.wrap { margin: 16px 0 0; }
+.tiles { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.tile { display: flex; align-items: center; width: 200px; padding-right: 4px; border: 1px solid var(--line-strong); border-radius: var(--r-control); }
+.tile:hover { background: var(--hover); }
+.tileMain { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 10px; border: 0; background: transparent; color: inherit; text-align: left; }
+.tileText { display: flex; flex-direction: column; min-width: 0; }
+.tileName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tileSize { color: var(--fg-3); }
+.thumb { flex: none; width: 48px; height: 48px; margin: -4px 0 -4px -2px; object-fit: cover; background: var(--active); }
+.saveAll { margin-top: 8px; }
+
+/* Image preview dialog: the picture on a neutral stage, step buttons at its sides. */
+.stage { position: relative; display: flex; align-items: center; justify-content: center; min-height: 240px; background: var(--plane-2); }
+.full { display: block; max-width: 100%; max-height: calc(100vh - 240px); object-fit: contain; }
+.prev, .next { position: absolute; top: 50%; transform: translateY(-50%); background: var(--plane-3); }
+.prev { left: 8px; }
+.next { right: 8px; }
+.previewMeta { margin-right: auto; align-self: center; color: var(--fg-3); }
