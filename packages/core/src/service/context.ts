@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { createCodeRegistry, type CodeRegistry } from "../codes/registry";
 import { createAiEngine, type AiEngine } from "../ai";
 import { startCategorizer } from "./categorizerWiring";
 import { currentAgent } from "../agent/context";
@@ -63,6 +64,8 @@ export type ServiceContext = {
   readonly ai: AiEngine;
   readonly compose: ComposeHooks;
   readonly agent: { handle: AgentServerHandle | null };
+  /** Recent verification codes, in memory only. */
+  readonly codes: CodeRegistry;
 };
 
 export function createContext(platform: Platform, options: ServiceOptions = {}): ServiceContext {
@@ -139,6 +142,6 @@ export function createContext(platform: Platform, options: ServiceOptions = {}):
     },
     googleClient, secretsReady,
     ensureBodies: (ids) => ensureBodies(store, syncs, ids),
-    syncs, undo, optimistic, scheduler, receipts, ai, compose, agent: { handle: null },
+    syncs, undo, optimistic, scheduler, receipts, ai, compose, agent: { handle: null }, codes: createCodeRegistry(now),
   };
 }

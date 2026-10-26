@@ -14,6 +14,7 @@ import { useMailAppearance } from "./mailAppearance";
 import { ReceiptPanel } from "./ReceiptPanel";
 import { ReceiptCheck } from "../receipts/ReceiptCheck";
 import { receiptMarker, recipientStatusLine, summaryOf } from "../../state/receiptText";
+import { CodeBanner } from "../codes/CodeBanner";
 import { RecipientsLine } from "./RecipientsPopover";
 import { PersonCard } from "./PersonCard";
 import { blockSender, unsubscribedMessage } from "./blockSender";
@@ -140,6 +141,7 @@ function ExpandedMessage({ message: m, selfAddresses, onToggle, onUpdated }: Pro
           <Menu items={menu} placement="bottom-end" trigger={<IconButton size={24} label="More" onPointerDown={() => setMenuOpened(true)} onKeyDown={() => setMenuOpened(true)}><MoreHorizontal size={14} strokeWidth={1.5} /></IconButton>} />
         </div>
       </header>
+      <CodeBanner badge={m.verificationCode} />
       <MessageBody message={m} onUpdated={onUpdated} />
       <AttachmentTiles attachments={m.attachments} />
       {m.receipt ? <ReceiptPanel receipt={m.receipt} /> : null}

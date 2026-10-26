@@ -6,6 +6,8 @@ import { actionsApi } from "./actions";
 import { agentsApi } from "./agents";
 import { startAgentWiring, stopAgentWiring } from "./agents-wiring";
 import { aiApi } from "./ai";
+import { codesApi, wireCodes } from "./codes";
+import { codesHelperApi } from "./codesHelper";
 import { composeApi } from "./compose";
 import { createContext } from "./context";
 import { avatarsApi } from "./avatars";
@@ -56,6 +58,10 @@ export type ServiceOptions = {
   cliPath?: string;
   /** Where installCli writes the `flint` wrapper and agentInfo looks for it. Default ~/.local/bin, /usr/local/bin. */
   cliInstallDirs?: string[];
+  /** Home directory whose Library/Application Support holds the browsers' NativeMessagingHosts folders (tests; default is the real home). */
+  browserHome?: string;
+  /** Folder holding the built browser extension (Resources/browser-extension in the app); null/absent when this build does not ship it. */
+  extensionDir?: string;
 };
 
 /** Builds the real service. The method groups live in their own files; TypeScript checks the composition covers FlintApi. */
@@ -77,10 +83,14 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
     ...receiptsApi(ctx),
     ...aiApi(ctx),
     ...agentsApi(ctx),
+    ...codesApi(ctx),
+    ...codesHelperApi(ctx),
     ...settingsApi(ctx),
     subscribe: ctx.bus.subscribe,
   };
-  const unwire = wireNotifications(ctx);
+  const unwireNotifications = wireNotifications(ctx);
+  const unwireCodes = wireCodes(ctx, { startSocket: Boolean(opts.agentServer) });
+  const unwire = (): void => { unwireNotifications(); unwireCodes(); };
   let state: "new" | "started" | "stopped" = "new";
   let headerRefresh: ReturnType<typeof setTimeout> | null = null;
 

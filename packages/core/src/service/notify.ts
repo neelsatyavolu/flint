@@ -1,6 +1,7 @@
 import type { FlintApi } from "../api";
 import { logger } from "../log";
 import { alertFor, soundFor, wantsAlert, type NewMailEvent } from "./notifyPolicy";
+import { codeAlertCovers } from "./codes";
 import type { ServiceContext } from "./context";
 
 const log = logger("service.notify");
@@ -33,7 +34,7 @@ export function wireNotifications(ctx: ServiceContext, opts: { windowMs?: number
 
   const flush = (): void => {
     timer = null;
-    const batch = pending;
+    const batch = pending.filter((e) => !codeAlertCovers(ctx, e.threadId));
     pending = [];
     try {
       const alert = alertFor(ctx.getSettings().notifications, batch);

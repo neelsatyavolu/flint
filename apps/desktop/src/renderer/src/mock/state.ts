@@ -1,6 +1,6 @@
 import type {
   AgentSkillStatus,
-  Account, AccountId, AgentActivity, AiStatus, Category, Draft, Folder, FolderId, MessageView, Rule, ReceiptDetail,
+  Account, AccountId, AgentActivity, BrowserHelperStatus, VerificationCode, AiStatus, Category, Draft, Folder, FolderId, MessageView, Rule, ReceiptDetail,
   ScheduledSend, Settings, Signature, SyncStatus, Template, ThreadId, TrackedMessage,
 } from "@flint/core";
 
@@ -36,6 +36,9 @@ export type MockState = {
   receipts: Record<number, ReceiptDetail>;
   activity: AgentActivity[];
   skill: AgentSkillStatus;
+  /** Demo verification codes. The desktop builder points threadId/messageId at a real fixture thread and attaches verificationCode to it. */
+  codes: VerificationCode[];
+  helper: BrowserHelperStatus;
   settings: Settings;
   ai: AiStatus;
   sync: SyncStatus[];

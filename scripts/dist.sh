@@ -62,6 +62,7 @@ fi
 
 cd "$ROOT"
 pnpm --filter @flint/cli build
+pnpm --filter @flint/browser-extension build
 cd "$ROOT/apps/desktop"
 rm -rf release
 pnpm exec electron-vite build

@@ -16,6 +16,8 @@ export type NotifyRequest = {
   group?: string;
   /** Show Archive / Mark as read buttons that act on `threadId`. */
   actions?: boolean;
+  /** Show a "Copy code" button that copies this text to the clipboard (and clears it after CODE_CLIPBOARD_CLEAR_MS if unchanged). */
+  copyText?: string;
 };
 
 export interface Platform {
@@ -25,6 +27,8 @@ export interface Platform {
   openExternal(url: string): Promise<void>;
   openPath(path: string): Promise<void>;
   notify(n: NotifyRequest): void;
+  /** Puts text on the clipboard, and clears the clipboard after `clearAfterMs` only if it still holds exactly that text. Absent in tests. */
+  copyText?(text: string, clearAfterMs: number): void;
   appVersion: string;
 }
 

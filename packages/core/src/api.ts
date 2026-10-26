@@ -3,7 +3,7 @@ import type {
   Account, AccountId, AddAccountInput, Category, AgentActivity, AgentSkillStatus, AiProvider, AiRun, AiStatus, AiTask, Contact,
   DeepPartial, Draft, DraftInit, DraftPatch, FlintEvent, Folder, FolderId, HomeData, MessageRowId,
   MessageView, ReceiptDetail, Rule, ScheduledSend, SendResult, ServerConfig, Settings, SidebarData, AvatarRef,
-  Signature, SyncStatus, Template, ThreadDetail, ThreadId, ThreadPage, ThreadQuery, LoadOlderResult, ServerSearchResult, TrackedMessage,
+  Signature, SyncStatus, VerificationCode, BrowserHelperStatus, Template, ThreadDetail, ThreadId, ThreadPage, ThreadQuery, LoadOlderResult, ServerSearchResult, TrackedMessage,
 } from "./types";
 
 /** A signature found in Spark Desktop's settings, with the Flint accounts it is the default for. */
@@ -155,6 +155,18 @@ export interface FlintApi {
   /** Removes the copies of the skill Flint wrote. */
   removeAgentSkill(): Promise<AgentSkillStatus>;
 
+  // Verification codes. Codes are credentials: all of these are admin tier, so agents can never read them.
+  /** Codes detected in the last 10 minutes (not expired), newest first, used ones included. */
+  recentCodes(): Promise<VerificationCode[]>;
+  /** The user filled or copied this code; the browser extension stops suggesting it. */
+  markCodeUsed(id: string): Promise<void>;
+  /** Where the browser extension's native messaging host is installed. */
+  browserHelperStatus(): Promise<BrowserHelperStatus>;
+  /** Writes the host wrapper and a host manifest into every detected browser (never over a manifest that isn't Flint's). */
+  installBrowserHelper(): Promise<BrowserHelperStatus>;
+  /** Removes the host wrapper and the manifests Flint wrote. */
+  removeBrowserHelper(): Promise<BrowserHelperStatus>;
+
   // Settings
   getSettings(): Promise<Settings>;
   updateSettings(patch: DeepPartial<Settings>): Promise<Settings>;
@@ -196,6 +208,7 @@ export const METHOD_TIERS: Record<FlintMethod, "read" | "modify" | "send" | "adm
   aiRun: "read", aiRunToText: "read", aiCancel: "read",
   listAgentActivity: "read", agentInfo: "admin", installCli: "admin",
   agentSkillStatus: "admin", installAgentSkill: "admin", removeAgentSkill: "admin",
+  recentCodes: "admin", markCodeUsed: "admin", browserHelperStatus: "admin", installBrowserHelper: "admin", removeBrowserHelper: "admin",
   getSettings: "admin", updateSettings: "admin", sendTestNotification: "admin",
 };
 

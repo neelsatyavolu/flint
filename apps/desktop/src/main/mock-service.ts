@@ -1,13 +1,18 @@
 import { agentPaths } from "@flint/core/agent/paths";
+import { CODES_EXTENSION_ID, CODES_FIREFOX_ID, CODES_HOST_NAME } from "@flint/core/codes/contract";
 import { avatarKey, FlintError } from "@flint/core/types";
 import type {
-  Draft, FlintEvent, HomeData, MessageRowId, Settings, SidebarData, SyncStatus, ThreadPage,
+  BrowserHelperStatus, Draft, FlintEvent, HomeData, MessageRowId, Settings, SidebarData, SyncStatus, ThreadPage,
 } from "@flint/core/types";
 import type { FlintService } from "@flint/core/service/index";
 import { MOCK_DEFAULT_SETTINGS, mergeDeep } from "./default-settings";
 
 const notFound = (what: string) => new FlintError("not_found", `${what} not found`);
 const undo = { undoToken: "mock" } as const;
+const mockHelperStatus: BrowserHelperStatus = {
+  hostName: CODES_HOST_NAME, extensionId: CODES_EXTENSION_ID, firefoxId: CODES_FIREFOX_ID, wrapperPath: "", wrapperInstalled: false,
+  cliAvailable: false, extensionDir: null, browsers: [],
+};
 const aiOff = { provider: null, connected: false, model: null, models: [], enabled: true } as const;
 
 /**
@@ -156,6 +161,12 @@ export function createMockService(dataDir: string): FlintService {
     async agentSkillStatus() { return { targets: [], installed: false }; },
     async installAgentSkill() { throw new FlintError("invalid", "The agent skill is unavailable in mock mode"); },
     async removeAgentSkill() { return { targets: [], installed: false }; },
+
+    async recentCodes() { return []; },
+    async markCodeUsed() {},
+    async browserHelperStatus() { return mockHelperStatus; },
+    async installBrowserHelper() { throw new FlintError("invalid", "The browser helper is unavailable in mock mode"); },
+    async removeBrowserHelper() { return mockHelperStatus; },
 
     async getSettings() { return settings; },
     async updateSettings(patch) {

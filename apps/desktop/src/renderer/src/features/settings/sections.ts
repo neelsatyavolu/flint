@@ -4,6 +4,7 @@ import { AccountsSection } from "./sections/AccountsSection";
 import { AgentsSection } from "./sections/AgentsSection";
 import { AiSection } from "./sections/AiSection";
 import { AppearanceSection } from "./sections/AppearanceSection";
+import { CodesSection } from "./sections/CodesSection";
 import { BlockedSection } from "./sections/BlockedSection";
 import { GeneralSection } from "./sections/GeneralSection";
 import { InboxSection } from "./sections/InboxSection";
@@ -16,7 +17,7 @@ import { TemplatesSection } from "./sections/TemplatesSection";
 
 export type SectionId =
   | "general" | "accounts" | "appearance" | "inbox" | "signatures" | "templates" | "rules"
-  | "receipts" | "notifications" | "ai" | "agents" | "shortcuts" | "blocked" | "about";
+  | "receipts" | "notifications" | "codes" | "ai" | "agents" | "shortcuts" | "blocked" | "about";
 
 /** `keywords` are the settings inside a section, so the nav filter finds "theme" under Appearance. */
 export const SECTIONS: { id: SectionId; label: string; keywords: string }[] = [
@@ -29,6 +30,7 @@ export const SECTIONS: { id: SectionId; label: string; keywords: string }[] = [
   { id: "rules", label: "Rules", keywords: "filters sort automation" },
   { id: "receipts", label: "Read Receipts", keywords: "tracking opened notify" },
   { id: "notifications", label: "Notifications", keywords: "alerts sound dock badge" },
+  { id: "codes", label: "Verification codes", keywords: "one-time code otp 2fa two-factor autofill browser extension copy" },
   { id: "ai", label: "+AI", keywords: "ai assistant model chatgpt grok catch up smart replies summaries translation personalization categorization" },
   { id: "agents", label: "Agents", keywords: "cli command skill claude codex" },
   { id: "shortcuts", label: "Shortcuts", keywords: "keyboard keys" },
@@ -56,6 +58,7 @@ export const SECTION_VIEWS: Record<SectionId, ComponentType<{ page?: string }>> 
   rules: RulesSection,
   receipts: ReceiptsSection,
   notifications: NotificationsSection,
+  codes: CodesSection,
   ai: AiSection,
   agents: AgentsSection,
   shortcuts: ShortcutsSection,

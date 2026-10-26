@@ -54,6 +54,7 @@ const flint = { ...methods, subscribe } as unknown as FlintApi;
 const flintHost: FlintHost = {
   platform: process.platform,
   openExternal: (url) => ipcRenderer.invoke(CHANNELS.openExternal, url) as Promise<void>,
+  revealExtension: (family) => ipcRenderer.invoke(CHANNELS.revealExtension, family) as Promise<void>,
   onOpenThread: (cb) => listen<[number]>(CHANNELS.openThread, cb),
   onMenu: (cb) => listen<[string, string | undefined]>(CHANNELS.menu, cb),
   setZoomFactor: (factor) => {

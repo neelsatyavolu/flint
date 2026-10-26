@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { connectAgent } from "@flint/core/agent/client";
 import type { Deps } from "./program";
+import { launchedByBrowser, runNativeHost } from "./nativeHost";
 import { run } from "./run";
 
 const deps: Deps = {
@@ -15,4 +16,11 @@ const deps: Deps = {
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
 
-run(process.argv.slice(2), deps).then((code) => { process.exitCode = code; });
+const argv = process.argv.slice(2);
+// Browsers launch the native messaging host as `flint native-host <origin>`; it owns stdout, so it skips the command parser.
+const exit = argv[0] === "native-host"
+  ? !launchedByBrowser(argv.slice(1))
+    ? (process.stderr.write("flint native-host is started by the browser extension, not run by hand.\n"), Promise.resolve(2))
+    : runNativeHost({ stdin: process.stdin, stdout: process.stdout, stderr: process.stderr, env: process.env })
+  : run(argv, deps);
+exit.then((code) => { process.exitCode = code; });

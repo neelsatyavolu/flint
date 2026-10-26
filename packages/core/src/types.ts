@@ -115,6 +115,8 @@ export type ThreadListItem = {
   category: Category;
   hasDraft: boolean;
   receipt: ReceiptSummary | null; // only for threads whose latest sent mail is tracked
+  /** A verification code that arrived in this thread and is still valid (not expired). Absent otherwise. */
+  verificationCode?: CodeBadge;
   /**
    * Drafts view only. `draftId` set: a local draft (an item for a draft without a thread has a negative `id`; do not
    * pass that id to thread actions). `messageId` set: a server Drafts copy with no local draft, opened with openServerDraft.
@@ -180,6 +182,8 @@ export type MessageView = {
   attachments: AttachmentInfo[];
   unsubscribe: { url?: string; mailto?: string; oneClick: boolean } | null;
   receipt: ReceiptDetail | null; // when this is a tracked mail the user sent
+  /** The verification code found in this message, only while it is still valid (not expired). Absent otherwise. */
+  verificationCode?: CodeBadge;
 };
 
 export type ThreadDetail = {
@@ -358,6 +362,59 @@ export type AgentSkillTarget = {
 };
 export type AgentSkillStatus = { targets: AgentSkillTarget[]; installed: boolean };
 
+// ---------- Verification codes ----------
+
+/**
+ * A one-time code found in newly arrived mail. Held in memory only, for CODE_TTL_MS after it was detected
+ * (10 minutes), never written to the database. Codes are credentials: only the UI and the codes socket see them,
+ * never agents (every FlintApi method that returns one is tier "admin").
+ */
+export type VerificationCode = {
+  id: string;             // random, unguessable
+  /** The value to type. Digit codes have spaces and dashes removed ("177 284" is "177284"); alphanumeric codes keep their dash ("X67-UJK"). */
+  code: string;
+  service: string;        // "KAYAK": from the subject, else the From display name, else the sender's registrable domain
+  senderAddress: string;
+  senderDomain: string;   // full domain of the sender address, lower case ("mail.kayak.com")
+  threadId: ThreadId;
+  messageId: MessageRowId;
+  accountId: AccountId;
+  receivedAt: number;     // ms epoch, the message date
+  expiresAt: number;      // ms epoch, detection time + CODE_TTL_MS
+  used: boolean;          // the user filled or copied it
+};
+
+/** What the thread row and message banner need. */
+export type CodeBadge = Pick<VerificationCode, "id" | "code" | "service" | "expiresAt" | "used">;
+
+export type BrowserId = "chrome" | "chrome-beta" | "chrome-canary" | "chromium" | "brave" | "edge" | "vivaldi" | "arc" | "dia" | "firefox";
+
+export type BrowserHelperBrowser = {
+  id: BrowserId;
+  name: string;
+  family: "chromium" | "firefox";
+  /** The browser's data folder exists under the (injectable) home folder, so it looks installed. */
+  detected: boolean;
+  /** Flint's host manifest is in this browser's NativeMessagingHosts folder. */
+  installed: boolean;
+  /** A manifest with our host name exists there that is not Flint's. Flint never overwrites it. */
+  foreign: boolean;
+  manifestPath: string;
+};
+
+export type BrowserHelperStatus = {
+  hostName: string;
+  extensionId: string;           // Chromium extension ID (from the manifest key)
+  firefoxId: string;
+  wrapperPath: string;           // script in Flint's data folder that runs the bundled CLI as the native host
+  wrapperInstalled: boolean;
+  /** This build can write the helper: the bundled CLI script exists. */
+  cliAvailable: boolean;
+  /** Folder holding the built extension for "Load unpacked", or null when this build does not ship it. */
+  extensionDir: string | null;
+  browsers: BrowserHelperBrowser[];
+};
+
 // ---------- Home ----------
 
 export type HomeData = {
@@ -438,6 +495,12 @@ export type Settings = {
   // How the desktop app updates itself from GitHub Releases: "auto" downloads and installs on the next quit without
   // asking, "ask" downloads then offers a restart, "manual" checks only from Flint > Check for Updates.
   updates: { mode: "auto" | "ask" | "manual" };
+  /** Verification codes found in new mail. Defaults: enabled true, notify true, autoCopy false. */
+  codes: {
+    enabled: boolean;     // detect codes at all (off: nothing is kept, the socket serves nothing)
+    notify: boolean;      // show "KAYAK code 530331" with a Copy code button
+    autoCopy: boolean;    // copy each new code to the clipboard; cleared after 90 s only if it still holds that code
+  };
 };
 
 export type DeepPartial<T> = { [K in keyof T]?: T[K] extends Record<string, unknown> ? DeepPartial<T[K]> : T[K] };
@@ -453,6 +516,7 @@ export type FlintEvent =
   | { type: "ai"; chunk: AiChunk }
   | { type: "agent_activity"; activity: AgentActivity }
   | { type: "settings"; settings: Settings }
+  | { type: "code"; code: VerificationCode } // a new verification code was detected (the UI shows it; never reaches the agent API stream)
   | { type: "toast"; level: "info" | "error"; message: string; undoToken?: string };
 
 /** macOS system sounds offered for alerts. "default" lets the system pick. */

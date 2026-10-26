@@ -5,6 +5,7 @@ import type { ThreadListItem } from "@flint/core";
 import { Avatar, Checkbox, CountChip, IconButton } from "../../ui";
 import { receiptMarker } from "../../state/receiptText";
 import { ReceiptCheck } from "../receipts/ReceiptCheck";
+import { CodeChip } from "../codes/CodeChip";
 import { rowAvatar, rowSender, rowTime } from "./rowText";
 import styles from "./ThreadRow.module.css";
 
@@ -86,6 +87,7 @@ function ThreadRowImpl({ item, compact, previewLines, avatars, accountColor, ope
         <div className={styles.line}>
           <span className={styles.subject}>{item.subject || "(no subject)"}</span>
           <span className={styles.tail}>
+            <CodeChip badge={item.verificationCode} />
             {item.messageCount > 1 ? <CountChip count={item.messageCount} /> : null}
             {item.hasAttachments ? <Paperclip size={12} strokeWidth={1.5} role="img" aria-label="Has attachments" /> : null}
             {accountColor ? <span className={styles.acct} style={{ background: accountColor }} aria-hidden /> : null}

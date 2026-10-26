@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState, type JSX, type KeyboardEvent } from "react";
 import {
-  Bot, Eye, FileText, Filter, Info, Inbox, Keyboard, type LucideIcon, Bell, Ban, Palette, PenLine, Search, SlidersHorizontal, Sparkles, UserRound, X,
+  Bot, Eye, FileText, Filter, Info, Inbox, Keyboard, KeyRound, type LucideIcon, Bell, Ban, Palette, PenLine, Search, SlidersHorizontal, Sparkles, UserRound, X,
 } from "lucide-react";
 import { useShortcut } from "../../lib/useShortcut";
 import { IconButton, Input, Skeleton } from "../../ui";
@@ -11,7 +11,7 @@ import styles from "./settings.module.css";
 
 const ICONS: Record<SectionId, LucideIcon> = {
   general: SlidersHorizontal, accounts: UserRound, appearance: Palette, inbox: Inbox, signatures: PenLine, templates: FileText,
-  rules: Filter, receipts: Eye, notifications: Bell, ai: Sparkles, agents: Bot, shortcuts: Keyboard, blocked: Ban, about: Info,
+  rules: Filter, receipts: Eye, notifications: Bell, codes: KeyRound, ai: Sparkles, agents: Bot, shortcuts: Keyboard, blocked: Ban, about: Info,
 };
 
 /** Full view replacing list and reader. `section` deep-links ("rules", "ai/writing"); Esc and the close button call onClose. */

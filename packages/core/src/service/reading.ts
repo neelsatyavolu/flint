@@ -1,11 +1,12 @@
 import { z } from "zod";
 import type { FlintApi } from "../api";
 import { logger } from "../log";
-import { FlintError, type MessageRowId, type ThreadId, type ThreadQuery } from "../types";
+import { FlintError, type MessageRowId, type MessageView, type ThreadId, type ThreadQuery } from "../types";
 import { openAttachment, saveAttachment } from "./attachments";
 import type { ServiceContext } from "./context";
 import { hasOlderOnServer } from "./historyFolders";
 import { allowImages } from "./imagePolicy";
+import { badgeFor } from "./codes";
 import { toMessageView, viewEnv } from "./messageView";
 
 const log = logger("service.reading");
@@ -70,7 +71,13 @@ export function readingApi(ctx: ServiceContext): ReadingApi {
     const rows = await loadThread(row.threadId);
     const stored = rows.messages.find((m) => m.id === messageId);
     if (!stored) throw new FlintError("not_found", "That message no longer exists.");
-    return toMessageView(viewEnv(store, ctx.getSettings()), stored, stored.flagged);
+    return withBadge(toMessageView(viewEnv(store, ctx.getSettings()), stored, stored.flagged));
+  }
+
+  /** Adds the message's unexpired verification code, when it has one. */
+  function withBadge(view: MessageView): MessageView {
+    const verificationCode = badgeFor(ctx, { messageId: view.id });
+    return verificationCode ? { ...view, verificationCode } : view;
   }
 
   return {
@@ -88,7 +95,8 @@ export function readingApi(ctx: ServiceContext): ReadingApi {
 
     async listThreads(query) {
       await syncUserFolderOnce(query);
-      const page = store.listThreads(query, ctx.now());
+      const listed = store.listThreads(query, ctx.now());
+      const page = { ...listed, items: listed.items.map((t) => { const verificationCode = badgeFor(ctx, { threadId: t.id }); return verificationCode ? { ...t, verificationCode } : t; }) };
       return page.nextCursor ? page : { ...page, olderOnServer: hasOlderOnServer(store, query) };
     },
 
@@ -104,7 +112,7 @@ export function readingApi(ctx: ServiceContext): ReadingApi {
         pinned: rows.pinned,
         muted: rows.muted,
         snoozedUntil: rows.snoozedUntil,
-        messages: rows.messages.map((m) => toMessageView(env, m)),
+        messages: rows.messages.map((m) => withBadge(toMessageView(env, m))),
         draftIds: rows.draftIds,
       };
     },

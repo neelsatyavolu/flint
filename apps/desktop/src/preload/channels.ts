@@ -5,4 +5,5 @@ export const CHANNELS = {
   openExternal: "flint:open-external",
   openThread: "flint:open-thread",
   menu: "flint:menu",
+  revealExtension: "flint:reveal-extension",
 } as const;

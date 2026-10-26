@@ -1,4 +1,4 @@
-import type { Address, AgentSkillStatus, Draft, Folder, MailboxRole, MessageView, ReceiptDetail, ReceiptRecipient, TrackedMessage } from "@flint/core";
+import type { Address, AgentSkillStatus, BrowserHelperStatus, VerificationCode, Draft, Folder, MailboxRole, MessageView, ReceiptDetail, ReceiptRecipient, TrackedMessage } from "@flint/core";
 import { SIGNATURES, quoteBlock, textToMailHtml } from "./bodies";
 import { ACCOUNT_IDS, defaultAi, defaultSettings, makeAccounts, makeActivity, makeRules, makeSignatures, makeTemplates } from "./fixtures";
 import { generateThreads } from "./generated";
@@ -148,7 +148,7 @@ export function buildState(now: number, seed = 7): MockState {
   const state: MockState = {
     accounts: makeAccounts(now), folders: [], threads: [], drafts: [], scheduled: [], signatures: makeSignatures(), templates: makeTemplates(), rules: makeRules(),
     blocked: [{ pattern: "outreach@growth-hacker.example", createdAt: now - 12 * DAY * MIN }, { pattern: "@bulk-deals.example", createdAt: now - 40 * DAY * MIN }],
-    tracked: [], receipts: {}, activity: makeActivity(now), skill: mockSkill(), settings: defaultSettings(), ai: defaultAi(),
+    tracked: [], receipts: {}, activity: makeActivity(now), skill: mockSkill(), codes: mockCodes(now), helper: mockHelper(), settings: defaultSettings(), ai: defaultAi(),
     sync: [], ids: {}, older: [],
   };
   state.folders = buildFolders(state);
@@ -159,7 +159,40 @@ export function buildState(now: number, seed = 7): MockState {
   state.threads = seeds.map((s) => buildThread(state, s, now, folderByName));
   state.older = generateOlder(rng).map((s) => buildThread(state, s, now, folderByName));
   seedDrafts(state, now);
+  linkDemoCode(state);
   return state;
+}
+
+// The renderer cannot import codes/contract (it pulls in node:crypto), so the demo repeats these identifiers.
+const CODES_HOST_NAME = "co.xanom.flint.codes";
+const CODES_EXTENSION_ID = "gacbkfpccalfbcooobpoppipaaidlink";
+const CODES_FIREFOX_ID = "flint-codes@xanom.co";
+
+/** One demo code, as the preview should show it. Expiry is relative to `now`, so it is always fresh. */
+function mockCodes(now: number): VerificationCode[] {
+  return [{
+    id: "demo-code-1", code: "530331", service: "KAYAK", senderAddress: "no-reply@kayak.example", senderDomain: "kayak.example",
+    threadId: 0, messageId: 0, accountId: ACCOUNT_IDS.gmail, receivedAt: now - 2 * MIN, expiresAt: now + 8 * MIN, used: false,
+  }];
+}
+
+/** Points the demo code at the KAYAK fixture thread so the banner, the row chip and the notification target are real. */
+function linkDemoCode(state: MockState): void {
+  const thread = state.threads.find((t) => t.messages.some((m) => m.subject.includes(state.codes[0]?.code ?? "\0")));
+  const message = thread?.messages[0];
+  if (!thread || !message) return;
+  state.codes = state.codes.map((c, i) => (i === 0 ? { ...c, threadId: thread.id, messageId: message.id, accountId: thread.accountId } : c));
+}
+
+function mockHelper(): BrowserHelperStatus {
+  const base = "/Users/alex/Library/Application Support";
+  const b = (id: BrowserHelperStatus["browsers"][number]["id"], name: string, family: "chromium" | "firefox", dir: string, detected: boolean) =>
+    ({ id, name, family, detected, installed: false, foreign: false, manifestPath: `${base}/${dir}/NativeMessagingHosts/${CODES_HOST_NAME}.json` });
+  return {
+    hostName: CODES_HOST_NAME, extensionId: CODES_EXTENSION_ID, firefoxId: CODES_FIREFOX_ID,
+    wrapperPath: `${base}/Flint/flint-native-host`, wrapperInstalled: false, cliAvailable: true, extensionDir: "/Applications/Flint.app/Contents/Resources/browser-extension",
+    browsers: [b("chrome", "Google Chrome", "chromium", "Google/Chrome", true), b("arc", "Arc", "chromium", "Arc/User Data", true), b("firefox", "Firefox", "firefox", "Mozilla", true), b("brave", "Brave", "chromium", "BraveSoftware/Brave-Browser", false)],
+  };
 }
 
 /** Agent skill folders as a Mac with Claude Code, Codex and Grok installed would report them. */

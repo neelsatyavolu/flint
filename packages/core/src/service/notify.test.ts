@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_SETTINGS } from "../store/settings";
 import type { NotifyRequest } from "../platform";
 import type { Settings } from "../types";
+import { createCodeRegistry } from "../codes/registry";
 import { EventBus } from "./events";
 import { notifyApi, wireNotifications } from "./notify";
 import { alertFor, soundFor, wantsAlert, type NewMailEvent } from "./notifyPolicy";
@@ -18,7 +19,7 @@ function setup(over: Partial<Settings["notifications"]> = {}) {
   const bus = new EventBus();
   let settings: Settings = { ...DEFAULT_SETTINGS, notifications: notif(over) };
   const ctx = {
-    bus, platform: { notify: (n: NotifyRequest) => sent.push(n) }, getSettings: () => settings,
+    bus, platform: { notify: (n: NotifyRequest) => sent.push(n) }, getSettings: () => settings, codes: createCodeRegistry(), now: Date.now,
   } as unknown as ServiceContext;
   return { sent, bus, ctx, set: (o: Partial<Settings["notifications"]>) => { settings = { ...settings, notifications: notif(o) }; } };
 }

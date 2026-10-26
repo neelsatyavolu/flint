@@ -78,3 +78,30 @@ describe("createNotifier", () => {
     expect(shown).toHaveLength(0);
   });
 });
+
+describe("verification code alerts", () => {
+  it("shows one Copy code button and copies the code when it is pressed", () => {
+    const { shown, hooks, make } = fake();
+    const onCopy = vi.fn();
+    const notify = createNotifier({ ...{ isSupported: () => true, isMac: true, warn: vi.fn() }, hooks: { ...hooks, onCopy }, create: (o) => {
+      const handlers = new Map<string, (...a: unknown[]) => void>();
+      const n = { on(e: string, l: (...a: unknown[]) => void) { handlers.set(e, l); return n; }, show() {}, close() {}, fire(e: string, ...a: unknown[]) { handlers.get(e)?.(...a); } };
+      shown.push({ options: o, n: n as never });
+      return n as never;
+    } });
+    void make;
+    notify({ title: "KAYAK code 530331", body: "", threadId: 4, actions: true, copyText: "530331" });
+    expect(shown[0]!.options.actions).toEqual([{ type: "button", text: "Copy code" }]);
+    shown[0]!.n.fire("action", {}, 0);
+    expect(onCopy).toHaveBeenCalledWith("530331");
+    expect(hooks.onAction).not.toHaveBeenCalled();
+  });
+
+  it("adds no button off macOS and does not mix in Archive", () => {
+    const { shown, make } = fake();
+    make(false)({ title: "t", body: "b", copyText: "1" });
+    expect(shown[0]!.options.actions).toBeUndefined();
+    make(true)({ title: "t", body: "b", threadId: 1, actions: true });
+    expect(shown[1]!.options.actions).toHaveLength(2);
+  });
+});
