@@ -196,3 +196,8 @@ Everything else in `FlintServiceConfiguration` has the production default (Swift
 - App/Shared/ToastCenter.swift, ToastHost.swift | `Toast` gets an optional `countdown: SendCountdown?`; `ToastHost` draws `SendCountdownBar(countdown:)` along the toast's bottom edge and shows `countdown.message(at:)` while it runs; keep the toast up until `undoUntil` instead of 5 s for sends | the undo-send toast must drain over the undo window (`SendCountdown`, `SendCountdownBar` are in Features/Composer, ready to embed)
 - App/Shell/AppModel+Compose.swift | in `sendDraft`, pass `SendCountdown(startedAt: now, undoUntil: result.undoUntil)` (the result's undo deadline) to `toasts.show` when `sendAt` is nil | feeds the countdown bar above
 - App/Shell/Shells.swift | on iPad, optionally place `ComposerPanelHost()` as an overlay for `model.presented == .compose` instead of a sheet | `ComposerPanel` is the floating bottom-right composer; the sheet works without it
+
+## From 3F (Search)
+
+- 3F search: App/Shell (LaunchRoute/applyLaunchRoute): `-FlintRoute` does not open the route under XCUITest launches (ShellTests.testRouteOpensThread fails there; works via simctl launch). Search UI tests open the sheet by tapping the inbox search button instead.
+- 3F search: Features/Inbox/InboxRoot.swift: `.accessibilityIdentifier("inbox.root")` on the container overrides the ids of its children (buttons and fields report `inbox.root`, `inbox.search` is not reachable). Put the id on a background view as Search now does.
