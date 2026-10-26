@@ -32,7 +32,7 @@ cp "Flint-$VERSION-x64.dmg" Flint-x64.dmg
 git -C "$ROOT" tag -a "$TAG" -m "Flint $VERSION"
 git -C "$ROOT" push origin "$TAG"
 notes=(--generate-notes)
-[ -n "$NOTES" ] && notes=(--notes-file "$ROOT/$NOTES")
+[ -n "$NOTES" ] && { [[ "$NOTES" = /* ]] || NOTES="$ROOT/$NOTES"; notes=(--notes-file "$NOTES"); }
 gh release create "$TAG" --repo "$REPO" --title "Flint $VERSION" --verify-tag "${notes[@]}" \
   latest-mac.yml Flint-*.zip Flint-*.dmg *.blockmap
 echo "Released https://github.com/$REPO/releases/tag/$TAG"
