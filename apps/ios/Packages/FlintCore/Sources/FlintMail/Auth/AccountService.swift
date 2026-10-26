@@ -52,22 +52,17 @@ public struct AccountService: Sendable {
     public func addAccount(_ raw: AddAccountInput) async throws -> Account {
         let input = try ValidatedAdd(raw)
         let existing = try await accounts.account(email: input.email)
-        if let existing, existing.authKind != .password {
-            throw FlintError(.invalid, "This address is already added with Google sign-in. Remove it first, then add it with a password.")
-        }
         let resolved = try await resolve(input)
-        if let existing, existing.provider != resolved.provider {
-            throw FlintError(.invalid, "This address is already added with different settings. Remove it first, then add it again.")
-        }
         let result = await check(resolved)
         if let failure = result.firstError { throw failure }
 
         let secret = AccountSecret.password(resolved.password)
         let account: Account
         if let existing {
-            // Signing in again: keep the mail, replace the credentials and server settings, reconnect.
+            // Signing in again, possibly by another method: keep the mail, replace the credentials, method and server, reconnect.
             try await secrets.writeAccountSecret(existing.id, secret)
-            account = try await accounts.updateAccount(existing.id, AccountPatch(server: resolved.server, enabled: true))
+            account = try await accounts.updateAccount(
+                existing.id, AccountPatch(server: resolved.server, provider: resolved.provider, authKind: .password, enabled: true))
         } else {
             account = try await create(
                 NewAccount(email: input.email, name: input.name, provider: resolved.provider, authKind: .password, server: resolved.server), secret: secret)
@@ -94,14 +89,12 @@ public struct AccountService: Sendable {
         }
 
         let existing = try await accounts.account(email: signIn.email)
-        if let existing, existing.authKind != .oauthGoogle {
-            throw FlintError(.invalid, "This address is already added with a password. Remove it first, then sign in with Google.")
-        }
         let secret = AccountSecret.oauth(accessToken: signIn.accessToken, refreshToken: signIn.refreshToken, expiresAt: signIn.expiresAt)
         let account: Account
         if let existing {
             try await secrets.writeAccountSecret(existing.id, secret)
-            account = try await accounts.updateAccount(existing.id, AccountPatch(enabled: true))
+            account = try await accounts.updateAccount(
+                existing.id, AccountPatch(server: gmail, provider: .gmail, authKind: .oauthGoogle, enabled: true))
         } else {
             account = try await create(
                 NewAccount(email: signIn.email, name: signIn.name, provider: .gmail, authKind: .oauthGoogle, server: gmail), secret: secret)
@@ -183,7 +176,7 @@ public struct AccountService: Sendable {
     }
 
     private func validated(_ raw: AccountPatch) throws -> AccountPatch {
-        if raw.email != nil || raw.server != nil || raw.avatarSource != nil || raw.avatarUpdatedAt != nil {
+        if raw.email != nil || raw.server != nil || raw.provider != nil || raw.authKind != nil || raw.avatarSource != nil || raw.avatarUpdatedAt != nil {
             throw FlintError(.invalid, "Sign in again to change the address or server.")
         }
         var patch = raw

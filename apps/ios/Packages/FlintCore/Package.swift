@@ -20,6 +20,8 @@ let package = Package(
         .package(url: "https://github.com/Cocoanetics/SwiftMail", revision: "88c45cbd31b347b373f7c87e197be63eb95efbc2"),
         .package(url: "https://github.com/groue/GRDB.swift", from: "7.11.1"),
         .package(url: "https://github.com/scinfu/SwiftSoup", from: "2.14.3"),
+        // Already resolved through SwiftMail. FlintService owns the privacy-safe log handler (PrivacyLogging.swift).
+        .package(url: "https://github.com/apple/swift-log", from: "1.6.0"),
         // swift-collections 1.7.x assumes a Swift 6.4 stdlib that Xcode 27's compiler does not have yet
         // (BorrowingIteratorProtocol). Hold at 1.6.0 until it builds again; transitive only, no target imports it.
         .package(url: "https://github.com/apple/swift-collections", exact: "1.6.0"),
@@ -43,10 +45,14 @@ let package = Package(
         ]),
         .target(name: "FlintService", dependencies: [
             "FlintModel", "FlintStore", "FlintMail", "FlintClassify", "FlintReceipts", "FlintHTML",
+            .product(name: "Logging", package: "swift-log"),
         ]),
         .testTarget(
             name: "FlintCoreTests",
-            dependencies: ["FlintModel", "FlintStore", "FlintMail", "FlintClassify", "FlintReceipts", "FlintHTML", "FlintService"],
+            dependencies: [
+                "FlintModel", "FlintStore", "FlintMail", "FlintClassify", "FlintReceipts", "FlintHTML", "FlintService",
+                .product(name: "Logging", package: "swift-log"),
+            ],
             resources: [.copy("Fixtures")]
         ),
     ]

@@ -94,6 +94,8 @@ actor MemoryAccounts: AccountsRepository {
         var row = rows[index]
         if let name = patch.name { row.name = name }
         if let server = patch.server { row.server = server }
+        if let provider = patch.provider { row.provider = provider }
+        if let authKind = patch.authKind { row.authKind = authKind }
         if let color = patch.color { row.color = color }
         if let enabled = patch.enabled { row.enabled = enabled }
         if let aliases = patch.aliases { row.aliases = aliases }

@@ -33,6 +33,12 @@ targets:
     dependencies:
       - package: FlintCore
         product: FlintService
+      - package: FlintCore
+        product: FlintMail
+      - package: FlintCore
+        product: FlintModel
+      - package: FlintCore
+        product: FlintStore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: co.xanom.flint

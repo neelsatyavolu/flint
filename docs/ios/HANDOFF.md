@@ -182,3 +182,11 @@ Everything else in `FlintServiceConfiguration` has the production default (Swift
 - 20k-message perf (debug): first page 13 ms, next 12 ms, search 2.7 ms, sidebar 8 ms (budgets 50 and 100 ms).
 - `xcodegen generate` + `xcodebuild -scheme Flint -destination 'generic/platform=iOS Simulator' build`: succeeded.
 - Open for later tracks: `AccountPatch` has no `provider`/`authKind` (2C sets `.gmail` at add time, so only re-auth with a different method is affected); `search.json` before/after expectations depend on TZ America/Los_Angeles in the TS test (1C should pin TZ); live Gmail smoke is the owner's, steps in `docs/ios/spikes/gmail-live.md`.
+
+## Wave 3 prep (composition root, demo seed, shared UI)
+
+- **Frozen `AccountPatch` changed (lead-approved).** `provider: MailProvider?` and `authKind: AuthKind?` added (FlintModel/StoreTypes.swift). `GRDBStore.updateAccount` writes them. `AccountService.addAccount` and `addGoogleAccount` no longer refuse an existing address added with the other method: the row is updated in place (same id, mail kept) with the new method, provider and server. The public `FlintService.updateAccount` still rejects `provider`/`authKind` ("Sign in again to change the address or server."). `AccountSession` switches an `.imap` account to `.gmail` on connect when the server advertises X-GM-EXT-1 and no mail is stored yet (desktop `#adoptGmailProvider`); `isGmailMode` now connects first so the switch applies in the same cycle.
+- **FlintCore/Package.swift**: added `swift-log` (already resolved through SwiftMail) to FlintService and the test target. `FlintLogging.bootstrap()` (FlintService/PrivacyLogging.swift) installs a handler that drops everything below warning and keeps only level and logger label. `AppModel.init` calls it before any transport exists.
+- **project.yml**: the Flint target also links FlintMail, FlintModel and FlintStore products (the seed and app code import them). The test target must not list package products itself: doing so makes SwiftPM build FlintMail as a dynamic framework that fails to link (NIOIMAPCore symbols).
+- `FlintDebugFlags.themeGallery` is now off unless `-FlintThemeGallery YES` (it used to default on in Debug builds). `AppRouter` was removed; `AppModel` owns `pendingLink`.
+- Features own their folder only. Needs from shell/shared files go here as one line each: file, change, why.

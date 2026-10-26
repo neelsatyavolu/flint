@@ -24,6 +24,9 @@ struct StoreAccountsFoldersTests {
         #expect(cleared.color == nil && cleared.avatarSource == .google && cleared.avatarUpdatedAt == 99)
         let moved = try await store.updateAccount(a.id, AccountPatch(server: StoreTestKit.server, showInUnified: false))
         #expect(moved.server == StoreTestKit.server && !moved.showInUnified)
+        let switched = try await store.updateAccount(a.id, AccountPatch(provider: .gmail, authKind: .oauthGoogle))
+        #expect(switched.provider == .gmail && switched.authKind == .oauthGoogle)
+        #expect(try await store.account(id: a.id)?.provider == .gmail)
         try await store.deleteAccount(a.id)
         #expect(try await store.account(id: a.id) == nil)
     }

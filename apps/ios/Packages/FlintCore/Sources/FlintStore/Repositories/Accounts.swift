@@ -73,6 +73,8 @@ enum AccountsSQL {
             set("imap_host", s.imapHost); set("imap_port", s.imapPort); set("imap_secure", s.imapSecure)
             set("smtp_host", s.smtpHost); set("smtp_port", s.smtpPort); set("smtp_secure", s.smtpSecure); set("username", s.username)
         }
+        if let v = patch.provider { set("provider", v.rawValue) }
+        if let v = patch.authKind { set("auth_kind", v.rawValue) }
         if let v = patch.color { set("color", v) }
         if let v = patch.sortOrder { set("sort_order", v) }
         if let v = patch.enabled { set("enabled", v) }

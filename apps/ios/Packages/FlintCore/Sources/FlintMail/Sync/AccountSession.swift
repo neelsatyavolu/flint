@@ -361,7 +361,16 @@ public actor AccountSession: TransportRunner {
         guard let account = try await store.account(id: accountId) else { throw FlintError(.notFound, "That account no longer exists.") }
         let credential = try await credentials()
         try await transport.connect(MailTransportConfiguration(server: account.server, credential: credential))
+        await adoptGmailProvider(account, transport)
         return transport
+    }
+
+    /// A server that advertises X-GM-EXT-1 is Gmail (Workspace, a custom domain, an account added as Other email). Marks the
+    /// account so label-aware sync is used. Only before any mail is stored: switching later would re-ingest everything.
+    private func adoptGmailProvider(_ account: Account, _ transport: any MailTransport) async {
+        guard account.provider != .gmail, await transport.capabilities.gmail else { return }
+        guard (try? await store.accountHasMessages(accountId)) == false else { return }
+        _ = try? await store.updateAccount(accountId, AccountPatch(provider: .gmail))
     }
 
     private func ensureCommandTransport() async throws -> any MailTransport {
@@ -431,9 +440,9 @@ public actor AccountSession: TransportRunner {
     // MARK: Cycle
 
     private func isGmailMode() async throws -> Bool {
-        guard let account = try await store.account(id: accountId), account.provider == .gmail else { return false }
+        // Connect first: a server that advertises X-GM-EXT-1 turns the account into a Gmail one (see `adoptGmailProvider`).
         let caps = try await run { await $0.capabilities }
-        guard caps.gmail else { return false }
+        guard caps.gmail, let account = try await store.account(id: accountId), account.provider == .gmail else { return false }
         return try await store.folder(accountId: accountId, role: .all) != nil
     }
 

@@ -108,6 +108,8 @@ actor MailTestStore: AccountsRepository, FoldersRepository, IngestRepository, Se
     func updateAccount(_ id: AccountID, _ patch: AccountPatch) async throws -> Account {
         guard var account = accountsByID[id] else { throw FlintError(.notFound, "No such account.") }
         if let server = patch.server { account.server = server }
+        if let provider = patch.provider { account.provider = provider; providers[id] = provider }
+        if let authKind = patch.authKind { account.authKind = authKind }
         accountsByID[id] = account
         return account
     }

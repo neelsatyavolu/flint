@@ -35,14 +35,15 @@ struct DeepLinkTests {
     }
 
     @MainActor
-    @Test("router keeps a link until it is taken")
+    @Test("the model keeps a link until it is taken, and a pairing link opens onboarding")
     func router() throws {
-        let router = AppRouter()
-        router.handle(try #require(URL(string: "https://example.com")))
-        #expect(router.pending == nil)
-        router.handle(try #require(URL(string: "flint://pair#abc")))
-        #expect(router.take() == .pair(payload: "abc"))
-        #expect(router.take() == nil)
+        let model = AppModel(mode: .live)
+        model.handle(url: try #require(URL(string: "https://example.com")))
+        #expect(model.pendingLink == nil)
+        model.handle(url: try #require(URL(string: "flint://pair#abc")))
+        #expect(model.presented == .onboarding)
+        #expect(model.takePendingLink() == .pair(payload: "abc"))
+        #expect(model.takePendingLink() == nil)
     }
 
     @Test("appearance override from launch arguments wins")

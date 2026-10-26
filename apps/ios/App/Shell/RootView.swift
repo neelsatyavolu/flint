@@ -1,19 +1,56 @@
 import SwiftUI
 
-/// App root. Until the feature tracks land it shows the empty state, or the theme gallery in Debug builds
-/// and with `-FlintThemeGallery YES`.
+/// App root: the launch screen while the service opens, then the shell for the size class, with the toast host and the sheets
+/// on top. `-FlintThemeGallery YES` still shows the theme gallery instead.
 struct RootView: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
     var body: some View {
-        if FlintDebugFlags.themeGallery() {
-            ThemeGallery()
-        } else {
-            EmptyStateView()
+        @Bindable var model = model
+        Group {
+            if FlintDebugFlags.themeGallery() {
+                ThemeGallery()
+            } else {
+                content
+            }
+        }
+        .background(FlintColor.plane1.ignoresSafeArea())
+        .overlay { if model.presented == nil { ToastHost(center: model.toasts) } }
+        .sheet(item: $model.presented) { presented in
+            PresentedSheet(presented: presented)
+                .presentationBackground(FlintColor.plane1)
+                .interactiveDismissDisabled(presented == .onboarding && model.accounts.isEmpty && !model.isDemo)
+        }
+        .task {
+            guard !FlintDebugFlags.isHostingUnitTests else { return }
+            await model.bootstrap()
+            await model.applyLaunchRoute(LaunchRoute.fromArguments())
+        }
+        .accessibilityIdentifier("shell.root")
+    }
+
+    @ViewBuilder private var content: some View {
+        switch model.phase {
+        case .launching:
+            LaunchView()
+        case .failed(let message):
+            FlintEmptyState(icon: .alert, title: String(localized: "Flint couldn't start", table: "Shell"), message: message, identifier: "shell.failed")
+        case .ready:
+            if sizeClass == .regular { PadShell() } else { PhoneShell() }
         }
     }
 }
 
+/// The Flint mark on the plane while the service opens.
+struct LaunchView: View {
+    var body: some View {
+        ReaderEmptyView().accessibilityIdentifier("shell.launching")
+    }
+}
+
 /// The Flint mark at 96 pt in `--fg-4` on the reader plane, nothing else (DESIGN.md "Reader, empty state").
-struct EmptyStateView: View {
+struct ReaderEmptyView: View {
     var body: some View {
         ZStack {
             FlintColor.plane2.ignoresSafeArea()

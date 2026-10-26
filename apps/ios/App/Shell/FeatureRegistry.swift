@@ -1,12 +1,19 @@
-import Foundation
+import SwiftUI
 
-/// All feature modules, in display order. Track 1A owns this file; each feature adds one entry through
-/// `docs/ios/HANDOFF.md`, for example `OnboardingModule()`.
+/// All feature modules, in display order. This file belongs to the shell (Wave 3 prep). Each feature track replaces the
+/// placeholder inside its own `Features/<Name>/` folder and never edits this file: the entries below already exist.
 @MainActor
 enum FeatureRegistry {
-    static let modules: [any FeatureModule] = []
+    static let modules: [any FeatureModule] = [
+        OnboardingModule(), SidebarModule(), InboxModule(), ThreadModule(), ComposerModule(), SearchModule(), SettingsModule(),
+    ]
 
     static func module(id: String) -> (any FeatureModule)? {
         modules.first { $0.id == id }
+    }
+
+    /// The root view of a feature, or an empty view when the id is unknown (a typo shows nothing rather than crashing).
+    static func root(_ id: String) -> AnyView {
+        module(id: id)?.makeRoot() ?? AnyView(EmptyView())
     }
 }

@@ -447,4 +447,32 @@ struct MailSessionGmailTests {
         try await r.session.syncNow()
         #expect(await r.rows("INBOX").count == 1)
     }
+
+    private static let gmailFolders = [
+        RemoteFolder(path: "INBOX", delimiter: "/"), RemoteFolder(path: "[Gmail]/All Mail", delimiter: "/", attributes: ["all"]),
+        RemoteFolder(path: "[Gmail]/Trash", delimiter: "/", attributes: ["trash"]), RemoteFolder(path: "[Gmail]/Spam", delimiter: "/", attributes: ["junk"]),
+        RemoteFolder(path: "[Gmail]/Sent Mail", delimiter: "/", attributes: ["sent"]),
+    ]
+
+    @Test func accountAddedAsOtherEmailSwitchesToGmailWhenTheServerAdvertisesTheExtension() async throws {
+        let r = await MailSessionRig.make(capabilities: TransportCapabilities(gmail: true), folders: Self.gmailFolders, provider: .imap)
+        await r.fake.deliver(mailTestEnvelope("g", ageDays: 1, gmail: GmailAttributes(msgid: "m1", thrid: "t1", labels: ["\\Inbox"])), to: "[Gmail]/All Mail")
+        try await r.session.syncNow()
+        #expect(try await r.store.account(id: "a1")?.provider == .gmail)
+        #expect(await r.rows("[Gmail]/All Mail").count == 1) // label-aware sync ran in the same cycle
+    }
+
+    @Test func accountWithStoredMailKeepsItsProviderEvenOnAGmailServer() async throws {
+        let r = await MailSessionRig.make(capabilities: TransportCapabilities(gmail: true), folders: Self.gmailFolders, provider: .imap)
+        let inbox = try await r.store.upsertFolder("a1", FolderInput(path: "INBOX", role: .inbox))
+        await r.store.addMessage(StoredMessage(id: 900, accountId: "a1", threadId: 900, folderId: inbox.id, uid: 1, date: mailTestNow))
+        try await r.session.syncNow()
+        #expect(try await r.store.account(id: "a1")?.provider == .imap)
+    }
+
+    @Test func plainImapServerStaysImap() async throws {
+        let r = await MailSessionRig.make(provider: .imap)
+        try await r.session.syncNow()
+        #expect(try await r.store.account(id: "a1")?.provider == .imap)
+    }
 }

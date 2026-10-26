@@ -106,12 +106,29 @@ struct AuthAddAccountTests {
         #expect(await rig.accounts.rows.isEmpty)
     }
 
-    @Test func existingGoogleAccountCannotSilentlySwitchToPassword() async throws {
+    @Test func existingGoogleAccountSwitchesToPasswordInPlace() async throws {
         let rig = Rig()
-        await rig.accounts.seed(Account(id: "old1", email: "me@gmail.com", name: "Kept", provider: .gmail, authKind: .oauthGoogle, server: server))
-        await expectAuthError("This address is already added with Google sign-in. Remove it first, then add it with a password.", code: .invalid) {
-            _ = try await rig.service.addAccount(AddAccountInput(email: "me@gmail.com", name: "", password: "pw", server: server))
-        }
+        let gmailServer = ServerConfig(imapHost: "imap.gmail.com", imapPort: 993, imapSecure: true, smtpHost: "smtp.gmail.com", smtpPort: 465, smtpSecure: true, username: "me@gmail.com")
+        await rig.accounts.seed(Account(id: "old1", email: "me@gmail.com", name: "Kept", provider: .gmail, authKind: .oauthGoogle, server: gmailServer, enabled: false))
+        try await rig.secrets.writeAccountSecret("old1", .oauth(accessToken: "a", refreshToken: "r", expiresAt: 0))
+        let account = try await rig.service.addAccount(AddAccountInput(email: "me@gmail.com", name: "", password: "abcd efgh", server: server))
+        #expect(account.id == "old1")
+        #expect(account.authKind == .password)
+        #expect(account.provider == .imap)
+        #expect(account.server == server)
+        #expect(account.name == "Kept")
+        #expect(account.enabled)
+        #expect(await rig.accounts.rows.count == 1)
+        #expect(try await rig.secrets.readAccountSecret("old1") == .password("abcd efgh"))
+    }
+
+    @Test func existingImapAccountChangingProviderIsUpdatedInPlace() async throws {
+        let rig = Rig()
+        await rig.accounts.seed(Account(id: "old1", email: "me@gmail.com", name: "Kept", provider: .imap, authKind: .password, server: server))
+        let account = try await rig.service.addAccount(AddAccountInput(email: "me@gmail.com", name: "", password: "pw", provider: .gmail, server: server))
+        #expect(account.id == "old1")
+        #expect(account.provider == .gmail)
+        #expect(await rig.accounts.rows.count == 1)
     }
 
     @Test func signingInAgainReplacesCredentialsOnTheSameAccount() async throws {
@@ -246,14 +263,17 @@ struct AuthGoogleAccountTests {
         #expect(try await rig.secrets.readAccountSecret("old1") == .oauth(accessToken: "at", refreshToken: "rt", expiresAt: Int(now.timeIntervalSince1970 * 1000) + 3_600_000))
     }
 
-    @Test func existingPasswordAccountCannotSilentlySwitchToGoogle() async throws {
+    @Test func existingPasswordAccountSwitchesToGoogleInPlace() async throws {
         let rig = await signInRig()
-        await rig.accounts.seed(Account(id: "old1", email: "me@gmail.com", name: "Kept", provider: .gmail, authKind: .password, server: server))
+        await rig.accounts.seed(Account(id: "old1", email: "me@gmail.com", name: "Kept", provider: .imap, authKind: .password, server: server))
         try await rig.secrets.writeAccountSecret("old1", .password("app-password"))
-        await expectAuthError("This address is already added with a password. Remove it first, then sign in with Google.", code: .invalid) {
-            _ = try await rig.service.addGoogleAccount(loginHint: nil)
-        }
-        #expect(try await rig.secrets.readAccountSecret("old1") == .password("app-password"))
+        let account = try await rig.service.addGoogleAccount(loginHint: nil)
+        #expect(account.id == "old1")
+        #expect(account.authKind == .oauthGoogle)
+        #expect(account.provider == .gmail)
+        #expect(account.server.imapHost == "imap.gmail.com")
+        #expect(await rig.accounts.rows.count == 1)
+        #expect(try await rig.secrets.readAccountSecret("old1") == .oauth(accessToken: "at", refreshToken: "rt", expiresAt: Int(now.timeIntervalSince1970 * 1000) + 3_600_000))
     }
 
     @Test func tokenFailureStoresNothing() async {
@@ -313,6 +333,8 @@ struct AuthEditAccountTests {
         let (rig, account) = try await seeded()
         await expectAuthError("Sign in again to change the address or server.", code: .invalid) { _ = try await rig.service.updateAccount(account.id, AccountPatch(server: server)) }
         await expectAuthError("Sign in again to change the address or server.", code: .invalid) { _ = try await rig.service.updateAccount(account.id, AccountPatch(email: "x@example.com")) }
+        await expectAuthError("Sign in again to change the address or server.", code: .invalid) { _ = try await rig.service.updateAccount(account.id, AccountPatch(authKind: .oauthGoogle)) }
+        await expectAuthError("Sign in again to change the address or server.", code: .invalid) { _ = try await rig.service.updateAccount(account.id, AccountPatch(provider: .gmail)) }
     }
 
     @Test func unknownAccountIsNotFound() async {

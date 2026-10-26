@@ -487,6 +487,9 @@ public struct AccountPatch: Hashable, Sendable {
     public var email: String?
     public var name: String?
     public var server: ServerConfig?
+    /// Set by sign-in (a different method for the same address) and by Gmail detection. Not user-editable.
+    public var provider: MailProvider?
+    public var authKind: AuthKind?
     public var color: String??
     public var sortOrder: Int?
     public var enabled: Bool?
@@ -496,13 +499,15 @@ public struct AccountPatch: Hashable, Sendable {
     public var avatarUpdatedAt: EpochMs??
 
     public init(
-        email: String? = nil, name: String? = nil, server: ServerConfig? = nil, color: String?? = nil, sortOrder: Int? = nil,
-        enabled: Bool? = nil, aliases: [String]? = nil, showInUnified: Bool? = nil, avatarSource: AvatarSource?? = nil,
-        avatarUpdatedAt: EpochMs?? = nil
+        email: String? = nil, name: String? = nil, server: ServerConfig? = nil, provider: MailProvider? = nil, authKind: AuthKind? = nil,
+        color: String?? = nil, sortOrder: Int? = nil, enabled: Bool? = nil, aliases: [String]? = nil, showInUnified: Bool? = nil,
+        avatarSource: AvatarSource?? = nil, avatarUpdatedAt: EpochMs?? = nil
     ) {
         self.email = email
         self.name = name
         self.server = server
+        self.provider = provider
+        self.authKind = authKind
         self.color = color
         self.sortOrder = sortOrder
         self.enabled = enabled
