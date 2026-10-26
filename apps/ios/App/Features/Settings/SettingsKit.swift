@@ -134,7 +134,7 @@ struct SettingsChoiceRow<Value: Hashable>: View {
                 }
             } label: {
                 HStack(spacing: FlintMetrics.Space.s1) {
-                    Text(currentLabel).flintText(.data, color: FlintColor.fg2).lineLimit(1)
+                    Text(currentLabel).flintText(.data, color: FlintColor.fg2)
                     FlintIconView(icon: .chevronDown, size: 14, color: FlintColor.fg3)
                 }
                 .frame(minHeight: FlintMetrics.Size.touch)
@@ -162,7 +162,7 @@ struct SettingsLinkRow<Destination: Hashable>: View {
         NavigationLink(value: destination) {
             SettingsRowLayout(icon: icon, title: title, detail: detail) {
                 HStack(spacing: FlintMetrics.Space.s1) {
-                    if let value { Text(value).flintText(.data, color: FlintColor.fg3).lineLimit(1) }
+                    if let value { Text(value).flintText(.data, color: FlintColor.fg3) }
                     FlintIconView(icon: .chevronRight, size: 16, color: FlintColor.fg3)
                 }
             }

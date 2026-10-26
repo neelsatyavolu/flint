@@ -49,9 +49,13 @@ final class AccessibilityAuditTests: XCTestCase {
         if element.elementType == .webView || element.identifier.hasPrefix("thread.body.") { return true }
         if !keyboard.isNull, keyboard.insetBy(dx: 0, dy: -60).contains(element.frame) { return true }
         if isAvatar(element), issue.auditType == .dynamicType || issue.auditType == .contrast { return true }
-        if issue.auditType == .sufficientElementDescription, element.label.contains("@") { return true }
+        // The bundle row's one-line "sender subject" summary truncates by design, like a subject in a row.
+        if issue.auditType == .textClipped, element.identifier == "inbox.bundle.summary" { return true }
+        // Date group labels (11 pt mono, fg-3 on plane-1, AA in TokenContrastTests): the audit's pixel check flags the label whatever
+        // token it uses (fg-2 too) although the Graphite and Paper screenshots read clearly.
         if issue.auditType == .contrast, element.identifier == "inbox.section" { return true }
         if issue.auditType == .contrast, UIDevice.current.userInterfaceIdiom == .pad, isMonoLabel(element) { return true }
+        if issue.auditType == .sufficientElementDescription, element.label.contains("@") { return true }
         return false
     }
 
@@ -83,13 +87,13 @@ final class AccessibilityAuditTests: XCTestCase {
             && (1...2).contains(label.count) && label == label.uppercased()
     }
 
-    @MainActor func testInbox() throws { try audit(route: nil, waitFor: "inbox.root", checksClipping: false) }
-    @MainActor func testInboxPaper() throws { try audit(route: nil, waitFor: "inbox.root", appearance: "light", checksClipping: false) }
+    @MainActor func testInbox() throws { try audit(route: nil, waitFor: "inbox.root") }
+    @MainActor func testInboxPaper() throws { try audit(route: nil, waitFor: "inbox.root", appearance: "light") }
     @MainActor func testThread() throws { try audit(route: "thread:Q4 roadmap", waitFor: "thread.root", checksClipping: false) }
     @MainActor func testComposer() throws { try audit(route: "compose", waitFor: "composer.root") }
     @MainActor func testComposerAX3() throws { try audit(route: "compose", waitFor: "composer.root", textSize: ScreenTourTests.ax3) }
     @MainActor func testSearch() throws { try audit(route: "search:roadmap", waitFor: "search.root", checksClipping: false) }
     @MainActor func testSidebar() throws { try audit(route: "sidebar", waitFor: "sidebar.root") }
-    @MainActor func testSettings() throws { try audit(route: "settings", waitFor: "settings.root", checksClipping: false) }
+    @MainActor func testSettings() throws { try audit(route: "settings", waitFor: "settings.root") }
     @MainActor func testOnboarding() throws { try audit(route: "onboarding", waitFor: "onboarding.root") }
 }
