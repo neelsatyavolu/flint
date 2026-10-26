@@ -29,6 +29,7 @@ private struct OnboardingContent: View {
             .scrollDismissesKeyboard(.interactively)
         }
         .background(FlintColor.plane1.ignoresSafeArea())
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("onboarding.root")
     }
 
@@ -46,6 +47,7 @@ private struct OnboardingContent: View {
         } trailing: {
             EmptyView()
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("onboarding.header")
     }
 
