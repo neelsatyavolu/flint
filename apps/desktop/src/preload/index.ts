@@ -1,6 +1,6 @@
 import { FLINT_METHODS, type FlintApi } from "@flint/core/api";
 import type { FlintEvent } from "@flint/core/types";
-import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from "electron";
+import { contextBridge, ipcRenderer, webFrame, webUtils, type IpcRendererEvent } from "electron";
 import { CHANNELS } from "./channels";
 import type { FlintHost } from "./types";
 
@@ -34,7 +34,14 @@ function subscribe(listener: (event: FlintEvent) => void): () => void {
   if (!attached) {
     attached = true;
     ipcRenderer.on(CHANNELS.event, (_e, event: FlintEvent) => {
-      for (const s of [...subscribers]) s(event);
+      // One throwing handler must not starve the others.
+      for (const s of [...subscribers]) {
+        try {
+          s(event);
+        } catch (err) {
+          console.error("Flint event handler failed", err);
+        }
+      }
     });
   }
   return () => {
@@ -49,6 +56,9 @@ const flintHost: FlintHost = {
   openExternal: (url) => ipcRenderer.invoke(CHANNELS.openExternal, url) as Promise<void>,
   onOpenThread: (cb) => listen<[number]>(CHANNELS.openThread, cb),
   onMenu: (cb) => listen<[string, string | undefined]>(CHANNELS.menu, cb),
+  setZoomFactor: (factor) => {
+    if (Number.isFinite(factor) && factor >= 0.5 && factor <= 2) webFrame.setZoomFactor(factor);
+  },
   getPathForFile: (file) => {
     try {
       return webUtils.getPathForFile(file);

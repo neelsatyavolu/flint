@@ -1,6 +1,8 @@
-import { Columns2, Palette, UserRound, Globe, AlignLeft, Rows3, Brush, Image, Moon } from "lucide-react";
+import { useState } from "react";
+import { Columns2, Palette, UserRound, Globe, AlignLeft, Rows3, Brush, Image, Moon, Type } from "lucide-react";
+import { applyTextSize, readTextSize, TEXT_SIZES, type TextSize } from "../../../lib/host";
 import { useAccounts, useUpdateAccount } from "../useAccounts";
-import { Avatar, SectionLabel, SettingsRow } from "../../../ui";
+import { Avatar, SectionLabel, SegmentedControl, SettingsRow } from "../../../ui";
 import { ColorSwatches } from "../ColorSwatches";
 import { SectionPage, SelectRow, ToggleRow } from "../fields";
 import { useSettingsStore } from "../settingsStore";
@@ -10,6 +12,7 @@ export function AppearanceSection() {
   const { settings: s, save } = useSettingsStore();
   const { accounts } = useAccounts();
   const updateAccount = useUpdateAccount();
+  const [textSize, setTextSize] = useState<TextSize>(readTextSize);
   const a = s.appearance;
   return (
     <SectionPage title="Appearance">
@@ -28,6 +31,17 @@ export function AppearanceSection() {
         choices={[{ value: "system", label: "As in system" }, { value: "dark", label: "Graphite (dark)" }, { value: "light", label: "Paper (light)" }]}
         onChange={(v) => void save({ appearance: { theme: v } })}
       />
+      <SettingsRow icon={<Type size={18} strokeWidth={1.5} />} title="Text size" description="Scales the whole window. Saved on this computer.">
+        <SegmentedControl
+          label="Text size"
+          value={textSize}
+          options={TEXT_SIZES.map((t) => ({ value: t.value, label: t.label }))}
+          onChange={(v) => {
+            applyTextSize(v, true);
+            setTextSize(v);
+          }}
+        />
+      </SettingsRow>
       <SelectRow
         icon={<UserRound size={18} strokeWidth={1.5} />}
         title="Show avatars"
