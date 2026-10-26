@@ -1,7 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import clsx from "clsx";
+import { X } from "lucide-react";
 import { flint } from "../lib/api";
 import { useFlintEvent } from "../lib/hooks";
+import { IconButton } from "./IconButton";
 import styles from "./Toast.module.css";
 
 export type ToastInput = {
@@ -27,7 +29,10 @@ export function useToast(): ToastApi {
 }
 
 function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: number) => void }) {
-  const [paused, setPaused] = useState(false);
+  // The timer waits while the pointer is over the toast or focus is inside it, so it can't vanish mid-read or mid-Tab.
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const paused = hovered || focused;
   const timeout = toast.timeout ?? DEFAULT_TIMEOUT;
   useEffect(() => {
     if (paused || timeout === 0) return;
@@ -39,8 +44,12 @@ function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: num
     <div
       className={clsx(styles.toast, toast.level === "error" && styles.error)}
       role={toast.level === "error" ? "alert" : "status"}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+      }}
     >
       <span className={styles.message}>{toast.message}</span>
       {toast.action ? (
@@ -73,6 +82,9 @@ function ToastView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: num
           ) : null}
         </>
       ) : null}
+      <IconButton label="Dismiss" size={24} className={styles.close} onClick={() => onDismiss(toast.id)}>
+        <X size={14} strokeWidth={1.5} />
+      </IconButton>
     </div>
   );
 }
@@ -94,15 +106,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     show({
       message: e.message,
       level: e.level,
+      // Errors from the core (a send or an action the server refused) stay until read and closed.
+      ...(e.level === "error" ? { timeout: 0 } : {}),
       action: token ? { label: "Undo", onClick: () => void flint.undo(token) } : undefined,
     });
   });
 
   const api = useMemo(() => ({ show, dismiss }), [show, dismiss]);
+  // No aria-live here: each toast's own status or alert role announces it, once.
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div className={styles.viewport} aria-live="polite">
+      <div className={styles.viewport}>
         {toasts.map((t) => <ToastView key={t.id} toast={t} onDismiss={dismiss} />)}
       </div>
     </ToastContext.Provider>

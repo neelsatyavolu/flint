@@ -95,7 +95,29 @@ describe("performAction", () => {
     expect(s.nav.getState().lastUndoToken).toBe("u1");
     expect(s.notes[0]?.message).toBe("Archived");
     s.notes[0]?.action?.onClick();
+    expect(s.nav.getState().lastUndoToken).toBeNull();
     await vi.waitFor(() => expect(s.api.undo).toHaveBeenCalledWith("u1"));
+  });
+
+  it("keeps a removed row hidden until the list reloads, without a refresh of its own", async () => {
+    const s = setup();
+    await loaded(s);
+    const refresh = vi.spyOn(s.list.getState(), "refresh");
+    await performAction(s.deps, { type: "archive" }, [2]);
+    expect(refresh).not.toHaveBeenCalled();
+    expect(s.list.getState().hidden).toEqual([2]);
+    // The mail_changed-driven refresh lands; the row is gone from the server's list by then.
+    await s.list.getState().refresh();
+    expect(s.list.getState().hidden).toEqual([]);
+  });
+
+  it("leaves a newer undo token alone when an older toast's Undo is clicked", async () => {
+    const s = setup();
+    await loaded(s);
+    await performAction(s.deps, { type: "archive" }, [2]);
+    s.nav.getState().setLastUndo("newer");
+    s.notes[0]?.action?.onClick();
+    expect(s.nav.getState().lastUndoToken).toBe("newer");
   });
 
   it("ignores local-only draft rows (negative ids) for thread actions", async () => {

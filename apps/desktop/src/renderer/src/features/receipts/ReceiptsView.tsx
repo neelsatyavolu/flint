@@ -5,7 +5,7 @@ import type { ReceiptDetail, TrackedMessage } from "@flint/core";
 import { flint } from "../../lib/api";
 import { useFlintQuery } from "../../lib/hooks";
 import { formatListTime } from "../../lib/format";
-import { EmptyState, IconButton, SegmentedControl, SkeletonRows, useToast } from "../../ui";
+import { Button, EmptyState, IconButton, SegmentedControl, SkeletonRows, useToast } from "../../ui";
 import { PaneHeader } from "../../shell/PaneHeader";
 import { navStore } from "../../state/nav";
 import { eventLine, receiptMarker, receiptTime } from "../../state/receiptText";
@@ -68,7 +68,7 @@ export function ReceiptsView() {
   const [filter, setFilter] = useState<Filter>("all");
   const [refreshing, setRefreshing] = useState(false);
   const toast = useToast();
-  const { data, loading, refetch } = useFlintQuery((api) => api.listTracked({ limit: 100, status: filter === "all" ? undefined : filter }), [filter], { refetchOn: ["receipt"], mail: false });
+  const { data, error, loading, refetch } = useFlintQuery((api) => api.listTracked({ limit: 100, status: filter === "all" ? undefined : filter }), [filter], { refetchOn: ["receipt"], mail: false });
   const now = Date.now();
 
   const refresh = async () => {
@@ -92,6 +92,13 @@ export function ReceiptsView() {
       <div className={styles.scroll}>
         {!data && loading ? (
           <SkeletonRows count={6} />
+        ) : !data && error ? (
+          <EmptyState
+            title="Couldn't load read statuses."
+            description={error.message}
+            action={<Button size="sm" variant="secondary" onClick={refetch}>Try again</Button>}
+            markSize={48}
+          />
         ) : data && data.length === 0 ? (
           <EmptyState
             title={filter === "all" ? "No tracked mail yet." : filter === "opened" ? "Nothing opened yet." : "Everything has been opened."}

@@ -16,7 +16,9 @@
   align-items: center;
   gap: var(--s-2);
   min-height: 36px;
-  padding: 0 var(--s-4);
+  max-width: min(480px, 100%);
+  /* Even top and bottom so a wrapped message sits centred; the close button needs less room on the right. */
+  padding: var(--s-1) var(--s-1) var(--s-1) var(--s-4);
   background: var(--plane-3);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-control);
@@ -26,7 +28,8 @@
 }
 @keyframes in { from { opacity: 0; transform: translateY(4px); } }
 .error { border-color: var(--danger); }
-.message { white-space: nowrap; }
-.dot { color: var(--fg-3); }
-.action { border: 0; background: transparent; padding: 4px 2px; color: var(--accent); font-weight: 600; border-radius: var(--r-control); }
+.message { flex: 0 1 auto; min-width: 0; white-space: normal; overflow-wrap: anywhere; padding: 4px 0; }
+.dot { flex: none; color: var(--fg-3); }
+.action { flex: none; border: 0; background: transparent; padding: 4px 2px; color: var(--accent); font-weight: 600; border-radius: var(--r-control); white-space: nowrap; }
+.close { flex: none; }
 .action:hover { text-decoration: underline; }

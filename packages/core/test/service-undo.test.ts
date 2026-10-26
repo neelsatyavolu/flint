@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ActionReport, ServerActions } from "../src/mail/actions";
 import { createOptimistic } from "../src/service/optimistic";
 import { UndoRegistry } from "../src/service/undo";
@@ -82,9 +82,9 @@ describe("optimistic actions", () => {
   it("restores the thread and shows a toast when the server refuses", async () => {
     const s = setup();
     await s.archive();
+    // The UI gets its token at once; the refusal arrives in the background.
+    await vi.waitFor(() => expect(s.events.map((e) => e.type)).toEqual(["mail_changed", "mail_changed", "toast"]));
     expect(s.store.listThreads({ view: "inbox" }).items.map((t) => t.id)).toEqual([s.threadId]);
-    const types = s.events.map((e) => e.type);
-    expect(types).toEqual(["mail_changed", "mail_changed", "toast"]);
     expect(s.events[2]).toMatchObject({ type: "toast", level: "error", message: "Couldn't archive. The change was undone." });
     expect(s.undo.size).toBe(0);
   });

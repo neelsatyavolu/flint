@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { FlintEvent } from "@flint/core";
 import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { flint } from "./api";
-import { REFETCH_DEBOUNCE_MS, useFlintEvent, useFlintQuery, useSettings } from "./hooks";
+import { REFETCH_DEBOUNCE_MS, REFETCH_MAX_WAIT_MS, useFlintEvent, useFlintQuery, useSettings } from "./hooks";
 
 describe("lazy api in a browser", () => {
   it("falls back to the mock when window.flint is absent", async () => {
@@ -50,6 +50,38 @@ describe("useFlintQuery", () => {
     vi.restoreAllMocks();
   });
 
+  it("starts over when the deps change, so a new query never shows the last one's error or data", async () => {
+    const { result, rerender } = renderHook(({ id }) => useFlintQuery(async () => {
+      if (id === 1) throw new Error("gone");
+      await new Promise((r) => setTimeout(r, 30));
+      return id;
+    }, [id]), { initialProps: { id: 1 } });
+    await waitFor(() => expect(result.current.error?.message).toBe("gone"));
+    rerender({ id: 2 });
+    expect(result.current.error).toBeUndefined();
+    expect(result.current.data).toBeUndefined();
+    expect(result.current.loading).toBe(true);
+    await waitFor(() => expect(result.current.data).toBe(2));
+    rerender({ id: 3 });
+    expect(result.current.data).toBeUndefined();
+    await waitFor(() => expect(result.current.data).toBe(3));
+  });
+
+  it("refetches during a steady stream of events instead of waiting for it to stop", async () => {
+    const listeners: Array<(e: FlintEvent) => void> = [];
+    vi.spyOn(flint, "subscribe").mockImplementation((l) => { listeners.push(l); return () => undefined; });
+    let calls = 0;
+    const { result } = renderHook(() => useFlintQuery(async () => ++calls, []));
+    await waitFor(() => expect(result.current.data).toBe(1));
+    const started = Date.now();
+    while (Date.now() - started < REFETCH_MAX_WAIT_MS + 300) {
+      act(() => listeners.forEach((l) => l({ type: "mail_changed", accountId: "a1", threadIds: [] })));
+      await new Promise((r) => setTimeout(r, REFETCH_DEBOUNCE_MS / 3));
+    }
+    expect(calls).toBeGreaterThanOrEqual(2);
+    vi.restoreAllMocks();
+  });
+
   it("does not fetch when disabled", async () => {
     let calls = 0;
     renderHook(() => useFlintQuery(async () => { calls++; return 1; }, [], { enabled: false }));
@@ -83,5 +115,19 @@ describe("useFlintEvent and useSettings", () => {
     await act(async () => { screen.getByRole("button").click(); });
     await screen.findByText("focused:false");
     await flint.updateSettings({ inbox: { focused: true } });
+  });
+
+  it("useSettings reports a failed first load and tries again on reload", async () => {
+    const get = vi.spyOn(flint, "getSettings").mockRejectedValueOnce(new Error("database locked"));
+    function View() {
+      const { settings, error, reload } = useSettings();
+      return <button onClick={reload}>{settings ? "ready" : error ? `error:${error.message}` : "loading"}</button>;
+    }
+    render(<View />);
+    await screen.findByText("error:database locked");
+    await act(async () => { screen.getByRole("button").click(); });
+    await screen.findByText("ready");
+    expect(get).toHaveBeenCalledTimes(2);
+    vi.restoreAllMocks();
   });
 });

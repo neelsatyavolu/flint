@@ -65,7 +65,8 @@ export function queueApi(ctx: ServiceContext): QueueApi {
       const agent = ctx.caller();
       if (agent && row.requestedBy !== `agent:${agent}`) throw new FlintError("permission", "Agents can only cancel sends they queued themselves.");
       const draft = store.requireDraft(row.draftId);
-      if (row.status === "pending" || row.status === "awaiting_approval") {
+      // A failed send is cleared too, so "Edit and resend" or "Retry" doesn't leave the old failure listed.
+      if (row.status === "pending" || row.status === "awaiting_approval" || row.status === "failed") {
         const cancelled = store.updateScheduled(row.id, { status: "cancelled", error: null });
         if (row.status === "awaiting_approval") settleActivity(row.id, false);
         announce(cancelled);
