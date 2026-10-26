@@ -37,6 +37,9 @@ private struct InboxScreen: View {
         .background(FlintColor.plane1)
         .task(id: "\(viewModel.watchKey(for: model.mailbox))|\(attempt)") { await viewModel.watch(model.mailbox) }
         .onChange(of: model.mailbox) { _, _ in resetForMailbox() }
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification, object: model.defaults)) { _ in
+            viewModel.refreshSwipe()
+        }
         .sheet(item: $viewModel.picker) { picker in sheet(for: picker) }
         .alert(triageTitle, isPresented: triageShown, presenting: pendingTriage) { triage in
             Button(role: triage.kind == .archive ? .destructive : nil) { Task { await viewModel.run(triage) } } label: {

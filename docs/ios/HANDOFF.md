@@ -222,3 +222,10 @@ All seven track branches merged into `ios`. Shared-file changes made while integ
 - `App/Features/Search/SearchRoot.swift`: a tapped result calls `model.openFromSearch(id, query:)` (one line).
 - Sends whose undo window outlasts the ~25 s of background time, and scheduled sends, still wait for the foreground until Wave 4B adds the `BGProcessingTask` (`co.xanom.flint.processing`).
 - `FaceIDLock` moved from `PrivacyAboutPages.swift` to `App/Shell/DeviceAuthentication.swift`.
+
+## Wave 3 fix group "composer" (branch wave3fix-composer)
+
+- App/Theme/FlintAvatar.swift: Paper avatar initials now use the `fg` ink token (the shared pale `avatarFg` read 2.5:1 on Paper tints; this was the six unplaced contrast failures in the Paper inbox audit). One line; Theme owner to confirm.
+- Thread (not mine): header sender name and date are flagged "Text clipped" by the audit at the default size (`AccessibilityAuditTests.testThread` skips clipping for that reason). The reader's message header date still needs `lineLimit`/wrapping at AX3 (review finding 16, `MessageCardView.swift:76`).
+- Dated review items left open here: 22 per-account alerts (needs Wave 4 notifications), "import signature from Mac" on onboarding (Wave 4 pairing).
+- Licenses: App/Features/Settings/ThirdPartyLicenses.json was generated from Package.resolved and the SwiftPM checkouts; regenerate it when packages change (5D can fold it into THIRD-PARTY.md).

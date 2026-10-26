@@ -162,6 +162,13 @@ struct InboxRowTextTests {
         #expect(InboxRowText.liveCode(InboxFixtures.item(1, code: old), now: now) == nil)
     }
 
+    @Test("a live code is part of the spoken row, so VoiceOver users can find it and copy it")
+    func spokenCode() {
+        let live = CodeBadge(id: "c", code: "482913", service: "Bank", expiresAt: nowMs + 60_000, used: false)
+        #expect(InboxRowText.accessibility(InboxFixtures.item(1, code: live), time: "9:41", now: now).contains("Verification code 482913"))
+        #expect(!InboxRowText.accessibility(InboxFixtures.item(1), time: "9:41", now: now).contains("Verification code"))
+    }
+
     @Test("invites need an attachment and an invitation subject")
     func invites() {
         #expect(InboxRowText.isInvite(InboxFixtures.item(1, subject: "Invitation: Design review @ Tue", attachments: true)))

@@ -27,6 +27,8 @@ final class OnboardingModel {
     var editingServers = false
     var smartInbox = true
     var notificationsWanted = true
+    /// Plain text of the signature to write now; empty means none.
+    var signatureText = ""
 
     private(set) var detection: Detection = .idle
     private(set) var advice: ProviderAdvice?
@@ -101,9 +103,23 @@ final class OnboardingModel {
 
     // MARK: Choices
 
-    /// Applies the choices on the last screen. Notifications are a no-op until wave 4 wires the permission request.
-    func applyChoices() async {
+    /// Applies the choices on the last screen. Notifications are a no-op until wave 4 wires the permission request. A written
+    /// signature becomes the default for new mail and replies of the account just added. False when saving it failed.
+    @discardableResult
+    func applyChoices() async -> Bool {
         await services.setSmartInbox(smartInbox)
+        let html = SignatureText.html(fromPlain: signatureText)
+        guard !html.isEmpty, let account = addedAccount else { return true }
+        let signature = Signature(
+            id: 0, name: String(localized: "Signature", table: "Onboarding"), html: html, accountIds: [account.id], defaultNew: true,
+            defaultReply: true)
+        do {
+            try await services.saveSignature(signature)
+            return true
+        } catch {
+            show(error: error)
+            return false
+        }
     }
 
     // MARK: Errors

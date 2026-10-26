@@ -11,6 +11,7 @@ protocol OnboardingServices: Sendable {
     func addAccount(_ input: AddAccountInput) async throws -> Account
     func addGoogleAccount(loginHint: String?) async throws -> Account
     func setSmartInbox(_ enabled: Bool) async
+    func saveSignature(_ signature: Signature) async throws
 }
 
 struct AppOnboardingServices: OnboardingServices {
@@ -21,6 +22,8 @@ struct AppOnboardingServices: OnboardingServices {
     func testConnection(_ input: AddAccountInput) async throws -> ConnectionCheck { try await model.testConnection(input) }
     func addAccount(_ input: AddAccountInput) async throws -> Account { try await model.addAccount(input) }
     func addGoogleAccount(loginHint: String?) async throws -> Account { try await model.addGoogleAccount(loginHint: loginHint) }
+
+    func saveSignature(_ signature: Signature) async throws { _ = try await model.requireService().saveSignature(signature) }
 
     func setSmartInbox(_ enabled: Bool) async {
         await model.updateSettings(patch: .object(["inbox": .object(["focused": .bool(enabled)])]))

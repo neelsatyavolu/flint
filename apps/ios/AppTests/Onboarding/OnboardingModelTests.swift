@@ -231,6 +231,30 @@ struct OnboardingModelTests {
         model.smartInbox = false
         await model.applyChoices()
         #expect(services.smartInboxValues == [false])
+        #expect(services.savedSignatures.isEmpty)
+    }
+
+    @Test("a written signature is saved as the default for the new account")
+    func signatureChoice() async {
+        let (model, services) = make { $0.googleResult = .success(FakeOnboardingServices.account) }
+        await model.continueWithGoogle()
+        model.signatureText = "Maya\nNorthwind & Co"
+        #expect(await model.applyChoices())
+        let saved = services.savedSignatures.first
+        #expect(saved?.accountIds == ["acc-1"] && saved?.defaultNew == true && saved?.defaultReply == true)
+        #expect(saved?.html == "<div>Maya</div><div>Northwind &amp; Co</div>")
+    }
+
+    @Test("a signature that cannot be saved keeps the person on the choices with a sentence")
+    func signatureFails() async {
+        let (model, _) = make {
+            $0.googleResult = .success(FakeOnboardingServices.account)
+            $0.signatureError = FlintError(.invalid, "Couldn't save.")
+        }
+        await model.continueWithGoogle()
+        model.signatureText = "Maya"
+        #expect(await model.applyChoices() == false)
+        #expect(model.errorText == "Couldn't save.")
     }
 
     @Test("adding another account returns to a clean welcome")

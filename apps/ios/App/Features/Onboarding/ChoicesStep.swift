@@ -32,11 +32,28 @@ struct ChoicesStep: View {
             }
             .overlay { RoundedRectangle(cornerRadius: FlintMetrics.Radius.card).stroke(FlintColor.line, lineWidth: 1) }
             .clipShape(RoundedRectangle(cornerRadius: FlintMetrics.Radius.card))
+            VStack(alignment: .leading, spacing: FlintMetrics.Space.s1) {
+                Text("Signature", tableName: "Onboarding").flintText(.bodyStrong)
+                Text("Optional. Added under new mail and replies from this account. You can change it later in Settings.", tableName: "Onboarding")
+                    .flintText(.body, color: FlintColor.fg3)
+                TextEditor(text: $model.signatureText)
+                    .flintText(.body)
+                    .scrollContentBackground(.hidden)
+                    .padding(.horizontal, FlintMetrics.Space.s2)
+                    .padding(.vertical, FlintMetrics.Space.s1)
+                    .frame(minHeight: 88)
+                    .background(FlintColor.plane2, in: RoundedRectangle(cornerRadius: FlintMetrics.Radius.control))
+                    .overlay { RoundedRectangle(cornerRadius: FlintMetrics.Radius.control).stroke(FlintColor.line, lineWidth: 1) }
+                    .accessibilityLabel(String(localized: "Signature", table: "Onboarding"))
+                    .accessibilityIdentifier("onboarding.signature")
+            }
+            if let error = model.errorText {
+                Text(error).flintText(.body, color: FlintColor.danger).accessibilityIdentifier("onboarding.choices.error")
+            }
             VStack(spacing: FlintMetrics.Space.s3) {
                 Button {
                     Task {
-                        await model.applyChoices()
-                        onDone()
+                        if await model.applyChoices() { onDone() }
                     }
                 } label: {
                     Text("Go to inbox", tableName: "Onboarding").frame(maxWidth: .infinity)

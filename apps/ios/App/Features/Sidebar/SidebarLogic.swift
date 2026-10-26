@@ -54,6 +54,16 @@ enum SidebarLogic {
         ]
     }
 
+    static let maxRecents = 5
+
+    /// The recent searches the sidebar lists: no blanks, no repeats, newest first, at most `maxRecents`.
+    static func recents(_ searches: [String]) -> [String] {
+        var seen = Set<String>()
+        let clean = searches.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
+        return Array(clean.prefix(maxRecents))
+    }
+
     private static let ownRows: Set<MailboxRole> = [.inbox, .sent, .drafts, .trash, .spam, .archive]
 
     /// User folders and labels, and roles without their own row (all mail, flagged, important). Roles first, then by name.

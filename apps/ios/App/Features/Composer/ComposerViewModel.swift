@@ -54,6 +54,7 @@ final class ComposerViewModel {
     var selection = AttributedTextSelection()
     private(set) var signature: Signature?
     private(set) var signatures: [Signature] = []
+    private(set) var templates: [Template] = []
     private(set) var saveState: DraftAutosaver.State = .idle
     private(set) var problem: String?
     private(set) var isSending = false
@@ -65,6 +66,8 @@ final class ComposerViewModel {
     @ObservationIgnored private let dismiss: @MainActor () -> Void
     @ObservationIgnored private var autosaver: DraftAutosaver?
     @ObservationIgnored private var lastHTML = ""
+    /// The body of a draft the editor cannot represent, kept byte for byte while `isBodyLocked`.
+    @ObservationIgnored private var keptBodyHTML: String?
     @ObservationIgnored private var started = false
     @ObservationIgnored private var finished = false
     @ObservationIgnored private var pendingSend: (sendAt: EpochMs?, skip: Set<SoftStop>)?
@@ -98,6 +101,8 @@ final class ComposerViewModel {
     var selfAddresses: [String] { model.accounts.flatMap { [$0.email] + $0.aliases } }
     var allRecipients: [Address] { fields.to + fields.cc + fields.bcc }
     var plainBody: String { RichTextHTML.plainText(from: body) }
+    /// True while the body is a draft written elsewhere that the editor would flatten. The body is then shown read only.
+    private(set) var isBodyLocked = false
 
     var receiptBlocker: String? {
         SendChecks.receiptBlocker(settings: model.settings, recipients: allRecipients, selfAddresses: selfAddresses)
@@ -106,10 +111,12 @@ final class ComposerViewModel {
 
     var isBlank: Bool {
         allRecipients.isEmpty && fields.subject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && RichTextHTML.isEmpty(body) && fields.attachments.isEmpty
+            && RichTextHTML.isEmpty(body) && !isBodyLocked && fields.attachments.isEmpty
     }
 
-    private var composedHTML: String { SignatureRules.compose(body: RichTextHTML.html(from: body), signature: signature) }
+    private var composedHTML: String {
+        SignatureRules.compose(body: keptBodyHTML ?? RichTextHTML.html(from: body), signature: signature)
+    }
 
     // MARK: Loading
 
@@ -124,6 +131,7 @@ final class ComposerViewModel {
             case .resume(let id): opened = try await model.draft(id: id)
             }
             signatures = (try? await model.requireService().listSignatures()) ?? []
+            templates = (try? await model.requireService().listTemplates()) ?? []
             apply(opened)
             phase = .ready
         } catch {
@@ -138,6 +146,9 @@ final class ComposerViewModel {
             from: opened.from, accountId: opened.accountId, to: opened.to, cc: opened.cc, bcc: opened.bcc, subject: opened.subject,
             track: opened.track, signatureId: opened.signatureId, attachments: opened.attachments)
         body = RichTextHTML.attributed(fromHTML: parts.body)
+        let locked = !DraftHTMLFidelity.isLossless(parts.body)
+        isBodyLocked = locked
+        keptBodyHTML = locked ? parts.body : nil
         if let html = parts.signatureHTML {
             let id = parts.signatureId ?? opened.signatureId
             signature = signatures.first { $0.id == id } ?? Signature(id: id ?? 0, name: "", html: html)
@@ -168,6 +179,28 @@ final class ComposerViewModel {
         guard html != lastHTML else { return }
         lastHTML = html
         autosaver?.push(DraftPatch(html: html))
+    }
+
+    /// The person agreed to flatten a draft written elsewhere: from now on the editor's text is the body.
+    func editBodyAsPlainText() {
+        guard isBodyLocked else { return }
+        isBodyLocked = false
+        keptBodyHTML = nil
+        bodyChanged()
+    }
+
+    /// Inserts a template at the cursor and, like the desktop, fills the subject when it is still empty. In a draft whose body
+    /// is kept as written, the template goes at the end of that body.
+    func insert(_ template: Template) {
+        if !template.subject.isEmpty, fields.subject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            edit { $0.subject = template.subject }
+        }
+        if let kept = keptBodyHTML {
+            keptBodyHTML = kept + template.html
+        } else {
+            RichTextFormatting.insert(html: template.html, into: &body, selection: &selection)
+        }
+        bodyChanged()
     }
 
     func chooseFrom(_ option: ComposerFromOption) {

@@ -12,6 +12,8 @@ enum SettingsDestination: Hashable {
     case rule(Int?)
     case blocked
     case licenses
+    /// One project's copyright line and license text, by its name in `ThirdPartyLicenses.json`.
+    case license(String)
 }
 
 /// Settings, presented as a sheet for `Route.settings(section)`. The root lists the accounts and every page.
@@ -105,6 +107,7 @@ private struct SettingsDestinationView: View {
         case .rule(let id): RuleEditorView(ruleId: id)
         case .blocked: BlockedSendersView()
         case .licenses: LicensesView()
+        case .license(let name): LicenseDetailView(name: name)
         }
     }
 }

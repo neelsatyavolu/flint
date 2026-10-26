@@ -11,7 +11,7 @@ struct AppearancePage: View {
         SettingsPage(title: sl("Appearance"), identifier: "appearance") {
             SettingsGroup(title: sl("Theme")) {
                 SettingsChoiceRow(
-                    icon: .sliders, title: sl("Theme"), detail: sl("Graphite is dark, Paper is light. System follows your iPhone."),
+                    icon: .sliders, title: sl("Theme"), detail: String(format: sl("Graphite is dark, Paper is light. System follows your %@."), ThisDevice.name),
                     selection: themeBinding, choices: FlintAppearance.allCases.map { (value: $0, label: $0.title) }, identifier: "settings.appearance.theme")
                 SettingsRowLayout(icon: .eye, title: sl("Text size"), detail: sl("Flint follows the text size set in the iOS Settings app, including larger accessibility sizes.")) {
                     Button { openSystemSettings() } label: { Text("Open Settings", tableName: "Settings") }

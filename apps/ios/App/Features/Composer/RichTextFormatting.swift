@@ -64,6 +64,13 @@ enum RichTextFormatting {
         text.transformAttributes(in: &selection) { $0.link = url }
     }
 
+    /// Puts the text of `html` at the insertion point, replacing the selection.
+    static func insert(html: String, into text: inout AttributedString, selection: inout AttributedTextSelection) {
+        let inserted = RichTextHTML.attributed(fromHTML: html)
+        guard !inserted.characters.isEmpty else { return }
+        text.replaceSelection(&selection, with: inserted)
+    }
+
     // MARK: Bullets
 
     private static func bounds(_ selection: AttributedTextSelection, in text: AttributedString) -> (AttributedString.Index, AttributedString.Index) {

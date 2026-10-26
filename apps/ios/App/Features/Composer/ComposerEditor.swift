@@ -7,7 +7,34 @@ struct ComposerEditor: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if viewModel.isBodyLocked { lockedNote }
+            editor
+        }
+    }
+
+    /// A draft written elsewhere keeps its formatting and images: the body is read only until the person flattens it.
+    private var lockedNote: some View {
+        VStack(alignment: .leading, spacing: FlintMetrics.Space.s2) {
+            Text("This draft has formatting or images that can't be edited here. Its body is kept as written. You can still change the recipients, subject and attachments, and send it.", tableName: "Composer")
+                .flintText(.label, color: FlintColor.fg2)
+                .accessibilityIdentifier("composer.body.lockedNote")
+            Button { viewModel.editBodyAsPlainText() } label: {
+                Text("Edit as plain text", tableName: "Composer")
+                    .flintText(.label, color: FlintColor.accent)
+                    .frame(minHeight: FlintMetrics.Size.touch)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("composer.body.unlock")
+        }
+        .padding(.horizontal, FlintMetrics.Space.s4)
+        .padding(.top, FlintMetrics.Space.s2)
+    }
+
+    private var editor: some View {
         TextEditor(text: $viewModel.body, selection: $viewModel.selection)
+            .disabled(viewModel.isBodyLocked)
             .font(RichTextStyle.font(for: []))
             .foregroundStyle(FlintColor.fg)
             .tint(FlintColor.accent)
@@ -121,6 +148,7 @@ struct ComposerFormatBar: View {
                 RichTextFormatting.toggleBullets(text: &viewModel.body, selection: &viewModel.selection)
             }
             Spacer(minLength: 0)
+            templatesMenu
             FlintIconButton(
                 icon: .eye, label: String(localized: "Read receipt", table: "Composer"),
                 color: viewModel.fields.track ? FlintColor.accent : FlintColor.fg2, identifier: "composer.receipt"
@@ -144,6 +172,25 @@ struct ComposerFormatBar: View {
             }
             Button(String(localized: "Add", table: "Composer")) { applyLink(Self.url(from: linkText)) }
         }
+    }
+
+    private var templatesMenu: some View {
+        Menu {
+            if viewModel.templates.isEmpty {
+                Text("No templates yet", tableName: "Composer")
+            } else {
+                ForEach(viewModel.templates) { template in
+                    Button(template.name.isEmpty ? String(localized: "Untitled", table: "Composer") : template.name) { viewModel.insert(template) }
+                        .accessibilityIdentifier("composer.template.\(template.id)")
+                }
+            }
+        } label: {
+            FlintIconView(icon: .fileText, size: 18, color: FlintColor.fg2)
+                .frame(width: FlintMetrics.Size.touch, height: FlintMetrics.Size.touch)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(String(localized: "Insert template", table: "Composer"))
+        .accessibilityIdentifier("composer.templates")
     }
 
     private var currentLink: URL? { RichTextFormatting.link(in: viewModel.body, selection: viewModel.selection) }
@@ -181,6 +228,7 @@ struct ComposerFormatBar: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(FlintPressStyle())
+        .disabled(viewModel.isBodyLocked)
         .accessibilityLabel(label)
         .accessibilityAddTraits(active ? .isSelected : [])
         .accessibilityIdentifier(id)

@@ -105,4 +105,11 @@ struct SidebarLogicTests {
         let merged = SidebarLogic.statuses(live: [status("a", .syncing)], data: data)
         #expect(merged.map(\.state) == [.syncing, .offline])
     }
+
+    @Test("recents drop blanks and repeats and stop at five")
+    func recents() {
+        let all = ["invoice", " ", "Invoice", "from:ana", "a", "b", "c", "d"]
+        #expect(SidebarLogic.recents(all) == ["invoice", "from:ana", "a", "b", "c"])
+        #expect(SidebarLogic.recents([]).isEmpty)
+    }
 }

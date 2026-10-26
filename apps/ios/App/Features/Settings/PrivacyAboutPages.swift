@@ -1,6 +1,17 @@
 import FlintModel
 import SwiftUI
 
+/// What Flint contacts, in plain words. Every line here is something the app does; `PrivacyCopyTests` keeps the list honest.
+enum PrivacyCopy {
+    static var contacts: String {
+        sl("Flint talks to your mail provider. When you sign in with Google it also talks to Google. When you add an account it asks the Thunderbird settings database for your provider's server settings and sends it the domain of your address. If you turn on read receipts, tracked messages point to the receipts address you set. Images load from the sender's server only when you allow them.")
+    }
+
+    static var cached: String {
+        sl("Mail is cached in a local database. The only other contacts are the ones listed under Privacy.")
+    }
+}
+
 struct PrivacyPage: View {
     @Environment(AppModel.self) private var model
     @State private var lockOn = false
@@ -29,8 +40,12 @@ struct PrivacyPage: View {
                         .accessibilityIdentifier("settings.privacy.faceID.unavailable")
                 }
             }
-            Text("Flint has no account and no analytics. Your mail is stored on this iPhone, and Flint talks only to your mail provider.", tableName: "Settings")
+            Text(String(format: sl("Flint has no account and no analytics. Your mail is stored on this %@."), ThisDevice.name))
+                .flintText(.body, color: FlintColor.fg3).padding(.horizontal, FlintMetrics.Space.s4).padding(.top, FlintMetrics.Space.s4)
+                .accessibilityIdentifier("settings.privacy.stored")
+            Text(PrivacyCopy.contacts)
                 .flintText(.body, color: FlintColor.fg3).padding(FlintMetrics.Space.s4)
+                .accessibilityIdentifier("settings.privacy.contacts")
         }
         .onAppear { lockOn = model.defaults.bool(forKey: SettingsDefaultsKey.faceIDLock) }
     }
@@ -80,43 +95,11 @@ struct AboutPage: View {
             FlintHairline()
             SettingsRowLayout(title: sl("Free"), detail: sl("Flint is free. No account, no tracking of you.")) { EmptyView() }
             SettingsRowLayout(title: sl("License"), detail: sl("MIT. You can read, change and share the source on GitHub.")) { EmptyView() }
-            SettingsRowLayout(title: sl("Your mail stays on this iPhone"), detail: sl("Mail is cached in a local database. Flint talks to your mail provider and nothing else.")) { EmptyView() }
+            SettingsRowLayout(title: String(format: sl("Your mail stays on this %@"), ThisDevice.name), detail: PrivacyCopy.cached) { EmptyView() }
             SettingsRowLayout(
                 title: sl("Background"),
                 detail: sl("iOS decides when Flint can check for mail in the background. Mail arrives right away while the app is open.")) { EmptyView() }
             SettingsLinkRow(icon: .fileText, title: sl("Licenses"), destination: SettingsDestination.licenses, identifier: "settings.about.licenses")
-        }
-    }
-}
-
-/// The open-source pieces Flint is built from.
-struct LicensesView: View {
-    private struct Item: Identifiable {
-        let name: String
-        let license: String
-        let note: String
-        var id: String { name }
-    }
-
-    private let items: [Item] = [
-        Item(name: "Geist and Geist Mono", license: "SIL Open Font License 1.1", note: "Vercel"),
-        Item(name: "Newsreader", license: "SIL Open Font License 1.1", note: "Production Type"),
-        Item(name: "Lucide", license: "ISC", note: "Icons"),
-        Item(name: "SwiftMail", license: "BSD", note: "IMAP and SMTP"),
-        Item(name: "GRDB.swift", license: "MIT", note: "Local database"),
-        Item(name: "SwiftSoup", license: "MIT", note: "HTML cleaning"),
-        Item(name: "SwiftNIO, swift-crypto and other Apple Swift packages", license: "Apache 2.0", note: "Networking and cryptography"),
-    ]
-
-    var body: some View {
-        SettingsPage(title: sl("Licenses"), identifier: "licenses") {
-            Text("Flint is MIT licensed and is built from these open-source projects.", tableName: "Settings")
-                .flintText(.body, color: FlintColor.fg3).padding(FlintMetrics.Space.s4)
-            FlintHairline()
-            ForEach(items) { item in
-                SettingsRowLayout(title: item.name, detail: "\(item.license) · \(item.note)") { EmptyView() }
-                    .accessibilityElement(children: .combine)
-            }
         }
     }
 }

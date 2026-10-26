@@ -23,13 +23,24 @@
         }
       }
     },
-    "%@ and its mail stored on this iPhone will be removed from Flint. Your mail stays with your provider.": {
+    "%@ and its mail stored on this %@ will be removed from Flint. Your mail stays with your provider.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ and its mail stored on this iPhone will be removed from Flint. Your mail stays with your provider."
+            "value": "%@ and its mail stored on this %@ will be removed from Flint. Your mail stays with your provider."
+          }
+        }
+      }
+    },
+    "%lld days": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld days"
           }
         }
       }
@@ -56,6 +67,17 @@
         }
       }
     },
+    "1 year": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 year"
+          }
+        }
+      }
+    },
     "2 lines": {
       "extractionState": "manual",
       "localizations": {
@@ -63,6 +85,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "2 lines"
+          }
+        }
+      }
+    },
+    "2 years": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 years"
           }
         }
       }
@@ -727,24 +760,13 @@
         }
       }
     },
-    "Flint has no account and no analytics. Your mail is stored on this iPhone, and Flint talks only to your mail provider.": {
+    "Flint has no account and no analytics. Your mail is stored on this %@.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Flint has no account and no analytics. Your mail is stored on this iPhone, and Flint talks only to your mail provider."
-          }
-        }
-      }
-    },
-    "Flint is MIT licensed and is built from these open-source projects.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flint is MIT licensed and is built from these open-source projects."
+            "value": "Flint has no account and no analytics. Your mail is stored on this %@."
           }
         }
       }
@@ -756,6 +778,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Flint is free. No account, no tracking of you."
+          }
+        }
+      }
+    },
+    "Flint is MIT licensed and ships with these open-source projects. Each page has the copyright line and license text.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint is MIT licensed and ships with these open-source projects. Each page has the copyright line and license text."
+          }
+        }
+      }
+    },
+    "Flint talks to your mail provider. When you sign in with Google it also talks to Google. When you add an account it asks the Thunderbird settings database for your provider's server settings and sends it the domain of your address. If you turn on read receipts, tracked messages point to the receipts address you set. Images load from the sender's server only when you allow them.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint talks to your mail provider. When you sign in with Google it also talks to Google. When you add an account it asks the Thunderbird settings database for your provider's server settings and sends it the domain of your address. If you turn on read receipts, tracked messages point to the receipts address you set. Images load from the sender's server only when you allow them."
           }
         }
       }
@@ -782,13 +826,13 @@
         }
       }
     },
-    "Formatting from the Mac app is kept until you change the text here. Editing on iPhone saves plain text.": {
+    "Formatting from the Mac app is kept until you change the text here. Editing on %@ saves plain text.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Formatting from the Mac app is kept until you change the text here. Editing on iPhone saves plain text."
+            "value": "Formatting from the Mac app is kept until you change the text here. Editing on %@ saves plain text."
           }
         }
       }
@@ -826,13 +870,13 @@
         }
       }
     },
-    "Graphite is dark, Paper is light. System follows your iPhone.": {
+    "Graphite is dark, Paper is light. System follows your %@.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Graphite is dark, Paper is light. System follows your iPhone."
+            "value": "Graphite is dark, Paper is light. System follows your %@."
           }
         }
       }
@@ -844,6 +888,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Has attachment"
+          }
+        }
+      }
+    },
+    "How far back Flint downloads when an account first syncs, for every account. Older mail loads when you reach the end of a list or search.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How far back Flint downloads when an account first syncs, for every account. Older mail loads when you reach the end of a list or search."
           }
         }
       }
@@ -1068,13 +1123,24 @@
         }
       }
     },
-    "Mail is cached in a local database. Flint talks to your mail provider and nothing else.": {
+    "Mail is cached in a local database. The only other contacts are the ones listed under Privacy.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mail is cached in a local database. Flint talks to your mail provider and nothing else."
+            "value": "Mail is cached in a local database. The only other contacts are the ones listed under Privacy."
+          }
+        }
+      }
+    },
+    "Mail kept on this %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mail kept on this %@"
           }
         }
       }
@@ -1383,6 +1449,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nothing"
+          }
+        }
+      }
+    },
+    "Notice": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notice"
           }
         }
       }
@@ -2113,6 +2190,17 @@
         }
       }
     },
+    "Sync": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync"
+          }
+        }
+      }
+    },
     "Sync failed": {
       "extractionState": "manual",
       "localizations": {
@@ -2241,6 +2329,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "That pattern isn't valid."
+          }
+        }
+      }
+    },
+    "The license list could not be read.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The license list could not be read."
           }
         }
       }
@@ -2498,13 +2597,13 @@
         }
       }
     },
-    "Your mail stays on this iPhone": {
+    "Your mail stays on this %@": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your mail stays on this iPhone"
+            "value": "Your mail stays on this %@"
           }
         }
       }

@@ -180,4 +180,15 @@ struct InboxViewModelTests {
         pinned.cancel()
         await app.tearDown()
     }
+
+    @Test("a swipe choice saved elsewhere reaches the live list without a relaunch")
+    func swipeRefresh() async throws {
+        let app = try await SeededApp.make()
+        let viewModel = InboxViewModel(model: app.model)
+        #expect(viewModel.swipe.trailing.first == .archive)
+        SwipeConfiguration(leading: [.read], trailing: [.trash, .archive]).save(to: app.model.defaults)
+        viewModel.refreshSwipe()
+        #expect(viewModel.swipe.trailing.first == .trash)
+        await app.tearDown()
+    }
 }

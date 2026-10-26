@@ -49,7 +49,7 @@ enum InboxRowText {
     }
 
     /// The spoken description of a row.
-    static func accessibility(_ item: ThreadListItem, time: String) -> String {
+    static func accessibility(_ item: ThreadListItem, time: String, now: Date = Date()) -> String {
         let who = sender(item)
         var parts: [String] = []
         if item.unreadCount > 0 { parts.append(String(localized: "Unread", table: "Inbox")) }
@@ -61,6 +61,7 @@ enum InboxRowText {
         if item.messageCount > 1 { parts.append(String(localized: "\(item.messageCount) messages", table: "Inbox")) }
         if item.hasAttachments { parts.append(String(localized: "Has attachments", table: "Inbox")) }
         if isInvite(item) { parts.append(String(localized: "Calendar invitation", table: "Inbox")) }
+        if let badge = liveCode(item, now: now) { parts.append(String(localized: "Verification code \(badge.code)", table: "Inbox")) }
         parts.append(time)
         return parts.joined(separator: ", ")
     }

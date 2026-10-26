@@ -24,6 +24,7 @@ struct SidebarRoot: View {
                         if list.selection == .unifiedInbox, multiple, accountsExpanded { accountRows }
                     }
                     foldersSection
+                    recentsSection
                 }
                 .padding(.bottom, FlintMetrics.Space.s4)
             }
@@ -122,6 +123,18 @@ struct SidebarRoot: View {
                     .accessibilityAddTraits(.isHeader)
             }
             ForEach(group.folders) { folder in folderRow(folder, group: group) }
+        }
+    }
+
+    @ViewBuilder private var recentsSection: some View {
+        let recents = SidebarLogic.recents(model.recentSearches)
+        if !recents.isEmpty {
+            SidebarSectionLabel(text: String(localized: "Recents", table: "Sidebar"), identifier: "sidebar.section.recents")
+            ForEach(Array(recents.enumerated()), id: \.element) { index, query in
+                SidebarRowView(leading: .icon(.search), title: query, identifier: "sidebar.recent.\(index)") {
+                    model.navigate(to: .search(query))
+                }
+            }
         }
     }
 

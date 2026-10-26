@@ -18,6 +18,8 @@ final class FakeOnboardingServices: OnboardingServices {
     private(set) var addedInputs: [AddAccountInput] = []
     private(set) var googleHints: [String?] = []
     private(set) var smartInboxValues: [Bool] = []
+    private(set) var savedSignatures: [Signature] = []
+    var signatureError: FlintError?
 
     nonisolated static let server = ServerConfig(
         imapHost: "imap.example.com", imapPort: 993, imapSecure: true, smtpHost: "smtp.example.com", smtpPort: 465, smtpSecure: true,
@@ -49,4 +51,9 @@ final class FakeOnboardingServices: OnboardingServices {
     }
 
     func setSmartInbox(_ enabled: Bool) async { smartInboxValues.append(enabled) }
+
+    func saveSignature(_ signature: Signature) async throws {
+        if let signatureError { throw signatureError }
+        savedSignatures.append(signature)
+    }
 }
