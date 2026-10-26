@@ -20,6 +20,12 @@ export function useFlintEvent<T extends EventType>(type: T, handler: (event: Eve
 
 /** Event-driven refetches within this window collapse into one. */
 export const REFETCH_DEBOUNCE_MS = 150;
+/** A steady stream of events (a sync burst) still refetches at least this often. */
+export const REFETCH_MAX_WAIT_MS = 1000;
+
+function sameDeps(a: DependencyList, b: DependencyList): boolean {
+  return a.length === b.length && a.every((v, i) => Object.is(v, b[i]));
+}
 
 function sameData(a: unknown, b: unknown): boolean {
   if (a === b) return true;
@@ -35,8 +41,9 @@ export type QueryState<T> = { data: T | undefined; error: Error | undefined; loa
 /**
  * Loads data from the API and reloads it on 'mail_changed' (and any extra `refetchOn` event types).
  * Previous data stays in place while reloading, so lists never flash empty. Stale responses are dropped.
- * Event refetches are coalesced (trailing debounce), `threadId` skips mail_changed events that name other
- * threads, and a response equal to the current data keeps the same object so consumers do not re-render.
+ * When `deps` change it is a different query, so data and error start over instead of showing the last one's.
+ * Event refetches are coalesced (trailing debounce, capped by REFETCH_MAX_WAIT_MS), `threadId` skips mail_changed
+ * events that name other threads, and a response equal to the current data keeps the same object so consumers do not re-render.
  */
 export function useFlintQuery<T>(
   fetcher: (api: FlintApi) => Promise<T>,
@@ -49,6 +56,12 @@ export function useFlintQuery<T>(
     error: undefined,
     loading: enabled,
   });
+  // Reset during render (not in an effect) so the first frame of a new query never shows the old one's data or error.
+  const [queryDeps, setQueryDeps] = useState(deps);
+  if (!sameDeps(queryDeps, deps)) {
+    setQueryDeps(deps);
+    setState({ data: undefined, error: undefined, loading: enabled });
+  }
   const fetchRef = useRef(fetcher);
   fetchRef.current = fetcher;
   const seq = useRef(0);
@@ -73,11 +86,19 @@ export function useFlintQuery<T>(
     run();
     const types = new Set<EventType>([...(mail ? (["mail_changed"] as const) : []), ...refetchOn]);
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // When the first event of the pending burst arrived; the refetch fires no later than REFETCH_MAX_WAIT_MS after it.
+    let firstAt: number | undefined;
+    const fire = () => {
+      firstAt = undefined;
+      run();
+    };
     const off = flint.subscribe((e) => {
       if (!types.has(e.type)) return;
       if (e.type === "mail_changed" && threadId !== undefined && e.threadIds.length > 0 && !e.threadIds.includes(threadId)) return;
+      const now = Date.now();
+      firstAt ??= now;
       clearTimeout(timer);
-      timer = setTimeout(run, REFETCH_DEBOUNCE_MS);
+      timer = setTimeout(fire, Math.max(0, Math.min(REFETCH_DEBOUNCE_MS, firstAt + REFETCH_MAX_WAIT_MS - now)));
     });
     return () => {
       seq.current++;
@@ -90,21 +111,36 @@ export function useFlintQuery<T>(
   return { ...state, refetch: run };
 }
 
-/** Current settings, kept live through 'settings' events. update() merges a deep patch. */
-export function useSettings(): { settings: Settings | undefined; update: (patch: DeepPartial<Settings>) => Promise<Settings> } {
+/**
+ * Current settings, kept live through 'settings' events. update() merges a deep patch.
+ * `error` is set when the first load failed and settings never arrived; reload() tries again.
+ */
+export function useSettings(): {
+  settings: Settings | undefined;
+  update: (patch: DeepPartial<Settings>) => Promise<Settings>;
+  error: Error | undefined;
+  reload: () => void;
+} {
   const [settings, setSettings] = useState<Settings | undefined>();
+  const [error, setError] = useState<Error | undefined>();
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let alive = true;
-    flint.getSettings().then((s) => alive && setSettings(s), () => undefined);
+    setError(undefined);
+    flint.getSettings().then(
+      (s) => alive && setSettings(s),
+      (err: unknown) => alive && setError(err instanceof Error ? err : new Error(String(err))),
+    );
     return () => {
       alive = false;
     };
-  }, []);
+  }, [attempt]);
+  const reload = useCallback(() => setAttempt((n) => n + 1), []);
   useFlintEvent("settings", (e) => setSettings(e.settings));
   const update = useCallback(async (patch: DeepPartial<Settings>) => {
     const next = await flint.updateSettings(patch);
     setSettings(next);
     return next;
   }, []);
-  return { settings, update };
+  return { settings, update, error: settings ? undefined : error, reload };
 }
