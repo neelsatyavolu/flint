@@ -394,6 +394,14 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
       return state.helper;
     },
 
+    // System-wide autofill (demo: needs permission until "Enable" is clicked, then ready)
+    async autofillStatus() { return state.autofill; },
+    async requestAutofillPermission() {
+      state.autofill = { ...state.autofill, state: "ready", permission: "granted", helperRunning: true };
+      return state.autofill;
+    },
+    async tryAutofillDemo() {},
+
     // Agents
     async listAgentActivity(opts) {
       const list = [...state.activity].sort((a, b) => b.at - a.at).filter((a) => (opts?.before ? a.at < opts.before : true));

@@ -11,3 +11,4 @@ release
 .review
 .playwright-mcp
 .claude/worktrees
+apps/autofill-helper/dist/

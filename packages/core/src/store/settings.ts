@@ -16,7 +16,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sync: { initialDays: 90, bodiesForRecentDays: 14 },
   google: { clientId: "", clientSecret: "" },
   updates: { mode: "ask" },
-  codes: { enabled: true, notify: true, autoCopy: false },
+  codes: { enabled: true, notify: true, autoCopy: false, autofill: true, shortcut: "Control+Option+V" },
 };
 
 const sections = {
@@ -47,7 +47,7 @@ const sections = {
   sync: z.object({ initialDays: z.number().int().min(1).max(3650), bodiesForRecentDays: z.number().int().min(0).max(3650) }),
   google: z.object({ clientId: z.string().max(500), clientSecret: z.string().max(500) }),
   updates: z.object({ mode: z.enum(["auto", "ask", "manual"]) }),
-  codes: z.object({ enabled: z.boolean(), notify: z.boolean(), autoCopy: z.boolean() }),
+  codes: z.object({ enabled: z.boolean(), notify: z.boolean(), autoCopy: z.boolean(), autofill: z.boolean(), shortcut: z.string().max(60) }),
 };
 
 export const settingsSchema = z.object(sections).strict();

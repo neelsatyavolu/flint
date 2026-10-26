@@ -37,6 +37,9 @@ process.stderr.write(
     : "[electron-builder] Building unsigned (run scripts/dist.sh --apple for a release)\n",
 );
 
+const helperBuilt = fs.existsSync(path.join(__dirname, "../autofill-helper/dist/FlintAutofill"));
+if (!helperBuilt) process.stderr.write("[electron-builder] apps/autofill-helper/dist is missing: building without system-wide autofill (scripts/build-autofill-helper.sh)\n");
+
 const extensionBuilt = fs.existsSync(path.join(__dirname, "../browser-extension/dist/chromium/manifest.json"));
 if (!extensionBuilt) process.stderr.write("[electron-builder] apps/browser-extension/dist is missing: building without the browser extension (pnpm --filter @flint/browser-extension build)\n");
 
@@ -62,6 +65,8 @@ module.exports = {
     { from: "../cli/dist/flint.js", to: "cli/flint.js" },
     // The built verification code extension (dist/chromium and dist/firefox) for "Load unpacked" from Settings.
     // scripts/dist.sh builds it first; a build made without it simply ships no extension (Settings says so).
+    // The Accessibility helper (universal binary) for system-wide code autofill; launched from Resources/autofill by the main process.
+    ...(helperBuilt ? [{ from: "../autofill-helper/dist/FlintAutofill", to: "autofill/FlintAutofill" }] : []),
     ...(extensionBuilt ? [{ from: "../browser-extension/dist", to: "browser-extension" }] : []),
   ],
   protocols: [{ name: "Mail link", schemes: ["mailto"] }],
@@ -79,6 +84,8 @@ module.exports = {
     identity: sign ? process.env.CSC_NAME : null,
     hardenedRuntime: sign,
     gatekeeperAssess: false,
+    // Sign the helper explicitly with the app's identity and hardened runtime (it is a nested Mach-O outside Frameworks).
+    binaries: helperBuilt ? ["Contents/Resources/autofill/FlintAutofill"] : [],
     entitlements: "build/entitlements.mac.plist",
     entitlementsInherit: "build/entitlements.mac.plist",
     notarize,

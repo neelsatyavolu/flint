@@ -96,3 +96,6 @@
 .linkButton { all: unset; color: var(--accent); cursor: default; border-radius: var(--r-control); }
 .linkButton:hover { text-decoration: underline; }
 .linkButton:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+
+.disclosure { cursor: pointer; padding: var(--s-2) 0; font-weight: 600; color: var(--fg-2); }
+.disclosure:hover { color: var(--fg-1); }

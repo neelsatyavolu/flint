@@ -63,6 +63,7 @@ fi
 cd "$ROOT"
 pnpm --filter @flint/cli build
 pnpm --filter @flint/browser-extension build
+"$ROOT/scripts/build-autofill-helper.sh"
 cd "$ROOT/apps/desktop"
 rm -rf release
 pnpm exec electron-vite build
@@ -72,6 +73,23 @@ APP="$(find release -maxdepth 2 -name 'Flint.app' -type d | head -1 || true)"
 if [ -n "$APP" ]; then
   codesign -dv --verbose=2 "$APP" 2>&1 | grep -E '^(Authority|TeamIdentifier|Identifier)=' || true
   [ "$MODE" = "apple" ] && { spctl --assess --type execute --verbose "$APP" 2>&1 || true; xcrun stapler validate "$APP" 2>&1 | tail -1 || true; }
+fi
+
+# The Accessibility helper must ship inside the bundle, signed with the app's identity, hardened runtime and a secure timestamp.
+# Accessibility permission is attributed to Flint.app only when the helper is launched from a correctly signed bundle.
+if [ -n "$APP" ]; then
+  HELPER="$APP/Contents/Resources/autofill/FlintAutofill"
+  [ -x "$HELPER" ] || { echo "error: $HELPER is missing from the app" >&2; exit 1; }
+  if [ "$MODE" != "unsigned" ]; then
+    codesign --verify --strict --verbose=2 "$HELPER"
+    codesign --verify --deep --strict "$APP"
+    HELPER_INFO="$(codesign -dvv "$HELPER" 2>&1)"
+    echo "$HELPER_INFO" | grep -Eq '^CodeDirectory .*flags=0x[0-9a-f]+\(.*runtime' || { echo "error: the autofill helper is not signed with the hardened runtime" >&2; exit 1; }
+    echo "$HELPER_INFO" | grep -q '^Timestamp=' || { echo "error: the autofill helper has no secure timestamp" >&2; exit 1; }
+    APP_TEAM="$(codesign -dv "$APP" 2>&1 | sed -n 's/^TeamIdentifier=//p')"
+    echo "$HELPER_INFO" | grep -q "^TeamIdentifier=$APP_TEAM\$" || { echo "error: the autofill helper is signed by a different team than the app" >&2; exit 1; }
+    echo "==> autofill helper: signed, hardened runtime, timestamped, team $APP_TEAM"
+  fi
 fi
 
 # electron-builder notarizes the app (inside both the zip and the DMG); the DMG itself is notarized here

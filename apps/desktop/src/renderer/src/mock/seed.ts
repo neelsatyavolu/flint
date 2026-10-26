@@ -148,7 +148,8 @@ export function buildState(now: number, seed = 7): MockState {
   const state: MockState = {
     accounts: makeAccounts(now), folders: [], threads: [], drafts: [], scheduled: [], signatures: makeSignatures(), templates: makeTemplates(), rules: makeRules(),
     blocked: [{ pattern: "outreach@growth-hacker.example", createdAt: now - 12 * DAY * MIN }, { pattern: "@bulk-deals.example", createdAt: now - 40 * DAY * MIN }],
-    tracked: [], receipts: {}, activity: makeActivity(now), skill: mockSkill(), codes: mockCodes(now), helper: mockHelper(), settings: defaultSettings(), ai: defaultAi(),
+    tracked: [], receipts: {}, activity: makeActivity(now), skill: mockSkill(), codes: mockCodes(now), helper: mockHelper(),
+    autofill: { state: "needs_permission", supported: true, permission: "needed", helperRunning: true, waiting: 0, shortcutActive: "Control+Option+V" }, settings: defaultSettings(), ai: defaultAi(),
     sync: [], ids: {}, older: [],
   };
   state.folders = buildFolders(state);

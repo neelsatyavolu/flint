@@ -1,0 +1,80 @@
+{
+ "commands": [
+  {
+   "op": "status"
+  },
+  {
+   "op": "request_permission",
+   "openPane": true
+  },
+  {
+   "op": "codes",
+   "codes": [
+    {
+     "id": "c1",
+     "code": "530331",
+     "service": "KAYAK",
+     "senderDomain": "mail.kayak.com",
+     "receivedAt": 1760000000000,
+     "expiresAt": 1760000600000
+    }
+   ]
+  },
+  {
+   "op": "codes",
+   "codes": []
+  },
+  {
+   "op": "type_newest"
+  },
+  {
+   "op": "demo",
+   "field": {
+    "x": 100,
+    "y": 200,
+    "width": 240,
+    "height": 28
+   },
+   "code": "482913",
+   "service": "Flint"
+  },
+  {
+   "op": "demo_stop"
+  },
+  {
+   "op": "shutdown"
+  }
+ ],
+ "events": [
+  {
+   "event": "ready",
+   "protocol": 1,
+   "version": "0.1.0",
+   "pid": 4242,
+   "trusted": false
+  },
+  {
+   "event": "permission",
+   "trusted": true
+  },
+  {
+   "event": "used",
+   "codeId": "c1",
+   "via": "suggestion",
+   "method": "typed"
+  },
+  {
+   "event": "fill_failed",
+   "codeId": "c1",
+   "reason": "secure_input"
+  },
+  {
+   "event": "observing",
+   "active": true
+  },
+  {
+   "event": "error",
+   "message": "AX observer failed for pid 123"
+  }
+ ]
+}

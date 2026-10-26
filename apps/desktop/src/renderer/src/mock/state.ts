@@ -1,6 +1,6 @@
 import type {
   AgentSkillStatus,
-  Account, AccountId, AgentActivity, BrowserHelperStatus, VerificationCode, AiStatus, Category, Draft, Folder, FolderId, MessageView, Rule, ReceiptDetail,
+  Account, AccountId, AgentActivity, BrowserHelperStatus, AutofillStatus, VerificationCode, AiStatus, Category, Draft, Folder, FolderId, MessageView, Rule, ReceiptDetail,
   ScheduledSend, Settings, Signature, SyncStatus, Template, ThreadId, TrackedMessage,
 } from "@flint/core";
 
@@ -39,6 +39,7 @@ export type MockState = {
   /** Demo verification codes. The desktop builder points threadId/messageId at a real fixture thread and attaches verificationCode to it. */
   codes: VerificationCode[];
   helper: BrowserHelperStatus;
+  autofill: AutofillStatus;
   settings: Settings;
   ai: AiStatus;
   sync: SyncStatus[];

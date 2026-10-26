@@ -3,7 +3,7 @@ import type {
   Account, AccountId, AddAccountInput, Category, AgentActivity, AgentSkillStatus, AiProvider, AiRun, AiStatus, AiTask, Contact,
   DeepPartial, Draft, DraftInit, DraftPatch, FlintEvent, Folder, FolderId, HomeData, MessageRowId,
   MessageView, ReceiptDetail, Rule, ScheduledSend, SendResult, ServerConfig, Settings, SidebarData, AvatarRef,
-  Signature, SyncStatus, VerificationCode, BrowserHelperStatus, Template, ThreadDetail, ThreadId, ThreadPage, ThreadQuery, LoadOlderResult, ServerSearchResult, TrackedMessage,
+  Signature, SyncStatus, VerificationCode, BrowserHelperStatus, AutofillStatus, Template, ThreadDetail, ThreadId, ThreadPage, ThreadQuery, LoadOlderResult, ServerSearchResult, TrackedMessage,
 } from "./types";
 
 /** A signature found in Spark Desktop's settings, with the Flint accounts it is the default for. */
@@ -167,6 +167,14 @@ export interface FlintApi {
   /** Removes the host wrapper and the manifests Flint wrote. */
   removeBrowserHelper(): Promise<BrowserHelperStatus>;
 
+  // System-wide code autofill (macOS Accessibility, the FlintAutofill helper). Admin tier like the code methods.
+  /** Current state of autofill. Cheap; the Settings page calls it on open and when the window regains focus. */
+  autofillStatus(): Promise<AutofillStatus>;
+  /** The user clicked Enable: asks macOS for Accessibility (system prompt) and opens the Accessibility pane. Returns the state right after. */
+  requestAutofillPermission(): Promise<AutofillStatus>;
+  /** "Try it": opens a small demo window with a code field and shows a suggestion with a fake code next to it. */
+  tryAutofillDemo(): Promise<void>;
+
   // Settings
   getSettings(): Promise<Settings>;
   updateSettings(patch: DeepPartial<Settings>): Promise<Settings>;
@@ -209,6 +217,7 @@ export const METHOD_TIERS: Record<FlintMethod, "read" | "modify" | "send" | "adm
   listAgentActivity: "read", agentInfo: "admin", installCli: "admin",
   agentSkillStatus: "admin", installAgentSkill: "admin", removeAgentSkill: "admin",
   recentCodes: "admin", markCodeUsed: "admin", browserHelperStatus: "admin", installBrowserHelper: "admin", removeBrowserHelper: "admin",
+  autofillStatus: "admin", requestAutofillPermission: "admin", tryAutofillDemo: "admin",
   getSettings: "admin", updateSettings: "admin", sendTestNotification: "admin",
 };
 

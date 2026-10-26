@@ -11,7 +11,7 @@ export const MOCK_DEFAULT_SETTINGS: Settings = {
   sync: { initialDays: 90, bodiesForRecentDays: 14 },
   google: { clientId: "", clientSecret: "" },
   updates: { mode: "ask" },
-  codes: { enabled: true, notify: true, autoCopy: false },
+  codes: { enabled: true, notify: true, autoCopy: false, autofill: true, shortcut: "Control+Option+V" },
 };
 
 type Plain = Record<string, unknown>;

@@ -1,4 +1,5 @@
 import { agentPaths } from "@flint/core/agent/paths";
+import { UNSUPPORTED_AUTOFILL_STATUS } from "@flint/core/autofill/contract";
 import { CODES_EXTENSION_ID, CODES_FIREFOX_ID, CODES_HOST_NAME } from "@flint/core/codes/contract";
 import { avatarKey, FlintError } from "@flint/core/types";
 import type {
@@ -167,6 +168,9 @@ export function createMockService(dataDir: string): FlintService {
     async browserHelperStatus() { return mockHelperStatus; },
     async installBrowserHelper() { throw new FlintError("invalid", "The browser helper is unavailable in mock mode"); },
     async removeBrowserHelper() { return mockHelperStatus; },
+    async autofillStatus() { return UNSUPPORTED_AUTOFILL_STATUS; },
+    async requestAutofillPermission() { throw new FlintError("invalid", "Autofill is unavailable in mock mode"); },
+    async tryAutofillDemo() { throw new FlintError("invalid", "Autofill is unavailable in mock mode"); },
 
     async getSettings() { return settings; },
     async updateSettings(patch) {

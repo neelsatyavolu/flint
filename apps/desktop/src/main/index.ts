@@ -12,6 +12,8 @@ import electronUpdater from "electron-updater";
 import { CHANNELS } from "../preload/channels";
 import { APP_ORIGIN, APP_URL, registerAppScheme, serveRenderer } from "./app-protocol";
 import { serveAttachments } from "./attachment-protocol";
+import type { AutofillManager } from "./autofill/manager";
+import { createDesktopAutofill } from "./autofill/wire";
 import { badgeCount, createBadgeUpdater } from "./badge";
 import { forwardEvents, registerIpc } from "./ipc";
 import { installMenu } from "./menu";
@@ -53,6 +55,7 @@ function bundledExtensionDir(): string {
     : fileURLToPath(new URL("../../../browser-extension/dist", import.meta.url));
 }
 let service: FlintService | null = null;
+let autofill: AutofillManager | null = null;
 let rendererReady = false;
 let quitting = false;
 const pendingMenu: { action: string; arg?: string }[] = [];
@@ -153,6 +156,7 @@ async function main(): Promise<void> {
         beforeInstall: async () => {
           quitting = true;
           await flushDrafts();
+          await autofill?.stop();
           await service?.stop().catch((err: unknown) => logger("main").error("service stop failed", { message: String(err) }));
         },
         ask: async (box) => {
@@ -164,11 +168,12 @@ async function main(): Promise<void> {
     : null;
   installMenu({ isMac, isDev, send: sendMenu, ...(updates ? { checkForUpdates: () => updates.check(true) } : {}) });
 
+  autofill = createDesktopAutofill();
   const result = await bootstrapService({
     platform,
     forceMock: isDev && process.env.FLINT_MOCK === "1",
     create: createFlintService,
-    options: { cliPath: bundledCliPath(), extensionDir: bundledExtensionDir(), ...(BUILT_IN_GOOGLE.clientId ? { googleClient: BUILT_IN_GOOGLE } : {}) },
+    options: { cliPath: bundledCliPath(), extensionDir: bundledExtensionDir(), autofill, ...(BUILT_IN_GOOGLE.clientId ? { googleClient: BUILT_IN_GOOGLE } : {}) },
   });
   if (!result.ok) {
     dialog.showErrorBox("Flint can't start", `The mail engine failed to load.\n\n${result.message}`);
@@ -177,6 +182,7 @@ async function main(): Promise<void> {
     return;
   }
   service = result.service;
+  autofill.attach(service);
   if (result.mock) log.warn("running with the mock service");
   else {
     await applyDefaultReceiptsEndpoint(service, dataDir);
@@ -243,6 +249,7 @@ if (!app.requestSingleInstanceLock()) {
     quitting = true;
     const running = service;
     flushDrafts()
+      .then(() => autofill?.stop())
       .then(() => running.stop())
       .catch((err: unknown) => logger("main").error("service stop failed", { message: String(err) }))
       .finally(() => app.quit());

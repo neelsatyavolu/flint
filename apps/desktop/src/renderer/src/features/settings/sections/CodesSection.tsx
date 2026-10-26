@@ -6,6 +6,7 @@ import { getHost } from "../../../lib/host";
 import { useFlintQuery } from "../../../lib/hooks";
 import { Button, SectionLabel, SettingsRow } from "../../../ui";
 import { CopyButton } from "../CopyButton";
+import { AutofillBlock } from "./AutofillBlock";
 import { SectionPage, ToggleRow } from "../fields";
 import { useSettingsStore } from "../settingsStore";
 import { errorText } from "../useAccounts";
@@ -50,10 +51,15 @@ export function CodesSection() {
   const anyInstalled = Boolean(h?.browsers.some((b) => b.installed));
   return (
     <SectionPage title="Verification codes" description="When a sign-in code arrives by email, Flint can show it, copy it, and offer it in the code field of the page you are signing in to.">
+      <AutofillBlock />
+
       <ToggleRow icon={<KeyRound size={18} strokeWidth={1.5} />} title="Detect codes" description="Looks for one-time codes in new mail. Codes stay in memory for 10 minutes and are never saved." checked={c.enabled} onChange={(v) => void save({ codes: { enabled: v } })} />
       <ToggleRow icon={<BellRing size={18} strokeWidth={1.5} />} title="Notify" description="Show a notification with a Copy code button. It follows your notification preview setting." checked={c.notify} disabled={!c.enabled} onChange={(v) => void save({ codes: { notify: v } })} />
       <ToggleRow icon={<Clipboard size={18} strokeWidth={1.5} />} title="Copy automatically" description="Put each new code on the clipboard. Flint clears it after 90 seconds if it still holds that code." checked={c.autoCopy} disabled={!c.enabled} onChange={(v) => void save({ codes: { autoCopy: v } })} />
 
+      <details className={styles.group}>
+        <summary className={styles.disclosure}>Advanced: browser extension (optional)</summary>
+        <p className={styles.muted} style={{ paddingTop: 6 }}>Autofill in any app already covers browsers. The extension is only for browsers where you prefer it, and needs a one-time setup per browser.</p>
       <div className={styles.group}>
         <SectionLabel className={styles.groupLabel}>Browser extension</SectionLabel>
         <SettingsRow
@@ -86,6 +92,7 @@ export function CodesSection() {
       </div>
 
       {h ? <ExtensionSteps status={h} /> : null}
+      </details>
     </SectionPage>
   );
 }

@@ -7,6 +7,7 @@ import { agentsApi } from "./agents";
 import { startAgentWiring, stopAgentWiring } from "./agents-wiring";
 import { aiApi } from "./ai";
 import { codesApi, wireCodes } from "./codes";
+import { autofillApi } from "./autofill";
 import { codesHelperApi } from "./codesHelper";
 import { composeApi } from "./compose";
 import { createContext } from "./context";
@@ -62,6 +63,8 @@ export type ServiceOptions = {
   browserHome?: string;
   /** Folder holding the built browser extension (Resources/browser-extension in the app); null/absent when this build does not ship it. */
   extensionDir?: string;
+  /** Desktop AutofillManager (system-wide code autofill). Absent in tests and the web preview. */
+  autofill?: import("../autofill/contract").AutofillHost;
 };
 
 /** Builds the real service. The method groups live in their own files; TypeScript checks the composition covers FlintApi. */
@@ -85,6 +88,7 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
     ...agentsApi(ctx),
     ...codesApi(ctx),
     ...codesHelperApi(ctx),
+    ...autofillApi(ctx),
     ...settingsApi(ctx),
     subscribe: ctx.bus.subscribe,
   };

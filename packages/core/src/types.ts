@@ -388,6 +388,26 @@ export type VerificationCode = {
 /** What the thread row and message banner need. */
 export type CodeBadge = Pick<VerificationCode, "id" | "code" | "service" | "expiresAt" | "used">;
 
+/**
+ * State of system-wide autofill (the FlintAutofill helper, macOS Accessibility). Reported by the desktop app's main
+ * process; builds without it (web preview, tests) report supported:false.
+ *   off              settings.codes.autofill (or codes.enabled) is off
+ *   unavailable      not macOS, or this build ships no helper, or the helper keeps crashing
+ *   needs_permission the helper runs but Accessibility is not granted to Flint
+ *   ready            permission granted and the helper is running
+ */
+export type AutofillState = "off" | "unavailable" | "needs_permission" | "ready";
+export type AutofillStatus = {
+  state: AutofillState;
+  supported: boolean;       // false: no helper in this build or not macOS (Settings hides the block's controls)
+  permission: "granted" | "needed" | "unknown";
+  helperRunning: boolean;
+  /** Unused, unexpired codes the helper is currently watching for a field. */
+  waiting: number;
+  /** The accelerator that is actually registered right now, or null (off, invalid, or taken by another app). */
+  shortcutActive: string | null;
+};
+
 export type BrowserId = "chrome" | "chrome-beta" | "chrome-canary" | "chromium" | "brave" | "edge" | "vivaldi" | "arc" | "dia" | "firefox";
 
 export type BrowserHelperBrowser = {
@@ -496,11 +516,13 @@ export type Settings = {
   // How the desktop app updates itself from GitHub Releases: "auto" downloads and installs on the next quit without
   // asking, "ask" downloads then offers a restart, "manual" checks only from Flint > Check for Updates.
   updates: { mode: "auto" | "ask" | "manual" };
-  /** Verification codes found in new mail. Defaults: enabled true, notify true, autoCopy false. */
+  /** Verification codes found in new mail. Defaults: enabled true, notify true, autoCopy false, autofill true, shortcut Control+Option+V. */
   codes: {
     enabled: boolean;     // detect codes at all (off: nothing is kept, the socket serves nothing)
     notify: boolean;      // show "KAYAK code 530331" with a Copy code button
     autoCopy: boolean;    // copy each new code to the clipboard; cleared after 90 s only if it still holds that code
+    autofill: boolean;    // system-wide autofill through macOS Accessibility (the FlintAutofill helper). Default true; needs the permission to do anything
+    shortcut: string;     // Electron accelerator that types the newest code into the focused field, "Control+Option+V" by default; "" turns it off
   };
 };
 
