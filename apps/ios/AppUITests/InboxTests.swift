@@ -64,6 +64,6 @@ final class InboxTests: XCTestCase {
         XCTAssertTrue(app.buttons["toast.undo"].waitForExistence(timeout: 5))
 
         rows(app).firstMatch.tap()
-        XCTAssertTrue(app.otherElements["thread.root"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["thread.root"].waitForExistence(timeout: 10), app.debugDescription)
     }
 }
