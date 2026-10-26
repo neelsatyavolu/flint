@@ -4,7 +4,10 @@ import type { SidebarData } from "@flint/core";
 import { flint } from "../lib/api";
 import { createMockApi } from "../mock";
 import { AppContext, type AppData } from "../state/AppContext";
+import { listStore } from "../state/listStore";
 import { navStore } from "../state/nav";
+import { moreFolders } from "../state/sidebarModel";
+import { item } from "../state/testFixtures";
 import { ToastProvider } from "../ui";
 import { AuthBanner } from "./AuthBanner";
 import { NavItem, navAriaLabel, parseDraggedThreads, THREADS_MIME } from "./NavItem";
@@ -78,6 +81,24 @@ describe("Sidebar drop targets", () => {
     await act(async () => { fireEvent.drop(row, { dataTransfer: dragData("[11]") }); });
     expect(archive).toHaveBeenCalledWith([11]);
     archive.mockRestore();
+  });
+
+  it("moves into a folder only conversations from that folder's account", async () => {
+    const moveToFolder = vi.spyOn(flint, "moveToFolder").mockResolvedValue({ undoToken: "u2" });
+    const data = await appData();
+    const owner = data.sidebar!.accounts.find((a) => moreFolders(a.folders).length > 0)!;
+    const folder = moreFolders(owner.folders)[0]!;
+    const other = data.accounts.find((a) => a.id !== owner.account.id)!;
+    listStore.setState({ raw: [item(11, { accountId: owner.account.id }), item(12, { accountId: other.id })] });
+    if (!navStore.getState().expanded.more) navStore.getState().toggleExpanded("more");
+    mount(data, <Sidebar rail={false} />);
+    const row = screen.getAllByRole("button", { name: new RegExp(`^${folder.name}`) })[0]!.parentElement!;
+    await act(async () => { fireEvent.drop(row, { dataTransfer: dragData("[11, 12]") }); });
+    expect(moveToFolder).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toContain("only move to folders in their own account");
+    await act(async () => { fireEvent.drop(row, { dataTransfer: dragData("[11]") }); });
+    expect(moveToFolder).toHaveBeenCalledWith([11], folder.id);
+    moveToFolder.mockRestore();
   });
 });
 

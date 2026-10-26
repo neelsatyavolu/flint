@@ -1,5 +1,5 @@
 import { createStore, useStore, type StoreApi } from "zustand";
-import type { AccountId, Category, Folder, FolderId, Settings, ThreadId, ThreadQuery, View } from "@flint/core";
+import type { AccountId, Category, FolderId, Settings, ThreadId, ThreadQuery, View } from "@flint/core";
 import { readStored, writeStored } from "../lib/storage";
 import { bundleKey, threadKey } from "./grouping";
 
@@ -191,27 +191,24 @@ export function filterable(nav: Pick<NavState, "view" | "searchOpen" | "search">
   return (nav.view === "inbox" || nav.view === "folder") && !(nav.searchOpen && nav.search.trim());
 }
 
-/** Whether "Has attachments" can apply: it runs as a search scoped to the view, which cannot name a bundle. */
+/** Whether "Has attachments" is offered: in the views the quick filter covers, outside an open bundle. */
 export function attachmentsFilterable(nav: Pick<NavState, "view" | "searchOpen" | "search" | "category">): boolean {
   return filterable(nav) && !nav.category;
 }
 
 /**
- * The list query for the current navigation, or null for views that are not thread lists. `folders` names the open
- * folder for the "Has attachments" filter, which searches `in:<folder> has:attachment` because the list query has no
- * attachment flag.
+ * The list query for the current navigation, or null for views that are not thread lists. The quick filters narrow the
+ * view's own query, so snoozed, blocked and bundled mail stays out just as it does unfiltered.
  */
-export function buildQuery(nav: QueryNav, settings: Pick<Settings, "inbox"> | undefined, folders: Pick<Folder, "id" | "path">[] = []): ThreadQuery | null {
+export function buildQuery(nav: QueryNav, settings: Pick<Settings, "inbox"> | undefined): ThreadQuery | null {
   const sort = settings?.inbox.sort ?? "newest";
   const trimmed = nav.search.trim();
   if (nav.searchOpen && trimmed) return { view: "search", search: trimmed, accountId: nav.accountId, sort };
   const filter = nav.listFilter ?? "all";
-  if (filter === "attachments" && attachmentsFilterable(nav)) {
-    const path = nav.view === "folder" ? folders.find((f) => f.id === nav.folderId)?.path : "inbox";
-    if (path) return { view: "search", search: `in:"${path.replace(/"/g, "")}" has:attachment`, accountId: nav.accountId, sort };
-  }
   const base = viewQuery(nav, settings, sort);
-  return base && filter === "unread" && filterable(nav) ? { ...base, unreadOnly: true } : base;
+  if (!base) return base;
+  if (filter === "attachments" && attachmentsFilterable(nav)) return { ...base, hasAttachments: true };
+  return filter === "unread" && filterable(nav) ? { ...base, unreadOnly: true } : base;
 }
 
 function viewQuery(nav: QueryNav, settings: Pick<Settings, "inbox"> | undefined, sort: "newest" | "oldest"): ThreadQuery | null {

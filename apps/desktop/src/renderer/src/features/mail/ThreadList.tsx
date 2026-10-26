@@ -12,12 +12,15 @@ import { filterable, navStore, useNav, type ListFilter } from "../../state/nav";
 import { LABEL_ROW_HEIGHT, rowHeight } from "../../state/rowMetrics";
 import { emptyCopy } from "../../state/viewMeta";
 import { useThreadActions } from "../../state/useActions";
+import { flint } from "../../lib/api";
 import { describeEvent, detectMac } from "../../lib/shortcuts";
+import { singleKeyShortcutsOn } from "../../shell/useGlobalShortcuts";
 import { BundleRow } from "./BundleRow";
 import { ListFooter } from "./ListFooter";
 import { useBundleTriage } from "./ListHeader";
 import { ThreadRow, rowDomId } from "./ThreadRow";
-import { blockRowSender, deleteDraftRow, openDraftRow, openMovePicker, openSnooze, replyTo, selectAll } from "./mailCommands";
+import { blockSender } from "./blockSender";
+import { deleteDraftRow, openDraftRow, openMovePicker, openSnooze, replyTo, selectAll } from "./mailCommands";
 import { rowMenuItems } from "./rowMenu";
 import { activeLabelIndex, rowOffsets } from "./stickyLabel";
 import { useToast } from "../../ui/Toast";
@@ -215,9 +218,12 @@ export function ThreadList() {
       openDraft: (i: ThreadListItem) => void openDraftRow(i, toast.show),
       deleteDraft: onTrash,
       reply: (i: ThreadListItem, m: "reply" | "replyAll" | "forward") => replyTo(i.id, m),
-      block: (i: ThreadListItem) => void blockRowSender(i, toast.show, (ids) => run({ type: "archive" }, ids)),
+      block: (i: ThreadListItem) => {
+        const sender = i.participants.find((p) => p.name.toLowerCase() !== "me");
+        if (sender) void blockSender(flint, toast, sender.address);
+      },
     }),
-    [run, toast.show, onTrash],
+    [run, toast, onTrash],
   );
   const bundleMenu = useCallback((b: Bundle): MenuItem[] => [
     { id: "open", label: "Open", shortcut: "↵", onSelect: () => onBundle(b) },
@@ -241,7 +247,7 @@ export function ThreadList() {
     const n = navStore.getState();
     let handled = true;
     if (combo === "mod+a") selectAll();
-    else if (combo === "shift+u" && filterable(n)) n.setListFilter(n.listFilter === "unread" ? "all" : "unread");
+    else if (combo === "shift+u" && filterable(n) && singleKeyShortcutsOn()) n.setListFilter(n.listFilter === "unread" ? "all" : "unread");
     else if (combo === "shift+F10" || combo === "ContextMenu") handled = openRowMenu(n.cursorKey ?? (n.openId !== null ? `t${n.openId}` : null));
     else handled = false;
     if (handled) {

@@ -146,6 +146,7 @@ export function queryThreads(state: MockState, q: ThreadQuery, now: number): Thr
   if (q.view === "inbox" && q.category) list = list.filter((t) => t.category === q.category);
   else if (q.view === "inbox" && q.focused) list = list.filter((t) => t.category === "people");
   if (q.unreadOnly) list = list.filter((t) => unreadCount(t) > 0);
+  if (q.hasAttachments) list = list.filter((t) => t.messages.some((m) => m.attachments.length > 0));
   const dir = q.sort === "oldest" ? 1 : -1;
   list = [...list].sort((a, b) => dir * (lastDate(state, a) - lastDate(state, b)));
   const limit = Math.min(200, q.limit ?? 50);

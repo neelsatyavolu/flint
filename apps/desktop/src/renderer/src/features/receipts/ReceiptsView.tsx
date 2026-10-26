@@ -63,7 +63,7 @@ function TrackedRow({ item, now }: { item: TrackedMessage; now: number }) {
   );
 }
 
-/** Read Statuses: tracked sent mail with per-recipient status. */
+/** Read Receipts: tracked sent mail with per-recipient status. */
 export function ReceiptsView() {
   const [filter, setFilter] = useState<Filter>("all");
   const [refreshing, setRefreshing] = useState(false);
@@ -85,7 +85,7 @@ export function ReceiptsView() {
 
   return (
     <div className={styles.view}>
-      <PaneHeader title="Read Statuses" subtitle="Tracked mail you sent">
+      <PaneHeader title="Read Receipts" subtitle="Tracked mail you sent">
         <SegmentedControl label="Filter" options={FILTERS} value={filter} onChange={setFilter} />
         <IconButton label="Refresh" onClick={() => void refresh()}><RefreshCw size={16} strokeWidth={1.5} className={clsx(refreshing && styles.spin)} /></IconButton>
       </PaneHeader>

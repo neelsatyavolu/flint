@@ -94,6 +94,7 @@ export type ThreadQuery = {
   focused?: boolean;       // inbox only: people threads listed, others folded into bundles
   category?: Category;     // inbox only: open one bundle
   unreadOnly?: boolean;
+  hasAttachments?: boolean; // only threads with a message carrying an attachment
   sort?: "newest" | "oldest";
   cursor?: string;         // opaque, from ThreadPage.nextCursor
   limit?: number;          // default 50, max 200

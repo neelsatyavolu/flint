@@ -2,12 +2,13 @@ import { useMemo, type ReactNode } from "react";
 import { Activity, Archive, Ban, CalendarClock, Clock, Eye, FileText, Folder, Home, Inbox, MoreHorizontal, PanelLeft, Pin, Send, Settings, ShieldAlert, Sparkles, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import { useShallow } from "zustand/react/shallow";
-import type { Account } from "@flint/core";
+import type { Account, Folder as MailFolder } from "@flint/core";
 import { avatarColor, initials } from "../lib/avatar";
 import { isMac } from "../lib/host";
-import { Avatar, IconButton } from "../ui";
+import { Avatar, IconButton, useToast } from "../ui";
 import { useApp } from "../state/AppContext";
 import type { ThreadAction } from "../state/actions";
+import { listStore } from "../state/listStore";
 import { navStore, useNav, type NavTarget } from "../state/nav";
 import { useThreadActions } from "../state/useActions";
 import { isActiveTarget, moreFolders, sidebarCounts, syncSummary } from "../state/sidebarModel";
@@ -44,6 +45,16 @@ export function Sidebar({ rail, onNavigated }: Props) {
   const { run } = useThreadActions();
   /** Drop handler for a row that files dragged conversations. */
   const dropAs = (action: ThreadAction) => (ids: number[]) => void run(action, ids);
+  const toast = useToast();
+  /** Drop handler for a folder row. Core moves mail only within its account, so conversations from another are refused. */
+  const dropInFolder = (f: Pick<MailFolder, "id" | "name" | "accountId">) => (ids: number[]) => {
+    const accountOf = new Map(listStore.getState().raw.map((i) => [i.id, i.accountId]));
+    if (ids.some((id) => accountOf.get(id) !== f.accountId)) {
+      toast.show({ message: `Couldn't move to ${f.name}: conversations only move to folders in their own account.`, level: "error" });
+      return;
+    }
+    void run({ type: "move", folderId: f.id, folderName: f.name }, ids);
+  };
   const counts = useMemo(() => sidebarCounts(sidebar), [sidebar]);
   const sync = useMemo(() => syncSummary(sidebar), [sidebar]);
   const multi = accounts.length > 1;
@@ -171,7 +182,7 @@ export function Sidebar({ rail, onNavigated }: Props) {
                         count={f.unread}
                         active={active({ view: "folder", accountId: f.accountId, folderId: f.id })}
                         onClick={() => go({ view: "folder", accountId: f.accountId, folderId: f.id }, f.name)}
-                        onDropThreads={dropAs({ type: "move", folderId: f.id, folderName: f.name })}
+                        onDropThreads={dropInFolder(f)}
                       />
                     ))}
                   </div>

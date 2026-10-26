@@ -108,12 +108,11 @@ describe("buildQuery", () => {
     expect(buildQuery(base, settings)?.unreadOnly).toBeUndefined();
     expect(buildQuery({ ...base, searchOpen: true, search: "x", listFilter: "unread" }, settings)).toEqual({ view: "search", search: "x", accountId: undefined, sort: "newest" });
   });
-  it("searches the view for attachments", () => {
-    expect(buildQuery({ ...base, accountId: "a1", listFilter: "attachments" }, settings)).toMatchObject({ view: "search", search: 'in:"inbox" has:attachment', accountId: "a1" });
-    const folders = [{ id: 4, path: 'Work/"Q3"' }];
-    expect(buildQuery({ ...base, view: "folder", folderId: 4, listFilter: "attachments" }, settings, folders)).toMatchObject({ view: "search", search: 'in:"Work/Q3" has:attachment' });
-    expect(buildQuery({ ...base, view: "folder", folderId: 5, listFilter: "attachments" }, settings, folders)).toMatchObject({ view: "folder", folderId: 5 });
-    expect(buildQuery({ ...base, category: "notifications", listFilter: "attachments" }, settings)).toMatchObject({ view: "inbox", category: "notifications" });
+  it("narrows the view's own query for attachments, keeping the inbox's focus and snooze rules", () => {
+    expect(buildQuery({ ...base, accountId: "a1", listFilter: "attachments" }, settings)).toEqual({ view: "inbox", accountId: "a1", focused: true, category: undefined, sort: "newest", hasAttachments: true });
+    expect(buildQuery({ ...base, view: "folder", folderId: 4, listFilter: "attachments" }, settings)).toMatchObject({ view: "folder", folderId: 4, hasAttachments: true });
+    expect(buildQuery({ ...base, category: "notifications", listFilter: "attachments" }, settings)?.hasAttachments).toBeUndefined();
+    expect(buildQuery({ ...base, view: "sent", listFilter: "attachments" }, settings)?.hasAttachments).toBeUndefined();
   });
 });
 

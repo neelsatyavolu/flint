@@ -58,6 +58,17 @@ describe("listThreads: inbox", () => {
     expect(store.listThreads({ view: "snoozed" }, T0 + 7 * DAY).items).toEqual([]);
   });
 
+  it("filters to threads with attachments on top of the view, so snoozed mail stays out", () => {
+    const { store, s, ing } = fixture();
+    const [a, , c] = ing(s.inbox.id,
+      { uid: 1, subject: "pdf", from: [person("Al")], date: T0, hasAttachments: true },
+      { uid: 2, subject: "plain", from: [person("Bo")], date: T0 + 1 },
+      { uid: 3, subject: "snoozed pdf", from: [person("Cy")], date: T0 + 2, hasAttachments: true },
+    );
+    store.snooze([c!.threadId], T0 + 5 * DAY);
+    expect(store.listThreads({ view: "inbox", hasAttachments: true }, T0 + DAY).items.map((i) => i.id)).toEqual([a!.threadId]);
+  });
+
   it("filters by account and unified", () => {
     const store = makeStore();
     const a = seedImap(store, "a@example.com");
