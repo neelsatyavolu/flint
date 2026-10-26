@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  SCENE_MODE_KEY, SCENE_OFFSET_KEY, bumpSceneOffset, parseSceneOffset, pickScene, readSceneMode, readSceneOffset, sceneDay,
+  SCENE_MODE_KEY, SCENE_OFFSET_KEY, bumpSceneOffset, parseSceneOffset, pickScene, readSceneMode, readSceneOffsetRaw, sceneDay,
   serializeSceneOffset, slotFor, writeSceneMode, type Scene,
 } from "./scene";
 
@@ -91,10 +91,17 @@ describe("scene preferences", () => {
 
   it("bumps and stores the offset", () => {
     const now = at(2026, 10, 25, 12);
-    expect(bumpSceneOffset(now)).toBe(1);
-    expect(bumpSceneOffset(now)).toBe(2);
-    expect(readSceneOffset(now)).toBe(2);
-    expect(localStorage.getItem(SCENE_OFFSET_KEY)).toContain("2026-10-25");
+    const once = bumpSceneOffset(readSceneOffsetRaw(), now);
+    expect(parseSceneOffset(once, now)).toBe(1);
+    const twice = bumpSceneOffset(once, now);
+    expect(parseSceneOffset(readSceneOffsetRaw(), now)).toBe(2);
+    expect(twice).toBe(localStorage.getItem(SCENE_OFFSET_KEY));
+    expect(twice).toContain("2026-10-25");
+  });
+
+  it("starts again from 1 on a new day", () => {
+    const yesterday = serializeSceneOffset(4, at(2026, 10, 24, 12));
+    expect(parseSceneOffset(bumpSceneOffset(yesterday, at(2026, 10, 25, 12)), at(2026, 10, 25, 12))).toBe(1);
   });
 
   it("defaults to the photo background", () => {

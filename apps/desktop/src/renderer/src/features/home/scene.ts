@@ -94,13 +94,13 @@ export function serializeSceneOffset(offset: number, now: number): string {
   return JSON.stringify({ day: dayKey(now), offset });
 }
 
-export function readSceneOffset(now: number): number {
-  return parseSceneOffset(readStored(SCENE_OFFSET_KEY), now);
+export function readSceneOffsetRaw(): string | null {
+  return readStored(SCENE_OFFSET_KEY);
 }
 
-/** Moves to the next photo for the rest of the day and returns the new offset. */
-export function bumpSceneOffset(now: number): number {
-  const next = readSceneOffset(now) + 1;
-  writeStored(SCENE_OFFSET_KEY, serializeSceneOffset(next, now));
+/** "Next photo": stores and returns the bumped offset record. The caller keeps the record, so it works without storage. */
+export function bumpSceneOffset(raw: string | null, now: number): string {
+  const next = serializeSceneOffset(parseSceneOffset(raw, now) + 1, now);
+  writeStored(SCENE_OFFSET_KEY, next);
   return next;
 }
