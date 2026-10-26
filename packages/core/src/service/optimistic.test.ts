@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { ActionReport, ServerActions } from "../mail/actions";
 import { makeStore, msg, seedImap } from "../store/testkit";
 import { createOptimistic } from "./optimistic";
@@ -30,14 +30,14 @@ describe("durable outbox", () => {
       server: async (a, l) => { during = store.listPendingOps().length; return a.setSeen(l, true); },
     });
     expect(during).toBe(1);
-    await vi.waitFor(() => expect(store.listPendingOps()).toEqual([]));
+    expect(store.listPendingOps()).toEqual([]);
   });
 
   it("removes the record when the server refuses and the change is rolled back", async () => {
     const { store, out, make } = setup();
     const bad = { setSeen: async () => ({ ok: false, errors: [{ message: "no" }], failedMessageIds: [out[0]!.messageRowId] }) } as unknown as ServerActions;
     await make(bad).run({ label: "mark as read", local: () => store.markRead([out[0]!.threadId], true), op: { kind: "seen", arg: true }, server: (a, l) => a.setSeen(l, true) });
-    await vi.waitFor(() => expect(store.listPendingOps()).toEqual([]));
+    expect(store.listPendingOps()).toEqual([]);
   });
 
   it("replays an operation the app was killed in the middle of", async () => {
@@ -78,96 +78,5 @@ describe("durable outbox", () => {
     store.addPendingOp(s.account.id, { kind: "archive" }, [out[0]!.messageRowId], -1);
     await createOptimistic({ store, emit: () => undefined, undo: new UndoRegistry({ now: () => 0 }), actionsFor: () => refuse, caller: () => undefined, now: () => 10 * 24 * 3600 * 1000 }).replayPending();
     expect(store.listPendingOps()).toEqual([]);
-  });
-});
-
-describe("who waits for the server", () => {
-  /** A server whose archive answers only when the test releases it. `refuse` names the messages it then refuses. */
-  function gated(refuse: () => number[] = () => []) {
-    const calls: string[] = [];
-    let release: () => void = () => undefined;
-    const gate = new Promise<void>((r) => { release = r; });
-    const actions = {
-      archive: async () => {
-        calls.push("archive");
-        await gate;
-        const failed = refuse();
-        return { ok: failed.length === 0, errors: failed.map(() => ({ message: "no" })), failedMessageIds: failed };
-      },
-      moveToInbox: async () => { calls.push("moveToInbox"); return ok; },
-    } as unknown as ServerActions;
-    return { actions, calls, release: () => release() };
-  }
-
-  function make(store: ReturnType<typeof setup>["store"], actions: ServerActions, agent?: string) {
-    const events: string[] = [];
-    const o = createOptimistic({ store, emit: (e) => events.push(e.type), undo: new UndoRegistry({ now: () => 0 }), actionsFor: () => actions, caller: () => agent, now: () => 1000 });
-    return { o, events };
-  }
-
-  it("gives the UI its undo token before the server answers", async () => {
-    const { store, out } = setup();
-    const g = gated();
-    const { o, events } = make(store, g.actions);
-    const { undoToken } = await o.run({ label: "archive", local: () => store.moveThreads([out[0]!.threadId], { kind: "archive" }), server: (a, l) => a.archive(l), op: { kind: "archive" } });
-    expect(undoToken).toBeTruthy();
-    expect(g.calls).toEqual(["archive"]);
-    expect(store.listPendingOps()).toHaveLength(1);
-    g.release();
-    await vi.waitFor(() => expect(store.listPendingOps()).toEqual([]));
-    expect(events).toEqual(["mail_changed"]);
-  });
-
-  it("makes agent callers wait for the server and throws when it refuses", async () => {
-    const { store, out } = setup();
-    const g = gated(() => [out[0]!.messageRowId]);
-    const { o, events } = make(store, g.actions, "claude");
-    let settled = false;
-    const p = o.run({ label: "archive", local: () => store.moveThreads([out[0]!.threadId], { kind: "archive" }), server: (a, l) => a.archive(l) });
-    p.then(() => { settled = true; }, () => { settled = true; });
-    await new Promise((r) => setTimeout(r, 10));
-    expect(settled).toBe(false);
-    g.release();
-    await expect(p).rejects.toMatchObject({ code: "network" });
-    expect(events).toEqual(["mail_changed", "mail_changed"]);
-  });
-
-  it("toasts a background refusal for the UI and restores the thread", async () => {
-    const { store, out } = setup();
-    const g = gated(() => [out[0]!.messageRowId]);
-    const { o, events } = make(store, g.actions);
-    await o.run({ label: "archive", local: () => store.moveThreads([out[0]!.threadId], { kind: "archive" }), server: (a, l) => a.archive(l) });
-    expect(store.listThreads({ view: "archive" }).items).toHaveLength(1);
-    g.release();
-    await vi.waitFor(() => expect(events).toEqual(["mail_changed", "mail_changed", "toast"]));
-    expect(store.listThreads({ view: "archive" }).items).toHaveLength(0);
-  });
-
-  it("an undo made while the server is busy waits for it, then runs the inverse", async () => {
-    const { store, out } = setup();
-    const g = gated();
-    const { o } = make(store, g.actions);
-    const { undoToken } = await o.run({ label: "archive", local: () => store.moveThreads([out[0]!.threadId], { kind: "archive" }), server: (a, l) => a.archive(l), inverse: (a, l) => a.moveToInbox(l) });
-    const undone = o.undo(undoToken);
-    expect(store.listThreads({ view: "archive" }).items).toHaveLength(0);
-    await new Promise((r) => setTimeout(r, 10));
-    expect(g.calls).toEqual(["archive"]);
-    g.release();
-    await undone;
-    expect(g.calls).toEqual(["archive", "moveToInbox"]);
-  });
-
-  it("an undo of a change the server then refuses skips the inverse and the toast", async () => {
-    const { store, out } = setup();
-    const g = gated(() => [out[0]!.messageRowId]);
-    const { o, events } = make(store, g.actions);
-    const { undoToken } = await o.run({ label: "archive", local: () => store.moveThreads([out[0]!.threadId], { kind: "archive" }), server: (a, l) => a.archive(l), inverse: (a, l) => a.moveToInbox(l) });
-    const undone = o.undo(undoToken);
-    g.release();
-    await undone;
-    await new Promise((r) => setTimeout(r, 10));
-    expect(g.calls).toEqual(["archive"]);
-    expect(events).not.toContain("toast");
-    expect(store.listThreads({ view: "inbox" }).items.map((t) => t.id)).toContain(out[0]!.threadId);
   });
 });

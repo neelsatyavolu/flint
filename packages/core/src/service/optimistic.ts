@@ -140,30 +140,7 @@ export function createOptimistic(d: OptimisticDeps): Optimistic {
     return ran;
   }
 
-  /** Server operations still running for UI actions, by undo token. Undo waits for its one so the inverse runs after it. */
-  const inflight = new Map<string, Promise<ReadonlySet<MessageRowId>>>();
-  /** Tokens undone while their server operation was still running: a later failure has nothing left to restore. */
-  const undoneEarly = new Set<string>();
-
-  /** Runs the server side of an applied change. On refusal the failed threads are restored and the caller hears about it. */
-  async function settle(spec: OptimisticSpec, result: ActionResult, token: string, agent: boolean): Promise<ReadonlySet<MessageRowId>> {
-    const failed = await runOnServer(d, result.locations, durable(spec));
-    if (failed.size === 0 || undoneEarly.delete(token)) return failed;
-    const restored = d.store.restoreSnapshot(failedPart(result.snapshot, failed));
-    changed(accountsOf(restored));
-    d.undo.discard(token);
-    const message = `Couldn't ${spec.label}. The change was undone.`;
-    if (agent) throw new FlintError("network", message);
-    d.emit(toast(message));
-    return failed;
-  }
-
-  /**
-   * Applies the change locally and returns its undo token. Agent callers wait for the server and get a thrown FlintError
-   * when it refuses; the UI gets the token at once while the server catches up, and hears about a refusal through a toast.
-   */
   async function run(spec: OptimisticSpec): Promise<{ undoToken: string }> {
-    const agent = d.caller() !== undefined;
     const result = spec.local();
     const threadIds = result.snapshot.threads.map((t) => t.id);
     const token = d.undo.register({
@@ -174,19 +151,14 @@ export function createOptimistic(d: OptimisticDeps): Optimistic {
     });
     changed(accountsOf(threadIds));
     if (!spec.server || result.locations.length === 0) return { undoToken: token };
-    if (agent) {
-      await settle(spec, result, token, true);
-      return { undoToken: token };
-    }
-    const pending = settle(spec, result, token, false).catch((error: Error) => {
-      log.warn("background server action failed", { label: spec.label, reason: error.message });
-      return new Set(result.locations.map((l) => l.messageRowId));
-    });
-    inflight.set(token, pending);
-    void pending.finally(() => {
-      inflight.delete(token);
-      undoneEarly.delete(token);
-    });
+
+    const failed = await runOnServer(d, result.locations, durable(spec));
+    if (failed.size === 0) return { undoToken: token };
+
+    const restored = d.store.restoreSnapshot(failedPart(result.snapshot, failed));
+    changed(accountsOf(restored));
+    d.undo.discard(token);
+    fail(`Couldn't ${spec.label}. The change was undone.`);
     return { undoToken: token };
   }
 
@@ -194,12 +166,9 @@ export function createOptimistic(d: OptimisticDeps): Optimistic {
     const entry = d.undo.take(token);
     const threadIds = d.store.restoreSnapshot(entry.snapshot);
     changed(accountsOf(threadIds));
-    const running = inflight.get(token);
-    if (running) undoneEarly.add(token);
     if (!entry.inverse) return;
     const inverse = entry.inverse;
-    const skip = running ? await running : new Set<MessageRowId>();
-    const locs = d.store.getMessageLocations(entry.affected.filter((id) => !skip.has(id)));
+    const locs = d.store.getMessageLocations(entry.affected);
     const failed = await runOnServer(d, locs, (actions, group) => inverse(actions, group, entry.snapshot));
     if (failed.size > 0) fail(`Couldn't undo ${entry.label} on the server. It will correct itself on the next sync.`);
   }

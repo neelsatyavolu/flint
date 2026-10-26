@@ -168,7 +168,6 @@ export function pickAdvance(items: ThreadListItem[], openId: ThreadId, gone: Thr
 /**
  * Applies an action optimistically: the row leaves (or changes) at once, the API call runs,
  * and a failure puts everything back. Success shows an "Undo" toast that calls api.undo.
- * The core answers once its local change is made; a later server refusal comes back as a toast and a mail_changed.
  */
 export async function performAction(deps: ActionDeps, action: ThreadAction, allIds: ThreadId[]): Promise<void> {
   // Local-only draft rows carry negative ids; they are not threads, so thread actions skip them (they only support delete).
@@ -212,8 +211,6 @@ export async function performAction(deps: ActionDeps, action: ThreadAction, allI
         action: {
           label: "Undo",
           onClick: () => {
-            // Spent here, so a later ⌘Z doesn't try the same token again.
-            if (nav.getState().lastUndoToken === undoToken) nav.getState().setLastUndo(null);
             void api.undo(undoToken).then(() => list.getState().refresh(), () => notify({ message: "Too late to undo that.", level: "error" }));
           },
         },
@@ -225,31 +222,13 @@ export async function performAction(deps: ActionDeps, action: ThreadAction, allI
         } : {}),
       });
     }
-    // The action's mail_changed refreshes the list; the rows stay hidden until that lands so they don't flash back.
-    if (removes) unhideAfterReload(list, ids);
+    await list.getState().refresh();
   } catch {
     if (!removes && patch) list.getState().patchItems(ids, (i) => originals.get(i.id) ?? i);
-    if (removes) list.getState().unhide(ids);
     notify({ message: FAILURE[action.type], level: "error" });
+  } finally {
+    if (removes) list.getState().unhide(ids);
   }
-}
-
-/** Longest a removed row stays hidden while waiting for the list to reload. */
-const UNHIDE_FALLBACK_MS = 3000;
-
-/** Unhides `ids` once the list's rows next change (a refresh landed), or after a fallback delay. */
-function unhideAfterReload(list: ListStore, ids: ThreadId[]): void {
-  const raw = list.getState().raw;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const done = () => {
-    off();
-    clearTimeout(timer);
-    list.getState().unhide(ids);
-  };
-  const off = list.subscribe((s) => {
-    if (s.raw !== raw) done();
-  });
-  timer = setTimeout(done, UNHIDE_FALLBACK_MS);
 }
 
 /** Runs the last undo token, if any. */

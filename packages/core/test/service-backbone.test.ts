@@ -196,11 +196,8 @@ describe.skipIf(!gm)("FlintService backbone against GreenMail", { timeout: 60_00
     const id = find(await inbox(), "Lunch on Friday").id;
     await rig.service.markRead([id], true);
     await rig.service.setPinned([id], true);
-    // UI actions return after the local change; the server catches up in the background.
-    await waitFor(async () => {
-      const flags = (await mailbox("svc", "INBOX")).find((m) => m.subject === "Lunch on Friday")!.flags;
-      return flags.includes("\\Seen") && flags.includes("\\Flagged");
-    }, "seen and flagged on the server");
+    const lunch = (await mailbox("svc", "INBOX")).find((m) => m.subject === "Lunch on Friday")!;
+    expect(lunch.flags).toEqual(expect.arrayContaining(["\\Seen", "\\Flagged"]));
     expect((await rig.service.listThreads({ view: "pinned" })).items.map((t) => t.subject)).toContain("Lunch on Friday");
     const { undoToken } = await rig.service.setPinned([id], false);
     await rig.service.undo(undoToken);
@@ -212,8 +209,8 @@ describe.skipIf(!gm)("FlintService backbone against GreenMail", { timeout: 60_00
   it("archives on the server and undo puts the mail back", async () => {
     const id = find(await inbox(), "Your order has shipped").id;
     const { undoToken } = await rig.service.archive([id]);
-    await waitFor(async () => (await subjectsIn("Archive")).includes("Your order has shipped"), "archived on the server");
     expect(await subjectsIn("INBOX")).not.toContain("Your order has shipped");
+    expect(await subjectsIn("Archive")).toContain("Your order has shipped");
     expect((await inbox()).map((t) => t.subject)).not.toContain("Your order has shipped");
 
     await rig.service.undo(undoToken);
@@ -226,11 +223,11 @@ describe.skipIf(!gm)("FlintService backbone against GreenMail", { timeout: 60_00
   it("trashes on the server, creating the Trash folder when the server has none", async () => {
     const id = find(await inbox(), "The Daily Brief").id;
     await rig.service.trash([id]);
-    await waitFor(async () => (await subjectsIn("Trash")).includes("The Daily Brief"), "trashed on the server");
+    expect(await subjectsIn("Trash")).toContain("The Daily Brief");
     expect(await subjectsIn("INBOX")).not.toContain("The Daily Brief");
     expect((await rig.service.listThreads({ view: "trash" })).items.map((t) => t.subject)).toContain("The Daily Brief");
     await rig.service.moveToInbox([id]);
-    await waitFor(async () => (await subjectsIn("INBOX")).includes("The Daily Brief"), "back in the inbox on the server");
+    expect(await subjectsIn("INBOX")).toContain("The Daily Brief");
   });
 
   it("moves into a user folder opened for the first time", async () => {
@@ -239,7 +236,7 @@ describe.skipIf(!gm)("FlintService backbone against GreenMail", { timeout: 60_00
     const folder = await waitFor(async () => (await rig.service.listFolders(accountId)).find((f: Folder) => f.path === "Projects"), "Projects folder");
     const id = find(await inbox(), "Project plan").id;
     await rig.service.moveToFolder([id], folder.id);
-    await waitFor(async () => (await subjectsIn("Projects")).length === 4, "moved on the server");
+    expect((await subjectsIn("Projects")).length).toBe(4);
     const opened = await rig.service.listThreads({ view: "folder", folderId: folder.id });
     expect(opened.items.map((t) => t.subject)).toContain("Project plan");
   });
@@ -272,7 +269,7 @@ describe.skipIf(!gm)("FlintService backbone against GreenMail", { timeout: 60_00
     await gm!.deliver({ to: `svc@${TEST_DOMAIN}`, from: "Spammer <spammer@remote.example>", subject: "Earlier note", text: "before the block" });
     await waitFor(async () => (await inbox()).find((t) => t.subject === "Earlier note"), "mail from the sender before blocking");
     await rig.service.blockSender("Spammer@Remote.example");
-    await waitFor(async () => (await subjectsIn("Trash")).includes("Earlier note"), "blocked mail trashed on the server");
+    expect(await subjectsIn("Trash")).toContain("Earlier note");
     expect(await rig.service.listBlocked()).toEqual([expect.objectContaining({ pattern: "spammer@remote.example" })]);
     expect((await rig.service.listThreads({ view: "blocked" })).items.map((t) => t.subject)).toContain("Earlier note");
     await gm!.deliver({ to: `svc@${TEST_DOMAIN}`, from: "Spammer <spammer@remote.example>", subject: "Win a prize", text: "click here" });
