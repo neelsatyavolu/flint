@@ -21,7 +21,7 @@ export function DigestList({ text, threads, busy = false, showSubject = true, on
     <div className={styles.digest}>
       {groups.map((g, gi) => (
         <div key={gi} className={styles.group}>
-          {g.title ? <div className={clsx("t-label", styles.title)}>{g.title}</div> : null}
+          {g.title ? <h3 className={clsx("t-label", styles.title)}>{g.title}</h3> : null}
           <ul>
             {g.items.map((item, i) => (
               <li key={i}>

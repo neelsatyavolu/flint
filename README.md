@@ -16,7 +16,7 @@ Flint updates itself. It checks GitHub Releases at launch and every six hours, d
 - **Smart inbox.** Mail from people comes first. Notifications and newsletters are grouped into bundles. Pins, snooze, send later, undo send, follow-up reminders, mute, rules and templates.
 - **Signatures.** Per-account defaults, and a one-click import of your signatures from Spark.
 - **Read receipts.** Each recipient gets their own copy with a private marker. The receipts service drops opens it can't trust: Apple Mail Privacy Protection prefetches, security scanners, bots, your own opens and repeats. Apple prefetches show as "can't be known", never as "opened". Your Sent folder keeps one clean copy.
-- **+AI.** Summaries, reply drafts, rewrites, translation and questions about your inbox, through your own ChatGPT (Codex) or Grok account via [shared-ai-auth](https://github.com/neelsatyavolu/shared-ai-auth). Flint charges nothing and sends nothing to an AI provider unless you use an AI feature.
+- **+AI.** Summaries, reply drafts, rewrites, translation and questions about your inbox, through your own ChatGPT (Codex) or Grok account via [shared-ai-auth](https://github.com/neelsatyavolu/shared-ai-auth). Flint charges nothing. Once you connect a provider, Home writes a "Catch me up" summary of your unread mail from people every 3 hours, and only when new mail has arrived; you can turn that off on the card. Otherwise Flint sends nothing to an AI provider unless you use an AI feature. The Needs reply list on Home is worked out on your Mac and works without +AI.
 - **Agents.** The `flint` command (Settings → Agents → Install) lets local agents list, read, search, draft, archive, snooze and send. Every call shows up in Agent Activity, and sending waits for your approval unless you allow it. **Skill for AI agents** (same page) adds a `flint` [Agent Skill](https://agentskills.io) to Claude Code, Codex, Gemini CLI, Copilot CLI, OpenCode, Grok, Cursor, Factory and Antigravity, so they know the commands without being told.
 
 ```sh
@@ -28,7 +28,7 @@ flint reply 4821 --body "Thanks, that works."
 
 ## Privacy
 
-Mail is cached in a local SQLite database on your Mac. Flint connects to your mail servers, to `flintr.xanom.co` only for read receipts you send (it stores message tokens and hashed, never raw, IP addresses), and to an AI provider only when you use an AI feature. The receipts service is in `services/receipts`; you can deploy your own and point Settings → Read Receipts at it. See the [privacy policy](https://flint.xanom.co/privacy).
+Mail is cached in a local SQLite database on your Mac. Flint connects to your mail servers, to `flintr.xanom.co` only for read receipts you send (it stores message tokens and hashed, never raw, IP addresses), and to an AI provider only when you use an AI feature or, with a provider connected, for the automatic "Catch me up" on Home. That runs at most every 3 hours, only while +AI is connected and on and "Refresh automatically every 3 hours" is on, and is skipped when no new mail from people has arrived. It sends short excerpts of up to 12 unread threads from people. The receipts service is in `services/receipts`; you can deploy your own and point Settings → Read Receipts at it. See the [privacy policy](https://flint.xanom.co/privacy).
 
 ## Build from source
 

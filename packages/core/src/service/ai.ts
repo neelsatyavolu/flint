@@ -1,5 +1,5 @@
 import type { FlintApi } from "../api";
-import { FlintError, type AiStatus } from "../types";
+import { FlintError, type AiStatus, type AiTask } from "../types";
 import type { ServiceContext } from "./context";
 
 export type AiApi = Pick<FlintApi,
@@ -19,7 +19,9 @@ function mirror(ctx: ServiceContext, status: AiStatus): AiStatus {
   return status;
 }
 
-function requireEnabled(ctx: ServiceContext): void {
+/** Needs reply is a local heuristic with no model call, so it works with +AI off (as the engine skips the connection check). */
+function requireEnabled(ctx: ServiceContext, task: AiTask): void {
+  if (task.kind === "needsReply") return;
   if (!ctx.getSettings().ai.enabled) throw new FlintError("ai_not_connected", AI_OFF_MESSAGE);
 }
 
@@ -48,12 +50,12 @@ export function aiApi(ctx: ServiceContext): AiApi {
     },
 
     async aiRun(task) {
-      requireEnabled(ctx);
+      requireEnabled(ctx, task);
       return ctx.ai.run(task, (chunk) => ctx.emit({ type: "ai", chunk }));
     },
 
     async aiRunToText(task) {
-      requireEnabled(ctx);
+      requireEnabled(ctx, task);
       return ctx.ai.runToText(task);
     },
 

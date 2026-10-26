@@ -1,0 +1,13 @@
+.ask { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); min-height: 48px; }
+.hint { margin: 0; color: var(--fg-3); }
+.lines { display: flex; flex-direction: column; gap: 8px; padding-top: var(--s-3); }
+.foot { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--s-2) var(--s-4); margin-top: var(--s-3); color: var(--fg-3); }
+.meta { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 0 6px; }
+.error { color: var(--fg-2); }
+.auto { display: inline-flex; align-items: center; gap: var(--s-2); }
+.link { padding: 0; border: 0; background: transparent; color: var(--fg-2); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.link:hover { color: var(--fg); }
+.link:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.since { padding-top: var(--s-3); color: var(--fg-2); }
+.connect { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); margin-top: var(--s-2); }
+.connect p { color: var(--fg-3); }

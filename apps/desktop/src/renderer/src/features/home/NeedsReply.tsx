@@ -4,17 +4,15 @@ import { useFlintQuery } from "../../lib/hooks";
 import { formatListTime } from "../../lib/format";
 import { Avatar } from "../../ui";
 import { navStore } from "../../state/nav";
-import { useAiAvailability } from "../ai/useAiRun";
 import { parseNeedsReply, REASON_LABEL } from "./replyRows";
 import { HomeBlock } from "./HomeBlock";
 import styles from "./HomeView.module.css";
 
-/** People threads where someone asked something and nobody has answered. Found locally; hidden when +AI is off. */
+/** People threads where someone asked something and nobody has answered. Found locally by a heuristic, so it works without +AI. */
 export function NeedsReply({ now }: { now: number }): JSX.Element | null {
-  const ai = useAiAvailability();
-  const q = useFlintQuery(async (api) => parseNeedsReply((await api.aiRunToText({ kind: "needsReply" })).text), [], { enabled: ai.enabled });
+  const q = useFlintQuery(async (api) => parseNeedsReply((await api.aiRunToText({ kind: "needsReply" })).text), []);
   const rows = q.data ?? [];
-  if (!ai.enabled || rows.length === 0) return null;
+  if (rows.length === 0) return null;
   return (
     <HomeBlock title="Needs reply">
       {rows.map((r) => (
