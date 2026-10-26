@@ -60,6 +60,19 @@ describe("CatchMeUp", () => {
     expect(Number(window.localStorage.getItem(HOME_SEEN_KEY))).toBeGreaterThanOrEqual(NOW);
   });
 
+  it("saves the last visit when the window closes while Home is open", async () => {
+    aiStatus.mockResolvedValue({ connected: false, enabled: true, provider: null, model: null, models: [] });
+    window.localStorage.setItem(HOME_SEEN_KEY, String(NOW - 3_600_000));
+    const { unmount } = render(<CatchMeUp />);
+    await screen.findByRole("heading", { level: 2, name: "Catch me up" });
+    window.dispatchEvent(new Event("pagehide"));
+    expect(Number(window.localStorage.getItem(HOME_SEEN_KEY))).toBeGreaterThanOrEqual(NOW);
+    window.localStorage.setItem(HOME_SEEN_KEY, "1");
+    window.dispatchEvent(new Event("beforeunload"));
+    expect(Number(window.localStorage.getItem(HOME_SEEN_KEY))).toBeGreaterThanOrEqual(NOW);
+    unmount();
+  });
+
   it("with +AI, runs automatically, streams a digest from the store and announces when it is ready", async () => {
     render(<CatchMeUp />);
     await screen.findByRole("heading", { level: 2, name: "Catch me up" });
