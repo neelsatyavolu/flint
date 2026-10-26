@@ -54,12 +54,21 @@ private struct AccountRow: View {
 }
 
 struct AccountsPage: View {
+    @Environment(AppModel.self) private var model
+
     var body: some View {
         SettingsPage(title: sl("Accounts"), identifier: "accounts") {
             Text("Mail accounts Flint syncs. Changes apply at once.", tableName: "Settings")
                 .flintText(.body, color: FlintColor.fg3)
                 .padding(FlintMetrics.Space.s4)
             AccountsGroup()
+            SettingsGroup(title: sl("Sync")) {
+                SettingsChoiceRow(
+                    icon: .clock, title: String(format: sl("Mail kept on this %@"), ThisDevice.name),
+                    detail: sl("How far back Flint downloads when an account first syncs, for every account. Older mail loads when you reach the end of a list or search."),
+                    selection: model.settingBinding({ $0.sync.initialDays }, section: "sync", key: "initialDays", encode: { .number(Double($0)) }),
+                    choices: SettingsChoices.syncDays.map { (value: $0, label: SettingsChoices.syncLabel($0)) }, identifier: "settings.accounts.syncWindow")
+            }
         }
     }
 }

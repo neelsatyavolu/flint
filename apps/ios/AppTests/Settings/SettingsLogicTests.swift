@@ -58,6 +58,7 @@ struct SettingsLogicTests {
     @Test("undo send choices match the desktop and read plainly")
     func undo() {
         #expect(SettingsChoices.undoSendSeconds == [0, 5, 10, 20, 30])
+        #expect(SettingsChoices.syncLabel(90) == "90 days" && SettingsChoices.syncLabel(365) == "1 year" && SettingsChoices.syncLabel(730) == "2 years")
         #expect(SettingsChoices.undoLabel(0) == "Off")
         #expect(SettingsChoices.undoLabel(10) == "10 seconds")
     }
@@ -205,3 +206,47 @@ struct SignatureTextTests {
         #expect(template.template().subject == "Hello" && template.template().html == "<div>Hi there</div>")
     }
 }
+
+@Suite("Device and privacy copy")
+@MainActor
+struct DeviceCopyTests {
+    @Test("copy names the device it runs on")
+    func deviceName() {
+        #expect(ThisDevice.name(isPad: true) == "iPad")
+        #expect(ThisDevice.name(isPad: false) == "iPhone")
+    }
+
+    @Test("privacy copy names the other contacts and makes no claim of none")
+    func contacts() {
+        let text = PrivacyCopy.contacts
+        #expect(text.contains("Google") && text.contains("Thunderbird") && text.contains("receipts"))
+        #expect(!text.contains("nothing else") && !text.contains("only to"))
+        #expect(!PrivacyCopy.cached.contains("nothing else"))
+    }
+}
+
+@Suite("License catalog")
+struct LicenseCatalogTests {
+    @Test("every shipped project has a copyright line and its license text")
+    func complete() throws {
+        let catalog = try #require(LicenseCatalog.load(bundle: Bundle(for: BundleToken.self)) ?? LicenseCatalog.load())
+        #expect(catalog.items.count >= 20)
+        for item in catalog.items {
+            #expect(!item.copyright.isEmpty, "\(item.name) has no copyright")
+            #expect(catalog.text(for: item).count > 500, "\(item.name) has no license text")
+        }
+    }
+
+    @Test("the direct dependencies, fonts and icons are listed with their own license")
+    func direct() throws {
+        let catalog = try #require(LicenseCatalog.load(bundle: Bundle(for: BundleToken.self)) ?? LicenseCatalog.load())
+        #expect(catalog.text(for: try #require(catalog.item(named: "SwiftSoup"))).contains("Jonathan Hedley"))
+        #expect(catalog.text(for: try #require(catalog.item(named: "GRDB.swift"))).contains("Gwendal"))
+        #expect(catalog.text(for: try #require(catalog.item(named: "SwiftMail"))).contains("Redistribution"))
+        #expect(catalog.text(for: try #require(catalog.item(named: "swift-nio"))).contains("Apache License"))
+        #expect(catalog.text(for: try #require(catalog.item(named: "Geist"))).contains("SIL OPEN FONT LICENSE"))
+        #expect(catalog.text(for: try #require(catalog.item(named: "Lucide icons"))).contains("ISC License"))
+    }
+}
+
+private final class BundleToken {}

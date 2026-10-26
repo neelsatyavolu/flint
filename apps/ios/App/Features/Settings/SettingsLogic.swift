@@ -77,6 +77,17 @@ enum AccountPalette {
 enum SettingsChoices {
     static let undoSendSeconds = [0, 5, 10, 20, 30]
 
+    static let syncDays = [30, 90, 180, 365, 730]
+
+    /// As on the desktop: 365 and 730 days read "1 year" and "2 years".
+    static func syncLabel(_ days: Int) -> String {
+        switch days {
+        case 365: sl("1 year")
+        case 730: sl("2 years")
+        default: String(format: sl("%lld days"), days)
+        }
+    }
+
     static func undoLabel(_ seconds: Int) -> String {
         seconds == 0 ? sl("Off") : String(format: sl("%lld seconds"), seconds)
     }

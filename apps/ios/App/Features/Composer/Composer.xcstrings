@@ -63,6 +63,9 @@
     "Draft saved" : {
 
     },
+    "Edit as plain text" : {
+
+    },
     "Every recipient is you, so there is nothing to track." : {
 
     },
@@ -70,6 +73,9 @@
 
     },
     "From" : {
+
+    },
+    "Insert template" : {
 
     },
     "Italic" : {
@@ -99,6 +105,9 @@
       }
     },
     "No signature" : {
+
+    },
+    "No templates yet" : {
 
     },
     "Off" : {
@@ -179,6 +188,9 @@
     "The draft will be deleted." : {
 
     },
+    "This draft has formatting or images that can't be edited here. Its body is kept as written. You can still change the recipients, subject and attachments, and send it." : {
+
+    },
     "This message has no subject line." : {
 
     },
@@ -194,6 +206,9 @@
       }
     },
     "To" : {
+
+    },
+    "Untitled" : {
 
     },
     "You mentioned an attachment, but nothing is attached." : {

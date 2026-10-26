@@ -73,7 +73,7 @@ struct SignatureEditorView: View {
             }
         }
         SettingsTextBox(label: sl("Signature"), text: binding.text, identifier: "settings.signature.text")
-        Text("Formatting from the Mac app is kept until you change the text here. Editing on iPhone saves plain text.", tableName: "Settings")
+        Text(String(format: sl("Formatting from the Mac app is kept until you change the text here. Editing on %@ saves plain text."), ThisDevice.name))
             .flintText(.body, color: FlintColor.fg3)
             .padding(.horizontal, FlintMetrics.Space.s4)
             .padding(.top, FlintMetrics.Space.s2)

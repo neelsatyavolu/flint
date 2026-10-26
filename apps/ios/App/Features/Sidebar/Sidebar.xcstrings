@@ -67,6 +67,9 @@
         }
       }
     },
+    "Recents": {
+
+    },
     "Settings": {
       "extractionState": "manual",
       "localizations": {

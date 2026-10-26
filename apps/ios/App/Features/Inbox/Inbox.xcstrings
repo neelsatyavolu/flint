@@ -199,6 +199,9 @@
         }
       }
     },
+    "Copy code": {
+
+    },
     "Couldn't load folders.": {
       "extractionState": "manual",
       "localizations": {
@@ -946,6 +949,9 @@
           }
         }
       }
+    },
+    "Verification code %@": {
+
     }
   },
   "version": "1.0"

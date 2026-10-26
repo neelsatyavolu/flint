@@ -5,6 +5,7 @@ import SwiftUI
 struct ComposerForm: View {
     @Bindable var viewModel: ComposerViewModel
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var showCc = false
     @State private var showBcc = false
 
@@ -34,8 +35,12 @@ struct ComposerForm: View {
     @ViewBuilder private var fromRow: some View {
         let options = viewModel.fromOptions
         if options.count > 1 {
-            HStack(spacing: FlintMetrics.Space.s2) {
+            // At accessibility sizes the label goes above the address and the address wraps instead of being cut.
+            let stacked = typeSize.isAccessibilitySize
+            let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0)) : AnyLayout(HStackLayout(spacing: FlintMetrics.Space.s2))
+            layout {
                 Text("From", tableName: "Composer").flintText(.label).lineLimit(1).fixedSize().frame(minWidth: 36, alignment: .leading)
+                    .padding(.top, stacked ? FlintMetrics.Space.s2 : 0)
                 Menu {
                     ForEach(options) { option in
                         Button { viewModel.chooseFrom(option) } label: {
@@ -48,7 +53,8 @@ struct ComposerForm: View {
                     }
                 } label: {
                     HStack(spacing: FlintMetrics.Space.s1) {
-                        Text(viewModel.fields.from).flintText(.body).lineLimit(1)
+                        Text(viewModel.fields.from).flintText(.body).lineLimit(stacked ? nil : 1)
+                            .fixedSize(horizontal: false, vertical: stacked)
                         FlintIconView(icon: .chevronDown, size: 14, color: FlintColor.fg3)
                         Spacer(minLength: 0)
                     }
@@ -104,7 +110,7 @@ struct ComposerForm: View {
             note(problem, icon: .alert, color: FlintColor.danger, id: "composer.problem")
         }
         if viewModel.fields.track, let blocker = viewModel.receiptBlocker {
-            note(blocker, icon: .eye, color: FlintColor.fg3, id: "composer.receiptNote")
+            note(blocker, icon: .eye, color: FlintColor.fg2, id: "composer.receiptNote")
         }
     }
 

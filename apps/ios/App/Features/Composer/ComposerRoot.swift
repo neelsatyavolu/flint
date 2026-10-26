@@ -38,6 +38,7 @@ struct ComposerScreen: View {
     @State private var showFiles = false
     @State private var showCamera = false
     @State private var photoItems: [PhotosPickerItem] = []
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     init(model: AppModel, request: ComposeRequest) {
         self.request = request
@@ -84,18 +85,31 @@ struct ComposerScreen: View {
 
     // MARK: Header
 
-    private var header: some View {
-        FlintBar(
-            title: viewModel.title, subtitle: saveText,
-            leading: {
-                FlintIconButton(
-                    icon: .close, label: String(localized: "Save and close", table: "Composer"), identifier: "composer.close",
-                    action: { Task { await viewModel.close() } })
-            },
-            trailing: { headerActions })
-            .padding(.top, FlintMetrics.Space.s2)
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("composer.header")
+    /// At accessibility sizes the actions move to their own line under the title, so the title is not cut to "New…".
+    @ViewBuilder private var header: some View {
+        let stacked = typeSize.isAccessibilitySize
+        VStack(spacing: 0) {
+            FlintBar(
+                title: viewModel.title, subtitle: saveText,
+                leading: {
+                    FlintIconButton(
+                        icon: .close, label: String(localized: "Save and close", table: "Composer"), identifier: "composer.close",
+                        action: { Task { await viewModel.close() } })
+                },
+                trailing: { if !stacked { headerActions } })
+            if stacked && viewModel.phase == .ready {
+                HStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    headerActions
+                }
+                .padding(.horizontal, FlintMetrics.Space.s2)
+                .background(FlintColor.plane1)
+                .overlay(alignment: .bottom) { FlintHairline() }
+            }
+        }
+        .padding(.top, FlintMetrics.Space.s2)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("composer.header")
     }
 
     @ViewBuilder private var headerActions: some View {

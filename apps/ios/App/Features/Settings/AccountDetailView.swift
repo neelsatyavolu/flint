@@ -67,7 +67,7 @@ struct AccountDetailView: View {
             Button(sl("Remove"), role: .destructive) { remove(account) }
             Button(sl("Cancel"), role: .cancel) {}
         } message: {
-            Text(String(format: sl("%@ and its mail stored on this iPhone will be removed from Flint. Your mail stays with your provider."), account.email))
+            Text(String(format: sl("%@ and its mail stored on this %@ will be removed from Flint. Your mail stays with your provider."), account.email, ThisDevice.name))
         }
     }
 

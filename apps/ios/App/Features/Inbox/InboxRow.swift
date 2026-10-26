@@ -52,6 +52,11 @@ struct InboxRow: View {
         .accessibilityIdentifier(identifier ?? "inbox.row.\(item.id)")
         .accessibilityAction { isSelecting ? onToggle() : onOpen() }
         .accessibilityAction(named: Text("Select", tableName: "Inbox"), onToggle)
+        .accessibilityActions {
+            if let badge = InboxRowText.liveCode(item) {
+                Button(String(localized: "Copy code", table: "Inbox")) { onCopyCode(badge.code) }
+            }
+        }
     }
 
     @ViewBuilder private var lead: some View {

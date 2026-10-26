@@ -56,6 +56,12 @@ final class InboxViewModel {
         self.swipe = SwipeConfiguration.load(from: model.defaults)
     }
 
+    /// Reloads the swipe actions, for a change made in Settings while the list is alive.
+    func refreshSwipe() {
+        let saved = SwipeConfiguration.load(from: model.defaults)
+        if saved != swipe { swipe = saved }
+    }
+
     var settings: Settings { model.settings ?? .default }
     var isSelecting: Bool { !selection.isEmpty || selectMode }
     var selectMode = false {

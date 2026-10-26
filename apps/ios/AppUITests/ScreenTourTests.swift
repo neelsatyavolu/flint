@@ -2,7 +2,8 @@ import XCTest
 
 /// Walks every main screen on the demo mailbox and saves a screenshot of each, for the integration review in both themes and
 /// at a large accessibility text size. Screenshots are attached to the result and, when `TEST_RUNNER_FLINT_SHOT_DIR` is set,
-/// written there as `<prefix>-<screen>-<theme>.png`. `TEST_RUNNER_FLINT_SHOT_PREFIX` names the device (default `phone`).
+/// written there as `<prefix>-<screen>-<theme>.png`. `TEST_RUNNER_FLINT_SHOT_PREFIX` names the device (default `pad` on an iPad,
+/// `phone` otherwise).
 final class ScreenTourTests: XCTestCase {
     override func setUp() { continueAfterFailure = true }
 
@@ -27,16 +28,31 @@ final class ScreenTourTests: XCTestCase {
     @MainActor
     private func shot(_ app: XCUIApplication, _ name: String) {
         sleep(1)
-        let screenshot = app.screenshot()
+        let screenshot = XCUIScreen.main.screenshot()
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
         let env = ProcessInfo.processInfo.environment
         guard let dir = env["FLINT_SHOT_DIR"] else { return }
-        let prefix = env["FLINT_SHOT_PREFIX"] ?? "phone"
+        let prefix = env["FLINT_SHOT_PREFIX"] ?? (UIDevice.current.userInterfaceIdiom == .pad ? "pad" : "phone")
         try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
-        try? screenshot.pngRepresentation.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(prefix)-\(name).png"))
+        try? Self.upright(screenshot).write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(prefix)-\(name).png"))
+    }
+
+    /// The simulator hands back its portrait buffer even after a rotation, with the app turned inside it (the app itself lays out
+    /// correctly). In landscape the buffer is turned back so the saved PNG reads upright.
+    private static func upright(_ screenshot: XCUIScreenshot) -> Data {
+        let turn: UIImage.Orientation
+        switch XCUIDevice.shared.orientation {
+        case .landscapeLeft: turn = .left
+        case .landscapeRight: turn = .right
+        default: return screenshot.pngRepresentation
+        }
+        guard let cg = screenshot.image.cgImage else { return screenshot.pngRepresentation }
+        let image = UIImage(cgImage: cg, scale: 1, orientation: turn)
+        let renderer = UIGraphicsImageRenderer(size: image.size)
+        return renderer.pngData { _ in image.draw(at: .zero) }
     }
 
     @MainActor

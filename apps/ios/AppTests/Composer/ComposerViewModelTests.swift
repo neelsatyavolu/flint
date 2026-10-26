@@ -216,4 +216,67 @@ struct ComposerViewModelTests {
         #expect(try await app.model.draft(id: id).track == !before)
         await app.tearDown()
     }
+
+    private static let richHTML = "<div style=\"color:red\">Hello</div><table><tr><td><img src=\"cid:logo\"></td></tr></table>"
+
+    @Test("a draft written elsewhere keeps its HTML when only a field changes")
+    func richDraftSurvives() async throws {
+        let app = try await SeededApp.make()
+        let (first, _) = await open(app)
+        let id = try #require(first.draft?.id)
+        _ = try await app.model.updateDraft(id: id, DraftPatch(html: Self.richHTML))
+        let (vm, _) = await open(app, .resume(draftId: id))
+        #expect(vm.isBodyLocked && !vm.isBlank)
+        vm.edit { $0.subject = "Changed" }
+        vm.body = AttributedString("typed over it")
+        vm.bodyChanged()
+        #expect(await vm.finish())
+        let saved = try await app.model.draft(id: id)
+        #expect(saved.subject == "Changed" && saved.html == Self.richHTML)
+        await app.tearDown()
+    }
+
+    @Test("flattening a rich draft is the person's choice and then saves the editor text")
+    func flattenOnRequest() async throws {
+        let app = try await SeededApp.make()
+        let (first, _) = await open(app)
+        let id = try #require(first.draft?.id)
+        _ = try await app.model.updateDraft(id: id, DraftPatch(html: Self.richHTML))
+        let (vm, _) = await open(app, .resume(draftId: id))
+        vm.editBodyAsPlainText()
+        #expect(!vm.isBodyLocked)
+        vm.body = AttributedString("plain now")
+        vm.bodyChanged()
+        #expect(await vm.finish())
+        #expect(try await app.model.draft(id: id).html == "<div>plain now</div>")
+        await app.tearDown()
+    }
+
+    @Test("which HTML the editor can hold")
+    func fidelity() {
+        #expect(DraftHTMLFidelity.isLossless("<div>Hi <b>there</b></div><ul><li>a</li></ul><br>"))
+        #expect(DraftHTMLFidelity.isLossless("<div><a href=\"https://x.example\">x</a></div>"))
+        #expect(!DraftHTMLFidelity.isLossless("<div style=\"color:red\">x</div>"))
+        #expect(!DraftHTMLFidelity.isLossless("<p>x</p><img src=\"cid:a\">"))
+        #expect(!DraftHTMLFidelity.isLossless("<table><tr><td>x</td></tr></table>"))
+        #expect(!DraftHTMLFidelity.isLossless("<div><a href=\"https://x.example\" target=\"_blank\">x</a></div>"))
+    }
+
+    @Test("a template fills an empty subject and lands in the body, and keeps a typed subject")
+    func templates() async throws {
+        let app = try await SeededApp.make()
+        let service = try app.model.requireService()
+        _ = try await service.saveTemplate(Template(id: 0, name: "Intro", subject: "Nice to meet you", html: "<div>Hello <b>there</b></div>"))
+        let (vm, _) = await open(app)
+        let template = try #require(vm.templates.first)
+        vm.insert(template)
+        #expect(vm.fields.subject == "Nice to meet you")
+        #expect(String(vm.body.characters) == "Hello there")
+        vm.edit { $0.subject = "Mine" }
+        vm.insert(template)
+        #expect(vm.fields.subject == "Mine")
+        #expect(String(vm.body.characters).hasSuffix("Hello there") && String(vm.body.characters).count > 11)
+        await vm.discard()
+        await app.tearDown()
+    }
 }
