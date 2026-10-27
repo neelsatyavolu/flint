@@ -1,0 +1,17 @@
+BEGIN:VCALENDAR
+PRODID:-//Zoom Video Communications Inc.//Zoom Calendar 1.0//EN
+VERSION:2.0
+METHOD:REQUEST
+BEGIN:VEVENT
+DTSTAMP:20261023T212000Z
+DTSTART:20261026T210000Z
+DTEND:20261026T214500Z
+SUMMARY:Customer call: Lumen Labs
+UID:zoom-98765432101-20261026@zoom.us
+ORGANIZER;CN=Aiden Cho:mailto:aiden@lumen.example
+ATTENDEE;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=Neel:mailto:me@example.com
+SEQUENCE:0
+LOCATION:https://lumen.zoom.us/j/98765432101
+DESCRIPTION:Aiden Cho is inviting you to a scheduled Zoom meeting.\n\nTopic: Customer call: Lumen Labs\nTime: Oct 26\, 2026 02:00 PM Pacific Time (US and Canada)\n\nJoin Zoom Meeting\nhttps://lumen.zoom.us/j/98765432101?pwd=ZmFrZXB3ZA\n\nMeeting ID: 987 6543 2101\nPasscode: 330145\n
+END:VEVENT
+END:VCALENDAR

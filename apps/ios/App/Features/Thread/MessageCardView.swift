@@ -45,6 +45,7 @@ struct MessageCardView: View {
         VStack(alignment: .leading, spacing: FlintMetrics.Space.s3) {
             header
             if let badge = message.verificationCode, !badge.used { CodeBanner(badge: badge) }
+            if InviteAttachments.calendarPart(of: message) != nil { InviteCardView(message: message, thread: vm.messages) }
             MessageBodyView(message: message, vm: vm)
             AttachmentList(attachments: message.attachments.filter { !$0.inline }, onOpen: onOpenAttachment)
             ReceiptPanel(message: message, selfAddresses: selfAddresses)

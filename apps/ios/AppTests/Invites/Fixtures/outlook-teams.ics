@@ -1,0 +1,50 @@
+BEGIN:VCALENDAR
+METHOD:REQUEST
+PRODID:Microsoft Exchange Server 2010
+VERSION:2.0
+BEGIN:VTIMEZONE
+TZID:Eastern Standard Time
+BEGIN:STANDARD
+DTSTART:16010101T020000
+TZOFFSETFROM:-0400
+TZOFFSETTO:-0500
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=1SU;BYMONTH=11
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:16010101T020000
+TZOFFSETFROM:-0500
+TZOFFSETTO:-0400
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=2SU;BYMONTH=3
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+ORGANIZER;CN="Ellis, Jordan":mailto:jordan.ellis@fabrikam.example
+ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=Neel S:mai
+ lto:me@example.com
+ATTENDEE;ROLE=OPT-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=Rosa Alvar
+ ez:mailto:rosa@fabrikam.example
+DESCRIPTION;LANGUAGE=en-US:Quarterly planning. Agenda is in the shared doc.
+ \n\n______________________________________________________________________
+ __________\nMicrosoft Teams meeting\nJoin on your computer\, mobile app or
+  room device\nClick here to join the meeting <https://teams.microsoft.com/
+ l/meetup-join/19%3ameeting_ZDk4MzQ1YjEtN2Y3Zi00MDBjLWI0NjEtYTc2MGYyOTk2MTV
+ l%40thread.v2/0?context=%7b%22Tid%22%3a%2200000000-0000-0000-0000-00000000
+ 0001%22%7d>\nMeeting ID: 245 987 133 410\nPasscode: Xk4Pq7\nDownload Teams
+  <https://www.microsoft.com/en-us/microsoft-teams/download-app> | Join on 
+ the web <https://aka.ms/JoinTeamsMeeting>\nNeed help? <https://aka.ms/Join
+ TeamsMeeting?omkt=en-US>\n________________________________________________
+ ________________________________\n
+UID:040000008200E00074C5B7101A82E00800000000F0E1D2C3B4A50100000000000000001
+ 00000001122334455667788
+SUMMARY;LANGUAGE=en-US:Q4 planning
+DTSTART;TZID=Eastern Standard Time:20261102T140000
+DTEND;TZID=Eastern Standard Time:20261102T153000
+DTSTAMP:20261023T140000Z
+LOCATION:Microsoft Teams Meeting
+SEQUENCE:0
+STATUS:CONFIRMED
+X-MICROSOFT-SKYPETEAMSMEETINGURL:https://teams.microsoft.com/l/meetup-join/
+ 19%3ameeting_ZDk4MzQ1YjEtN2Y3Zi00MDBjLWI0NjEtYTc2MGYyOTk2MTVl%40thread.v2/
+ 0?context=%7b%22Tid%22%3a%2200000000-0000-0000-0000-000000000001%22%7d
+END:VEVENT
+END:VCALENDAR
