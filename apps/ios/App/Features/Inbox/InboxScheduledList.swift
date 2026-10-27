@@ -4,6 +4,7 @@ import SwiftUI
 /// The Scheduled list: sends waiting for their undo window or a chosen time. These are not threads, so no swipes or selection.
 struct InboxScheduledList: View {
     let sends: [ScheduledSend]
+    @State private var selected: ScheduledSend?
 
     var body: some View {
         if sends.isEmpty {
@@ -14,10 +15,13 @@ struct InboxScheduledList: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(sends) { send in
-                        row(send).accessibilityIdentifier("inbox.scheduled.\(send.id)")
+                        Button { selected = send } label: { row(send) }
+                            .buttonStyle(FlintPressStyle(radius: 0))
+                            .accessibilityIdentifier("inbox.scheduled.\(send.id)")
                     }
                 }
             }
+            .sheet(item: $selected) { ScheduledSendSheet(send: $0) }
             .accessibilityIdentifier("inbox.list")
         }
     }

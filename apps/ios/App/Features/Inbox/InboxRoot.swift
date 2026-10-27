@@ -92,7 +92,8 @@ private struct InboxScreen: View {
 
     @ViewBuilder private func sheet(for picker: InboxPicker) -> some View {
         switch picker {
-        case .snooze(let ids): InboxSnoozeSheet(ids: ids, viewModel: viewModel)
+        case .snooze(let ids):
+            TimePickerSheet(kind: .snooze, identifier: "inbox.snooze") { date in Task { await viewModel.snooze(ids, until: date) } }
         case .move(let rows): InboxMoveSheet(rows: rows, viewModel: viewModel)
         case .swipeSettings: InboxSwipeSettingsSheet(viewModel: viewModel)
         }

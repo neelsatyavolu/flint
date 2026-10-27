@@ -43,12 +43,18 @@ extension AppModel {
 
     @discardableResult
     func snooze(_ ids: [ThreadID], until: EpochMs) async -> Bool {
-        await perform(.snooze(until: until), on: ids, closesThread: true) { try await $0.snooze(ids, until: until) }
+        let done = await perform(.snooze(until: until), on: ids, closesThread: true, afterUndo: { [scheduling] in await scheduling.unsnoozed(ids) }) {
+            try await $0.snooze(ids, until: until)
+        }
+        if done { await scheduling.snoozed(ids, until: until) }
+        return done
     }
 
     @discardableResult
     func unsnooze(_ ids: [ThreadID]) async -> Bool {
-        await perform(.unsnooze, on: ids) { try await $0.unsnooze(ids) }
+        let done = await perform(.unsnooze, on: ids) { try await $0.unsnooze(ids) }
+        if done { await scheduling.unsnoozed(ids) }
+        return done
     }
 
     @discardableResult
@@ -86,14 +92,18 @@ extension AppModel {
     }
 
     private func perform(
-        _ action: ThreadAction, on ids: [ThreadID], closesThread: Bool = false, _ body: (FlintService) async throws -> String
+        _ action: ThreadAction, on ids: [ThreadID], closesThread: Bool = false, afterUndo: (@MainActor () async -> Void)? = nil,
+        _ body: (FlintService) async throws -> String
     ) async -> Bool {
         guard !ids.isEmpty else { return false }
         do {
             let token = try await body(try requireService())
             if closesThread, let open = openThread, ids.contains(open) { openThread = nil }
             if let message = action.message(count: ids.count) {
-                toasts.show(message, undo: { [weak self] in await self?.undo(token: token) })
+                toasts.show(message, undo: { [weak self] in
+                    await self?.undo(token: token)
+                    await afterUndo?()
+                })
             }
             return true
         } catch {

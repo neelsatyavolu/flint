@@ -14,6 +14,14 @@ final class ComposerTests: XCTestCase {
     }
 
     @MainActor
+    static func openComposerThemed(_ appearance: String) -> XCUIApplication {
+        let app = ShellTests.launchSeeded(appearance: appearance)
+        let compose = app.buttons["New message"]
+        if compose.waitForExistence(timeout: 30) { compose.tap() }
+        return app
+    }
+
+    @MainActor
     func testWriteAndSend() {
         let app = Self.openComposer()
         XCTAssertTrue(app.descendants(matching: .any)["composer.root"].waitForExistence(timeout: 30))
@@ -56,7 +64,8 @@ final class ComposerTests: XCTestCase {
         XCTAssertTrue(app.buttons["composer.schedule"].waitForExistence(timeout: 30))
         app.buttons["composer.schedule"].tap()
         XCTAssertTrue(app.buttons["composer.schedule.tomorrow"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["composer.schedule.confirm"].exists)
+        app.buttons["composer.schedule.custom"].tap()
+        XCTAssertTrue(app.buttons["composer.schedule.confirm"].waitForExistence(timeout: 5))
     }
 
     @MainActor
