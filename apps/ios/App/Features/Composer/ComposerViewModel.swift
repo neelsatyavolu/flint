@@ -197,6 +197,8 @@ final class ComposerViewModel {
         }
         if let kept = keptBodyHTML {
             keptBodyHTML = kept + template.html
+            // The kept body is read only; show the template where the person can see it was added.
+            body.append(RichTextHTML.attributed(fromHTML: template.html))
         } else {
             RichTextFormatting.insert(html: template.html, into: &body, selection: &selection)
         }

@@ -117,4 +117,41 @@ struct ShellNavigationTests {
         model.closeComposer()
         #expect(model.singleKeyShortcutsActive)
     }
+
+    @Test("single-key shortcuts are off under the thread's own sheet, and every shortcut is off under the lock cover")
+    func threadSheetAndLock() {
+        let model = AppModel(mode: .live)
+        model.threadSheetUp = true
+        #expect(!model.singleKeyShortcutsActive)
+        model.threadSheetUp = false
+        #expect(model.singleKeyShortcutsActive)
+        model.isCovered = true
+        #expect(!model.shortcutsReady)
+    }
+
+    @Test("J and K step through the rows on screen, not a fresh unfiltered query")
+    func stepsThroughVisibleRows() async {
+        let model = AppModel(mode: .live)
+        model.visibleThreadIds = [5, 70, 90]
+        model.navigate(to: .thread(70))
+        await model.stepThread(by: 1)
+        #expect(model.openThread == 90)
+        await model.stepThread(by: -1)
+        #expect(model.openThread == 70)
+        await model.stepThread(by: -1)
+        #expect(model.openThread == 5)
+        await model.stepThread(by: -1)
+        #expect(model.openThread == 5)
+    }
+
+    @Test("E archives by where the conversation is, not by the selected list")
+    func archiveFollowsPlace() async throws {
+        let app = try await SeededApp.make()
+        let item = try #require(try await app.thread(subject: "Q4 roadmap notes"))
+        app.model.mailbox = .archive
+        app.model.navigate(to: .thread(item.id))
+        await app.model.archiveOpenThread()
+        #expect(try await app.thread(subject: "Q4 roadmap notes") == nil)
+        await app.tearDown()
+    }
 }

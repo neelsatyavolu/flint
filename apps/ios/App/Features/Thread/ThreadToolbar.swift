@@ -31,6 +31,8 @@ struct ThreadToolbar: View {
             button(.clock, String(localized: "Snooze", table: "Thread"), "thread.snooze") { picker = .snooze; return true }
             more
         }
+        .onChange(of: picker != nil) { _, up in app.threadSheetUp = up }
+        .onDisappear { app.threadSheetUp = false }
         .sheet(item: $picker) { picker in
             switch picker {
             case .snooze: ThreadSnoozeSheet(threadId: detail.id)

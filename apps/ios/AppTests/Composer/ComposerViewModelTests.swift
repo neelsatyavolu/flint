@@ -279,4 +279,23 @@ struct ComposerViewModelTests {
         await vm.discard()
         await app.tearDown()
     }
+
+    @Test("a template inserted into a draft written elsewhere shows on screen and is added once")
+    func templateInLockedDraft() async throws {
+        let app = try await SeededApp.make()
+        let service = try app.model.requireService()
+        _ = try await service.saveTemplate(Template(id: 0, name: "Intro", subject: "", html: "<div>Hello <b>there</b></div>"))
+        let (first, _) = await open(app)
+        let id = try #require(first.draft?.id)
+        _ = try await app.model.updateDraft(id: id, DraftPatch(html: Self.richHTML))
+        let (vm, _) = await open(app, .resume(draftId: id))
+        let template = try #require(vm.templates.first)
+        vm.insert(template)
+        #expect(String(vm.body.characters).contains("Hello there"))
+        #expect(vm.isBodyLocked)
+        #expect(await vm.finish())
+        let html = try await app.model.draft(id: id).html
+        #expect(html.hasPrefix(Self.richHTML) && html.components(separatedBy: "there").count == 2)
+        await app.tearDown()
+    }
 }

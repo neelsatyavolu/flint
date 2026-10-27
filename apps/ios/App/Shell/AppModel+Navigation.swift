@@ -71,8 +71,12 @@ extension AppModel {
         if presented == nil { presented = .compose(request) }
     }
 
-    /// Letter shortcuts (E, J, K, arrows) are off while text could be typed: a sheet is up or the composer panel is open.
-    var singleKeyShortcutsActive: Bool { presented == nil && composerPanelRequest == nil }
+    /// Letter shortcuts (E, J, K, arrows) are off while text could be typed or a choice is being made: a sheet is up (including
+    /// the thread's own Snooze and Move) or the composer panel is open.
+    var singleKeyShortcutsActive: Bool { presented == nil && composerPanelRequest == nil && !threadSheetUp }
+
+    /// Every shortcut is off until the app is ready and while the lock cover hides the mail.
+    var shortcutsReady: Bool { phase == .ready && !isCovered }
 
     /// Routes a URL the app was opened with. Sign-in redirects normally reach the web sign-in session directly; they are kept
     /// here only for a cold launch from the URL.

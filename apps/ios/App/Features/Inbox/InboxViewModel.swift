@@ -119,6 +119,7 @@ final class InboxViewModel {
         items = []
         bundles = []
         scheduled = []
+        model.visibleThreadIds = []
         extra = []
         tailCursor = nil
         hasMore = false
@@ -132,6 +133,7 @@ final class InboxViewModel {
         let known = Set(page.items.map(\.id))
         let tail = extra.filter { !known.contains($0.id) }
         items = page.items + tail
+        model.visibleThreadIds = items.map(\.id)
         bundles = page.bundles
         if tail.isEmpty {
             extra = []

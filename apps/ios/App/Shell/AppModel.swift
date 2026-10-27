@@ -40,6 +40,12 @@ final class AppModel {
     internal(set) var parkedCompose: ComposeRequest?
     /// True when the window is wide enough for the composer panel (set by the root view from the size class).
     internal(set) var isWide = false
+    /// The Face ID lock cover is up: no shortcut may act on mail that is not on screen (set by the app from `AppLock`).
+    var isCovered = false
+    /// The open conversation's own Snooze or Move sheet is up (set by the thread toolbar).
+    var threadSheetUp = false
+    /// The conversations the list on screen shows, in order, for J and K (published by the inbox).
+    var visibleThreadIds: [ThreadID] = []
     /// The query of the search a thread was opened from, so Back returns to the results.
     internal(set) var searchReturn: String?
     var columnVisibility: NavigationSplitViewVisibility = .all
@@ -54,7 +60,9 @@ final class AppModel {
     @ObservationIgnored private var observers: [Task<Void, Never>] = []
     @ObservationIgnored private var demoDirectory: URL?
     @ObservationIgnored let backgroundTasking: any BackgroundTasking
-    @ObservationIgnored var backgroundTaskId: Int?
+    @ObservationIgnored var backgroundEpoch = 0
+    /// How many times a background cycle stopped the service (read by tests).
+    @ObservationIgnored var backgroundStops = 0
     @ObservationIgnored var drainTask: Task<SendDrain.Outcome, Never>?
 
     init(mode: LaunchMode = .fromArguments(), toasts: ToastCenter = ToastCenter(), defaults: UserDefaults = .standard, backgroundTasking: any BackgroundTasking = SystemBackgroundTasking()) {
@@ -102,6 +110,7 @@ final class AppModel {
 
     /// Foreground: start sync again and send whatever came due while the app was away. Cheap when already running.
     func sceneBecameActive() async {
+        cancelBackgroundDrain()
         await service?.start()
         await service?.runDueWork()
     }

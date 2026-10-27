@@ -6,7 +6,7 @@ import SwiftUI
 struct FlintCommands: Commands {
     let model: AppModel
 
-    private var ready: Bool { model.phase == .ready }
+    private var ready: Bool { model.shortcutsReady }
     private var hasThread: Bool { ready && model.openThread != nil }
     private var singleKeys: Bool { ready && model.singleKeyShortcutsActive }
 
@@ -41,7 +41,7 @@ struct FlintCommands: Commands {
 struct ViewKeyShortcuts: View {
     @Environment(AppModel.self) private var model
 
-    private var arrowsOn: Bool { model.phase == .ready && model.singleKeyShortcutsActive }
+    private var arrowsOn: Bool { model.shortcutsReady && model.singleKeyShortcutsActive }
 
     var body: some View {
         ZStack {

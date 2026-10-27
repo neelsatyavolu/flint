@@ -21,6 +21,7 @@ struct FlintApp: App {
                 .onOpenURL { url in model.handle(url: url) }
                 .onChange(of: scenePhase, initial: true) { _, phase in Task { await lock.scenePhaseChanged(phase) } }
                 .onChange(of: lock.isCovering, initial: true) { _, covering in
+                    model.isCovered = covering
                     lockWindow.update(covering: covering, lock: lock, style: Self.style(appearance))
                 }
         }

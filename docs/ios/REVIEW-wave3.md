@@ -196,3 +196,18 @@ For each of these, the failure scenario from the review can no longer happen as 
 ### Still open (from the statuses, unchanged)
 
 9 (textClipped on Search and Thread, date-label and iPad mono-label contrast, the Thread ORIGINAL toggle), 13 (longer undo windows and scheduled sends, Wave 4B), 20 (decided: two columns), 22 (per-account alerts, signature import from the Mac), and the device-only checks in 1, 3 and 15.
+
+### Recheck follow-up
+
+Each of the eight new problems was confirmed in the code. Fixes with tests (`BackgroundCycleTests`, `ShellNavigationTests`, `ComposerViewModelTests`); `FlintTests` 319 tests pass, and the inbox, Paper inbox, Search and Thread audits pass on an iPhone simulator.
+- New 1 and 2: **Fixed.** `sceneBecameActive` cancels the waiting drain, and a cycle stops the service only if no newer foreground or background change happened. Each cycle ends only its own background task.
+- New 3: **Fixed.** E asks where the conversation is (`ThreadLogic.leavesInbox(place:selection:)`), as the toolbar does.
+- New 4: **Fixed.** The inbox publishes the rows it shows (`AppModel.visibleThreadIds`), so J and K follow the quick filter, an opened bundle and rows loaded by scrolling.
+- New 5: **Fixed.** The thread toolbar reports its Snooze and Move sheets (`threadSheetUp`) and letter shortcuts stay off under them. The inbox's own sheets were already covered by `presented`/pickers staying out of reach of the open thread; not changed.
+- New 6: **Fixed.** `shortcutsReady` is false while the lock cover is up (`isCovered`, set from `AppLock`), for menu commands and arrow keys.
+- New 7: **Fixed.** A template inserted into a locked draft is also shown in the read-only body, so it is not inserted twice, and flattening keeps it.
+- New 8: **Fixed.** The inbox audit skips unplaced clipping issues only up to two per bundle row (measured), not all of them.
+- 1 (VoiceOver under the lock cover), 3 (Magic Keyboard), 15 (VoiceOver on the chip), and the Face ID prompt and app-switcher snapshot: still need a real device.
+- 9 (Search and Thread clipping, inbox date labels, iPad mono-label contrast, Thread ORIGINAL toggle on iPad): still open.
+- 13 (undo windows over about 25 s, scheduled sends): needs the Wave 4B background task. 20: decided, two columns. 22: per-account alerts and signature import from the Mac wait for Wave 4.
+

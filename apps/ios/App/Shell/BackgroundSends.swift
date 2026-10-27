@@ -60,30 +60,49 @@ extension AppModel {
     /// the scheduler pump.
     func sceneEnteredBackground() async {
         guard let service else { return }
-        endBackgroundTask()
-        backgroundTaskId = backgroundTasking.begin { [weak self] in self?.backgroundTimeExpired() }
         let budget = min(SendDrain.defaultBudgetMs, Int(max(0, backgroundTasking.timeRemaining - 5) * 1000))
-        let drain = Task {
-            await SendDrain(budgetMs: budget).run(
-                runDue: { await service.runDueWork() },
-                now: { EpochMs(Date().timeIntervalSince1970 * 1000) },
-                sleep: { try? await Task.sleep(for: $0) })
-        }
-        drainTask = drain
-        _ = await drain.value
-        drainTask = nil
-        await service.stop()
-        endBackgroundTask()
+        await backgroundCycle(
+            drain: {
+                await SendDrain(budgetMs: budget).run(
+                    runDue: { await service.runDueWork() },
+                    now: { EpochMs(Date().timeIntervalSince1970 * 1000) },
+                    sleep: { try? await Task.sleep(for: $0) })
+            },
+            stop: { await service.stop() })
     }
 
-    private func backgroundTimeExpired() {
+    /// One trip to the background. Each cycle owns its background task, and coming back to the foreground ends the cycle's
+    /// claim on the service: the drain is cancelled and the service is left running.
+    func backgroundCycle(drain: @escaping @MainActor () async -> SendDrain.Outcome, stop: () async -> Void) async {
+        backgroundEpoch += 1
+        let epoch = backgroundEpoch
         drainTask?.cancel()
-        endBackgroundTask()
+        var taskId: Int?
+        taskId = backgroundTasking.begin { [weak self] in
+            self?.drainTask?.cancel()
+            if let id = taskId {
+                taskId = nil
+                self?.backgroundTasking.end(id)
+            }
+        }
+        let task = Task { await drain() }
+        drainTask = task
+        _ = await task.value
+        if epoch == backgroundEpoch {
+            drainTask = nil
+            await stop()
+            backgroundStops += 1
+        }
+        if let id = taskId {
+            taskId = nil
+            backgroundTasking.end(id)
+        }
     }
 
-    private func endBackgroundTask() {
-        guard let id = backgroundTaskId else { return }
-        backgroundTaskId = nil
-        backgroundTasking.end(id)
+    /// Foreground: the waiting drain (if any) is no longer wanted and must not stop the service.
+    func cancelBackgroundDrain() {
+        backgroundEpoch += 1
+        drainTask?.cancel()
+        drainTask = nil
     }
 }

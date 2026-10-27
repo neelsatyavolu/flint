@@ -9,17 +9,20 @@ extension AppModel {
         startCompose(all ? .replyAll(messageId: target.id) : .reply(messageId: target.id))
     }
 
-    /// Archive the open conversation (E). In a list where the conversation is already out of the inbox the toolbar offers
-    /// Move to Inbox instead, so the key does nothing there.
+    /// Archive the open conversation (E). Where the conversation is decides, as for the toolbar: out of the inbox the toolbar
+    /// offers Move to Inbox (or Not spam) instead, so the key does nothing.
     func archiveOpenThread() async {
-        guard let id = openThread, !ThreadLogic.leavesInbox(mailbox) else { return }
+        guard let id = openThread, let detail = try? await threadDetail(id),
+              !ThreadLogic.leavesInbox(place: detail.place, selection: mailbox) else { return }
         await archive([id])
     }
 
-    /// Open the next (J, Down) or previous (K, Up) conversation in the list that is showing.
+    /// Open the next (J, Down) or previous (K, Up) conversation in the list on screen, with its filter, bundle and loaded
+    /// rows. Before the list has published anything, the mailbox's first page stands in.
     func stepThread(by delta: Int) async {
-        guard let query = threadQuery(for: mailbox), let page = try? await listThreads(query) else { return }
-        guard let id = ThreadStepper.target(in: page.items.map(\.id), from: openThread, delta: delta) else { return }
+        var ids = visibleThreadIds
+        if ids.isEmpty, let query = threadQuery(for: mailbox), let page = try? await listThreads(query) { ids = page.items.map(\.id) }
+        guard let id = ThreadStepper.target(in: ids, from: openThread, delta: delta) else { return }
         navigate(to: .thread(id))
     }
 }
