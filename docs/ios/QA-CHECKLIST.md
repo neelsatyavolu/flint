@@ -225,7 +225,7 @@ swift test --package-path Packages/FlintCore     # engine, on the Mac
 | # | Step | Expected | Mark |
 |---|---|---|---|
 | 15.1 | Crypto vectors in Node and Swift; framing; QR parse; bundle allowlist; merge plan | All pass | auto (`swift test`, desktop `pnpm test`) |
-| 15.2 | `scripts/pairing-e2e.sh`: happy path, deny, expired code, wrong SAS, replay, tampering | Fails closed | auto |
+| 15.2 | `scripts/pairing-e2e.sh`: happy path, deny, expired code (Swift to TS). Wrong code, replay and tampering are covered by unit tests on each side, not run Swift to TS | Fails closed | auto |
 | 15.3 | Onboarding "Import from Mac" and Settings > Devices on the simulator | Screens render, scan not available in the simulator | sim |
 | 15.4 | Scan the Mac QR with the in-app scanner, local network prompt, approve on the Mac | Accounts and settings import; Google accounts show Sign in | device (O5) |
 | 15.5 | System Camera opens `flint://pair` | Pairing flow starts | device (O5) |

@@ -318,3 +318,10 @@ Requests for the shell and other owners (file | change | why):
 - `MimeBuilder`: `MimeInput.calendarPart` (`CalendarPart(method:content:)`) writes `text/calendar; method=...` as the last part of multipart/alternative. An attachment typed `CalendarPart.contentType(method:)` is promoted to it, so `InviteReplySender` (now using that type) sends the REPLY as an alternative part and no `invite.ics` attachment. Tests: `MailMimeCalendarPartTests`. Not checked against Gmail, Outlook or Apple Mail.
 - `testKeyboardShortcutsOnIPad` flake: not the app. The first key with a modifier that a relaunched app receives from the UI test runner is lost (Cmd-N fails the same way; a second press works). Reproduced with `-test-iterations 3` on one test. The test now presses again until the result shows (`press(_:_:_:expecting:)`). `FindKeyCommand` and `FlintCommands` are unchanged; a real Magic Keyboard was not tried.
 - Review M5 (background refresh does not poll receipts, `Background.swift`) belongs to the notifications group and is untouched. REVIEW M7 pairing and background items are theirs too. QA 12.1 "quiet hours" and QA 15.2 wording are not edited here.
+
+## Wave 4 review fixes, integrated
+
+- Merged wave4fix-notif (1e5797b), wave4fix-pairing (d4bd5d4) and wave4fix-leftovers (49d8b29) into ios. The only conflicts were HANDOFF.md sections, both kept.
+- Checked after the merge: FlintCore `swift test` (755 tests), iPhone and iPad builds, app unit tests, all UI tests on iPhone (75 pass, 4 skipped) and iPad (all pass, 1 skipped), `e2e-greenmail.sh`, `pairing-e2e.sh` (run with zsh, not bash), desktop typecheck and 1080 tests.
+- Flakes seen again, both pass on rerun: `PairingTests.testCancelAtTheCodeReturnsToTheStart` (failed once in the full iPhone run, 3 of 3 alone) and the first `e2e-greenmail.sh` run (second run passes).
+- Each finding in REVIEW-wave4.md now has a Status line. Still open: simulated BGTask launch (QA 12.4), Swift-to-TS e2e for wrong code, replay and tamper, account avatars, M2 failed-phase retry, desktop Test button for the receipts address.
