@@ -51,6 +51,12 @@ final class PairingTests: XCTestCase {
         shot("\(appearance)-5-review")
         element(app, "pairing.signin.demo.home@gmail.com").tap()
         XCTAssertTrue(element(app, "pairing.account.demo.home@gmail.com").waitForExistence(timeout: 15), "the signed-in row becomes an account row")
+        app.swipeUp()
+        let receipts = element(app, "pairing.receipts.toggle")
+        XCTAssertTrue(receipts.waitForExistence(timeout: 5), "the Mac's receipts service has its own switch")
+        XCTAssertEqual(element(app, "pairing.settings.toggle").value as? String, "1")
+        XCTAssertEqual(receipts.value as? String, "0", "receipts stay off until the person turns them on")
+        shot("\(appearance)-5b-review-receipts")
         element(app, "pairing.import").tap()
 
         XCTAssertTrue(element(app, "pairing.done.summary").waitForExistence(timeout: 20))
@@ -74,6 +80,28 @@ final class PairingTests: XCTestCase {
         element(app, "pairing.cancel").tap()
         XCTAssertTrue(element(app, "pairing.intro.title").waitForExistence(timeout: 10))
     }
+
+    /// A flint://pair link from outside the app waits for a tap before it connects. iOS asks "Open in Flint?" first.
+    @MainActor
+    private func runLinkConfirm(appearance: String) {
+        let object = #"{"v":1,"sid":"AQEBAQEBAQEBAQEBAQEBAQ","pk":"AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI","addrs":["192.168.1.20"],"port":49152}"#
+        let payload = Data(object.utf8).base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
+        let app = ShellTests.launchSeeded(appearance: appearance, route: "onboarding")
+        XCTAssertTrue(element(app, "onboarding.mac").waitForExistence(timeout: 30))
+        app.open(URL(string: "flint://pair#\(payload)")!)
+        let open = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.buttons["Open"]
+        if open.waitForExistence(timeout: 5) { open.tap() }
+        XCTAssertTrue(element(app, "pairing.link.title").waitForExistence(timeout: 15))
+        XCTAssertEqual(element(app, "pairing.link.hosts").label, "192.168.1.20")
+        XCTAssertFalse(element(app, "pairing.code").exists)
+        XCTAssertFalse(element(app, "pairing.connecting").exists, "nothing connects before Connect")
+        shot("\(appearance)-7-link-confirm")
+        element(app, "pairing.link.cancel").tap()
+        XCTAssertTrue(element(app, "pairing.intro.title").waitForExistence(timeout: 10))
+    }
+
+    @MainActor func testLinkConfirmGraphite() { runLinkConfirm(appearance: "dark") }
+    @MainActor func testLinkConfirmPaper() { runLinkConfirm(appearance: "light") }
 
     @MainActor
     func testOnboardingRowOpensPairing() {

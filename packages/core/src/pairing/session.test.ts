@@ -3,7 +3,7 @@ import { parseBundle } from "./bundle";
 import { Direction, generateKeypair, seal } from "./crypto";
 import { memoryDevicesStore } from "./devices";
 import { encodeFrame, FrameType } from "./frames";
-import { PairingSession, type PairingEvent } from "./session";
+import { ACK_TIMEOUT_MS, PairingSession, type PairingEvent } from "./session";
 import { fakeSource, FakePhone } from "./testkit";
 
 const sessions: PairingSession[] = [];
@@ -232,6 +232,38 @@ describe("PairingSession", () => {
     await session.approve({ includePasswords: false });
     await new Promise((r) => setTimeout(r, 200));
     expect(closedReason(events)).toBe("no_ack");
+  });
+
+  it("allows the phone a long review before the ack times out", () => {
+    expect(ACK_TIMEOUT_MS).toBeGreaterThanOrEqual(15 * 60_000);
+  });
+
+  it("names a too-large library instead of a generic failure, and sends nothing", async () => {
+    const big = Array.from({ length: 12 }, (_, i) => ({ id: i + 1, name: `S${i}`, html: "x".repeat(190_000), accountIds: [], defaultNew: false, defaultReply: false }));
+    const { session, events } = setup({ source: fakeSource({ listSignatures: async () => big }) });
+    const { url } = await session.start();
+    const phone = await FakePhone.join(url);
+    phone.sendHello();
+    await settle();
+    await session.approve({ includePasswords: false });
+    await phone.untilClosed();
+    expect(closedReason(events)).toBe("too_large");
+    expect(last(events, "closed")?.bundleSent).toBe(false);
+    expect(phone.frames).toHaveLength(0);
+  });
+
+  it("marks a close after sending began, so the Mac cannot claim nothing was sent", async () => {
+    const { session, events } = setup();
+    const { url } = await session.start();
+    const phone = await FakePhone.join(url);
+    phone.sendHello();
+    await settle();
+    await session.approve({ includePasswords: false });
+    await phone.frameCount(2);
+    phone.socket.destroy();
+    await settle();
+    expect(closedReason(events)).toBe("connection_lost");
+    expect(last(events, "closed")?.bundleSent).toBe(true);
   });
 
   it("refuses to start without a private network", async () => {

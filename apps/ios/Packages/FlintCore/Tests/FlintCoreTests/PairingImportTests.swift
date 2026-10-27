@@ -3,7 +3,7 @@ import Foundation
 import Testing
 @testable import FlintPairing
 
-private actor FakeTarget: ImportTarget {
+actor FakeTarget: ImportTarget {
     var stored: [Account]
     var signatures: [Signature] = []
     var templates: [Template] = []
@@ -56,10 +56,14 @@ private actor FakeTarget: ImportTarget {
     func saveRule(_ rule: Rule) async throws { if failRules { throw FlintError(.invalid, "bad") }; rules.append(rule) }
     func blockSender(_ pattern: String) async throws { blocked.append(pattern) }
     func applySettings(patch: JSONValue) async throws { settingsPatches.append(patch) }
+    func signatures() async throws -> [Signature] { signatures }
+    func templates() async throws -> [Template] { templates }
+    func rules() async throws -> [Rule] { rules }
+    func blockedPatterns() async throws -> [String] { blocked }
 }
 
-private func bundle() throws -> PairingBundle { try PairingBundle.decode(sampleBundleData()) }
-private func phoneAccount(_ email: String, id: String = "phone1") -> Account {
+func bundle() throws -> PairingBundle { try PairingBundle.decode(sampleBundleData()) }
+func phoneAccount(_ email: String, id: String = "phone1") -> Account {
     Account(id: id, email: email, name: "Mine", provider: .imap, authKind: .password,
             server: ServerConfig(imapHost: "old", imapPort: 993, imapSecure: true, smtpHost: "old", smtpPort: 465, smtpSecure: true, username: email), color: "#111111", aliases: ["keep@x.com"])
 }

@@ -107,6 +107,45 @@ struct PairingModelTests {
         #expect(model.step == .scan)
     }
 
+    @Test("a pairing link stops at a confirm step and connects only after Connect")
+    func linkNeedsConfirm() async throws {
+        final class Spy: @unchecked Sendable { var clients = 0 }
+        struct Counting: PairingServices {
+            let demo = DemoPairingServices()
+            let spy: Spy
+            var deviceName: String { "iPhone" }
+            var offersDemoMac: Bool { false }
+            var demoOffer: PairingOffer? { nil }
+            func makeClient(offer: PairingOffer) -> PairingClient { spy.clients += 1; return demo.makeClient(offer: offer) }
+            func importer() -> BundleImporter { demo.importer() }
+            func rememberPairing(macName: String) {}
+        }
+        let spy = Spy()
+        let demo = DemoPairingServices()
+        let payload = String(demo.mac.offer.urlString.dropFirst(PairingOffer.prefix.count))
+        let model = PairingModel(services: Counting(spy: spy), pendingPayload: payload)
+        model.handle(link: payload)
+        guard case .confirmLink(let hosts) = model.step else { Issue.record("expected the confirm step, got \(model.step)"); return }
+        #expect(hosts == "192.168.1.20")
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(spy.clients == 0)
+        model.cancel()
+        #expect(model.step == .intro && spy.clients == 0)
+        model.handle(link: payload)
+        model.confirmLink()
+        #expect(model.step == .connecting || spy.clients == 1)
+        #expect(spy.clients == 1)
+    }
+
+    @Test("a link to a public host fails at once and never reaches the confirm step")
+    func linkToPublicHost() {
+        let object: [String: Any] = ["v": 1, "sid": Data(repeating: 1, count: 16).base64URL, "pk": Data(repeating: 2, count: 32).base64URL, "addrs": ["pair.evil.example"], "port": 4000]
+        let payload = ((try? JSONSerialization.data(withJSONObject: object)) ?? Data()).base64URL
+        let model = PairingModel(services: DemoPairingServices())
+        model.handle(link: payload)
+        guard case .failed = model.step else { Issue.record("expected a failure"); return }
+    }
+
     @Test("a refused Local Network permission offers the Settings button")
     func localNetworkDenied() async {
         struct Denied: PairingServices {

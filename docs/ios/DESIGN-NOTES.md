@@ -169,7 +169,7 @@ Goal: move accounts, signatures, templates, rules, blocked senders and chosen se
 
 **Handshake and transport.** Frames are 4-byte big-endian length, then 1 type byte, then body. Max frame 64 KiB.
 1. `HELLO` (plaintext) phone to Mac: `{ v:1, sid, pk:B, name:"Neel's iPhone" }`.
-2. Both compute `shared = X25519(self_priv, other_pub)`, then `HKDF-SHA256(ikm=shared, salt=sid, info="flint-pair/v1" || A || B, L=64)` giving `k_m2p` (32 B) and `k_p2m` (32 B), and a 6-digit code `sas = HKDF(..., info="flint-pair/sas", L=4) mod 10^6`.
+2. Both compute `shared = X25519(self_priv, other_pub)`, then `HKDF-SHA256(ikm=shared, salt=sid, info="flint-pair/v1" || A || B, L=64)` giving `k_m2p` (32 B) and `k_p2m` (32 B), and a 6-digit code `sas = HKDF(..., info="flint-pair/sas" || A || B, L=4) mod 10^6`.
 3. Both screens show the code. Mac dialog: "Pair with Neel's iPhone? Code 482 913. [Include passwords for 2 accounts] [Approve] [Cancel]". The user compares the codes. This is what stops someone who photographed the QR from pairing first.
 4. On Approve, Mac sends `READY` then `BUNDLE`, each frame AEAD-sealed with ChaCha20-Poly1305 under `k_m2p`; nonce = 4 zero bytes then a 64-bit counter per direction; AAD = `sid || direction || type`. Bundle JSON up to 2 MiB, split into frames.
 5. Phone validates against a zod/Codable schema (reject unknown major `v`, cap array sizes), shows the review screen, imports on confirm, then sends `ACK` under `k_p2m` with counts. Mac closes the socket, zeroes keys, and records only `{ deviceName, pairedAt }` in a Devices list.

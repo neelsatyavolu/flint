@@ -108,6 +108,35 @@ struct PairingScanStep: View {
     }
 }
 
+/// A pairing link was opened from outside the app. Show where it points and let the person decide.
+struct PairingLinkConfirmStep: View {
+    let hosts: String
+    let connect: () -> Void
+    let cancel: () -> Void
+
+    var body: some View {
+        PairingColumn {
+            VStack(alignment: .leading, spacing: FlintMetrics.Space.s2) {
+                FlintIconView(icon: .smartphone, size: 28, color: FlintColor.accent)
+                Text(pl("Pair with the Mac showing this code?")).flintText(.compose)
+                    .accessibilityAddTraits(.isHeader).accessibilityIdentifier("pairing.link.title")
+                Text(pl("This link points to")).flintText(.label, color: FlintColor.fg3)
+                Text(hosts).flintText(.data).accessibilityIdentifier("pairing.link.hosts")
+            }
+            Text(pl("Only continue if you opened this link by scanning the code on your own Mac. A link from a web page or a message can point somewhere else. Flint will show six digits to compare with your Mac before anything is sent."))
+                .flintText(.message, color: FlintColor.fg2)
+            VStack(spacing: FlintMetrics.Space.s2) {
+                Button(pl("Connect"), action: connect)
+                    .buttonStyle(FlintButtonStyle(kind: .primary)).frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("pairing.link.connect")
+                Button(pl("Cancel"), action: cancel)
+                    .buttonStyle(FlintButtonStyle(kind: .ghost)).frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("pairing.link.cancel")
+            }
+        }
+    }
+}
+
 struct PairingConnectingStep: View {
     var text = PairingText.pl("Connecting to your Mac…")
 

@@ -15,6 +15,11 @@ public protocol ImportTarget: Sendable {
     func saveRule(_ rule: Rule) async throws
     func blockSender(_ pattern: String) async throws
     func applySettings(patch: JSONValue) async throws
+    /// What this iPhone already has, so a second pairing merges instead of duplicating.
+    func signatures() async throws -> [Signature]
+    func templates() async throws -> [Template]
+    func rules() async throws -> [Rule]
+    func blockedPatterns() async throws -> [String]
 }
 
 public struct ImportResult: Equatable, Sendable {
@@ -35,7 +40,12 @@ public struct BundleImporter: Sendable {
     public init(target: any ImportTarget) { self.target = target }
 
     public func library() async throws -> ImportLibrary {
-        try await ImportLibrary(accounts: target.accounts())
+        async let accounts = target.accounts()
+        async let signatures = target.signatures()
+        async let templates = target.templates()
+        async let rules = target.rules()
+        async let blocked = target.blockedPatterns()
+        return try await ImportLibrary(accounts: accounts, signatures: signatures, templates: templates, rules: rules, blockedPatterns: Set(blocked))
     }
 
     /// Adds one account now (the review row's "Add password", or an account the Mac sent a password for).
@@ -54,10 +64,18 @@ public struct BundleImporter: Sendable {
         var result = ImportResult()
         await importAccounts(plan, selection, into: &result)
         if selection.includeLibrary { await importLibrary(plan, into: &result) }
-        if selection.includeSettings, plan.hasSettings, let patch = try? plan.settings.patch() {
+        let settings = chosenSettings(plan, selection)
+        if settings != BundleSettings(), let patch = try? settings.patch(includeReceipts: true) {
             result.settingsApplied = (try? await target.applySettings(patch: patch)) != nil
         }
         return result
+    }
+
+    /// The Mac's settings the person agreed to. The receipts service only goes through when its own switch is on.
+    private func chosenSettings(_ plan: ImportPlan, _ selection: ImportSelection) -> BundleSettings {
+        var chosen = selection.includeSettings && plan.hasSettings ? plan.settings.withoutReceipts : BundleSettings()
+        if selection.includeReceipts, plan.hasReceipts { chosen.receipts = plan.settings.receipts }
+        return chosen
     }
 
     // MARK: Accounts

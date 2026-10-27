@@ -295,3 +295,9 @@ Requests for the shell and other owners (file | change | why):
 - The wave 3 `BackgroundSends` crash from 4E's note was already fixed by 4B.
 - Flaky, not fixed: `PairingTests.testCancelAtTheCodeReturnsToTheStart` and the first `EndToEndTests` run failed once and passed on rerun; `ShellFixTests.testKeyboardShortcutsOnIPad` fails when the whole class runs on iPad (Cmd-F gets no key command) and passes alone. Cause not found.
 - BGTaskScheduler `_simulateLaunchForTaskWithIdentifier` via lldb hung again (as in 4B); not verified in the simulator.
+
+## Wave 4 fix: pairing group
+
+- Fixed review 4, 5, 9, 13, 14, 15, 20 and the pairing parts of 12 and 21. The code (SAS) now binds both public keys (`info = "flint-pair/sas" || A || B`); vectors regenerated on both sides, `pairing-e2e.sh` passes. A `flint://pair` link stops at a confirm step, and offers must name private, link-local or `.local` hosts. `ImportTarget` gained four list methods so a second pairing merges. Receipts endpoint and settings go through only with their own switch (off by default).
+- Shared files touched: none outside Features/Pairing, FlintPairing and the desktop pairing files. `App/Shell` deep-link handling is unchanged (a pending link already opens `PairingFlow`, which now confirms first).
+- Not fixed: account avatars are still not applied (the Mac still sends up to 64 KB each); the e2e script still has only happy, deny and expired (no cross-implementation wrong-code, replay or tamper run); the Mac gives no "leave items out" option for an oversize library, it only names the cause.

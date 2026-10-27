@@ -69,7 +69,7 @@ function Body({ view, now, include, setInclude, approve, cancel, restart, close 
         <>
           <h3 className="t-title">Pair with {view.deviceName}?</h3>
           <p className={styles.code} aria-label={`Code ${view.sas}`}>{view.sas}</p>
-          <p>Check that your iPhone shows the same code. If it doesn't, cancel.</p>
+          <p>Every iPhone sends the same name, so only the code tells them apart. Check that your iPhone shows the same code. If it doesn't, cancel.</p>
           {view.passwordAccounts > 0 ? (
             <Checkbox checked={include} onChange={setInclude}
               label={`Include passwords for ${view.passwordAccounts} ${view.passwordAccounts === 1 ? "account" : "accounts"}`} />

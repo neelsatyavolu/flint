@@ -75,7 +75,7 @@ describe("DevicesSection", () => {
     const { pairing, emit } = installHost([]);
     mount();
     fireEvent.click(await screen.findByRole("button", { name: "Show code" }));
-    emit({ type: "closed", reason: "expired" });
+    emit({ type: "closed", reason: "expired", bundleSent: false });
     fireEvent.click(await screen.findByRole("button", { name: "Show new code" }));
     await waitFor(() => expect(pairing.start).toHaveBeenCalledTimes(2));
     emit({ type: "listening", svg: "<svg/>", expiresAt: Date.now() + 60_000, addrs: ["10.0.0.5"] });

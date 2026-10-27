@@ -50,7 +50,10 @@ public struct ImportPlan: Equatable, Sendable {
     public var accountsNeedingCredentials: [PlannedAccount] { accounts.filter { !$0.existsOnPhone && $0.credential != .ready } }
     public var newAccounts: [PlannedAccount] { accounts.filter { !$0.existsOnPhone } }
     public var conflictingAccounts: [PlannedAccount] { accounts.filter(\.existsOnPhone) }
-    public var hasSettings: Bool { settings != BundleSettings() }
+    /// Settings other than the receipts service, which has its own choice.
+    public var hasSettings: Bool { settings.withoutReceipts != BundleSettings() }
+    /// The Mac's read receipts setup (on or off, default, endpoint). It is only applied when the person ticks it.
+    public var hasReceipts: Bool { settings.receipts != nil }
 
     public static func make(bundle: PairingBundle, library: ImportLibrary) -> ImportPlan {
         let known = Dictionary(library.accounts.map { ($0.email.lowercased(), $0) }, uniquingKeysWith: { first, _ in first })
@@ -85,10 +88,13 @@ public struct ImportSelection: Equatable, Sendable {
     public var replaceAccounts: Set<String> = []
     public var includeLibrary = true
     public var includeSettings = true
+    /// Off until the person turns it on: the receipts endpoint is a server that sees when sent mail is opened.
+    public var includeReceipts = false
 
-    public init(replaceAccounts: Set<String> = [], includeLibrary: Bool = true, includeSettings: Bool = true) {
+    public init(replaceAccounts: Set<String> = [], includeLibrary: Bool = true, includeSettings: Bool = true, includeReceipts: Bool = false) {
         self.replaceAccounts = replaceAccounts
         self.includeLibrary = includeLibrary
         self.includeSettings = includeSettings
+        self.includeReceipts = includeReceipts
     }
 }

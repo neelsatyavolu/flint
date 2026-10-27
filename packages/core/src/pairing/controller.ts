@@ -12,7 +12,7 @@ export type PairingUiEvent =
   | { type: "approval"; deviceName: string; sas: string; passwordAccounts: number }
   | { type: "sending" }
   | { type: "done"; deviceName: string; counts: AckCounts }
-  | { type: "closed"; reason: CloseReason }
+  | { type: "closed"; reason: CloseReason; bundleSent: boolean }
   | { type: "error"; message: string };
 
 export type PairingControllerDeps = {

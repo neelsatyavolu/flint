@@ -693,6 +693,94 @@
           }
         }
       }
+    },
+    "Pair with the Mac showing this code?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pair with the Mac showing this code?"
+          }
+        }
+      }
+    },
+    "This link points to": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This link points to"
+          }
+        }
+      }
+    },
+    "Only continue if you opened this link by scanning the code on your own Mac. A link from a web page or a message can point somewhere else. Flint will show six digits to compare with your Mac before anything is sent.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only continue if you opened this link by scanning the code on your own Mac. A link from a web page or a message can point somewhere else. Flint will show six digits to compare with your Mac before anything is sent."
+          }
+        }
+      }
+    },
+    "Connect": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect"
+          }
+        }
+      }
+    },
+    "Read receipts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read receipts"
+          }
+        }
+      }
+    },
+    "A read receipts service learns when mail you send is opened. Only turn this on if you trust the address shown.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A read receipts service learns when mail you send is opened. Only turn this on if you trust the address shown."
+          }
+        }
+      }
+    },
+    "Use the Mac's receipts service": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the Mac's receipts service"
+          }
+        }
+      }
+    },
+    "Uses the address from your Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uses the address from your Mac"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
