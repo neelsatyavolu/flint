@@ -20,11 +20,15 @@ export function FormatBar({ editor }: { editor: Editor }): JSX.Element | null {
   const [, force] = useState(0);
   const barRef = useRef<HTMLDivElement>(null);
 
+  const inBar = (el: EventTarget | null) => el instanceof Node && !!barRef.current?.contains(el);
+
   useEffect(() => {
-    const update = () => {
+    // `related` is where focus is going on blur; activeElement is still <body> then, so the link field opening would close the bar.
+    const update = (related: EventTarget | null = null) => {
       const { from, to, empty } = editor.state.selection;
-      if (empty || !editor.isFocused && !barRef.current?.contains(document.activeElement)) {
-        if (!barRef.current?.contains(document.activeElement)) {
+      const focusInBar = inBar(document.activeElement) || inBar(related);
+      if (empty || !editor.isFocused && !focusInBar) {
+        if (!focusInBar) {
           setRect(null);
           setLinking(false);
         }
@@ -39,13 +43,15 @@ export function FormatBar({ editor }: { editor: Editor }): JSX.Element | null {
       }
       force((n) => n + 1);
     };
-    editor.on("selectionUpdate", update);
-    editor.on("focus", update);
-    editor.on("blur", update);
+    const sync = () => update();
+    const onBlur = ({ event }: { event: FocusEvent }) => update(event.relatedTarget);
+    editor.on("selectionUpdate", sync);
+    editor.on("focus", sync);
+    editor.on("blur", onBlur);
     return () => {
-      editor.off("selectionUpdate", update);
-      editor.off("focus", update);
-      editor.off("blur", update);
+      editor.off("selectionUpdate", sync);
+      editor.off("focus", sync);
+      editor.off("blur", onBlur);
     };
   }, [editor]);
 
@@ -80,6 +86,11 @@ export function FormatBar({ editor }: { editor: Editor }): JSX.Element | null {
             placeholder="Paste a link"
             aria-label="Link address"
             onChange={(e) => setUrl(e.target.value)}
+            onBlur={(e) => {
+              if (inBar(e.relatedTarget)) return;
+              setLinking(false);
+              if (!(e.relatedTarget instanceof Node && editor.view.dom.contains(e.relatedTarget))) setRect(null);
+            }}
             onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setLinking(false); editor.commands.focus(); } }}
           />
         </form>
