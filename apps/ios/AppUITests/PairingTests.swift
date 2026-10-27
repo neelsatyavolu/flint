@@ -69,6 +69,40 @@ final class PairingTests: XCTestCase {
     @MainActor func testMainPathGraphite() { runMainPath(appearance: "dark") }
     @MainActor func testMainPathPaper() { runMainPath(appearance: "light") }
 
+    /// Accounts already on the iPhone: every row shows both servers, a changed host asks for the password again, and a changed
+    /// port goes through a login check.
+    @MainActor
+    private func runExistingAccounts(appearance: String) {
+        let app = XCUIApplication()
+        app.launchArguments += ["-FlintSeed", "demo", "-FlintAppearance", appearance, "-FlintRoute", "settings", "-FlintPairingExisting"]
+        app.launch()
+        element(app, "settings.section.devices").tap()
+        element(app, "devices.setup").tap()
+        element(app, "pairing.scan").tap()
+        element(app, "pairing.demo").tap()
+        XCTAssertTrue(element(app, "pairing.review.title").waitForExistence(timeout: 25))
+
+        let servers = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'SMTP smtp.example.com, port 465, TLS'"))
+        XCTAssertGreaterThanOrEqual(servers.count, 3, "ready, conflict and pending rows all show the SMTP server with port and TLS")
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'IMAP imap.example.com, port 143, no TLS'")).firstMatch.exists, "a server without TLS says so")
+        XCTAssertTrue(element(app, "pairing.replace.demo.edge@example.com").exists, "a port change keeps the switch")
+        XCTAssertFalse(element(app, "pairing.replace.demo.office@example.com").exists, "a host change has no switch")
+        shot("\(appearance)-8-review-existing")
+
+        element(app, "pairing.signin.demo.office@example.com").tap()
+        let field = element(app, "pairing.password.demo.office@example.com")
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "switching hosts asks for the password again")
+        shot("\(appearance)-9-switch-password")
+        field.tap()
+        field.typeText("typed-password")
+        element(app, "pairing.password.add.demo.office@example.com").tap()
+        XCTAssertTrue(element(app, "pairing.account.demo.office@example.com").waitForExistence(timeout: 15))
+        XCTAssertFalse(element(app, "pairing.signin.demo.office@example.com").exists)
+    }
+
+    @MainActor func testExistingAccountsGraphite() { runExistingAccounts(appearance: "dark") }
+    @MainActor func testExistingAccountsPaper() { runExistingAccounts(appearance: "light") }
+
     @MainActor
     func testCancelAtTheCodeReturnsToTheStart() {
         let app = ShellTests.launchSeeded(route: "settings")

@@ -21,6 +21,11 @@ final class SchedulingCoordinator {
 
     private let notifier: any LocalNotificationScheduling
     private(set) var privacy = Privacy()
+    /// Notices cancelled when alerts went off, so they can come back when alerts do.
+    private var withheld: [LocalNotice] = []
+    /// The sends waiting in the queue as of the last `reconcile`. They rebuild "Ready to send" notices that were not kept in
+    /// `withheld`, for example after a relaunch while alerts were off.
+    private var waitingSends: [ScheduledSend] = []
 
     init(notifier: any LocalNotificationScheduling = NoNotifications()) {
         self.notifier = notifier
@@ -36,10 +41,27 @@ final class SchedulingCoordinator {
         guard next != privacy else { return }
         let waiting = await notifier.pending()
         if !next.alertsOn {
+            withheld = waiting + withheld.filter { kept in !waiting.contains { $0.id == kept.id } }
             if !waiting.isEmpty { await notifier.cancel(ids: waiting.map(\.id)) }
+        } else if !privacy.alertsOn {
+            await restore(showNames: next.showNames)
         } else if !next.showNames {
             for notice in waiting { await notifier.schedule(SchedulingNotices.withoutNames(notice), askPermission: false) }
         }
+    }
+
+    /// Alerts came back on: the "Ready to send" and follow-up notices that were cancelled when they went off are scheduled again,
+    /// as long as they are still ahead. Send-later notices missing from that list are rebuilt from the waiting queue.
+    private func restore(showNames: Bool, now: Date = Date()) async {
+        var notices = withheld.filter { $0.fireAt > now && $0.kind != .snooze }
+        let have = Set(notices.map(\.id))
+        let nowMs = EpochMs(now.timeIntervalSince1970 * 1000)
+        for send in waitingSends where send.sendAt > nowMs {
+            let notice = SchedulingNotices.sendLater(scheduledId: send.id, to: send.to, sendAt: send.sendAt, showNames: showNames)
+            if !have.contains(notice.id) { notices.append(notice) }
+        }
+        withheld = []
+        for notice in notices { await notifier.schedule(showNames ? notice : SchedulingNotices.withoutNames(notice), askPermission: false) }
     }
 
     // MARK: Sending
@@ -61,7 +83,9 @@ final class SchedulingCoordinator {
 
     /// Undo send or cancel: neither notice is wanted any more.
     func sendCancelled(scheduledId: Int) async {
-        await notifier.cancel(ids: [LocalNotice.id(.sendLater, String(scheduledId)), LocalNotice.id(.followUp, String(scheduledId))])
+        let ids = [LocalNotice.id(.sendLater, String(scheduledId)), LocalNotice.id(.followUp, String(scheduledId))]
+        withheld.removeAll { ids.contains($0.id) }
+        await notifier.cancel(ids: ids)
     }
 
     func sendRescheduled(_ send: ScheduledSend) async {
@@ -74,6 +98,8 @@ final class SchedulingCoordinator {
     /// never tells the person to send what already went out.
     func reconcile(waiting: [ScheduledSend]) async {
         let stillWaiting = Set(waiting.map(\.id))
+        waitingSends = waiting
+        withheld.removeAll { $0.kind == .sendLater && !stillWaiting.contains($0.scheduledId ?? -1) }
         let stale = await notifier.pending().filter { $0.kind == .sendLater && !stillWaiting.contains($0.scheduledId ?? -1) }
         if !stale.isEmpty { await notifier.cancel(ids: stale.map(\.id)) }
     }

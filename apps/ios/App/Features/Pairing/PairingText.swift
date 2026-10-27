@@ -28,6 +28,17 @@ enum PairingText {
         return out
     }
 
+    /// "IMAP imap.example.com, port 993, TLS" for one server. A server without TLS says so, since the password would cross the
+    /// network unprotected.
+    static func server(_ label: String, _ server: BundleServer) -> String {
+        "\(label) \(server.host), " + pl("port") + " \(server.port), " + (server.secure ? pl("TLS") : pl("no TLS"))
+    }
+
+    /// Both servers of an account, one per line. Every row that will use the Mac's servers shows this.
+    static func servers(of account: BundleAccount) -> String {
+        server("IMAP", account.imap) + "\n" + server("SMTP", account.smtp)
+    }
+
     /// "3 new" or "3 new, 1 already here".
     static func libraryDetail(new: Int, already: Int) -> String {
         let base = "\(new) " + pl("new")

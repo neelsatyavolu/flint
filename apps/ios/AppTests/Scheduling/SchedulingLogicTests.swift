@@ -216,6 +216,53 @@ struct SchedulingCoordinatorTests {
         #expect(await notifier.ids().isEmpty)
     }
 
+    @Test("switching alerts back on re-creates the Ready to send and follow-up notices that were withdrawn")
+    func alertsBackOnRestores() async {
+        let notifier = RecordingNotifier()
+        let coordinator = SchedulingCoordinator(notifier: notifier)
+        await coordinator.sendQueued(result(4, sendAt: 9_000_000_000_000), draft: draft(remindAt: 9_100_000_000_000), userScheduledAt: 9_000_000_000_000)
+        await coordinator.snoozed([10], until: 9_000_000_000_000)
+        await coordinator.update(notifications: settings { $0.enabled = false })
+        #expect(await notifier.ids().isEmpty)
+        await coordinator.update(notifications: settings { $0.enabled = true })
+        #expect(Set(await notifier.ids()) == ["send-later.4", "follow-up.4"], "snoozes come back through the planner, not here")
+        #expect(await notifier.notice("send-later.4")?.title == "Ready to send to Carla Mendes")
+    }
+
+    @Test("a notice for a send that was cancelled or went out while alerts were off does not come back")
+    func alertsBackOnSkipsGoneSends() async {
+        let notifier = RecordingNotifier()
+        let coordinator = SchedulingCoordinator(notifier: notifier)
+        await coordinator.sendQueued(result(4, sendAt: 9_000_000_000_000), draft: draft(remindAt: 9_100_000_000_000), userScheduledAt: 9_000_000_000_000)
+        await coordinator.sendQueued(result(5, sendAt: 9_000_000_000_000), draft: draft(), userScheduledAt: 9_000_000_000_000)
+        await coordinator.update(notifications: settings { $0.enabled = false })
+        await coordinator.sendCancelled(scheduledId: 4)
+        await coordinator.reconcile(waiting: [])
+        await coordinator.update(notifications: settings { $0.enabled = true })
+        #expect(await notifier.ids().isEmpty)
+    }
+
+    @Test("a send still waiting after a relaunch with alerts off gets its notice when alerts come on")
+    func alertsBackOnRebuildsFromTheQueue() async {
+        let notifier = RecordingNotifier()
+        let coordinator = SchedulingCoordinator(notifier: notifier)
+        await coordinator.update(notifications: settings { $0.enabled = false })
+        await coordinator.reconcile(waiting: [ScheduledSend(id: 7, draftId: 1, to: [Address(name: "Carla Mendes", address: "carla@example.com")], sendAt: 9_000_000_000_000)])
+        await coordinator.update(notifications: settings { $0.enabled = true; $0.preview = .none })
+        #expect(await notifier.ids() == ["send-later.7"])
+        #expect(await notifier.notice("send-later.7")?.title == "Ready to send")
+    }
+
+    @Test("a notice whose time passed while alerts were off is not re-created")
+    func alertsBackOnSkipsPast() async {
+        let notifier = RecordingNotifier()
+        let coordinator = SchedulingCoordinator(notifier: notifier)
+        await coordinator.sendQueued(result(4, sendAt: 1_000), draft: draft(), userScheduledAt: 1_000)
+        await coordinator.update(notifications: settings { $0.enabled = false })
+        await coordinator.update(notifications: settings { $0.enabled = true })
+        #expect(await notifier.ids().isEmpty)
+    }
+
     @Test("hidden previews keep the recipient out of the title, new and already waiting")
     func hiddenPreviews() async {
         let notifier = RecordingNotifier()

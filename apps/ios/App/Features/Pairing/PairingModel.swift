@@ -35,6 +35,8 @@ final class PairingModel {
     var selection = ImportSelection()
     /// Rows (lowercased emails) the person signed in or typed a password for during review. They are on this iPhone now.
     private(set) var addedRows: Set<String> = []
+    /// Rows for accounts already on this iPhone that moved to the Mac's servers after the person typed the password again.
+    private(set) var switchedRows: Set<String> = []
     private(set) var macName = ""
 
     @ObservationIgnored private let services: any PairingServices
@@ -151,17 +153,21 @@ final class PairingModel {
     }
 
     func addPassword(_ row: PlannedAccount, password: String) async {
-        await perform(row.id) { try await $0.addPasswordAccount(row.account, password: password) }
+        if row.existsOnPhone {
+            await perform(row.id, switched: true) { try await $0.switchServers(row.account, password: password) }
+        } else {
+            await perform(row.id) { try await $0.addPasswordAccount(row.account, password: password) }
+        }
     }
 
-    private func perform(_ id: String, _ work: (BundleImporter) async throws -> Account) async {
+    private func perform(_ id: String, switched: Bool = false, _ work: (BundleImporter) async throws -> Account) async {
         guard busyRow == nil else { return }
         busyRow = id
         rowError = nil
         defer { busyRow = nil }
         do {
             _ = try await work(services.importer())
-            addedRows.insert(id)
+            if switched { switchedRows.insert(id) } else { addedRows.insert(id) }
             try await refreshPlan()
         } catch {
             rowError = FlintErrorText.isSilent(error) ? nil : FlintErrorText.message(for: error)
@@ -189,14 +195,17 @@ final class PairingModel {
     var accountsStillNeedingSignIn: Int { plan?.accountsNeedingCredentials.count ?? 0 }
 
     /// Accounts already on this iPhone before pairing, where the person may choose the Mac's details.
-    var conflictingRows: [PlannedAccount] { plan?.conflictingAccounts.filter { !addedRows.contains($0.id) } ?? [] }
+    var conflictingRows: [PlannedAccount] { plan?.conflictingAccounts.filter { !addedRows.contains($0.id) && !switchedRows.contains($0.id) } ?? [] }
 
     /// Rows still waiting for a Google sign-in or a password.
-    var pendingRows: [PlannedAccount] { plan?.accountsNeedingCredentials ?? [] }
+    var pendingRows: [PlannedAccount] {
+        guard let plan else { return [] }
+        return plan.accountsNeedingCredentials + plan.serverSwitches.filter { !switchedRows.contains($0.id) }
+    }
 
     /// Rows the Mac sent with a password, or that were added during review.
     var readyRows: [PlannedAccount] {
-        plan?.accounts.filter { ($0.credential == .ready && !$0.existsOnPhone) || addedRows.contains($0.id) } ?? []
+        plan?.accounts.filter { ($0.credential == .ready && !$0.existsOnPhone) || addedRows.contains($0.id) || switchedRows.contains($0.id) } ?? []
     }
 
     private func failure(_ error: any Error) -> PairingFailure {

@@ -24,6 +24,11 @@ extension FlintService {
         try await core.auth.accountService().testConnection(input)
     }
 
+    /// Whether the stored password logs in to `server`. Nothing is saved.
+    public func storedPasswordWorks(id: AccountID, on server: ServerConfig) async throws -> Bool {
+        try await core.auth.accountService().storedPasswordWorks(id, on: server)
+    }
+
     public func addAccount(_ input: AddAccountInput) async throws -> Account { try await core.auth.accountService().addAccount(input) }
 
     /// Opens the Google sign-in page through the configured `OAuthBrowser`. A closed page throws `FlintError.googleSignInCancelled`.

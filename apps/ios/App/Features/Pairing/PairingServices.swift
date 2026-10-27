@@ -25,6 +25,7 @@ struct ServiceImportTarget: ImportTarget {
     func addAccount(_ input: AddAccountInput) async throws -> Account { try await service.addAccount(input) }
     func addGoogleAccount(loginHint: String?) async throws -> Account { try await service.addGoogleAccount(loginHint: loginHint) }
     func updateAccount(id: AccountID, _ patch: AccountPatch) async throws -> Account { try await service.updateAccount(id: id, patch) }
+    func storedLoginWorks(id: AccountID, on server: ServerConfig) async throws -> Bool { try await service.storedPasswordWorks(id: id, on: server) }
     func saveSignature(_ signature: Signature) async throws { _ = try await service.saveSignature(signature) }
     func saveTemplate(_ template: Template) async throws { _ = try await service.saveTemplate(template) }
     func saveRule(_ rule: Rule) async throws { _ = try await service.saveRule(rule) }
@@ -80,6 +81,7 @@ private struct UnavailableImportTarget: ImportTarget {
     func addAccount(_ input: AddAccountInput) async throws -> Account { throw fail() }
     func addGoogleAccount(loginHint: String?) async throws -> Account { throw fail() }
     func updateAccount(id: AccountID, _ patch: AccountPatch) async throws -> Account { throw fail() }
+    func storedLoginWorks(id: AccountID, on server: ServerConfig) async throws -> Bool { throw fail() }
     func saveSignature(_ signature: Signature) async throws { throw fail() }
     func saveTemplate(_ template: Template) async throws { throw fail() }
     func saveRule(_ rule: Rule) async throws { throw fail() }

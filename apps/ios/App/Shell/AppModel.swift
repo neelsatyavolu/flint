@@ -73,6 +73,8 @@ final class AppModel {
     @ObservationIgnored var notificationResponder: NotificationResponder?
     /// Demo only: delivers one more message before a background run syncs.
     @ObservationIgnored var demoDeliverNewMail: (@Sendable () async -> Void)?
+    /// Tests replace how the service is opened, to make an open fail once.
+    @ObservationIgnored var serviceOpener: (@MainActor () async throws -> FlintService)?
     @ObservationIgnored private var bootstrapTask: Task<Void, Never>?
     /// False after a background launch that opened the service without starting sync sessions; the first foreground start fixes it.
     @ObservationIgnored private(set) var syncStarted = false
@@ -123,6 +125,8 @@ final class AppModel {
         let task = Task { await performBootstrap(startingSync: startingSync) }
         bootstrapTask = task
         await task.value
+        // A failed open is not final: forget it, so the next run (a warm background run, the window) tries again.
+        if case .failed = phase { bootstrapTask = nil }
     }
 
     private func startSync() async {
@@ -131,9 +135,10 @@ final class AppModel {
     }
 
     private func performBootstrap(startingSync: Bool) async {
-        guard phase == .launching else { return }
+        if case .failed = phase {} else { guard phase == .launching else { return } }
         do {
-            let service = try await openService()
+            // A retry after a failed first state load keeps the service it already opened instead of opening the database twice.
+            let service = try await reopenOrOpenService()
             self.service = service
             try await loadInitialState(from: service)
             startObserving(service)
@@ -145,7 +150,13 @@ final class AppModel {
         }
     }
 
+    private func reopenOrOpenService() async throws -> FlintService {
+        if let service { return service }
+        return try await openService()
+    }
+
     private func openService() async throws -> FlintService {
+        if let serviceOpener { return try await serviceOpener() }
         switch mode {
         case .injected(let service):
             return service

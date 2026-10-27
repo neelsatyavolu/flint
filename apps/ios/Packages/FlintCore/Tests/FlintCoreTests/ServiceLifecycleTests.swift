@@ -248,6 +248,23 @@ struct ServiceSignalTests {
         #expect(rig.log.codes.count == 2, "a later full start does not wire a second set of listeners")
     }
 
+    @Test func codeDetectionStateTellsWhenTheScansForANewMailAreDone() async throws {
+        let rig = try await ServiceRig.make()
+        defer { Task { await rig.cleanup() } }
+        try await rig.addAccount()
+        await rig.service.start()
+        await rig.service.waitForMaintenance()
+        await rig.deliver("Quiet day", ageDays: 1)
+        try await rig.service.syncNow()
+        #expect(await serviceEventually { rig.service.codeDetection.running == 0 })
+        #expect(rig.service.codeDetection == CodeDetectionState(running: 0, announced: 0))
+        await rig.deliver("Your Acme verification code is 482913", from: "no-reply@acme.example", body: "Your Acme verification code is 482913. It expires in 10 minutes.")
+        try await rig.service.syncNow()
+        #expect(rig.service.codeDetection.running + rig.service.codeDetection.announced > 0, "the scan is counted before sync returns")
+        #expect(await serviceEventually { rig.service.codeDetection.running == 0 })
+        #expect(rig.service.codeDetection.announced == 1 && rig.log.codes.count == 1)
+    }
+
     @Test func codesAreNotLookedForWhenTheSettingIsOffAndSurviveARestart() async throws {
         let rig = try await ServiceRig.make()
         defer { Task { await rig.cleanup() } }

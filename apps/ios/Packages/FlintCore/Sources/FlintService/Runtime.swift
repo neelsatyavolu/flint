@@ -9,6 +9,14 @@ import FlintStore
 import Foundation
 import Synchronization
 
+/// See `FlintService.codeDetection`.
+public struct CodeDetectionState: Equatable, Sendable {
+    /// Threads being scanned for codes right now.
+    public var running: Int
+    /// Codes announced as `.code` events since the service opened.
+    public var announced: Int
+}
+
 final class RuntimeState: Sendable {
     private struct State {
         var started = false
@@ -16,6 +24,8 @@ final class RuntimeState: Sendable {
         var maintenance: Task<Void, Never>?
         var knownReceipts: [String: ReceiptStatus] = [:]
         var lastReceiptPoll: EpochMs = 0
+        var detectionsRunning = 0
+        var codesAnnounced = 0
     }
     private let state = Mutex(State())
 
@@ -38,6 +48,12 @@ final class RuntimeState: Sendable {
         state.withLock { s in if s.subscriptions.isEmpty { s.subscriptions = make() } }
     }
     func set(maintenance: Task<Void, Never>?) { state.withLock { $0.maintenance = maintenance } }
+
+    /// Code detection in flight and codes announced so far. A background run waits for the first to reach zero before it decides
+    /// which alerts to post, then for the app to have heard `announced` codes.
+    var codeDetection: CodeDetectionState { state.withLock { CodeDetectionState(running: $0.detectionsRunning, announced: $0.codesAnnounced) } }
+    func detectionStarted() { state.withLock { $0.detectionsRunning += 1 } }
+    func detectionFinished(announced: Int) { state.withLock { $0.detectionsRunning -= 1; $0.codesAnnounced += announced } }
 
     /// True when `interval` has passed since the last poll; records this one.
     func receiptPollDue(now: EpochMs, interval: Int) -> Bool {
@@ -65,7 +81,11 @@ extension ServiceCore {
         [
             bus.subscribe { [weak self] event in
                 guard let self else { return }
-                if case .newMail(_, let threadId, _, _, _, _, _) = event { Task { await self.detectCodes(threadId) } }
+                if case .newMail(_, let threadId, _, _, _, _, _) = event {
+                    // Counted before the task starts, so a run that checks right after the sync sees it.
+                    self.runtime.detectionStarted()
+                    Task { await self.detectCodes(threadId) }
+                }
             },
             bus.subscribe { [weak self] event in
                 guard let self else { return }
@@ -80,8 +100,11 @@ extension ServiceCore {
 
     /// Looks at a thread's fresh unread messages and announces the codes found.
     private func detectCodes(_ threadId: ThreadID) async {
+        var found: [VerificationCode] = []
+        defer { runtime.detectionFinished(announced: found.count) }
         guard let settings = try? await store.settings(), settings.codes.enabled else { return }
-        for code in await codes.scan(threadId: threadId) { emit(.code(code)) }
+        found = await codes.scan(threadId: threadId)
+        for code in found { emit(.code(code)) }
     }
 
     /// Mail sync does not report which tracked recipients replied, so thread changes are watched instead: when a recipient's

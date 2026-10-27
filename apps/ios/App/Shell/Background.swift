@@ -27,6 +27,27 @@ enum BackgroundPlan {
     }
 }
 
+/// Waits for code detection to finish, with a cap.
+enum CodeSettling {
+    static let cap: Duration = .seconds(3)
+    static let poll: Duration = .milliseconds(20)
+
+    /// Polls `isSettled` until it is true or `cap` passes. Returns whether it settled. A cancelled run stops at once.
+    @MainActor
+    static func wait(
+        cap: Duration = CodeSettling.cap, poll: Duration = CodeSettling.poll,
+        sleep: (Duration) async -> Void = { try? await Task.sleep(for: $0) }, isSettled: @MainActor () -> Bool
+    ) async -> Bool {
+        var waited = Duration.zero
+        while !isSettled() {
+            guard waited < cap, !Task.isCancelled else { return false }
+            await sleep(poll)
+            waited += poll
+        }
+        return true
+    }
+}
+
 /// `BGTaskScheduler`, behind a protocol so tests can see what was submitted.
 @MainActor
 protocol BackgroundTaskScheduling: AnyObject {
@@ -250,9 +271,16 @@ extension AppModel {
         defer { backgroundTasking.end(id) }
         do {
             if let deliver = demoDeliverNewMail { await deliver() }
+            let announcedBefore = service.codeDetection.announced
+            let heardBefore = notifications.codeEventsHeard
             try await service.syncNow()
-            // Code detection runs a moment after the sync reports new mail.
-            try? await Task.sleep(for: .milliseconds(600))
+            // Code detection starts when the sync reports new mail. Wait for the scans, and for the app to hear every code they
+            // found, so a code alert holds back the thread's ordinary alert. The cap keeps a stuck scan from holding the run.
+            _ = await CodeSettling.wait {
+                let detection = service.codeDetection
+                return detection.running == 0 && notifications.codeEventsHeard - heardBefore >= detection.announced - announcedBefore
+            }
+            await notifications.settleCodeAlerts()
             await notifications.flush()
             return notifications.endRunCount(tally)
         } catch {

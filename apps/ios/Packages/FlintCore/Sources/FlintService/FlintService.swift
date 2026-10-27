@@ -62,6 +62,10 @@ public final class FlintService: Sendable {
         await core.sync.stopAll()
     }
 
+    /// Code detection in progress and codes announced. New mail starts a scan a moment after the sync reports it; a background run
+    /// reads this to know when the `.code` events for its mail have all been emitted.
+    public var codeDetection: CodeDetectionState { core.runtime.codeDetection }
+
     /// Waits for the start-up maintenance (re-categorizing, replaying interrupted server operations). For tests and diagnostics.
     public func waitForMaintenance() async { await core.runtime.maintenanceTask?.value }
 
