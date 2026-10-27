@@ -67,7 +67,7 @@ Failure: the person opens a server draft written on the Mac (tables, inline imag
 - iPhone, Paper inbox (`testInboxPaper`): 6 "Contrast failed" issues the audit cannot place on an element. It failed twice in a row. The likely source is white initials on the light avatar tints (for example "CO" on light blue) or the blue "6 new" counts on the Paper plane.
 - iPad, composer (`testComposer`): "Contrast failed" on the note "Read receipts need a receipts address in Settings. This message won't be tracked." (`ComposerForm.swift:106`), which is grey Geist Mono on the panel.
 QA 10.3 says "No failures beyond the exceptions listed". The suite also skips `textClipped` for every screen, so the audit never checks the acceptance item "AX3 does not clip list rows or the composer" (see 16).
-**Status:** Partly, in fa2c703. The Paper inbox failures were the avatar initials and are fixed; the iPad composer note uses fg2. textClipped is still skipped on inbox, search, Settings and Thread (one-line mono labels look like false positives), date group labels still fail the contrast check so that skip stays, and the iPad mono-label contrast skip was not narrowed.
+**Status:** Partly, in fa2c703 and 5efcb81. The Paper inbox failures were the avatar initials and are fixed; the iPad composer note uses the fg token. textClipped is now audited on the inbox (both themes) and Settings; the bundle rows' one-line sender and subject summary is reported twice, once placed (skipped by identifier) and once with no element (skipped on the inbox only). Still skipped: textClipped on Search and Thread, the inbox.section date labels (contrast fails with fg-2 and fg-3 although the screenshots read clearly), and the iPad mono-label contrast (without it the ALL and ATTACHMENTS chips fail). The Thread ORIGINAL toggle also fails the iPad contrast audit.
 
 ### 10. Inline images can crash the reader when a message closes mid-load (plausible)
 `App/Features/Thread/AttachmentSchemeHandler.swift:31-45`.
@@ -102,7 +102,7 @@ Failure: the person writes a template in Settings, then finds no way to insert i
 ### 15. The inbox's verification-code chip is out of reach for VoiceOver and UI tests
 `App/Features/Inbox/InboxRow.swift:49-54` (`.accessibilityElement(children: .ignore)`) and `:104-108` (the chip's `onTapGesture`). No custom action is added for it.
 Failure: a VoiceOver user cannot copy `482913` from the list. They have to open the thread and use the banner. `inbox.code.<id>` is also hidden from XCUITest, which is why QA 4.11 is "not seen on screen". Add an `accessibilityAction(named: "Copy code")`.
-**Status:** Partly, in fa2c703. The code is spoken and the row has a 'Copy code' VoiceOver action; XCUITest still cannot reach inbox.code.<id> because the row is one element.
+**Status:** Fixed in 5efcb81. The chip is a separate button (`inbox.code.<id>`) laid over the row, reachable by VoiceOver and XCUITest (`testVerificationCodeChipCopiesTheCode`). It replaces the old 'Copy code' row action. Real VoiceOver unverified.
 
 ### 16. AX3 still clips text that carries information
 Seen on the iPhone AX3 screenshots. The message header date reads "Oct 26, 2026, 3:…" with the time cut off (`MessageCardView.swift:76`, `lineLimit(1)`). The composer title reads "New…", and From shows "maya.okafor@exam…".

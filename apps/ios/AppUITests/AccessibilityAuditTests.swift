@@ -4,9 +4,9 @@ import XCTest
 ///
 /// Skipped on purpose, each for a stated reason:
 /// - Mail content (the message web view): the sender's HTML, not Flint's.
-/// - Text clipped, on the inbox, search and Settings only: their one-line mono labels (times, bundle names, addresses) are
-///   reported although the frame is as wide as the text. The other screens run the check, and the composer runs it again at AX3
-///   (`testComposerAX3`), where the title and the From address used to be cut.
+/// - Text clipped, on Search and Thread only: their one-line mono labels (times, addresses) are reported although the frame is
+///   as wide as the text. The other screens run the check, and the composer runs it again at AX3 (`testComposerAX3`), where the
+///   title and the From address used to be cut. The inbox bundle rows' one-line summary truncates by design and is skipped.
 /// - Warnings ("nearly passed", "partially unsupported"): fixed-size icons next to scaling text, and contrast just above the
 ///   audit's threshold. Only failures count.
 /// - "Label not human-readable" on an email address: an address is the honest label for an account row.
@@ -31,12 +31,19 @@ final class AccessibilityAuditTests: XCTestCase {
         // On iPad the screen under test is one column or a form sheet over dimmed columns; only its own frame is audited.
         let screen = UIDevice.current.userInterfaceIdiom == .pad ? app.descendants(matching: .any)[id].firstMatch.frame : .null
         try app.performAccessibilityAudit(for: checksClipping ? XCUIAccessibilityAuditType.all : XCUIAccessibilityAuditType.all.subtracting(.textClipped)) { issue in
-            let skip = Self.isExpected(issue, keyboard: keyboard) || Self.isOutside(issue, screen: screen)
+            let skip = Self.isExpected(issue, keyboard: keyboard) || Self.isUnplacedBundleSummary(issue, screen: id) || Self.isOutside(issue, screen: screen)
             let element = issue.element
             let where_ = element.map { "type=\($0.elementType.rawValue) id=\($0.identifier) label=\($0.label.prefix(60)) frame=\($0.frame)" } ?? "-"
             print("AUDIT \(skip ? "skip" : "FAIL") \(id) \(issue.compactDescription) | \(where_)")
             return skip
         }
+    }
+
+    /// The inbox reports each bundle row's one-line summary a second time as an issue with no element (the row is a single
+    /// accessibility element), so the identifier check in `isExpected` cannot match it. Only the inbox has bundle rows.
+    @MainActor
+    private static func isUnplacedBundleSummary(_ issue: XCUIAccessibilityAuditIssue, screen id: String) -> Bool {
+        id == "inbox.root" && issue.auditType == .textClipped && issue.element == nil
     }
 
     @MainActor

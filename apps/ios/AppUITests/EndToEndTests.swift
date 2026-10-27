@@ -110,6 +110,11 @@ final class EndToEndTests: XCTestCase {
         hideKeyboard(app)
         declineSavePassword(app)
         for _ in 0..<4 where !done.isHittable { app.swipeUp() }
+        // The save-password sheet can appear late, so keep declining it until the button takes taps.
+        for _ in 0..<40 where !done.isHittable {
+            declineSavePassword(app)
+            usleep(250_000)
+        }
         waitHittable(app, done, "done")
         done.tap()
     }

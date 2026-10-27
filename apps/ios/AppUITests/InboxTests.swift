@@ -39,7 +39,8 @@ final class InboxTests: XCTestCase {
 
         app.buttons["inbox.filter.unread"].tap()
         XCTAssertTrue(rows(app).firstMatch.waitForExistence(timeout: 10))
-        XCTAssertFalse(app.descendants(matching: .any)["inbox.bundle.notifications"].exists)
+        // The list re-renders a moment after the tap, so wait for the bundle row to go instead of reading it at once.
+        XCTAssertTrue(app.descendants(matching: .any)["inbox.bundle.notifications"].waitForNonExistence(timeout: 10))
         app.buttons["inbox.filter.all"].tap()
 
         app.buttons["inbox.more"].tap()

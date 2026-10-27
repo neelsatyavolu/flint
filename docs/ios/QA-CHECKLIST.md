@@ -85,8 +85,8 @@ swift test --package-path Packages/FlintCore     # engine, on the Mac
 | 4.8 | More > Select, pick rows, batch Archive | Batch bar, toast with Undo | auto |
 | 4.9 | Snooze from the swipe, pick Tomorrow | Row leaves; it appears under Snoozed | auto (`EndToEndTests`) |
 | 4.10 | Pull to refresh | Sync line updates; no duplicate rows | sim |
-| 4.11 | Verification code row chip (`482913`) | Chip shows the code; tap copies | not seen on screen |
-| 4.12 | VoiceOver on a row with a live code | The code is spoken; the "Copy code" action copies it | auto (spoken text); VoiceOver by hand not run |
+| 4.11 | Verification code row chip (`482913`) | Chip shows the code; tap copies | auto (UI test) |
+| 4.11a | The code chip is its own button over the row | Reachable by VoiceOver and UI tests; tap copies the code | auto (`testVerificationCodeChipCopiesTheCode`); VoiceOver by hand not run |
 | 4.12 | Skeleton rows on a cold launch | Grey bars until the first page | not seen on screen |
 | 4.13 | Empty list (Spam in the demo) | Plain empty state with the Flint mark | sim |
 | 4.14 | VoiceOver on a row | Reads sender, subject, time, unread | auto (audit), device (O5) for the full pass |
