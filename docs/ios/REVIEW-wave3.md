@@ -161,3 +161,38 @@ Failure: with Archive selected in the sidebar, the person searches and opens a c
 - Thread actions close the open thread, toast with Undo and refresh through the live streams; the inbox list updates after actions; selection is trimmed when rows leave.
 - Draft autosave serialises saves, batches edits made mid-save and retries; discarding asks first; undo send reopens the draft.
 - Graphite and Paper screenshots show flat chrome with no system glass or shadows, and iPad portrait shows three flat columns with hairlines.
+
+## Recheck
+
+Independent recheck of the findings marked Fixed or Partly, at `a809dba` (fix commits 7be8330, cebe80b, fa2c703, 5efcb81). No app code was changed.
+
+What was run: `FlintTests` once on a temporary iPhone 17 Pro (iOS 26.5) simulator, `flint-recheck-sim`, serial (`-parallel-testing-enabled NO`, one destination, `-jobs 4`). 312 tests in 60 suites passed. The simulator was deleted afterwards. UI tests, GreenMail and `swift test` were not run, so the UI-only parts of the fixes (lock cover, panel parking, audit results) were checked by reading the code only.
+
+### Fixes that hold
+
+For each of these, the failure scenario from the review can no longer happen as described: 2, 4, 5, 6, 7, 8, 10, 11, 12, 14, 15, 16, 17, 18, 19, 21, 23. Notes:
+- 2: the HTML split is linear (the tag run is walked back from each "On ... wrote:" candidate). It runs in a detached task, and its result is cached per message and HTML. Toggling Original/Adapted recomputes it off the main actor, because the cache keeps one HTML per message.
+- 11: `Reading.swift:149` now gives `.allowed` only when the policy or the person allowed images. A message with no detected images gets the image-blocking list.
+- 19: the stale-list cleanup cannot remove the images list by mistake. `co.xanom.flint.reader.remote-images.<digest>` does not start with `co.xanom.flint.reader.remote.`.
+- 1: the lock covers launch, the app switcher and backgrounding. The Face ID prompt's own inactive/active cycle is handled in both orders. Still unverified, as the status says: VoiceOver isolation. `accessibilityHidden` sits on `RootView`, so a sheet that was open (Settings, Search, the iPhone composer) is outside that subtree. That leaves only `accessibilityViewIsModal` on the lock window between VoiceOver and the sheet.
+- 3: the shortcuts exist, but two of them misbehave. See new problems 2 and 3.
+- 13 (Partly): see new problem 1, which the fix introduced.
+
+### New problems introduced by the fixes
+
+1. **Coming back during the send drain stops sync in the foreground (Medium).** `App/Shell/BackgroundSends.swift:61-76`, `App/Shell/AppModel.swift:104-107`. `sceneEnteredBackground` waits for the drain, which runs for up to 25 s while something falls due. Then it calls `service.stop()` unconditionally. `sceneBecameActive` does not cancel `drainTask`.
+   Scenario: the person taps Send ("Sending in 10s"), switches to Photos and comes back 3 s later. `start()` runs, the drain sends the message about 7 s later, and then `stop()` tears down sync, the scheduler pump and the listeners while Flint is on screen. No new mail arrives, and the next message sent waits for the next background/foreground cycle. Fix: cancel the drain in `sceneBecameActive`, and skip `stop()` when the scene is active again.
+2. **Overlapping background cycles end the newer background task (Low).** Same file, `:63-64` and `:76`. A second `sceneEnteredBackground` (background, active, background within the drain) begins task B. Then the first call's drain finishes, and its trailing `endBackgroundTask()` ends B, because `backgroundTaskId` is shared. The second drain then runs without background time and can be suspended before the send goes out.
+3. **E (archive) does not follow fix 21 (Low).** `App/Shell/AppModel+Keyboard.swift:15` still uses `ThreadLogic.leavesInbox(mailbox)`. The toolbar now uses `detail.place`.
+   Scenario: Archive is selected in the sidebar. The person searches and opens a conversation that is in the Inbox. The toolbar shows Archive, but E does nothing. The other way round: with the Inbox selected, E on a conversation already in Archive (opened from search) runs archive, closes the thread and shows an Archived toast. Meanwhile the toolbar offered Move to Inbox.
+4. **J/K step through a different list from the one on screen (Low).** `App/Shell/AppModel+Keyboard.swift:21`. `stepThread` runs a fresh `threadQuery(for: mailbox)` with the default limit of 50. It ignores the inbox's quick filter (`InboxViewModel.filter`), an opened bundle (`category`) and rows loaded past 50.
+   Scenario: with the Unread filter on, J opens the next conversation of the unfiltered inbox. When the open conversation is row 60 (loaded by scrolling), J jumps to the first row.
+5. **Single-key shortcuts stay on under the thread's own sheets (Low, plausible).** `App/Shell/AppModel+Navigation.swift:75` checks only `presented` and the composer panel. The Snooze and Move sheets are local to `ThreadToolbar.swift:34`. With a hardware keyboard, J under the Snooze sheet opens the next conversation behind it. The sheet's content closure is then re-evaluated with the new `detail.id`, so the chosen snooze applies to a conversation the person did not pick.
+6. **Shortcuts work behind the lock cover (Low, plausible).** `App/Shell/FlintCommands.swift:9-11` does not check `AppLock`. `allowsHitTesting(false)` on the root does not stop menu commands. On a locked iPad with a keyboard, E archives the conversation that was open and Cmd-N opens a composer, with nothing on screen. No mail is shown, so this is not a disclosure.
+7. **Templates inserted into a locked draft are invisible (Low).** `App/Features/Composer/ComposerViewModel.swift:194-199`. In a locked draft, `insert(_:)` appends the template to `keptBodyHTML` and leaves the read-only `body` as it was.
+   Scenario: the person picks a template, sees no change and picks it again. The sent mail has it twice. If they then tap "Edit as plain text", the flattened `body` replaces the kept HTML and both copies are dropped without notice.
+8. **The inbox audit skip is wider than its purpose (Low, test only).** `AppUITests/AccessibilityAuditTests.swift:45-47` skips every text-clipped issue on the inbox that has no element, not only the bundle summary's duplicate. Any future unplaced clipping on the inbox passes the audit. The status of 9 mentions this skip, but not how wide it is.
+
+### Still open (from the statuses, unchanged)
+
+9 (textClipped on Search and Thread, date-label and iPad mono-label contrast, the Thread ORIGINAL toggle), 13 (longer undo windows and scheduled sends, Wave 4B), 20 (decided: two columns), 22 (per-account alerts, signature import from the Mac), and the device-only checks in 1, 3 and 15.
