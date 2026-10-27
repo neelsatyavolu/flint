@@ -22,3 +22,19 @@ enum FlintDebugFlags {
         }
     }
 }
+
+extension FlintDebugFlags {
+    /// `-FlintFakeNotifications granted|denied|undetermined` swaps the system notification centre for an in-memory one, so UI
+    /// tests and screenshots see each permission state without a system prompt and nothing real is ever posted.
+    static func fakeNotifications(defaults: UserDefaults = .standard) -> Bool {
+        defaults.string(forKey: "FlintFakeNotifications") != nil
+    }
+
+    static func fakeNotificationStatus(defaults: UserDefaults = .standard) -> NotificationAuthorization {
+        switch defaults.string(forKey: "FlintFakeNotifications") {
+        case "denied": .denied
+        case "undetermined": .notDetermined
+        default: .allowed
+        }
+    }
+}

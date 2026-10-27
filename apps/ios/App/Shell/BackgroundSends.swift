@@ -60,15 +60,22 @@ extension AppModel {
     /// the scheduler pump.
     func sceneEnteredBackground() async {
         guard let service else { return }
-        let budget = min(SendDrain.defaultBudgetMs, Int(max(0, backgroundTasking.timeRemaining - 5) * 1000))
+        // `backgroundTimeRemaining` is `greatestFiniteMagnitude` until a task has begun: clamp before converting to Int.
+        let remaining = min(max(0, backgroundTasking.timeRemaining - 5), Double(SendDrain.defaultBudgetMs) / 1000)
+        let budget = Int(remaining * 1000)
+        var nextDue: EpochMs?
         await backgroundCycle(
             drain: {
-                await SendDrain(budgetMs: budget).run(
+                let outcome = await SendDrain(budgetMs: budget).run(
                     runDue: { await service.runDueWork() },
                     now: { EpochMs(Date().timeIntervalSince1970 * 1000) },
                     sleep: { try? await Task.sleep(for: $0) })
+                if case .deferred(let until) = outcome { nextDue = until }
+                return outcome
             },
             stop: { await service.stop() })
+        // What is still due waits for a background slot (`BGProcessingTask`) or a local notification.
+        scheduleBackgroundWork(nextDue: nextDue)
     }
 
     /// One trip to the background. Each cycle owns its background task, and coming back to the foreground ends the cycle's

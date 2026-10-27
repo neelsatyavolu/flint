@@ -103,11 +103,13 @@ final class OnboardingModel {
 
     // MARK: Choices
 
-    /// Applies the choices on the last screen. Notifications are a no-op until wave 4 wires the permission request. A written
+    /// Applies the choices on the last screen. Notifications ask the system for permission (and turn Flint's alerts off when it
+    /// is switched off here). A written
     /// signature becomes the default for new mail and replies of the account just added. False when saving it failed.
     @discardableResult
     func applyChoices() async -> Bool {
         await services.setSmartInbox(smartInbox)
+        await services.setNotifications(notificationsWanted)
         let html = SignatureText.html(fromPlain: signatureText)
         guard !html.isEmpty, let account = addedAccount else { return true }
         let signature = Signature(

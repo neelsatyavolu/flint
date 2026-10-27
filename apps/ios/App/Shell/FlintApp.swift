@@ -3,13 +3,15 @@ import UIKit
 
 @main
 struct FlintApp: App {
-    @State private var model = AppModel()
+    @State private var model = BackgroundHub.model
     @State private var lock = AppLock.live(reason: String(localized: "Unlock Flint", table: "Shell"))
     @State private var lockWindow = LockWindowPresenter()
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(FlintAppearance.defaultsKey) private var appearanceRaw = FlintAppearance.system.rawValue
 
     private var appearance: FlintAppearance { FlintAppearance.resolved(stored: appearanceRaw) }
+
+    init() { BackgroundHub.install() }
 
     var body: some Scene {
         WindowGroup {
