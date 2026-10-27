@@ -141,6 +141,7 @@ final class AppModel {
         cancelBackgroundDrain()
         await service?.start()
         await service?.runDueWork()
+        if let service { await ReceiptsPoller.shared.pollIfDue(ServiceReceiptsSource(service: service)) }
     }
 
     /// Stops observing and, for a demo launch, deletes the temporary database.

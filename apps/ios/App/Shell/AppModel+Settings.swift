@@ -48,6 +48,8 @@ extension AppModel {
     /// Pull to refresh. Syncs one account or all and reports a failure as a toast.
     func syncNow(accountId: AccountID? = nil) async {
         do { try await requireService().syncNow(accountId: accountId) } catch { report(error) }
+        // Pull to refresh on all accounts also asks the receipts service (4A).
+        if accountId == nil, let service { await ReceiptsPoller.shared.pollIfDue(ServiceReceiptsSource(service: service), force: true) }
     }
 
     func syncStatus(for id: AccountID) -> SyncStatus? { syncStatuses.first { $0.accountId == id } }

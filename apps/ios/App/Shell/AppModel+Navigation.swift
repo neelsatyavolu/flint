@@ -23,6 +23,8 @@ extension AppModel {
             present(.search(start))
         case .settings(let section):
             present(.settings(section))
+        case .receipts:
+            present(.receipts)
         case .onboarding:
             present(.onboarding)
         case .sidebar:

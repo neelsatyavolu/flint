@@ -74,6 +74,8 @@ enum Route: Hashable, Sendable {
     /// Open search, optionally with a query already typed.
     case search(String?)
     case settings(SettingsSection)
+    /// The Read statuses list.
+    case receipts
     /// The add-account flow.
     case onboarding
     /// The sidebar as a sheet. Only meaningful on iPhone; on iPad the sidebar is a column.
@@ -88,6 +90,7 @@ enum Presented: Hashable, Identifiable, Sendable {
     case compose(ComposeRequest)
     case search(String?)
     case settings(SettingsSection)
+    case receipts
     case onboarding
 
     var id: String {
@@ -96,6 +99,7 @@ enum Presented: Hashable, Identifiable, Sendable {
         case .compose(let request): "compose.\(request.hashValue)"
         case .search: "search"
         case .settings: "settings"
+        case .receipts: "receipts"
         case .onboarding: "onboarding"
         }
     }

@@ -6,14 +6,14 @@ final class OnboardingTests: XCTestCase {
     override func setUp() { continueAfterFailure = false }
 
     @MainActor
-    func testWelcomeOffersThreeWaysAndMacIsDisabled() {
+    func testWelcomeOffersThreeWaysAndMacIsEnabled() {
         let app = ShellTests.launchSeeded(route: "onboarding")
         XCTAssertTrue(app.descendants(matching: .any)["onboarding.root"].waitForExistence(timeout: 20))
         XCTAssertTrue(app.buttons["onboarding.google"].exists)
         XCTAssertTrue(app.buttons["onboarding.other"].exists)
         let mac = app.buttons["onboarding.mac"]
         XCTAssertTrue(mac.exists)
-        XCTAssertFalse(mac.isEnabled)
+        XCTAssertTrue(mac.isEnabled)
     }
 
     @MainActor

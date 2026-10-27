@@ -109,6 +109,7 @@ struct PresentedSheet: View {
             case .compose: FeatureRegistry.root("composer")
             case .search: FeatureRegistry.root("search")
             case .settings: FeatureRegistry.root("settings")
+            case .receipts: FeatureRegistry.root("receipts")
             case .onboarding: FeatureRegistry.root("onboarding")
             }
         }

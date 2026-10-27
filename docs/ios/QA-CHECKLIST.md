@@ -1,6 +1,6 @@
-# Flint for iOS: QA checklist (Wave 3)
+# Flint for iOS: QA checklist (Waves 3 and 4)
 
-The lead's manual script for the Wave 3 build. Each step is marked:
+The lead's manual script for the Wave 3 and Wave 4 build. Each step is marked:
 
 - **auto**: covered by a test that runs without a person (`swift test`, `FlintTests`, `FlintUITests`).
 - **sim**: checked by hand or by screenshot on a simulator during integration; repeat on a simulator before each release.
@@ -173,4 +173,60 @@ swift test --package-path Packages/FlintCore     # engine, on the Mac
 | 10.3 | Accessibility audit on the main screens | No failures beyond the exceptions listed in the test header | auto (`AccessibilityAuditTests`, iPhone and iPad) |
 | 10.4 | Full VoiceOver pass | Every row and action has a label | device (O5) |
 | 10.5 | iPad rotation and Split View sizes | Columns collapse cleanly | sim (13-inch portrait and landscape); 11-inch portrait run (list and reader, sidebar on demand: decided, see HANDOFF); Split View and Stage Manager not run |
-| 10.6 | Background refresh, local network prompt, notifications | Wave 4 | device (O5) |
+| 10.6 | Background refresh, local network prompt, notifications | See sections 11 to 15 | device (O5) |
+
+## 11. Read receipts (4A)
+
+| # | Step | Expected | Mark |
+|---|---|---|---|
+| 11.1 | Status text, recipient rows, ordering, poll throttle, Read statuses model over the real service with a fake receipts server | All pass | auto (`FlintTests/Receipts`) |
+| 11.2 | Open a tracked sent message (demo seed) | Panel shows per-recipient status, opened time and the event timeline | auto (`ReceiptsTests`) |
+| 11.3 | Sidebar "Read statuses" row and Settings > Read receipts > Read statuses | The list opens; filter All, Opened, Unopened; pull to refresh | sim |
+| 11.4 | Settings > Read receipts shows "How it works" | Text matches the desktop plus the iPhone notes | sim |
+| 11.5 | Return to the app after a while; pull to refresh the inbox | Receipts are polled (at most every 30 s) | auto (poller), sim |
+| 11.6 | Send tracked mail through GreenMail with a real receipts token and open the pixel | Status goes Sent, Opened | device (O5) or owner with a registered token |
+| 11.7 | Settings Test button for the receipts address | Not built (no service API yet) | not done |
+
+## 12. Notifications, codes, background (4B)
+
+| # | Step | Expected | Mark |
+|---|---|---|---|
+| 12.1 | Alert policy (scope, quiet hours, previews, grouping), categories, responses, badge | All pass | auto (`FlintTests/Notifications`) |
+| 12.2 | Background run with a fake notification centre posts alerts for new mail | Alert counted, diagnostics row added | auto (`BackgroundRunTests`) |
+| 12.3 | Settings > Notifications > Check now | Run recorded in the list | auto (`NotificationsTests`) |
+| 12.4 | BGTaskScheduler simulated launch of `co.xanom.flint.refresh` | Run recorded in diagnostics | sim (see lldb note in HANDOFF) |
+| 12.5 | Notification permission prompt wording and flow | System prompt shows once, after the first useful action | device (O5) |
+| 12.6 | New-mail banner and lock-screen look, Archive and Mark read buttons | Titles without subject or body when previews are off | device (O5) |
+| 12.7 | Verification code notification: Copy code button | Code on the clipboard, "Code copied" toast | device (O5) |
+| 12.8 | Background cadence, Low Power Mode, force quit | Measured over a week, see `spikes/background-cadence.md` | device (O5) |
+
+## 13. Scheduling (4D)
+
+| # | Step | Expected | Mark |
+|---|---|---|---|
+| 13.1 | Preset times, custom time, never in the past, reminder timing | All pass | auto (`FlintTests/Scheduling`) |
+| 13.2 | Snooze, send later and follow-up reminder through one picker | Same identifiers as before | auto (`SchedulingTests`) |
+| 13.3 | Tap a Scheduled row, change the time, edit the message | Sheet works | auto, sim |
+| 13.4 | A scheduled send and a follow-up produce notifications `send-later.<id>`, `follow-up.<id>`; a tap opens the thread or the app and runs due work | Tap handling parses `flint.thread` | auto (parse), device (O5) for delivery |
+| 13.5 | Send later with the app closed | Notification fires, tap sends | device (O5) |
+
+## 14. Invites (4C)
+
+| # | Step | Expected | Mark |
+|---|---|---|---|
+| 14.1 | Parse, update and cancel versions, RSVP text, REPLY inputs, ledger | All pass | auto (`FlintTests/Invites`) |
+| 14.2 | Open the demo invite; Accept, Maybe, Decline | Card updates, reply queued with an undo toast | auto (`InvitesTests`) |
+| 14.3 | Add to Calendar with a fake calendar | Event saved | auto |
+| 14.4 | Real EventKit write-only permission prompt and save | Event in Calendar | device (O5) |
+| 14.5 | REPLY read by Gmail, Outlook and Apple Mail | RSVP shows on the organiser's side | device (O5), owner account |
+
+## 15. Mac pairing (4E)
+
+| # | Step | Expected | Mark |
+|---|---|---|---|
+| 15.1 | Crypto vectors in Node and Swift; framing; QR parse; bundle allowlist; merge plan | All pass | auto (`swift test`, desktop `pnpm test`) |
+| 15.2 | `scripts/pairing-e2e.sh`: happy path, deny, expired code, wrong SAS, replay, tampering | Fails closed | auto |
+| 15.3 | Onboarding "Import from Mac" and Settings > Devices on the simulator | Screens render, scan not available in the simulator | sim |
+| 15.4 | Scan the Mac QR with the in-app scanner, local network prompt, approve on the Mac | Accounts and settings import; Google accounts show Sign in | device (O5) |
+| 15.5 | System Camera opens `flint://pair` | Pairing flow starts | device (O5) |
+| 15.6 | Mac approval dialog look in the running Electron app | Dialog shows the phone name and SAS | owner |

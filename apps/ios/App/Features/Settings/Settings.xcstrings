@@ -771,17 +771,6 @@
         }
       }
     },
-    "Flint is free. No account, no tracking of you.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flint is free. No account, no tracking of you."
-          }
-        }
-      }
-    },
     "Flint is MIT licensed and ships with these open-source projects. Each page has the copyright line and license text.": {
       "extractionState": "manual",
       "localizations": {
@@ -789,6 +778,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Flint is MIT licensed and ships with these open-source projects. Each page has the copyright line and license text."
+          }
+        }
+      }
+    },
+    "Flint is free. No account, no tracking of you.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint is free. No account, no tracking of you."
           }
         }
       }
@@ -1713,6 +1713,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Read receipts"
+          }
+        }
+      }
+    },
+    "Read statuses": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read statuses"
           }
         }
       }

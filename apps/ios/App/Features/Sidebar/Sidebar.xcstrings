@@ -67,9 +67,18 @@
         }
       }
     },
-    "Recents": {
-
+    "Read statuses": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read statuses"
+          }
+        }
+      }
     },
+    "Recents": {},
     "Settings": {
       "extractionState": "manual",
       "localizations": {

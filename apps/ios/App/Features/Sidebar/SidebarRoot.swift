@@ -46,8 +46,13 @@ struct SidebarRoot: View {
     }
 
     private var footer: some View {
-        SidebarRowView(leading: .icon(.settings), title: String(localized: "Settings", table: "Sidebar"), identifier: "sidebar.settings") {
-            model.navigate(to: .settings(.root))
+        VStack(spacing: 0) {
+            SidebarRowView(leading: .icon(.eye), title: String(localized: "Read statuses", table: "Sidebar"), identifier: "sidebar.receipts") {
+                model.navigate(to: .receipts)
+            }
+            SidebarRowView(leading: .icon(.settings), title: String(localized: "Settings", table: "Sidebar"), identifier: "sidebar.settings") {
+                model.navigate(to: .settings(.root))
+            }
         }
         .overlay(alignment: .top) { FlintHairline() }
         .background(FlintColor.plane0)

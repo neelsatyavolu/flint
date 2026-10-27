@@ -40,6 +40,7 @@ struct ComposerScreen: View {
     @State private var showCamera = false
     @State private var photoItems: [PhotosPickerItem] = []
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     init(model: AppModel, request: ComposeRequest) {
         self.request = request
@@ -95,9 +96,10 @@ struct ComposerScreen: View {
 
     // MARK: Header
 
-    /// At accessibility sizes the actions move to their own line under the title, so the title is not cut to "New…".
+    /// At accessibility sizes and on narrow screens (attach, reminder, send later and Send no longer fit beside the title) the
+    /// actions move to their own line under the title, so the title is not cut to "New…".
     @ViewBuilder private var header: some View {
-        let stacked = typeSize.isAccessibilitySize
+        let stacked = typeSize.isAccessibilitySize || sizeClass == .compact
         VStack(spacing: 0) {
             FlintBar(
                 title: viewModel.title, subtitle: saveText,

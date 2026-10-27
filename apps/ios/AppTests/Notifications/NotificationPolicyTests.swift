@@ -169,5 +169,7 @@ struct NotificationPolicyTests {
         #expect(NotificationRequest.parse(action: NotificationIDs.copyCodeAction, userInfo: [:]) == .openApp)
         #expect(NotificationRequest.parse(action: NotificationIDs.archiveAction, userInfo: [:]) == .openApp)
         #expect(NotificationRequest.parse(action: "x", userInfo: [:]) == .openApp)
+        #expect(NotificationRequest.parse(action: "com.apple.UNNotificationDefaultActionIdentifier", userInfo: ["flint.kind": "follow-up", "flint.thread": "12"]) == .open(threadId: 12))
+        #expect(NotificationRequest.parse(action: "com.apple.UNNotificationDefaultActionIdentifier", userInfo: ["flint.kind": "send-later", "flint.scheduled": "3"]) == .openApp)
     }
 }

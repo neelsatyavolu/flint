@@ -148,6 +148,7 @@ struct ComposePage: View {
 /// Read receipts switches. The per-message status lives on the Read receipts screen of the composer and thread (a later wave).
 struct ReceiptsPage: View {
     @Environment(AppModel.self) private var model
+    @State private var showsStatuses = false
 
     var body: some View {
         let enabled = model.settings?.receipts.enabled ?? true
@@ -163,9 +164,17 @@ struct ReceiptsPage: View {
                     icon: .bell, title: sl("Notify when opened"), isOn: model.boolSetting({ $0.receipts.notifyOnOpen }, section: "receipts", key: "notifyOnOpen"),
                     identifier: "settings.receipts.notify", disabled: !enabled)
             }
-            Text("Opens from Apple Mail Privacy Protection can't be confirmed, so Flint says so instead of guessing.", tableName: "Settings")
-                .flintText(.body, color: FlintColor.fg3).padding(FlintMetrics.Space.s4)
+            Button { showsStatuses = true } label: {
+                SettingsRowLayout(icon: .eye, title: sl("Read statuses"), detail: nil) {
+                    FlintIconView(icon: .chevronRight, size: 16, color: FlintColor.fg3)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(FlintPressStyle(radius: 0))
+            .accessibilityIdentifier("settings.receipts.statuses")
+            ReceiptsHowItWorks().padding(FlintMetrics.Space.s4)
         }
+        .sheet(isPresented: $showsStatuses) { ReadStatusesSheet() }
     }
 }
 

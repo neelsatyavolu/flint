@@ -32,14 +32,7 @@ struct ReceiptCheck: View {
     var read: Bool { summary.opened > 0 || summary.status == .replied }
     var several: Bool { summary.total > 1 }
 
-    var label: String {
-        if read {
-            if several { return String(localized: "Opened by \(summary.opened) of \(summary.total)", table: "Inbox") }
-            return summary.status == .replied ? String(localized: "Replied", table: "Inbox") : String(localized: "Opened", table: "Inbox")
-        }
-        if summary.status == .unknowable { return String(localized: "Can't confirm opens", table: "Inbox") }
-        return several ? String(localized: "Not opened yet by any of \(summary.total)", table: "Inbox") : String(localized: "Not opened yet", table: "Inbox")
-    }
+    var label: String { ReceiptStatusText.marker(summary).label }
 
     private var tone: Color {
         if read { return FlintColor.ok }

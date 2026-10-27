@@ -5,7 +5,7 @@ import SwiftUI
 @MainActor
 enum FeatureRegistry {
     static let modules: [any FeatureModule] = [
-        OnboardingModule(), SidebarModule(), InboxModule(), ThreadModule(), ComposerModule(), SearchModule(), SettingsModule(),
+        OnboardingModule(), SidebarModule(), InboxModule(), ThreadModule(), ComposerModule(), SearchModule(), SettingsModule(), ReceiptsModule(),
     ]
 
     static func module(id: String) -> (any FeatureModule)? {

@@ -53,7 +53,8 @@ enum NotificationRequest: Equatable, Sendable {
 
     /// Parses a delivered response. Unknown actions fall back to opening the thread when there is one.
     static func parse(action: String, userInfo: [String: String]) -> NotificationRequest {
-        let thread = userInfo[NotificationIDs.Key.threadId].flatMap { Int($0) }
+        // Scheduling's local notices (4D) carry the thread under `flint.thread`.
+        let thread = (userInfo[NotificationIDs.Key.threadId] ?? userInfo["flint.thread"]).flatMap { Int($0) }
         switch action {
         case NotificationIDs.copyCodeAction:
             guard let code = userInfo[NotificationIDs.Key.code], !code.isEmpty else { return .openApp }
