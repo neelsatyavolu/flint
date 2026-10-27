@@ -36,6 +36,9 @@ for subject in subjects:
         s.send_message(msg)
 PY
 
+# First-run flake: a simulator that has not answered the notification prompt shows it over "Go to inbox"; the UI test now answers it.
+# Uninstalling does not always reset that answer, so reset it too and every run behaves like a first run.
+xcrun simctl privacy "$UDID" reset all co.xanom.flint >/dev/null 2>&1 || true
 xcrun simctl uninstall "$UDID" co.xanom.flint >/dev/null 2>&1 || true
 LOG="${DERIVED:h}/e2e-$STAMP.log"
 TEST_RUNNER_FLINT_E2E_SUBJECT="$SUBJECT" TEST_RUNNER_FLINT_E2E_SECOND="$SECOND" TEST_RUNNER_FLINT_E2E_WORD="Lantern" \

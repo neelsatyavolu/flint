@@ -3,8 +3,9 @@ import FlintModel
 import Foundation
 @testable import FlintMail
 
-/// True when the GreenMail suites should run (`FLINT_GREENMAIL=1`). They need Java and python3 and start real servers.
-let mailGreenMailEnabled = ProcessInfo.processInfo.environment["FLINT_GREENMAIL"] == "1"
+/// True when the integration suites should run: `FLINT_INTEGRATION=1` (or the older `FLINT_GREENMAIL=1`).
+/// They need Java and python3 and start real servers (GreenMail plus the IMAP fix-up proxy) on the Mac host.
+let mailGreenMailEnabled = ["FLINT_INTEGRATION", "FLINT_GREENMAIL"].contains { ProcessInfo.processInfo.environment[$0] == "1" }
 
 nonisolated(unsafe) private var runningScripts = [pid_t]()
 private let runningLock = NSLock()
@@ -70,9 +71,9 @@ final class MailGreenMailServer: @unchecked Sendable {
     }
 
     private static var scriptURL: URL {
-        // apps/ios/Packages/FlintCore/Tests/FlintCoreTests/<file> -> apps/ios/scripts/greenmail.sh
+        // apps/ios/Packages/FlintCore/Tests/FlintCoreTests/Integration/<file> -> apps/ios/scripts/greenmail.sh
         var url = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
-        for _ in 0..<5 { url = url.deletingLastPathComponent() }
+        for _ in 0..<6 { url = url.deletingLastPathComponent() }
         return url.appendingPathComponent("scripts/greenmail.sh")
     }
 
@@ -107,6 +108,37 @@ final class MailGreenMailServer: @unchecked Sendable {
         stop()
         for _ in 0..<50 where portOpen(imapPort) || portOpen(smtpPort) { try await Task.sleep(for: .milliseconds(100)) }
         try await start()
+    }
+
+    /// A network blip: the proxy goes away for `downFor` and comes back on the same port. GreenMail keeps its mailboxes and UIDVALIDITY,
+    /// so this is what a Wi-Fi drop looks like (unlike `restart()`, which is a server that lost its data).
+    func blip(downFor: Duration) async throws {
+        let kill = Process()
+        kill.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+        kill.arguments = ["-f", "greenmail-imap-proxy.py \(imapPort) \(rawImapPort)"]
+        try kill.run(); kill.waitUntilExit()
+        try await Task.sleep(for: downFor)
+        let proxy = Process()
+        proxy.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        proxy.arguments = ["-I", Self.scriptURL.deletingLastPathComponent().appendingPathComponent("greenmail-imap-proxy.py").path, "\(imapPort)", "\(rawImapPort)"]
+        proxy.standardOutput = FileHandle.nullDevice
+        proxy.standardError = FileHandle.nullDevice
+        try proxy.run()
+        registerForCleanup(proxy.processIdentifier)
+        for _ in 0..<50 where !portOpen(imapPort) { try await Task.sleep(for: .milliseconds(100)) }
+    }
+
+    /// Delivers with plain SMTP (no IMAP login), so it works while the IMAP proxy is down.
+    func deliverBySMTP(to user: String, subject: String) throws {
+        let python = Process()
+        python.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        python.arguments = [
+            "-I", "-c",
+            "import smtplib,sys\nfrom email.message import EmailMessage\nm=EmailMessage()\nm['From']='Bob <bob@remote.example>'\nm['To']=sys.argv[2]\nm['Subject']=sys.argv[3]\nm.set_content('hello')\ns=smtplib.SMTP('127.0.0.1',int(sys.argv[1]));s.send_message(m);s.quit()",
+            "\(smtpPort)", email(user), subject,
+        ]
+        try python.run(); python.waitUntilExit()
+        guard python.terminationStatus == 0 else { throw FlintError(.internal, "SMTP delivery failed.") }
     }
 
     // MARK: Helpers for tests

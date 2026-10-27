@@ -90,6 +90,7 @@ final class InboxViewModel {
         }
         guard let query = makeQuery(mailbox) else { return }
         self.query = query
+        PerfProbe.mark("inboxWatch")
         do {
             for try await page in model.threadPages(query) { apply(page) }
         } catch {
@@ -142,6 +143,7 @@ final class InboxViewModel {
         hasMore = tailCursor != nil || page.nextCursor != nil
         olderOnServer = page.olderOnServer
         phase = .ready
+        PerfProbe.firstRows(count: items.count + bundles.count)
         let present = Set(items.map(\.id))
         if !selection.isSubset(of: present) { selection = selection.intersection(present) }
     }

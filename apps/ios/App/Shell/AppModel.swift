@@ -98,6 +98,7 @@ final class AppModel {
         self.diagnostics = diagnosticsStore.load()
         self.notifications.onCopied = { [toasts] in toasts.show(String(localized: "Code copied", table: "Shell")) }
         recentSearches = mode.isDemo ? [] : defaults.stringArray(forKey: Self.recentsKey) ?? []
+        PerfProbe.mark("modelInit")
     }
 
     var isDemo: Bool { mode.isDemo }
@@ -135,9 +136,12 @@ final class AppModel {
         do {
             let service = try await openService()
             self.service = service
+            PerfProbe.mark("serviceOpen")
             try await loadInitialState(from: service)
+            PerfProbe.mark("initialState")
             startObserving(service)
             if startingSync { await startSync() } else { service.startListeners() }
+            PerfProbe.mark("syncStarted")
             phase = .ready
             if accounts.isEmpty && !isDemo { presented = .onboarding }
         } catch {
