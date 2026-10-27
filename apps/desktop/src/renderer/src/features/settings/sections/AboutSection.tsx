@@ -11,7 +11,7 @@ const UPDATE_COPY = {
 } as const;
 
 /** Keep in step with apps/desktop/package.json. */
-export const APP_VERSION = "1.0.4";
+export const APP_VERSION = "1.0.5";
 
 export function AboutSection() {
   const { settings, save } = useSettingsStore();
