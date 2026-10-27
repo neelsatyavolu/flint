@@ -6,22 +6,55 @@ import Foundation
 /// real work while the app runs; these cover the time when it does not.
 @MainActor
 final class SchedulingCoordinator {
+    /// What the person's notification settings allow Scheduling's notices to say.
+    struct Privacy: Equatable, Sendable {
+        /// Alerts are on and the scope is not "none": without it no notice is scheduled.
+        var alertsOn = true
+        /// Previews are not hidden: recipients may appear in titles.
+        var showNames = true
+
+        init(_ settings: Settings.Notifications = Settings.Notifications()) {
+            alertsOn = NotificationPolicy.alertsAllowed(settings, account: nil)
+            showNames = settings.preview != .none
+        }
+    }
+
     private let notifier: any LocalNotificationScheduling
+    private(set) var privacy = Privacy()
 
     init(notifier: any LocalNotificationScheduling = NoNotifications()) {
         self.notifier = notifier
+    }
+
+    // MARK: Settings
+
+    /// The notification settings changed. Turning alerts off withdraws what is waiting; hiding previews rewrites the titles that
+    /// name someone.
+    func update(notifications settings: Settings.Notifications) async {
+        let next = Privacy(settings)
+        defer { privacy = next }
+        guard next != privacy else { return }
+        let waiting = await notifier.pending()
+        if !next.alertsOn {
+            if !waiting.isEmpty { await notifier.cancel(ids: waiting.map(\.id)) }
+        } else if !next.showNames {
+            for notice in waiting { await notifier.schedule(SchedulingNotices.withoutNames(notice), askPermission: false) }
+        }
     }
 
     // MARK: Sending
 
     /// The draft was queued. `userScheduledAt` is the time the person chose, nil for a normal send after the undo window.
     func sendQueued(_ result: SendResult, draft: Draft, userScheduledAt: EpochMs?) async {
+        guard privacy.alertsOn else { return }
         if userScheduledAt != nil {
-            await notifier.schedule(SchedulingNotices.sendLater(scheduledId: result.scheduledId, to: draft.to, sendAt: result.sendAt), askPermission: true)
+            await notifier.schedule(
+                SchedulingNotices.sendLater(scheduledId: result.scheduledId, to: draft.to, sendAt: result.sendAt, showNames: privacy.showNames), askPermission: true)
         }
         if let remindAt = draft.remindAt {
             let notice = SchedulingNotices.followUp(
-                scheduledId: result.scheduledId, to: draft.to, threadId: draft.threadId, remindAt: remindAt, sentAt: userScheduledAt ?? result.undoUntil)
+                scheduledId: result.scheduledId, to: draft.to, threadId: draft.threadId, remindAt: remindAt,
+                sentAt: userScheduledAt ?? result.undoUntil, showNames: privacy.showNames)
             await notifier.schedule(notice, askPermission: true)
         }
     }
@@ -32,7 +65,9 @@ final class SchedulingCoordinator {
     }
 
     func sendRescheduled(_ send: ScheduledSend) async {
-        await notifier.schedule(SchedulingNotices.sendLater(scheduledId: send.id, to: send.to, sendAt: send.sendAt), askPermission: true)
+        guard privacy.alertsOn else { return }
+        await notifier.schedule(
+            SchedulingNotices.sendLater(scheduledId: send.id, to: send.to, sendAt: send.sendAt, showNames: privacy.showNames), askPermission: true)
     }
 
     /// The queue changed. A "Ready to send" notice for a send that is no longer waiting (sent, or cancelled) is withdrawn, so it
@@ -62,6 +97,7 @@ final class SchedulingCoordinator {
     // MARK: Snooze
 
     func snoozed(_ ids: [ThreadID], until: EpochMs) async {
+        guard privacy.alertsOn else { return }
         for id in ids { await notifier.schedule(SchedulingNotices.snooze(threadId: id, until: until), askPermission: false) }
     }
 

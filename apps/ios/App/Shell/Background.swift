@@ -143,6 +143,22 @@ private final class OneShot<Value: Sendable>: @unchecked Sendable {
     }
 }
 
+/// Reports a background task as finished exactly once, whether the work or the expiration handler gets there first.
+final class BackgroundTaskCompletion: @unchecked Sendable {
+    private let lock = NSLock()
+    private var report: (@Sendable (Bool) -> Void)?
+
+    init(report: @escaping @Sendable (Bool) -> Void) { self.report = report }
+
+    func complete(success: Bool) {
+        lock.lock()
+        let report = report
+        self.report = nil
+        lock.unlock()
+        report?(success)
+    }
+}
+
 /// A process-wide model, so a background launch (no window) and the window use the same one, and BGTask handlers registered at
 /// launch can reach it.
 @MainActor
@@ -169,11 +185,17 @@ enum BackgroundHub {
     }
 
     private static func handle(_ box: TaskBox, kind: BackgroundRunRecord.Kind) {
+        // iOS expects completion right after it calls the expiration handler, so that reports first and stopping the service
+        // (which can wait on a network read) comes after.
+        let completion = BackgroundTaskCompletion { success in box.task.setTaskCompleted(success: success) }
         let work = Task { @MainActor in
             let record = await model.runBackground(kind)
-            box.task.setTaskCompleted(success: record.result == .completed)
+            completion.complete(success: record.result == .completed)
         }
-        box.task.expirationHandler = { work.cancel() }
+        box.task.expirationHandler = {
+            completion.complete(success: false)
+            work.cancel()
+        }
     }
 }
 
@@ -198,16 +220,21 @@ extension AppModel {
     /// and arm the next run. The service is stopped again unless the person opened the app meanwhile.
     @discardableResult
     func runBackground(_ kind: BackgroundRunRecord.Kind) async -> BackgroundRunRecord {
-        await bootstrap()
+        await bootstrapForBackgroundRun()
         guard let service else {
             let failed = BackgroundRunRecord(id: UUID(), kind: kind, startedAt: Date(), durationMs: 0, result: .failed, newMail: 0, alerts: 0, errorCode: "internal")
             recordRun(failed)
+            // A failed open must not end the schedule: the next try may find the database ready.
+            scheduleBackgroundWork(nextDue: nil)
             return failed
         }
+        // A warm process was stopped on the way to the background; code detection and reply watching need their listeners back.
+        service.startListeners()
         var nextDue: EpochMs?
         let record = await BackgroundRunner().run(kind) { [self] in
             let counts = try await syncForBackground(service)
             nextDue = await service.runDueWork()
+            await pollReceiptsInBackground(service)
             return counts
         }
         recordRun(record)
@@ -218,7 +245,7 @@ extension AppModel {
 
     /// Sync, then flush the alerts. Shared by the system runs and "Check now".
     private func syncForBackground(_ service: FlintService) async throws -> (newMail: Int, alerts: Int) {
-        notifications.beginRunCount()
+        let tally = notifications.beginRunCount()
         let id = backgroundTasking.begin(expiration: {})
         defer { backgroundTasking.end(id) }
         do {
@@ -227,9 +254,9 @@ extension AppModel {
             // Code detection runs a moment after the sync reports new mail.
             try? await Task.sleep(for: .milliseconds(600))
             await notifications.flush()
-            return notifications.endRunCount()
+            return notifications.endRunCount(tally)
         } catch {
-            _ = notifications.endRunCount()
+            _ = notifications.endRunCount(tally)
             throw error
         }
     }
@@ -258,15 +285,20 @@ extension AppModel {
 
     /// A tap or a button on a notification. Works on a cold start: the model opens first.
     func handleNotification(_ request: NotificationRequest) async {
-        await bootstrap()
+        // Archive and Mark read run with the app in the background: no sync sessions for them. Everything else brings the app
+        // forward, so it starts as a normal launch.
+        if request.runsInBackground { await bootstrapForBackgroundRun() } else { await bootstrap() }
         switch request {
         case .open(let threadId):
             navigate(to: .thread(threadId))
         case .openApp:
             break
-        case .archive, .markRead, .copyCode:
+        case .archive, .markRead:
             await withBackgroundTask { await notifications.perform(request) }
             if !isAppActive { await service?.stop() }
+        case .copyCode:
+            // "Copy code" opens the app. It may still read as inactive while a cold launch finishes: never stop sync for it.
+            await notifications.perform(request)
         }
     }
 

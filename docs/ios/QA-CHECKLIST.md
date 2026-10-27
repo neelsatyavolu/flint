@@ -191,12 +191,12 @@ swift test --package-path Packages/FlintCore     # engine, on the Mac
 
 | # | Step | Expected | Mark |
 |---|---|---|---|
-| 12.1 | Alert policy (scope, quiet hours, previews, grouping), categories, responses, badge | All pass | auto (`FlintTests/Notifications`) |
+| 12.1 | Alert policy (scope, alerts off, muted accounts, previews, grouping, codes following the same switches), categories (Archive and Mark read need unlock), responses, badge. There is no quiet-hours setting on either platform | All pass | auto (`FlintTests/Notifications`) |
 | 12.2 | Background run with a fake notification centre posts alerts for new mail | Alert counted, diagnostics row added | auto (`BackgroundRunTests`) |
 | 12.3 | Settings > Notifications > Check now | Run recorded in the list | auto (`NotificationsTests`) |
 | 12.4 | BGTaskScheduler simulated launch of `co.xanom.flint.refresh` | Run recorded in diagnostics | sim (see lldb note in HANDOFF) |
 | 12.5 | Notification permission prompt wording and flow | System prompt shows once, after the first useful action | device (O5) |
-| 12.6 | New-mail banner and lock-screen look, Archive and Mark read buttons | Titles without subject or body when previews are off | device (O5) |
+| 12.6 | New-mail banner and lock-screen look, Archive and Mark read buttons | Titles without subject or body when previews are off. With Face ID, iOS Show Previews defaults to When Unlocked and hides titles on the lock screen until unlock; Settings > Notifications says so | device (O5) |
 | 12.7 | Verification code notification: Copy code button | Code on the clipboard, "Code copied" toast | device (O5) |
 | 12.8 | Background cadence, Low Power Mode, force quit | Measured over a week, see `spikes/background-cadence.md` | device (O5) |
 

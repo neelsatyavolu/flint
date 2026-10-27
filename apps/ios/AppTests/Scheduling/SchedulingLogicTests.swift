@@ -185,4 +185,49 @@ struct SchedulingCoordinatorTests {
         await coordinator.unsnoozed([10])
         #expect(await notifier.ids() == ["snooze.11"])
     }
+
+    // MARK: Notification settings
+
+    private func settings(_ change: (inout Settings.Notifications) -> Void) -> Settings.Notifications {
+        var value = Settings.Notifications()
+        change(&value)
+        return value
+    }
+
+    @Test("with alerts off nothing is scheduled")
+    func alertsOffSchedulesNothing() async {
+        let notifier = RecordingNotifier()
+        let coordinator = SchedulingCoordinator(notifier: notifier)
+        await coordinator.update(notifications: settings { $0.enabled = false })
+        await coordinator.sendQueued(result(sendAt: 9_000_000_000_000), draft: draft(remindAt: 9_100_000_000_000), userScheduledAt: 9_000_000_000_000)
+        await coordinator.snoozed([10], until: 9_000_000_000_000)
+        await coordinator.sendRescheduled(ScheduledSend(id: 4, draftId: 1, sendAt: 9_000_000_000_000))
+        #expect(await notifier.ids().isEmpty)
+    }
+
+    @Test("switching alerts off withdraws what is waiting")
+    func alertsOffWithdraws() async {
+        let notifier = RecordingNotifier()
+        let coordinator = SchedulingCoordinator(notifier: notifier)
+        await coordinator.sendQueued(result(sendAt: 9_000_000_000_000), draft: draft(remindAt: 9_100_000_000_000), userScheduledAt: 9_000_000_000_000)
+        await coordinator.snoozed([10], until: 9_000_000_000_000)
+        #expect(await notifier.ids().count == 3)
+        await coordinator.update(notifications: settings { $0.scope = .none })
+        #expect(await notifier.ids().isEmpty)
+    }
+
+    @Test("hidden previews keep the recipient out of the title, new and already waiting")
+    func hiddenPreviews() async {
+        let notifier = RecordingNotifier()
+        let coordinator = SchedulingCoordinator(notifier: notifier)
+        await coordinator.sendQueued(result(4, sendAt: 9_000_000_000_000), draft: draft(remindAt: 9_100_000_000_000), userScheduledAt: 9_000_000_000_000)
+        #expect(await notifier.notice("send-later.4")?.title == "Ready to send to Carla Mendes")
+        #expect(await notifier.notice("follow-up.4")?.title == "Any reply from Carla Mendes?")
+        await coordinator.update(notifications: settings { $0.preview = .none })
+        #expect(await notifier.notice("send-later.4")?.title == "Ready to send")
+        #expect(await notifier.notice("follow-up.4")?.title == "Any reply?")
+        #expect(await notifier.notice("send-later.4")?.scheduledId == 4)
+        await coordinator.sendQueued(result(5, sendAt: 9_000_000_000_000), draft: draft(), userScheduledAt: 9_000_000_000_000)
+        #expect(await notifier.notice("send-later.5")?.title == "Ready to send")
+    }
 }

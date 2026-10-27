@@ -27,8 +27,10 @@ enum CodesLogic {
         return String(localized: "\(minutes) min left", table: "Codes")
     }
 
-    /// The code to copy automatically when it arrives with the app open: the newest unused one received after `sinceMs`.
-    static func autoCopyCandidate(_ code: VerificationCode, settings: Settings.Codes) -> Bool {
-        settings.enabled && settings.autoCopy && !code.used
+    /// The code to copy automatically when it arrives with the app open. As on the desktop, hidden previews or a muted account
+    /// keep a code off the clipboard (and its history).
+    static func autoCopyCandidate(_ code: VerificationCode, settings: Settings.Codes, notifications: Settings.Notifications) -> Bool {
+        settings.enabled && settings.autoCopy && !code.used && notifications.preview != .none
+            && !notifications.disabledAccounts.contains(code.accountId)
     }
 }

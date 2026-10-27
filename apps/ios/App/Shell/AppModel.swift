@@ -74,6 +74,12 @@ final class AppModel {
     /// Demo only: delivers one more message before a background run syncs.
     @ObservationIgnored var demoDeliverNewMail: (@Sendable () async -> Void)?
     @ObservationIgnored private var bootstrapTask: Task<Void, Never>?
+    /// False after a background launch that opened the service without starting sync sessions; the first foreground start fixes it.
+    @ObservationIgnored private(set) var syncStarted = false
+    /// Polls the receipts service at the end of a background run (DESIGN-NOTES section 8). Tests replace it.
+    @ObservationIgnored var pollReceiptsInBackground: @MainActor (FlintService) async -> Void = { service in
+        await ReceiptsPoller.shared.pollIfDue(ServiceReceiptsSource(service: service), force: true)
+    }
     internal(set) var diagnostics = BackgroundDiagnostics()
 
     init(mode: LaunchMode = .fromArguments(), toasts: ToastCenter = ToastCenter(), defaults: UserDefaults = .standard, backgroundTasking: any BackgroundTasking = SystemBackgroundTasking(), notifier: (any LocalNotificationScheduling)? = nil, notifications: NotificationCoordinator? = nil, backgroundScheduler: (any BackgroundTaskScheduling)? = nil) {
@@ -98,23 +104,40 @@ final class AppModel {
 
     // MARK: Lifecycle
 
-    /// Opens the service and loads the first state. Safe to call more than once; only the first call does anything.
+    /// Opens the service and loads the first state, then starts sync. Safe to call more than once; only the first call opens.
     func bootstrap() async {
+        await open(startingSync: true)
+        // A background launch may have opened it first without sync; the window wants it running.
+        if !syncStarted, phase == .ready { await startSync() }
+    }
+
+    /// For a background launch (a refresh, a notification button): opens the service and brings the event listeners up, but
+    /// leaves IDLE sessions and the one-time maintenance to the next foreground. The run syncs by hand.
+    func bootstrapForBackgroundRun() async {
+        await open(startingSync: false)
+    }
+
+    private func open(startingSync: Bool) async {
         // Two callers can arrive together (the window and a notification action); both wait for the same run.
         if let bootstrapTask { return await bootstrapTask.value }
-        let task = Task { await performBootstrap() }
+        let task = Task { await performBootstrap(startingSync: startingSync) }
         bootstrapTask = task
         await task.value
     }
 
-    private func performBootstrap() async {
+    private func startSync() async {
+        syncStarted = true
+        await service?.start()
+    }
+
+    private func performBootstrap(startingSync: Bool) async {
         guard phase == .launching else { return }
         do {
             let service = try await openService()
             self.service = service
             try await loadInitialState(from: service)
             startObserving(service)
-            await service.start()
+            if startingSync { await startSync() } else { service.startListeners() }
             phase = .ready
             if accounts.isEmpty && !isDemo { presented = .onboarding }
         } catch {
@@ -139,7 +162,7 @@ final class AppModel {
     /// Foreground: start sync again and send whatever came due while the app was away. Cheap when already running.
     func sceneBecameActive() async {
         cancelBackgroundDrain()
-        await service?.start()
+        await startSync()
         await service?.runDueWork()
         if let service { await ReceiptsPoller.shared.pollIfDue(ServiceReceiptsSource(service: service)) }
     }
@@ -157,7 +180,10 @@ final class AppModel {
     private func loadInitialState(from service: FlintService) async throws {
         accounts = try await service.listAccounts()
         settings = try await service.currentSettings()
-        if let settings { notifications.update(settings: settings) }
+        if let settings {
+            notifications.update(settings: settings)
+            await scheduling.update(notifications: settings.notifications)
+        }
         syncStatuses = try await service.syncStatuses()
         sidebar = try await Self.firstValue(of: service.sidebar())
     }
@@ -173,6 +199,7 @@ final class AppModel {
         observe(service.settings()) { model, settings in
             model.settings = settings
             model.notifications.update(settings: settings)
+            Task { await model.scheduling.update(notifications: settings.notifications) }
         }
         observe(service.codes()) { $0.codes = $1 }
         observe(service.scheduled()) { model, waiting in Task { await model.scheduling.reconcile(waiting: waiting) } }

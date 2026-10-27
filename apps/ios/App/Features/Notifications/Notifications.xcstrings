@@ -210,17 +210,6 @@
         }
       }
     },
-    "Back in your inbox": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Back in your inbox"
-          }
-        }
-      }
-    },
     "Background checks": {
       "extractionState": "manual",
       "localizations": {
@@ -430,6 +419,17 @@
         }
       }
     },
+    "Hidden previews also keep codes out of alerts and off the clipboard. iOS can hide alert text until you unlock, which is the default with Face ID. Change it in the Settings app under Notifications, Flint, Show Previews.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hidden previews also keep codes out of alerts and off the clipboard. iOS can hide alert text until you unlock, which is the default with Face ID. Change it in the Settings app under Notifications, Flint, Show Previews."
+          }
+        }
+      }
+    },
     "Inbox unread": {
       "extractionState": "manual",
       "localizations": {
@@ -470,6 +470,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mark read"
+          }
+        }
+      }
+    },
+    "Needs previews on. The alert reads the service and the code. Copy code is a button on it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs previews on. The alert reads the service and the code. Copy code is a button on it."
           }
         }
       }
@@ -584,17 +595,6 @@
         }
       }
     },
-    "Open Flint to send it. Flint sends scheduled mail when it can run.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open Flint to send it. Flint sends scheduled mail when it can run."
-          }
-        }
-      }
-    },
     "Open Settings": {
       "extractionState": "manual",
       "localizations": {
@@ -657,17 +657,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ran out of time"
-          }
-        }
-      }
-    },
-    "Ready to send to %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ready to send to %@"
           }
         }
       }
@@ -749,17 +738,6 @@
         }
       }
     },
-    "The alert reads the service and the code. Copy code is a button on it.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The alert reads the service and the code. Copy code is a button on it."
-          }
-        }
-      }
-    },
     "Turn Flint's notifications back on in the Settings app.": {
       "extractionState": "manual",
       "localizations": {
@@ -800,17 +778,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "iOS decides when Flint can check for mail in the background. Expect gaps of tens of minutes to hours, and nothing after you force-quit Flint or in Low Power Mode."
-          }
-        }
-      }
-    },
-    "your recipient": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "your recipient"
           }
         }
       }

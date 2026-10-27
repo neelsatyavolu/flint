@@ -32,6 +32,11 @@ final class RuntimeState: Sendable {
     }
 
     func set(subscriptions: [EventBus.Subscription]) { state.withLock { $0.subscriptions = subscriptions } }
+
+    /// Wires the listeners unless they already are, so `start()` and `startListeners()` never double them.
+    func installSubscriptionsIfNone(_ make: () -> [EventBus.Subscription]) {
+        state.withLock { s in if s.subscriptions.isEmpty { s.subscriptions = make() } }
+    }
     func set(maintenance: Task<Void, Never>?) { state.withLock { $0.maintenance = maintenance } }
 
     /// True when `interval` has passed since the last poll; records this one.

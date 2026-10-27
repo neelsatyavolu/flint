@@ -2,6 +2,7 @@
 import FlintModel
 import Foundation
 import Testing
+import UserNotifications
 
 @Suite("BackgroundDiagnostics")
 struct BackgroundDiagnosticsTests {
@@ -154,11 +155,72 @@ struct CodesLogicTests {
     @Test("auto copy needs codes and auto copy on, and an unused code")
     func autoCopy() {
         var settings = Settings.Codes()
-        #expect(!CodesLogic.autoCopyCandidate(code("x", at: 0, expires: 1), settings: settings))
+        let notifications = Settings.Notifications()
+        #expect(!CodesLogic.autoCopyCandidate(code("x", at: 0, expires: 1), settings: settings, notifications: notifications))
         settings.autoCopy = true
-        #expect(CodesLogic.autoCopyCandidate(code("x", at: 0, expires: 1), settings: settings))
-        #expect(!CodesLogic.autoCopyCandidate(code("x", at: 0, expires: 1, used: true), settings: settings))
+        #expect(CodesLogic.autoCopyCandidate(code("x", at: 0, expires: 1), settings: settings, notifications: notifications))
+        #expect(!CodesLogic.autoCopyCandidate(code("x", at: 0, expires: 1, used: true), settings: settings, notifications: notifications))
         settings.enabled = false
-        #expect(!CodesLogic.autoCopyCandidate(code("x", at: 0, expires: 1), settings: settings))
+        #expect(!CodesLogic.autoCopyCandidate(code("x", at: 0, expires: 1), settings: settings, notifications: notifications))
+    }
+
+    @Test("auto copy keeps a code off the clipboard when previews are hidden or the account is muted")
+    func autoCopyFollowsNotificationSettings() {
+        var settings = Settings.Codes()
+        settings.autoCopy = true
+        var notifications = Settings.Notifications()
+        notifications.preview = .none
+        #expect(!CodesLogic.autoCopyCandidate(code("x", at: 0, expires: 1), settings: settings, notifications: notifications))
+        notifications.preview = .senderSubject
+        notifications.disabledAccounts = ["a"]
+        #expect(!CodesLogic.autoCopyCandidate(code("x", at: 0, expires: 1), settings: settings, notifications: notifications))
+    }
+}
+
+@Suite("Background completion and lock-screen buttons")
+struct BackgroundCompletionTests {
+    final class Calls: @unchecked Sendable {
+        private let lock = NSLock()
+        private var values: [Bool] = []
+        func add(_ value: Bool) { lock.lock(); values.append(value); lock.unlock() }
+        var all: [Bool] { lock.lock(); defer { lock.unlock() }; return values }
+    }
+
+    @Test("a task is reported finished once, by whichever side gets there first")
+    func completesOnce() {
+        let calls = Calls()
+        let completion = BackgroundTaskCompletion { calls.add($0) }
+        completion.complete(success: false)
+        completion.complete(success: true)
+        #expect(calls.all == [false])
+    }
+
+    @Test("the work finishing first is reported, and the late expiration adds nothing")
+    func workFirst() {
+        let calls = Calls()
+        let completion = BackgroundTaskCompletion { calls.add($0) }
+        completion.complete(success: true)
+        completion.complete(success: false)
+        #expect(calls.all == [true])
+    }
+
+    @Test("Archive and Mark read need the phone unlocked; Copy code opens the app")
+    @MainActor
+    func buttonsNeedUnlock() throws {
+        let categories = NotificationCategories.all()
+        let mail = try #require(categories.first { $0.identifier == NotificationIDs.mailCategory })
+        #expect(mail.actions.count == 2)
+        for action in mail.actions { #expect(action.options.contains(.authenticationRequired), "\(action.identifier)") }
+        let code = try #require(categories.first { $0.identifier == NotificationIDs.codeCategory })
+        #expect(code.actions.allSatisfy { $0.options.contains(.foreground) })
+    }
+
+    @Test("only the buttons that change mail run without bringing the app forward")
+    func runsInBackground() {
+        #expect(NotificationRequest.archive(threadId: 1).runsInBackground)
+        #expect(NotificationRequest.markRead(threadId: 1).runsInBackground)
+        #expect(!NotificationRequest.copyCode(code: "1", codeId: nil).runsInBackground)
+        #expect(!NotificationRequest.open(threadId: 1).runsInBackground)
+        #expect(!NotificationRequest.openApp.runsInBackground)
     }
 }
