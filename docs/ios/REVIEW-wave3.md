@@ -203,7 +203,7 @@ Each of the eight new problems was confirmed in the code. Fixes with tests (`Bac
 - New 1 and 2: **Fixed.** `sceneBecameActive` cancels the waiting drain, and a cycle stops the service only if no newer foreground or background change happened. Each cycle ends only its own background task.
 - New 3: **Fixed.** E asks where the conversation is (`ThreadLogic.leavesInbox(place:selection:)`), as the toolbar does.
 - New 4: **Fixed.** The inbox publishes the rows it shows (`AppModel.visibleThreadIds`), so J and K follow the quick filter, an opened bundle and rows loaded by scrolling.
-- New 5: **Fixed.** The thread toolbar reports its Snooze and Move sheets (`threadSheetUp`) and letter shortcuts stay off under them. The inbox's own sheets were already covered by `presented`/pickers staying out of reach of the open thread; not changed.
+- New 5: **Fixed.** The thread toolbar reports its Snooze and Move sheets (`threadSheetUp`) and letter shortcuts stay off under them. The inbox list's own pickers were not checked for the same thing.
 - New 6: **Fixed.** `shortcutsReady` is false while the lock cover is up (`isCovered`, set from `AppLock`), for menu commands and arrow keys.
 - New 7: **Fixed.** A template inserted into a locked draft is also shown in the read-only body, so it is not inserted twice, and flattening keeps it.
 - New 8: **Fixed.** The inbox audit skips unplaced clipping issues only up to two per bundle row (measured), not all of them.
