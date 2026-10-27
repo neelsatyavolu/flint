@@ -1,0 +1,699 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "1 account needs Google sign-in. Do it from Settings > Accounts.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 account needs Google sign-in. Do it from Settings > Accounts."
+          }
+        }
+      }
+    },
+    "1 account needs a password. Add it from Settings > Accounts.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 account needs a password. Add it from Settings > Accounts."
+          }
+        }
+      }
+    },
+    "Accounts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accounts"
+          }
+        }
+      }
+    },
+    "Add account": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add account"
+          }
+        }
+      }
+    },
+    "Add password": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add password"
+          }
+        }
+      }
+    },
+    "Add these": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add these"
+          }
+        }
+      }
+    },
+    "Add to this iPhone": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to this iPhone"
+          }
+        }
+      }
+    },
+    "Added": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Added"
+          }
+        }
+      }
+    },
+    "Adding to this iPhone…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adding to this iPhone…"
+          }
+        }
+      }
+    },
+    "Already on this iPhone. Use the Mac's details?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already on this iPhone. Use the Mac's details?"
+          }
+        }
+      }
+    },
+    "Also on your Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Also on your Mac"
+          }
+        }
+      }
+    },
+    "App password": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App password"
+          }
+        }
+      }
+    },
+    "Blocked senders": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocked senders"
+          }
+        }
+      }
+    },
+    "Bring your accounts from your Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bring your accounts from your Mac"
+          }
+        }
+      }
+    },
+    "Camera access is off for Flint. Turn it on in Settings, or scan the code with the Camera app, which opens Flint.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera access is off for Flint. Turn it on in Settings, or scan the code with the Camera app, which opens Flint."
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        }
+      }
+    },
+    "Code": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code"
+          }
+        }
+      }
+    },
+    "Compare the six digits on both screens, then approve on your Mac.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compare the six digits on both screens, then approve on your Mac."
+          }
+        }
+      }
+    },
+    "Connecting to your Mac…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecting to your Mac…"
+          }
+        }
+      }
+    },
+    "Copy settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy settings"
+          }
+        }
+      }
+    },
+    "Copy your accounts, signatures, templates, rules and blocked senders from Flint on your Mac. It goes over Wi-Fi and is encrypted; nothing passes through a server.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy your accounts, signatures, templates, rules and blocked senders from Flint on your Mac. It goes over Wi-Fi and is encrypted; nothing passes through a server."
+          }
+        }
+      }
+    },
+    "Couldn't sign in with the password from your Mac:": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't sign in with the password from your Mac:"
+          }
+        }
+      }
+    },
+    "Devices": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Devices"
+          }
+        }
+      }
+    },
+    "Done": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        }
+      }
+    },
+    "Flint asks to use the camera and to find devices on your local network. Choose Allow for both. Google accounts arrive as Sign in rows because Google logins can't be copied.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint asks to use the camera and to find devices on your local network. Choose Allow for both. Google accounts arrive as Sign in rows because Google logins can't be copied."
+          }
+        }
+      }
+    },
+    "From": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From"
+          }
+        }
+      }
+    },
+    "Google accounts show up as Sign in rows because a Google login can't be copied between apps. Passwords come only if you tick that box on your Mac.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google accounts show up as Sign in rows because a Google login can't be copied between apps. Passwords come only if you tick that box on your Mac."
+          }
+        }
+      }
+    },
+    "If iOS asks to find devices on your local network, choose Allow.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If iOS asks to find devices on your local network, choose Allow."
+          }
+        }
+      }
+    },
+    "Last: ": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last: "
+          }
+        }
+      }
+    },
+    "Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mac"
+          }
+        }
+      }
+    },
+    "Needs Google sign-in": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs Google sign-in"
+          }
+        }
+      }
+    },
+    "Needs a password": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs a password"
+          }
+        }
+      }
+    },
+    "Nothing is added until you press Add to this iPhone.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing is added until you press Add to this iPhone."
+          }
+        }
+      }
+    },
+    "Nothing new was added. This iPhone already had everything.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing new was added. This iPhone already had everything."
+          }
+        }
+      }
+    },
+    "On your Mac, open Flint, then Settings > Devices, then Show code.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On your Mac, open Flint, then Settings > Devices, then Show code."
+          }
+        }
+      }
+    },
+    "Open Settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Settings"
+          }
+        }
+      }
+    },
+    "Password": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password"
+          }
+        }
+      }
+    },
+    "Point the camera at the code on your Mac.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Point the camera at the code on your Mac."
+          }
+        }
+      }
+    },
+    "Ready to add": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready to add"
+          }
+        }
+      }
+    },
+    "Rules": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rules"
+          }
+        }
+      }
+    },
+    "Rules and signatures for an account that isn't set up here are skipped.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rules and signatures for an account that isn't set up here are skipped."
+          }
+        }
+      }
+    },
+    "Scan code": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan code"
+          }
+        }
+      }
+    },
+    "Scan the code here.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan the code here."
+          }
+        }
+      }
+    },
+    "Set up": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set up"
+          }
+        }
+      }
+    },
+    "Set up from your Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set up from your Mac"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        }
+      }
+    },
+    "Sign in": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in"
+          }
+        }
+      }
+    },
+    "Signatures": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signatures"
+          }
+        }
+      }
+    },
+    "Templates": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Templates"
+          }
+        }
+      }
+    },
+    "This device can't scan codes. Scan it with the Camera app, which opens Flint.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This device can't scan codes. Scan it with the Camera app, which opens Flint."
+          }
+        }
+      }
+    },
+    "Try again": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again"
+          }
+        }
+      }
+    },
+    "Undo send time, sync window, theme and similar choices. Never passwords or tokens.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Undo send time, sync window, theme and similar choices. Never passwords or tokens."
+          }
+        }
+      }
+    },
+    "Use a demo Mac": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a demo Mac"
+          }
+        }
+      }
+    },
+    "Waiting for camera access…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for camera access…"
+          }
+        }
+      }
+    },
+    "Waiting for you to approve on your Mac…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for you to approve on your Mac…"
+          }
+        }
+      }
+    },
+    "You can also add accounts one by one from Settings > Accounts.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can also add accounts one by one from Settings > Accounts."
+          }
+        }
+      }
+    },
+    "Your Mac sends accounts, signatures, templates, rules and blocked senders straight to this iPhone over Wi-Fi.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Mac sends accounts, signatures, templates, rules and blocked senders straight to this iPhone over Wi-Fi."
+          }
+        }
+      }
+    },
+    "Your Mac shows the same six digits. If they differ, cancel: someone else may be connecting.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Mac shows the same six digits. If they differ, cancel: someone else may be connecting."
+          }
+        }
+      }
+    },
+    "accounts need Google sign-in. Do it from Settings > Accounts.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "accounts need Google sign-in. Do it from Settings > Accounts."
+          }
+        }
+      }
+    },
+    "accounts need a password. Add them from Settings > Accounts.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "accounts need a password. Add them from Settings > Accounts."
+          }
+        }
+      }
+    },
+    "already here": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "already here"
+          }
+        }
+      }
+    },
+    "new": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "new"
+          }
+        }
+      }
+    },
+    "signatures or rules were skipped because their account isn't set up here.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "signatures or rules were skipped because their account isn't set up here."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

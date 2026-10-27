@@ -61,7 +61,7 @@ enum ComposeRequest: Hashable, Sendable {
 }
 
 enum SettingsSection: String, Hashable, Sendable, CaseIterable {
-    case root, accounts, appearance, inbox, compose, signatures, rules, notifications, privacy, receipts, about
+    case root, accounts, appearance, inbox, compose, signatures, rules, notifications, privacy, receipts, devices, about
 }
 
 /// Where the app can go. Every navigation in the shell, deep links and the features' own buttons use `AppModel.navigate(to:)`.

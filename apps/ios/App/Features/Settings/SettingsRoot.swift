@@ -72,6 +72,7 @@ private struct SettingsIndex: View {
                         link(.notifications, icon: .bell, title: sl("Notifications"))
                         link(.privacy, icon: .shield, title: sl("Privacy"))
                         link(.receipts, icon: .eye, title: sl("Read receipts"))
+                        link(.devices, icon: .smartphone, title: PairingText.pl("Devices"))
                     }
                     SettingsGroup(title: sl("Flint")) {
                         link(.about, icon: .fileText, title: sl("About"))
@@ -126,6 +127,7 @@ private struct SettingsSectionView: View {
         case .notifications: NotificationsPage()
         case .privacy: PrivacyPage()
         case .receipts: ReceiptsPage()
+        case .devices: DevicesPage()
         case .about: AboutPage()
         }
     }

@@ -1,3 +1,5 @@
+import type { PairingUiEvent } from "@flint/core/pairing/controller";
+import type { PairedDevice } from "@flint/core/pairing/devices";
 import { readStored, writeStored } from "./storage";
 
 /** Shape of window.flintHost (declared by preload). Kept local so renderer code needs no global augmentation. */
@@ -8,6 +10,15 @@ export type FlintHost = {
   onMenu(cb: (action: string, arg?: string) => void): () => void;
   /** Opens the bundled browser extension folder in Finder. */
   revealExtension?(family: "chromium" | "firefox"): Promise<void>;
+  /** Set up iPhone. Missing in the web build and in older preloads. */
+  pairing?: {
+    start(): Promise<void>;
+    approve(includePasswords: boolean): Promise<void>;
+    cancel(): Promise<void>;
+    devices(): Promise<PairedDevice[]>;
+    forget(pairedAt: number): Promise<PairedDevice[]>;
+    onEvent(cb: (event: PairingUiEvent) => void): () => void;
+  };
   /** Absolute path of a dropped or picked file (Electron removed File.path). */
   getPathForFile?(file: File): string;
   /** Scales the whole window. Missing in the web build and in older preloads. */

@@ -1,9 +1,12 @@
 import SwiftUI
 
-/// First screen: three ways in. "Set up from your Mac" waits for pairing (wave 4) and stays disabled.
+/// First screen: three ways in. "Set up from your Mac" opens the pairing flow (Features/Pairing).
 struct WelcomeStep: View {
     @Bindable var model: OnboardingModel
     let hasAccounts: Bool
+    @Environment(AppModel.self) private var appModel
+    @State private var pairing = false
+    @State private var linkPayload: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: FlintMetrics.Space.s6) {
@@ -32,9 +35,8 @@ struct WelcomeStep: View {
                 FlintHairline()
                 OnboardingChoiceRow(
                     icon: .smartphone, title: String(localized: "Set up from your Mac", table: "Onboarding"),
-                    detail: String(localized: "Available in a later update", table: "Onboarding"),
-                    identifier: "onboarding.mac") {}
-                    .disabled(true)
+                    detail: String(localized: "Copy your accounts over Wi-Fi", table: "Onboarding"),
+                    identifier: "onboarding.mac") { pairing = true }
             }
             .disabled(model.busy == .google)
             .overlay { RoundedRectangle(cornerRadius: FlintMetrics.Radius.card).stroke(FlintColor.line, lineWidth: 1) }
@@ -42,6 +44,20 @@ struct WelcomeStep: View {
             if let text = model.errorText {
                 OnboardingNotice(tone: .danger, text: text, identifier: "onboarding.error")
             }
+        }
+        .task {
+            // The system Camera scanned the Mac's code and opened flint://pair#...
+            if case .pair(let payload)? = appModel.takePendingLink() {
+                linkPayload = payload
+                pairing = true
+            }
+        }
+        .sheet(isPresented: $pairing, onDismiss: { linkPayload = nil }) {
+            PairingFlow(model: PairingModel(services: appModel.pairingServices, pendingPayload: linkPayload)) { finished in
+                pairing = false
+                if finished { appModel.navigate(to: .dismiss) }
+            }
+            .environment(appModel)
         }
     }
 }
