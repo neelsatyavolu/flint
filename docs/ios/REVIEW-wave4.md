@@ -187,3 +187,53 @@ Checked and sound, apart from H4:
 - Rescheduling happens after every completed, failed or expired run and on each trip to the background. The refresh asks for now plus 15 min. The processing task asks for the next due send or snooze (at least 60 s away), otherwise now plus 6 h. The gap is the bootstrap-failure path (M2).
 - Completion is `setTaskCompleted(success: result == .completed)`. It is late on expiry (M3).
 - The work done does not match what was promised: there is no code detection in warm runs (H3) and no receipts poll (M5).
+
+## Recheck
+
+Independent recheck of the fix commits `d4bd5d4` (pairing), `1e5797b` (notifications), `49d8b29` (leftovers) and `d78b5b0` (integration). No app code was changed.
+
+### What was run
+
+| Check | Result |
+|---|---|
+| `xcodebuild test -only-testing:FlintTests` on a temporary `flint-recheck4-sim` (iPhone 17 Pro, iOS 26.5; created and deleted for this recheck; serial, `-jobs 4`) | 533 tests in 91 suites passed |
+| `swift test --filter Pairing` (FlintCore, macOS host) | 60 tests in 6 suites passed |
+| `NWEndpoint.Host` and `getaddrinfo` on `010.0.0.1`, `010.010.010.010`, `0x0a.0.0.1` (macOS script) | All read as decimal (`10.x`), so a leading zero cannot turn an address `isLocalHost` accepts into a public one |
+
+Not run: UI tests, `pairing-e2e.sh`, vitest, anything on a device.
+
+### Findings that are fixed
+
+H1, H2, H3, H5, M1, M3, M4, M5, M8, L1, L3, L4, L5, L6 and L7 hold up against the code:
+
+- H1: `codeAlert` (`NotificationPolicy.swift:66-68`) now requires previews on and `alertsAllowed` (master switch, scope, muted account). Auto-copy (`CodesLogic.swift`) follows previews and muted accounts.
+- H2: the planner builds snoozes with `SchedulingNotices.snooze`, so both owners write the same content-free text under `snooze.<id>`, and it skips muted accounts and alerts-off (`DueNotificationPlanner.swift:17-19`). Scheduling's own `snoozed()` does not check muted accounts, but the reconcile that follows the `.mailChanged` event removes that request about a second later. Send-later and follow-up titles drop names when previews are hidden, including at launch, since `loadInitialState` calls `scheduling.update`.
+- H3: `startListeners()` runs on every background pass (`Background.swift:232`), and `installSubscriptionsIfNone` keeps `start()` from wiring the listeners twice.
+- H5: `library()` reads signatures, templates, rules and blocked patterns, and the plan drops items by lowercased name or pattern.
+- M8: the deadline task closes the transport, and `guarded` maps the error to `timedOut`.
+- Transcript: both implementations now derive the code from `flint-pair/sas || A || B` in the same order, and both vector files were regenerated. The version was not bumped, which is fine because pairing is not on `master`. On the Mac, `approve` clears the TTL timer, `bundleSent` is set after chunking and before the first write, and `too_large` is matched on the real error texts.
+
+M2, M7 and L2 remain partly open, as their status lines say.
+
+### Not fully fixed
+
+**R1. (Medium, H4 and M4 follow-on) "Use the Mac's details" moves the iPhone's stored password to the bundle's servers without showing them.**
+`Packages/FlintCore/Sources/FlintPairing/BundleImporter.swift:87, 99-102` and `App/Features/Pairing/PairingReview.swift:49-52`.
+For an account already on the phone with `authKind == .password`, turning on the conflict row sets `patch.server` to the bundle's IMAP and SMTP host, port and `secure` flag. `AccountService.updateAccount` (`AccountService.swift:122-128`) stores it without checking the login and keeps the Keychain secret. The conflict row only says "Already on this iPhone. Use the Mac's details?" and shows no host. The H4 fix added hosts to the ready rows (:99) and pending rows (:161), and those show only `imap.host`: the SMTP host, both ports and the TLS flag never appear.
+Failure: someone on the same café Wi-Fi sends a `flint://pair#…` link pointing at `192.168.1.66`, and the user taps Connect. The phone compares the code with the attacker's listener, which matches. On review, the user turns on "Use the Mac's details" for their iCloud account. On the next sync, the iPhone logs in to `192.168.1.66` with the real app password. The same goes for a pending row that reads "Needs a password, imap.mail.me.com" while its `smtp.host` is the attacker's: the user types the real password, and the first send delivers it to the attacker's server.
+Fix: show the IMAP and SMTP hosts (and a warning when `secure` is false) on every row that will use the bundle's servers, including conflict rows. When the server would change, also consider asking for the password again.
+
+**R2. (Low, plausible, M6) The background code check depends on a 600 ms wait.**
+`App/Shell/Background.swift:254-256`. Code detection runs in an unstructured `Task` started by the `.newMail` subscriber (`Runtime.swift:66`). `syncForBackground` sleeps 600 ms and then calls `flush()`. If `codes.scan` (a settings read plus a scan of the thread) has not posted the `.code` event by then, `codeAlertedAt` is still empty and the ordinary "KAYAK: Your verification code" alert goes out next to the code alert. This was not reproduced. Deriving the code alert inside the flush, or awaiting the detection, would remove the timing dependency.
+
+### New problems
+
+**N1. (Low) Turning alerts off and on again deletes pending "Ready to send" and follow-up notices for good.**
+`App/Features/Scheduling/SchedulingCoordinator.swift:38-39`. With `alertsOn` false, `update(notifications:)` cancels every pending Scheduling notice. Nothing re-creates them when alerts come back on: `reconcile(waiting:)` (:75-79) only withdraws notices, and the snooze planner rebuilds only `snooze.` requests.
+Failure: the user schedules a mail for 9:00 tomorrow, turns "Alert me to new mail" off and back on that evening, and closes Flint. At 9:00 no "Ready to send" appears, so the mail waits until the app is next opened or a processing run happens to land. A follow-up reminder for a send made earlier is lost the same way.
+
+**N2. (Info) The receipts row can name a source that is not used.**
+`App/Features/Pairing/PairingReview.swift:86-88`. When the Mac's receipts block has no endpoint, or one that is not an https URL, the row reads "Uses the address from your Mac". If the user turns it on, `enabled` and `defaultOn` are applied and the iPhone keeps its own endpoint, because `ReceiptPixel.normalizeEndpoint` ignores anything that is not https. The wording should say the iPhone's address stays.
+
+**N3. (Info) The link confirm step cannot tell a LAN attacker from the user's Mac.**
+`App/Features/Pairing/PairingSteps.swift` (`PairingLinkConfirmStep`). After H4, a link can only point at a private, link-local, loopback or `.local` host. Someone on the same network can still serve one, and a name like `neels-macbook.local` looks trustworthy. The confirm copy and the code comparison are the only defence left, which is why R1 matters.
