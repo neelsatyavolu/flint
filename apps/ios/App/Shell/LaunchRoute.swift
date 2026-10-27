@@ -3,7 +3,7 @@ import Foundation
 
 /// `-FlintRoute <spec>` opens a screen right after launch, so screenshots and UI tests reach any screen without tapping:
 /// `inbox`, `inbox:<n>` (n-th account, from 0), `pinned`, `drafts`, `scheduled`, `snoozed`, `sent`, `archive`, `trash`, `spam`,
-/// `thread:<subject>`, `sidebar`, `search`, `search:<query>`, `settings`, `compose`, `onboarding`.
+/// `thread:<subject>`, `sidebar`, `search`, `search:<query>`, `settings`, `settings:<section>`, `compose`, `onboarding`.
 enum LaunchRoute: Equatable {
     case route(Route)
     /// Open the first conversation (in the unified inbox) whose subject starts with this text.
@@ -29,7 +29,7 @@ enum LaunchRoute: Equatable {
         case "thread": return argument.map { .thread(subjectPrefix: $0) }
         case "sidebar": return .route(.sidebar)
         case "search": return .route(.search(argument))
-        case "settings": return .route(.settings(.root))
+        case "settings": return .route(.settings(argument.flatMap(SettingsSection.init(rawValue:)) ?? .root))
         case "compose": return .route(.compose(.start(.new())))
         case "onboarding": return .route(.onboarding)
         default: return nil

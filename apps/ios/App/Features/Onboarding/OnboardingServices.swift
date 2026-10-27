@@ -11,7 +11,13 @@ protocol OnboardingServices: Sendable {
     func addAccount(_ input: AddAccountInput) async throws -> Account
     func addGoogleAccount(loginHint: String?) async throws -> Account
     func setSmartInbox(_ enabled: Bool) async
+    /// On: ask the system for permission. Off: switch Flint's alerts off. Defaults to nothing for fakes.
+    func setNotifications(_ wanted: Bool) async
     func saveSignature(_ signature: Signature) async throws
+}
+
+extension OnboardingServices {
+    func setNotifications(_ wanted: Bool) async {}
 }
 
 struct AppOnboardingServices: OnboardingServices {
@@ -24,6 +30,8 @@ struct AppOnboardingServices: OnboardingServices {
     func addGoogleAccount(loginHint: String?) async throws -> Account { try await model.addGoogleAccount(loginHint: loginHint) }
 
     func saveSignature(_ signature: Signature) async throws { _ = try await model.requireService().saveSignature(signature) }
+
+    func setNotifications(_ wanted: Bool) async { await model.applyNotificationChoice(wanted: wanted) }
 
     func setSmartInbox(_ enabled: Bool) async {
         await model.updateSettings(patch: .object(["inbox": .object(["focused": .bool(enabled)])]))

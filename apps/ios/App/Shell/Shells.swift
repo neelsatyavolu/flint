@@ -22,7 +22,7 @@ struct PadShell: View {
                     sidebar.frame(width: Self.sidebarWidth)
                     VerticalHairline()
                 }
-                FeatureRegistry.root("inbox").frame(width: min(listWidth, proxy.size.width * (wide ? 0.4 : 0.5)))
+                InboxWithCodes().frame(width: min(listWidth, proxy.size.width * (wide ? 0.4 : 0.5)))
                 VerticalHairline()
                 detail.frame(maxWidth: .infinity)
             }
@@ -87,7 +87,7 @@ struct PhoneShell: View {
 
     var body: some View {
         NavigationStack(path: path) {
-            FeatureRegistry.root("inbox")
+            InboxWithCodes()
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationDestination(for: ThreadID.self) { _ in
                     FeatureRegistry.root("thread").toolbar(.hidden, for: .navigationBar)
@@ -114,5 +114,15 @@ struct PresentedSheet: View {
         }
         .background(FlintColor.plane1.ignoresSafeArea())
         .overlay { ToastHost(center: model.toasts) }
+    }
+}
+
+/// The inbox with the Codes strip above it (DESIGN-NOTES section 9). The strip takes no room without a fresh code.
+struct InboxWithCodes: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            CodesStrip()
+            FeatureRegistry.root("inbox")
+        }
     }
 }

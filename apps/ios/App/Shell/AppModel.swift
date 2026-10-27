@@ -64,14 +64,28 @@ final class AppModel {
     /// How many times a background cycle stopped the service (read by tests).
     @ObservationIgnored var backgroundStops = 0
     @ObservationIgnored var drainTask: Task<SendDrain.Outcome, Never>?
+    // Notifications and background runs (Background.swift, Features/Notifications).
+    @ObservationIgnored let notifications: NotificationCoordinator
+    @ObservationIgnored let backgroundScheduler: any BackgroundTaskScheduling
+    @ObservationIgnored let diagnosticsStore: BackgroundDiagnosticsStore
+    @ObservationIgnored var notificationResponder: NotificationResponder?
+    /// Demo only: delivers one more message before a background run syncs.
+    @ObservationIgnored var demoDeliverNewMail: (@Sendable () async -> Void)?
+    @ObservationIgnored private var bootstrapTask: Task<Void, Never>?
+    internal(set) var diagnostics = BackgroundDiagnostics()
 
-    init(mode: LaunchMode = .fromArguments(), toasts: ToastCenter = ToastCenter(), defaults: UserDefaults = .standard, backgroundTasking: any BackgroundTasking = SystemBackgroundTasking()) {
+    init(mode: LaunchMode = .fromArguments(), toasts: ToastCenter = ToastCenter(), defaults: UserDefaults = .standard, backgroundTasking: any BackgroundTasking = SystemBackgroundTasking(), notifications: NotificationCoordinator? = nil, backgroundScheduler: (any BackgroundTaskScheduling)? = nil) {
         // swift-log is process-wide and SwiftMail logs hosts and commands: install the privacy handler before any transport exists.
         FlintLogging.bootstrap()
         self.mode = mode
         self.toasts = toasts
         self.defaults = defaults
         self.backgroundTasking = backgroundTasking
+        self.notifications = notifications ?? NotificationCoordinator.makeDefault()
+        self.backgroundScheduler = backgroundScheduler ?? (FlintDebugFlags.isHostingUnitTests ? RecordingBackgroundTaskScheduling() : SystemBackgroundTaskScheduling())
+        self.diagnosticsStore = BackgroundDiagnosticsStore(defaults: defaults)
+        self.diagnostics = diagnosticsStore.load()
+        self.notifications.onCopied = { [toasts] in toasts.show(String(localized: "Code copied", table: "Shell")) }
         recentSearches = mode.isDemo ? [] : defaults.stringArray(forKey: Self.recentsKey) ?? []
     }
 
@@ -81,6 +95,14 @@ final class AppModel {
 
     /// Opens the service and loads the first state. Safe to call more than once; only the first call does anything.
     func bootstrap() async {
+        // Two callers can arrive together (the window and a notification action); both wait for the same run.
+        if let bootstrapTask { return await bootstrapTask.value }
+        let task = Task { await performBootstrap() }
+        bootstrapTask = task
+        await task.value
+    }
+
+    private func performBootstrap() async {
         guard phase == .launching else { return }
         do {
             let service = try await openService()
@@ -102,6 +124,7 @@ final class AppModel {
         case .demo:
             let seeded = try await DemoSeed.make()
             demoDirectory = seeded.directory
+            demoDeliverNewMail = seeded.deliverNewMail
             return seeded.service
         case .live:
             return try await FlintService.open(configuration: LiveConfiguration.make())
@@ -128,15 +151,23 @@ final class AppModel {
     private func loadInitialState(from service: FlintService) async throws {
         accounts = try await service.listAccounts()
         settings = try await service.currentSettings()
+        if let settings { notifications.update(settings: settings) }
         syncStatuses = try await service.syncStatuses()
         sidebar = try await Self.firstValue(of: service.sidebar())
     }
 
     private func startObserving(_ service: FlintService) {
-        observe(service.sidebar()) { $0.sidebar = $1 }
+        notifications.attach(service: service)
+        observe(service.sidebar()) { model, sidebar in
+            model.sidebar = sidebar
+            Task { await model.notifications.updateBadge(inboxUnread: sidebar.counts.inbox) }
+        }
         observe(service.accounts()) { $0.accounts = $1 }
         observe(service.syncStatus()) { $0.syncStatuses = $1 }
-        observe(service.settings()) { $0.settings = $1 }
+        observe(service.settings()) { model, settings in
+            model.settings = settings
+            model.notifications.update(settings: settings)
+        }
         observe(service.codes()) { $0.codes = $1 }
         let events = service.events()
         observers.append(Task { [weak self] in
@@ -167,6 +198,7 @@ final class AppModel {
 
     /// Service toasts (a failed send, a fired reminder) go to the toast centre. Other events reach features through `events()`.
     private func handle(_ event: FlintEvent) {
+        notifications.ingest(event)
         guard case .toast(let level, let message, let token) = event else { return }
         var undo: (@MainActor () async -> Void)?
         if let token { undo = { [weak self] in await self?.undo(token: token) } }

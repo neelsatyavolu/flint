@@ -239,3 +239,14 @@ All seven track branches merged into `ios`. Shared-file changes made while integ
 ## From wave 3 fix, composer group (second pass)
 
 - Findings 6, 8, 12, 14, 16, 22, 23, 24 were already fixed in fa2c703 and re-checked in code; 12 got more exact (autoconfig also resolves MX and probes likely hosts, receipts also registers and polls). 15: the code chip is now its own button (`inbox.code.<id>`) laid over the chip, tested by UI test. 9: textClipped is now checked on inbox, Settings; still skipped on Search and Thread (other groups' screens). Thread: `thread.original.*` toggle fails the iPad contrast audit (Thread group).
+
+## Track 4B (notifications, codes, background)
+
+- Added: `App/Features/Notifications/*` (policy ported from `notifyPolicy.ts`, categories, coordinator, responder, diagnostics, Settings > Notifications page), `App/Features/Codes/*` (Codes strip, clipboard), `App/Shell/Background.swift` (BGTask registration, runner, `BackgroundHub`). Tests in `AppTests/Notifications`, UI test `AppUITests/NotificationsTests.swift`.
+- `App/Shell/AppModel.swift`: new members (`notifications`, `backgroundScheduler`, `diagnostics`), bootstrap is now a shared task (the window and a notification action can call it together), events/settings/sidebar feed the coordinator. Why: shell wiring for 4B.
+- `App/Shell/BackgroundSends.swift`: FIX of a wave 3 crash. `Int(backgroundTimeRemaining ...)` trapped because it is `greatestFiniteMagnitude` before a task begins, so backgrounding the app crashed. Now clamped; also schedules the BG tasks.
+- `App/Shell/FlintApp.swift` uses `BackgroundHub.model` and registers BG handlers in `init`. `Shells.swift`: inbox wrapped in `InboxWithCodes` (strip above it). `LaunchRoute`: `settings:<section>`. `FlintDebugFlags`: `-FlintFakeNotifications granted|denied|undetermined`.
+- `Features/Settings/PreferencePages.swift`: `NotificationsPage` now delegates to `NotificationsSettingsPage` (4B). `Features/Onboarding`: the notifications switch calls `OnboardingServices.setNotifications` (default no-op in a protocol extension, so existing fakes compile); copy changed.
+- `App/Seed/DemoSeed.swift`: `DemoSeedResult.deliverNewMail` (demo only) so a background run in the demo has new mail to announce.
+- Demo launches use an in-memory notification centre unless `-FlintSystemNotifications YES`.
+- Not done / needs a service change: follow-up reminders have no list API, so they alert only when they fire during a background run (matched by the "No reply from" toast), not as pre-scheduled local notifications. Badge "people unread" is not tracked separately (inbox unread is used). Alerts from the Mac pairing import (4E) are untouched.

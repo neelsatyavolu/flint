@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Last step: two skippable choices, then the inbox. Notifications are shown but do nothing until wave 4.
+/// Last step: skippable choices, then the inbox. The notifications switch asks for permission when Go to inbox is tapped.
 struct ChoicesStep: View {
     @Bindable var model: OnboardingModel
     let onDone: () -> Void
@@ -22,7 +22,7 @@ struct ChoicesStep: View {
             VStack(spacing: 0) {
                 OnboardingToggleRow(
                     title: String(localized: "Notifications", table: "Onboarding"),
-                    detail: String(localized: "Flint will ask for permission when notifications arrive in a later update.", table: "Onboarding"),
+                    detail: String(localized: "New mail from people and verification codes. iOS asks for permission when you continue.", table: "Onboarding"),
                     isOn: $model.notificationsWanted, identifier: "onboarding.notifications")
                 FlintHairline()
                 OnboardingToggleRow(

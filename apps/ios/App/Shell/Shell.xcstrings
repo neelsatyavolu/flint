@@ -23,6 +23,17 @@
         }
       }
     },
+    "Code copied": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code copied"
+          }
+        }
+      }
+    },
     "Couldn't archive. Try again.": {
       "extractionState": "manual",
       "localizations": {

@@ -11,6 +11,8 @@ struct DemoSeedResult: Sendable {
     let service: FlintService
     let directory: URL
     let accounts: [Account]
+    /// Delivers one more message to the Google account's server; a background run calls it before it syncs.
+    let deliverNewMail: @Sendable () async -> Void
 }
 
 enum DemoSeed {
@@ -56,7 +58,9 @@ enum DemoSeed {
         await DemoDelivery.deliver(DemoMailboxGoogle.lateMessages(), to: .google, server: google, now: now, batch: 1)
         try await service.syncNow(accountId: DemoAccount.google.id)
         try await DemoSeedFinish.apply(service: service, store: store, now: now)
-        return DemoSeedResult(service: service, directory: root, accounts: try await service.listAccounts())
+        let background = DemoBackgroundMail(server: google)
+        return DemoSeedResult(
+            service: service, directory: root, accounts: try await service.listAccounts(), deliverNewMail: { await background.deliver() })
     }
 
     private static func require<T>(_ value: T?) throws -> T {

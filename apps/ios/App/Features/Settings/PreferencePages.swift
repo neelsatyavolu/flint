@@ -169,15 +169,7 @@ struct ReceiptsPage: View {
     }
 }
 
-/// Wave 4 builds notifications. This page says so.
+/// Notifications live in `Features/Notifications`.
 struct NotificationsPage: View {
-    var body: some View {
-        SettingsPage(title: sl("Notifications"), identifier: "notifications") {
-            FlintEmptyState(
-                icon: .bell, title: sl("Notifications are coming"),
-                message: sl("Alerts for new mail from people and for verification codes arrive in a later update. Nothing is sent until then."),
-                identifier: "settings.notifications.placeholder")
-                .frame(minHeight: 320)
-        }
-    }
+    var body: some View { NotificationsSettingsPage() }
 }

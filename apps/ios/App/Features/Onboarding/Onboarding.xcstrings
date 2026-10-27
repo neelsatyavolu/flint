@@ -254,6 +254,17 @@
         }
       }
     },
+    "New mail from people and verification codes. iOS asks for permission when you continue.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New mail from people and verification codes. iOS asks for permission when you continue."
+          }
+        }
+      }
+    },
     "Not tried": {
       "extractionState": "manual",
       "localizations": {
@@ -287,9 +298,7 @@
         }
       }
     },
-    "Optional. Added under new mail and replies from this account. You can change it later in Settings.": {
-
-    },
+    "Optional. Added under new mail and replies from this account. You can change it later in Settings.": {},
     "Other email": {
       "extractionState": "manual",
       "localizations": {
@@ -444,9 +453,7 @@
         }
       }
     },
-    "Signature": {
-
-    },
+    "Signature": {},
     "Smart inbox": {
       "extractionState": "manual",
       "localizations": {
