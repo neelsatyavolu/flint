@@ -178,3 +178,59 @@ struct MailMimeEncodingTests {
         #expect(PlainText.fromHTML("<head>\n<style>\np { color: red }\n</style></head>\n<body><script>\nvar x = 1;\n</script><p>kept</p></body>") == "kept")
     }
 }
+
+@Suite("MimeBuilder calendar part")
+struct MailMimeCalendarPartTests {
+    private let ics = "BEGIN:VCALENDAR\r\nMETHOD:REPLY\r\nEND:VCALENDAR\r\n"
+
+    @Test func writesTheReplyAsATextCalendarAlternative() throws {
+        let part = CalendarPart(method: "REPLY", content: ics)
+        let parsed = try build(MimeInput(from: me, to: [Address(address: "org@example.org")], subject: "Accepted: x", html: "<p>ok</p>", calendarPart: part))
+        #expect(parsed.contentType == "multipart/alternative")
+        #expect(parsed.parts.map(\.contentType) == ["text/plain", "text/html", "text/calendar"])
+        let calendar = parsed.parts[2]
+        #expect(calendar.parameters["method"] == "REPLY" && calendar.parameters["charset"]?.lowercased() == "utf-8")
+        #expect(calendar.text.contains("METHOD:REPLY"))
+        #expect(calendar.disposition == nil)
+    }
+
+    @Test func keepsOrdinaryAttachmentsInMixed() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("cal-\(UUID().uuidString).txt")
+        try Data("hello".utf8).write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let attachment = DraftAttachment(id: "a", filename: "n.txt", contentType: "text/plain", size: 5, path: file.path)
+        let parsed = try build(MimeInput(
+            from: me, to: [], subject: "s", html: "<p>x</p>", attachments: [attachment], calendarPart: CalendarPart(method: "REPLY", content: ics)))
+        #expect(parsed.contentType == "multipart/mixed")
+        #expect(parsed.parts[0].parts.map(\.contentType) == ["text/plain", "text/html", "text/calendar"])
+        #expect(parsed.parts[1].filename == "n.txt")
+    }
+
+    @Test func promotesAnIcsAttachmentWhoseTypeCarriesAMethod() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("cal-\(UUID().uuidString).ics")
+        try Data(ics.utf8).write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let attachment = DraftAttachment(id: "a", filename: "invite.ics", contentType: CalendarPart.contentType(method: "REPLY"), size: ics.utf8.count, path: file.path)
+        let parsed = try build(MimeInput(from: me, to: [], subject: "s", html: "<p>x</p>", attachments: [attachment]))
+        #expect(parsed.contentType == "multipart/alternative")
+        #expect(parsed.parts.last?.contentType == "text/calendar" && parsed.parts.last?.parameters["method"] == "REPLY")
+        #expect(parsed.parts.last?.text.contains("METHOD:REPLY") == true)
+    }
+
+    @Test func aPlainIcsAttachmentWithoutAMethodStaysAnAttachment() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("cal-\(UUID().uuidString).ics")
+        try Data(ics.utf8).write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let attachment = DraftAttachment(id: "a", filename: "event.ics", contentType: "text/calendar", size: 10, path: file.path)
+        let parsed = try build(MimeInput(from: me, to: [], subject: "s", html: "<p>x</p>", attachments: [attachment]))
+        #expect(parsed.contentType == "multipart/mixed")
+        #expect(parsed.parts[1].filename == "event.ics")
+    }
+
+    @Test func sevenBitCleanWithNonAsciiContent() throws {
+        let raw = try MimeBuilder.build(MimeInput(
+            from: me, to: [], subject: "s", html: "<p>x</p>", calendarPart: CalendarPart(method: "REPLY", content: "SUMMARY:Café\r\n")))
+        #expect(raw.allSatisfy { $0 < 0x80 })
+        #expect(MailParsedMime.parse(raw).parts.last?.text.contains("Café") == true)
+    }
+}

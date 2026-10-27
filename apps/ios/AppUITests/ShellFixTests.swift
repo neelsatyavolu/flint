@@ -23,6 +23,19 @@ final class ShellFixTests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'inbox.row.'"))
     }
 
+    /// Types a shortcut and waits for `result`, pressing again when nothing happened. The first key with a modifier that a
+    /// relaunched app gets from the runner is lost (the simulator attaches its hardware keyboard to the new process only
+    /// then): the shortcut worked on the first launch of a test session and failed on every later one, with Cmd-N and Cmd-F
+    /// alike, and a second press always worked. The app's key commands are not at fault.
+    @MainActor
+    private func press(_ app: XCUIApplication, _ key: String, _ flags: XCUIElement.KeyModifierFlags, expecting result: String, timeout: TimeInterval = 4) -> Bool {
+        for _ in 0..<4 {
+            app.typeKey(key, modifierFlags: flags)
+            if any(app, result).waitForExistence(timeout: timeout) { return true }
+        }
+        return false
+    }
+
     @MainActor
     private func shot(_ app: XCUIApplication, _ name: String) {
         sleep(1)
@@ -84,6 +97,43 @@ final class ShellFixTests: XCTestCase {
         shot(app, "search-back")
     }
 
+    // MARK: Read statuses entries
+
+    @MainActor
+    func testSidebarOpensReadStatuses() {
+        let app = launch(extra: ["-FlintRoute", "sidebar"])
+        let row = app.buttons["sidebar.receipts"]
+        XCTAssertTrue(row.waitForExistence(timeout: 30))
+        row.tap()
+        XCTAssertTrue(any(app, "receipts.root").waitForExistence(timeout: 15))
+        let list = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'receipts.row.'"))
+        XCTAssertTrue(list.firstMatch.waitForExistence(timeout: 10))
+        shot(app, "receipts-from-sidebar")
+    }
+
+    @MainActor
+    func testSettingsReceiptsPageLinksToStatusesAndExplains() {
+        for theme in ["dark", "light"] {
+            let app = launch(appearance: theme, extra: ["-FlintRoute", "settings"])
+            let section = any(app, "settings.section.receipts")
+            XCTAssertTrue(section.waitForExistence(timeout: 30))
+            if !section.isHittable { app.swipeUp() }
+            section.tap()
+            XCTAssertTrue(any(app, "settings.receipts.root").waitForExistence(timeout: 10))
+            var text = any(app, "receipts.howItWorks.text")
+            for _ in 0..<4 where !text.exists { app.swipeUp() }
+            text = any(app, "receipts.howItWorks.text")
+            XCTAssertTrue(text.exists, "the desktop's How it works text")
+            shot(app, "settings-receipts-\(theme)")
+            for _ in 0..<4 where !any(app, "settings.receipts.statuses").isHittable { app.swipeDown() }
+            let link = any(app, "settings.receipts.statuses")
+            XCTAssertTrue(link.waitForExistence(timeout: 5))
+            link.tap()
+            XCTAssertTrue(any(app, "receipts.root").waitForExistence(timeout: 15))
+            app.terminate()
+        }
+    }
+
     // MARK: iPad keyboard and composer panel
 
     @MainActor
@@ -93,9 +143,8 @@ final class ShellFixTests: XCTestCase {
         XCTAssertTrue(rows(app).firstMatch.waitForExistence(timeout: 60))
 
         // Cmd-F opens search, Escape-free: close with its X.
-        app.typeKey("f", modifierFlags: .command)
+        XCTAssertTrue(press(app, "f", .command, expecting: "search.field"), "Cmd-F should open search")
         shot(app, "pad-cmdf")
-        XCTAssertTrue(any(app, "search.field").waitForExistence(timeout: 10))
         app.buttons["Close"].firstMatch.tap()
 
         // J opens the first conversation, K from the second goes back, the arrows do the same.
@@ -108,8 +157,7 @@ final class ShellFixTests: XCTestCase {
         sleep(1)
 
         // Cmd-R replies to the open conversation, in the floating panel.
-        app.typeKey("r", modifierFlags: .command)
-        XCTAssertTrue(any(app, "composer.root").waitForExistence(timeout: 10))
+        XCTAssertTrue(press(app, "r", .command, expecting: "composer.root"), "Cmd-R should open the reply panel")
         shot(app, "pad-reply-panel")
 
         // Opening another conversation leaves the panel up.
@@ -125,8 +173,7 @@ final class ShellFixTests: XCTestCase {
         try XCTSkipUnless(isPad, "hardware keyboard shortcuts are an iPad feature")
         let app = launch()
         XCTAssertTrue(rows(app).firstMatch.waitForExistence(timeout: 60))
-        app.typeKey("n", modifierFlags: .command)
-        XCTAssertTrue(any(app, "composer.root").waitForExistence(timeout: 10))
+        XCTAssertTrue(press(app, "n", .command, expecting: "composer.root"), "Cmd-N should open a new message")
         shot(app, "pad-new-message")
         app.terminate()
 

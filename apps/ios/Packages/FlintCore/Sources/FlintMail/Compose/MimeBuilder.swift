@@ -33,11 +33,14 @@ public struct MimeInput: Sendable {
     public var date: Date?
     /// Keep the Bcc header (the copy saved to Sent and Drafts). Never set for mail sent over SMTP.
     public var keepBcc: Bool
+    /// An iTIP message (RFC 6047) written as a `text/calendar; method=...` alternative after the html. When nil, the first
+    /// attachment whose type is `CalendarPart.contentType(method:)` is promoted to it (see `MimeBuilder.build`).
+    public var calendarPart: CalendarPart?
 
     public init(
         from: Address, to: [Address], cc: [Address] = [], bcc: [Address] = [], replyTo: [Address] = [], subject: String, html: String, text: String? = nil,
         attachments: [DraftAttachment] = [], messageId: String? = nil, inReplyTo: String? = nil, references: [String] = [], headers: [String: String] = [:],
-        date: Date? = nil, keepBcc: Bool = false
+        date: Date? = nil, keepBcc: Bool = false, calendarPart: CalendarPart? = nil
     ) {
         self.from = from
         self.to = to
@@ -54,6 +57,35 @@ public struct MimeInput: Sendable {
         self.headers = headers
         self.date = date
         self.keepBcc = keepBcc
+        self.calendarPart = calendarPart
+    }
+}
+
+/// The calendar body of an iTIP message such as a REPLY. `method` is the METHOD of the iCalendar object.
+public struct CalendarPart: Hashable, Sendable {
+    public var method: String
+    public var content: String
+
+    public init(method: String, content: String) {
+        self.method = method
+        self.content = content
+    }
+
+    /// The type a draft attachment carries to ask for the alternative part instead of a file.
+    public static func contentType(method: String) -> String { "text/calendar; method=\(method.uppercased()); charset=UTF-8" }
+
+    /// The METHOD in an attachment type like `text/calendar; method=REPLY`, nil for any other type.
+    static func method(inContentType type: String) -> String? {
+        let pieces = type.split(separator: ";").map { $0.trimmingCharacters(in: .whitespaces) }
+        guard pieces.first?.lowercased() == "text/calendar" else { return nil }
+        for piece in pieces.dropFirst() {
+            let pair = piece.split(separator: "=", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
+            if pair.count == 2, pair[0].lowercased() == "method" {
+                let value = pair[1].trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+                return value.isEmpty ? nil : value.uppercased()
+            }
+        }
+        return nil
     }
 }
 
@@ -161,14 +193,25 @@ public enum MimeBuilder {
         let (html, inline) = extractDataImages(input.html)
         let text = input.text ?? PlainText.fromHTML(html)
 
+        var attachments = input.attachments
+        var calendar = input.calendarPart
+        if calendar == nil, let index = attachments.firstIndex(where: { $0.inline != true && CalendarPart.method(inContentType: $0.contentType) != nil }) {
+            let promoted = attachments.remove(at: index)
+            let data = try loader(promoted)
+            calendar = CalendarPart(method: CalendarPart.method(inContentType: promoted.contentType) ?? "REPLY", content: String(decoding: data, as: UTF8.self))
+        }
+
         var alternatives: [Part] = [textPart("text/plain", text)]
         if !html.isEmpty {
             var related: [Part] = [textPart("text/html", html)]
             for image in inline { related.append(binaryPart(image.contentType, name: image.filename, disposition: "inline", contentId: image.contentId, data: image.data)) }
             alternatives.append(multipart("related", related))
         }
+        if let calendar {
+            alternatives.append(textPart("text/calendar; method=\(MimeEncoding.sanitizedValue(calendar.method).uppercased())", calendar.content))
+        }
         var mixed: [Part] = [multipart("alternative", alternatives)]
-        for attachment in input.attachments {
+        for attachment in attachments {
             let data = try loader(attachment)
             let isInline = attachment.inline == true && attachment.contentId != nil
             mixed.append(binaryPart(

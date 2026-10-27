@@ -295,3 +295,10 @@ Requests for the shell and other owners (file | change | why):
 - The wave 3 `BackgroundSends` crash from 4E's note was already fixed by 4B.
 - Flaky, not fixed: `PairingTests.testCancelAtTheCodeReturnsToTheStart` and the first `EndToEndTests` run failed once and passed on rerun; `ShellFixTests.testKeyboardShortcutsOnIPad` fails when the whole class runs on iPad (Cmd-F gets no key command) and passes alone. Cause not found.
 - BGTaskScheduler `_simulateLaunchForTaskWithIdentifier` via lldb hung again (as in 4B); not verified in the simulator.
+
+## Wave 4 fix, leftovers group
+
+- Receipts hooks (foreground and pull-to-refresh poll, `Presented.receipts`, sidebar "Read statuses", Settings link, desktop "How it works", `ReceiptCheck` marker) were already applied in the integrate commit; now covered by `ShellFixTests.testSidebarOpensReadStatuses` and `testSettingsReceiptsPageLinksToStatusesAndExplains` (both themes). Still open: the desktop's Test button (no service API).
+- `MimeBuilder`: `MimeInput.calendarPart` (`CalendarPart(method:content:)`) writes `text/calendar; method=...` as the last part of multipart/alternative. An attachment typed `CalendarPart.contentType(method:)` is promoted to it, so `InviteReplySender` (now using that type) sends the REPLY as an alternative part and no `invite.ics` attachment. Tests: `MailMimeCalendarPartTests`. Not checked against Gmail, Outlook or Apple Mail.
+- `testKeyboardShortcutsOnIPad` flake: not the app. The first key with a modifier that a relaunched app receives from the UI test runner is lost (Cmd-N fails the same way; a second press works). Reproduced with `-test-iterations 3` on one test. The test now presses again until the result shows (`press(_:_:_:expecting:)`). `FindKeyCommand` and `FlintCommands` are unchanged; a real Magic Keyboard was not tried.
+- Review M5 (background refresh does not poll receipts, `Background.swift`) belongs to the notifications group and is untouched. REVIEW M7 pairing and background items are theirs too. QA 12.1 "quiet hours" and QA 15.2 wording are not edited here.
