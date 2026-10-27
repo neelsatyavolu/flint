@@ -1,0 +1,7 @@
+# Copy to scripts/testflight.local.sh (gitignored) and keep it out of commits. Only names and ids, no secret values.
+OP_ACCOUNT=E3OXZANXQRDOBNXQMPXZ6YBHTY          # 1Password Proton account user id (not the email)
+ASC_ITEM=a2ahwayupzf5uuj5u5famnyx4y            # App Store Connect API key: "Key ID", "issuer id", file AuthKey_<id>.p8
+CERT_ITEM=ud4rlsf6n6izuaebyvqscjhs5m           # Apple Distribution certificate: AppleDistribution_VTQW687WBQ.p12, "password", "Apple Certificate ID"
+# OP_VAULT=Private                              # vault that holds both items (default Private)
+# BUILD_NUMBER=202610271200                     # default: UTC timestamp
+# OUT_DIR=/private/tmp/me/flint-testflight      # archive, export and logs (default .derived/testflight)

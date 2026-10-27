@@ -325,3 +325,8 @@ Requests for the shell and other owners (file | change | why):
 - Checked after the merge: FlintCore `swift test` (755 tests), iPhone and iPad builds, app unit tests, all UI tests on iPhone (75 pass, 4 skipped) and iPad (all pass, 1 skipped), `e2e-greenmail.sh`, `pairing-e2e.sh` (run with zsh, not bash), desktop typecheck and 1080 tests.
 - Flakes seen again, both pass on rerun: `PairingTests.testCancelAtTheCodeReturnsToTheStart` (failed once in the full iPhone run, 3 of 3 alone) and the first `e2e-greenmail.sh` run (second run passes).
 - Each finding in REVIEW-wave4.md now has a Status line. Still open: simulated BGTask launch (QA 12.4), Swift-to-TS e2e for wrong code, replay and tamper, account avatars, M2 failed-phase retry, desktop Test button for the receipts address.
+
+## Wave 5 release track
+
+- Added `apps/ios/scripts/testflight.sh`, `asc.py`, `testflight.local.sh.example`, `gen-third-party.py`, `App/Resources/PrivacyInfo.xcprivacy` (picked up by the existing `App` source path in `project.yml`, no project.yml change), `apps/ios/THIRD-PARTY.md` (generated from `ThirdPartyLicenses.json`) and `docs/ios/RELEASING.md`. One line added to `apps/ios/.gitignore`: `.derived/`.
+- Signed `.ipa` not produced: 1Password returned `authorization timeout` (O4 needs the owner at the Mac). Settings > About > Licenses already existed and is unchanged.
