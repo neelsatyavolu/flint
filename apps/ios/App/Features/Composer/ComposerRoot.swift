@@ -34,6 +34,7 @@ struct ComposerScreen: View {
     let request: ComposeRequest
     @State private var viewModel: ComposerViewModel
     @State private var showSchedule = false
+    @State private var showReminder = false
     @State private var showPhotos = false
     @State private var showFiles = false
     @State private var showCamera = false
@@ -59,8 +60,17 @@ struct ComposerScreen: View {
         .task { await viewModel.load(request) }
         .onDisappear { Task { await viewModel.finish() } }
         .sheet(isPresented: $showSchedule) {
-            ScheduleSheet { date in
+            TimePickerSheet(kind: .sendLater, identifier: "composer.schedule") { date in
                 Task { await viewModel.requestSend(sendAt: EpochMs(date.timeIntervalSince1970 * 1000)) }
+            }
+        }
+        .sheet(isPresented: $showReminder) {
+            TimePickerSheet(
+                kind: .reminder, identifier: "composer.reminder",
+                current: viewModel.fields.remindAt.map { Date(timeIntervalSince1970: Double($0) / 1000) },
+                onClear: { viewModel.setReminder(nil) }
+            ) { date in
+                viewModel.setReminder(EpochMs((date.timeIntervalSince1970 * 1000).rounded()))
             }
         }
         .photosPicker(isPresented: $showPhotos, selection: $photoItems, matching: .images)
@@ -130,6 +140,10 @@ struct ComposerScreen: View {
             }
             .accessibilityLabel(String(localized: "Attach", table: "Composer"))
             .accessibilityIdentifier("composer.attach")
+            FlintIconButton(
+                icon: .bell, label: viewModel.fields.remindAt == nil ? String(localized: "Remind me if no reply", table: "Scheduling") : String(localized: "Reminder set", table: "Scheduling"),
+                color: viewModel.fields.remindAt == nil ? FlintColor.fg2 : FlintColor.accent, identifier: "composer.reminder",
+                action: { showReminder = true })
             FlintIconButton(
                 icon: .clock, label: String(localized: "Send later", table: "Composer"), identifier: "composer.schedule",
                 action: { showSchedule = true })

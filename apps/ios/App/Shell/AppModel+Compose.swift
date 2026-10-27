@@ -28,7 +28,9 @@ extension AppModel {
     @discardableResult
     func sendDraft(id: Int, sendAt: EpochMs? = nil, presets: SnoozePresets = SnoozePresets(), now: Date = Date()) async -> SendResult? {
         do {
+            let queued = try? await requireService().draft(id: id)
             let result = try await requireService().sendDraft(id: id, sendAt: sendAt)
+            if let queued { await scheduling.sendQueued(result, draft: queued, userScheduledAt: sendAt) }
             let undo: @MainActor () async -> Void = { [weak self] in await self?.undoSend(scheduledId: result.scheduledId) }
             if let sendAt {
                 let time = presets.formatTime(Date(timeIntervalSince1970: Double(sendAt) / 1000), now: now)
@@ -53,6 +55,7 @@ extension AppModel {
     func undoSend(scheduledId: Int) async {
         do {
             let draft = try await requireService().cancelSend(scheduledId: scheduledId)
+            await scheduling.sendCancelled(scheduledId: scheduledId)
             navigate(to: .compose(.resume(draftId: draft.id)))
         } catch {
             toasts.show(String(localized: "Too late to undo that.", table: "Shell"), kind: .error)
@@ -60,8 +63,14 @@ extension AppModel {
     }
 
     @discardableResult
-    func rescheduleSend(scheduledId: Int, to sendAt: EpochMs) async -> ScheduledSend? {
-        do { return try await requireService().rescheduleSend(scheduledId: scheduledId, to: sendAt) } catch {
+    func rescheduleSend(scheduledId: Int, to sendAt: EpochMs, presets: SnoozePresets = SnoozePresets(), now: Date = Date()) async -> ScheduledSend? {
+        do {
+            let send = try await requireService().rescheduleSend(scheduledId: scheduledId, to: sendAt)
+            await scheduling.sendRescheduled(send)
+            let time = presets.formatTime(Date(timeIntervalSince1970: Double(sendAt) / 1000), now: now)
+            toasts.show(String(localized: "Scheduled for \(time)", table: "Shell"))
+            return send
+        } catch {
             report(error)
             return nil
         }

@@ -22,6 +22,8 @@ struct ComposerFields: Equatable, Sendable {
     var subject = ""
     var track = false
     var signatureId: Int?
+    /// "Remind me if no reply" time, set from the bell in the header (Features/Scheduling).
+    var remindAt: EpochMs?
     var attachments: [DraftAttachment] = []
 
     /// What changed since `old`, as a patch. Attachments are owned by the service and never sent back.
@@ -36,6 +38,7 @@ struct ComposerFields: Equatable, Sendable {
         if subject != old.subject { patch.subject = subject; changed = true }
         if track != old.track { patch.track = track; changed = true }
         if signatureId != old.signatureId { patch.signatureId = .some(signatureId); changed = true }
+        if remindAt != old.remindAt { patch.remindAt = .some(remindAt); changed = true }
         return changed ? patch : nil
     }
 }
@@ -144,7 +147,7 @@ final class ComposerViewModel {
         draft = opened
         fields = ComposerFields(
             from: opened.from, accountId: opened.accountId, to: opened.to, cc: opened.cc, bcc: opened.bcc, subject: opened.subject,
-            track: opened.track, signatureId: opened.signatureId, attachments: opened.attachments)
+            track: opened.track, signatureId: opened.signatureId, remindAt: opened.remindAt, attachments: opened.attachments)
         body = RichTextHTML.attributed(fromHTML: parts.body)
         let locked = !DraftHTMLFidelity.isLossless(parts.body)
         isBodyLocked = locked
@@ -225,6 +228,9 @@ final class ComposerViewModel {
     }
 
     func toggleTrack() { edit { $0.track.toggle() } }
+
+    /// Sets or clears the follow-up reminder.
+    func setReminder(_ at: EpochMs?) { edit { $0.remindAt = at } }
 
     // MARK: Attachments
 
@@ -307,9 +313,18 @@ final class ComposerViewModel {
             problem = String(localized: "Couldn't save the draft. Try again.", table: "Composer")
             return
         }
+        await keepReminderAfterSend(draftId: id, sendAt: sendAt)
         guard await model.sendDraft(id: id, sendAt: sendAt) != nil else { return }
         finished = true
         dismiss()
+    }
+
+    /// A reminder chosen for a message that goes out later is counted from the send time (`ReminderTiming`).
+    private func keepReminderAfterSend(draftId: Int, sendAt: EpochMs?) async {
+        guard let remindAt = fields.remindAt else { return }
+        let now = EpochMs(Date().timeIntervalSince1970 * 1000)
+        let effective = ReminderTiming.effective(remindAt: remindAt, sendAt: sendAt, now: now)
+        if effective != remindAt { _ = try? await model.updateDraft(id: draftId, DraftPatch(remindAt: .some(effective))) }
     }
 
     // MARK: Closing

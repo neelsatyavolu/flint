@@ -35,7 +35,11 @@ struct ThreadToolbar: View {
         .onDisappear { app.threadSheetUp = false }
         .sheet(item: $picker) { picker in
             switch picker {
-            case .snooze: ThreadSnoozeSheet(threadId: detail.id)
+            case .snooze:
+                TimePickerSheet(kind: .snooze, identifier: "thread.snooze") { date in
+                    let until = EpochMs((date.timeIntervalSince1970 * 1000).rounded())
+                    Task { await app.snooze([detail.id], until: until) }
+                }
             case .move: ThreadMoveSheet(threadId: detail.id, accountId: detail.accountId)
             }
         }

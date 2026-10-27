@@ -60,18 +60,23 @@ final class AppModel {
     @ObservationIgnored private var observers: [Task<Void, Never>] = []
     @ObservationIgnored private var demoDirectory: URL?
     @ObservationIgnored let backgroundTasking: any BackgroundTasking
+    /// Local notifications behind send later, follow-up reminders and snooze (Features/Scheduling).
+    @ObservationIgnored let scheduling: SchedulingCoordinator
     @ObservationIgnored var backgroundEpoch = 0
     /// How many times a background cycle stopped the service (read by tests).
     @ObservationIgnored var backgroundStops = 0
     @ObservationIgnored var drainTask: Task<SendDrain.Outcome, Never>?
 
-    init(mode: LaunchMode = .fromArguments(), toasts: ToastCenter = ToastCenter(), defaults: UserDefaults = .standard, backgroundTasking: any BackgroundTasking = SystemBackgroundTasking()) {
+    init(mode: LaunchMode = .fromArguments(), toasts: ToastCenter = ToastCenter(), defaults: UserDefaults = .standard, backgroundTasking: any BackgroundTasking = SystemBackgroundTasking(), notifier: (any LocalNotificationScheduling)? = nil) {
         // swift-log is process-wide and SwiftMail logs hosts and commands: install the privacy handler before any transport exists.
         FlintLogging.bootstrap()
         self.mode = mode
         self.toasts = toasts
         self.defaults = defaults
         self.backgroundTasking = backgroundTasking
+        if case .live = mode { scheduling = SchedulingCoordinator(notifier: notifier ?? UserNotificationScheduler()) } else {
+            scheduling = SchedulingCoordinator(notifier: notifier ?? NoNotifications())
+        }
         recentSearches = mode.isDemo ? [] : defaults.stringArray(forKey: Self.recentsKey) ?? []
     }
 
@@ -138,6 +143,7 @@ final class AppModel {
         observe(service.syncStatus()) { $0.syncStatuses = $1 }
         observe(service.settings()) { $0.settings = $1 }
         observe(service.codes()) { $0.codes = $1 }
+        observe(service.scheduled()) { model, waiting in Task { await model.scheduling.reconcile(waiting: waiting) } }
         let events = service.events()
         observers.append(Task { [weak self] in
             for await event in events {
@@ -167,6 +173,7 @@ final class AppModel {
 
     /// Service toasts (a failed send, a fired reminder) go to the toast centre. Other events reach features through `events()`.
     private func handle(_ event: FlintEvent) {
+        scheduling.observe(event, ownAddresses: Set(accounts.flatMap { [$0.email] + $0.aliases }.map { $0.lowercased() }))
         guard case .toast(let level, let message, let token) = event else { return }
         var undo: (@MainActor () async -> Void)?
         if let token { undo = { [weak self] in await self?.undo(token: token) } }
