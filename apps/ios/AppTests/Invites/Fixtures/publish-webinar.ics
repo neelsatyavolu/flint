@@ -1,0 +1,16 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Eventbrite//Event//EN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:evt-5521337@events.example
+DTSTAMP:20261001T000000Z
+DTSTART:20261118T180000Z
+DTEND:20261118T190000Z
+SUMMARY:Webinar: Shipping calmer software
+LOCATION:Online
+URL:https://events.example/e/5521337
+DESCRIPTION:A talk on shipping calmer software.\nRegister at https://events.example/e/5521337
+ORGANIZER;CN=Calm Software Guild:mailto:hello@events.example
+END:VEVENT
+END:VCALENDAR

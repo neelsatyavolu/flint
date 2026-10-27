@@ -239,3 +239,12 @@ All seven track branches merged into `ios`. Shared-file changes made while integ
 ## From wave 3 fix, composer group (second pass)
 
 - Findings 6, 8, 12, 14, 16, 22, 23, 24 were already fixed in fa2c703 and re-checked in code; 12 got more exact (autoconfig also resolves MX and probes likely hosts, receipts also registers and polls). 15: the code chip is now its own button (`inbox.code.<id>`) laid over the chip, tested by UI test. 9: textClipped is now checked on inbox, Settings; still skipped on Search and Thread (other groups' screens). Thread: `thread.original.*` toggle fails the iPad contrast audit (Thread group).
+
+## Track 4C (invites)
+
+- `App/Features/Thread/MessageCardView.swift` | hook (owned by 3D, one line): shows `InviteCardView` above the body when the message has a calendar attachment | the card lives in `Features/Invites`.
+- `Packages/FlintCore/Sources/FlintMail/Compose/MimeBuilder.swift` | optional `calendarPart: (method:, content:)` that writes a `text/calendar; method=REPLY` alternative part | RFC 6047. The REPLY now goes out as an attachment named `invite.ics` whose type carries `method=REPLY`; not checked against Gmail, Outlook or Apple Mail.
+- `App/Seed` | add an updated invite (same UID, higher SEQUENCE) and a cancel in another thread | the demo has one new invite, so updated/cancelled cards are only covered by unit tests and rendered snapshots.
+- Ingestion | confirm the engine lists the `text/calendar` part of a Gmail-style multipart/alternative invite as an attachment | the card needs it in `MessageView.attachments`; only the demo's attached `.ics` was exercised.
+- Conflicts with the device calendar are skipped: EventKit write-only access cannot read events. The card says nothing about conflicts.
+- Invite state (versions seen, the person's answers, "added to calendar") is kept by `InviteLedger` in `Application Support/Flint/invites.json`, not in the database. An update or cancel in a different thread links to the original only once it has been opened on this device.

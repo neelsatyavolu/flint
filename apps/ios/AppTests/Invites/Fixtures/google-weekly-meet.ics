@@ -1,0 +1,60 @@
+BEGIN:VCALENDAR
+PRODID:-//Google Inc//Google Calendar 70.9054//EN
+VERSION:2.0
+CALSCALE:GREGORIAN
+METHOD:REQUEST
+BEGIN:VTIMEZONE
+TZID:America/Los_Angeles
+X-LIC-LOCATION:America/Los_Angeles
+BEGIN:DAYLIGHT
+TZOFFSETFROM:-0800
+TZOFFSETTO:-0700
+TZNAME:PDT
+DTSTART:19700308T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:-0700
+TZOFFSETTO:-0800
+TZNAME:PST
+DTSTART:19701101T020000
+RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTART;TZID=America/Los_Angeles:20261027T150000
+DTEND;TZID=America/Los_Angeles:20261027T160000
+RRULE:FREQ=WEEKLY;UNTIL=20261213T075959Z;BYDAY=TU
+DTSTAMP:20261020T181530Z
+ORGANIZER;CN=Carla Ortiz:mailto:carla@northwind.example
+UID:6mk3qd8c1p2v9rj4tb0h5s7xyz@google.com
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;RSVP=TRUE
+ ;CN=Carla Ortiz;X-NUM-GUESTS=0:mailto:carla@northwind.example
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=
+ TRUE;CN=me@example.com;X-NUM-GUESTS=0:mailto:me@example.com
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;RSVP=TRUE
+ ;CN=Dev Patel;X-NUM-GUESTS=0:mailto:dev@northwind.example
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=TENTATIVE;RSVP=TRU
+ E;CN=Mina Okafor;X-NUM-GUESTS=0:mailto:mina@northwind.example
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=OPT-PARTICIPANT;PARTSTAT=DECLINED;RSVP=TRUE
+ ;CN=Sam Lindgren;X-NUM-GUESTS=0:mailto:sam@northwind.example
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=
+ TRUE;CN=Ines Duarte;X-NUM-GUESTS=0:mailto:ines@northwind.example
+X-GOOGLE-CONFERENCE:https://meet.google.com/abc-defg-hij
+CREATED:20261020T181500Z
+DESCRIPTION:Weekly design review: roadmap\, open questions\, and demos.\n\n
+ Bring one thing you are stuck on.\n\n-::~:~::~:~:~:~:~:~:~:~:~:~:~:~:~:~:~
+ :~:~:~:~:~:~:~:~:~:~:~:~:~::~:~::-\nJoin with Google Meet: https://meet.go
+ ogle.com/abc-defg-hij\nOr dial: (US) +1 650-555-0142 PIN: 123 456 789#\nMo
+ re phone numbers: https://tel.meet/abc-defg-hij?pin=1234567890123\n\nLearn
+  more about Meet at: https://support.google.com/a/users/answer/9282720\n\n
+ Please do not edit this section.\n-::~:~::~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:~:
+ ~:~:~:~:~:~:~:~:~:~:~:~::~:~::-
+LAST-MODIFIED:20261020T181529Z
+LOCATION:Room 4B\, Northwind HQ\, 500 Howard St\, San Francisco\, CA 94105
+SEQUENCE:0
+STATUS:CONFIRMED
+SUMMARY:Design sync
+TRANSP:OPAQUE
+END:VEVENT
+END:VCALENDAR
