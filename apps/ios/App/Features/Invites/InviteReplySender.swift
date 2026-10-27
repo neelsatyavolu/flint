@@ -1,3 +1,4 @@
+import FlintMail
 import FlintModel
 import Foundation
 
@@ -5,8 +6,8 @@ import Foundation
 /// The draft is removed again if anything fails before it is queued.
 @MainActor
 enum InviteReplySender {
-    /// RFC 6047 asks for the method on the calendar part. Flint's mail builder attaches files, so the type carries it.
-    static let contentType = "text/calendar; method=REPLY; charset=UTF-8"
+    /// RFC 6047 2.4: the mail builder turns an attachment of this type into a `text/calendar; method=REPLY` alternative part.
+    static let contentType = CalendarPart.contentType(method: "REPLY")
     static let filename = "invite.ics"
 
     static func send(_ reply: ImipReply, accountId: AccountID, from: String, app: AppModel) async -> Bool {
