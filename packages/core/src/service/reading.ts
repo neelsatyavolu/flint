@@ -49,7 +49,8 @@ export function readingApi(ctx: ServiceContext): ReadingApi {
     const first = store.getThreadRows(threadId);
     if (!first) throw new FlintError("not_found", "That conversation no longer exists.");
     if (!first.messages.some((m) => !m.bodyLoaded)) return first;
-    const fetching = ctx.ensureBodies(first.messages.filter((m) => !m.bodyLoaded).map((m) => m.id));
+    // Newest first: that is the message the reader opens on, and the downloads queue on one connection.
+    const fetching = ctx.ensureBodies(first.messages.filter((m) => !m.bodyLoaded).map((m) => m.id).reverse());
     if (ctx.caller()) {
       await fetching;
     } else {

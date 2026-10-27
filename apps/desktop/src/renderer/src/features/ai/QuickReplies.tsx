@@ -1,9 +1,10 @@
-import { useEffect, type JSX } from "react";
+import { useEffect, useMemo, type JSX } from "react";
 import { useSettings } from "../../lib/hooks";
 import { useInlineReply } from "../../state/inlineReply";
 import { Skeleton } from "../../ui/Skeleton";
 import { parseQuickReplies } from "./quickRepliesParse";
 import { useAiAvailability, useAiRun } from "./useAiRun";
+import { isBusy } from "./aiRun";
 import styles from "./QuickReplies.module.css";
 
 /** A thread must stay open this long before a model call starts, so skimming with j/k costs nothing. */
@@ -27,6 +28,7 @@ export function QuickReplies({ threadId, cacheKey: key, messageId, onPick }: Pro
   const { state, start, reset } = useAiRun();
   const wanted = ai.ready && settings !== undefined && settings.ai.smartReplies !== false;
   const cached = cache.get(cacheKey);
+  const openedWithReplies = useMemo(() => cache.has(cacheKey), [cacheKey]);
 
   useEffect(() => {
     reset();
@@ -51,7 +53,8 @@ export function QuickReplies({ threadId, cacheKey: key, messageId, onPick }: Pro
   if (!wanted || state.status === "error") return null;
   const replies = cached ?? parsed;
   if (replies.length === 0) {
-    return state.status === "done" ? null : (
+    // Nothing shows while the thread is only being skimmed; placeholders appear once the model is actually asked.
+    return !isBusy(state) ? null : (
       <div className={styles.row} aria-busy="true" aria-label="Loading quick replies">
         <Skeleton width={120} height={28} />
         <Skeleton width={120} height={28} />
@@ -60,7 +63,7 @@ export function QuickReplies({ threadId, cacheKey: key, messageId, onPick }: Pro
     );
   }
   return (
-    <div className={styles.row} role="group" aria-label="Quick replies">
+    <div className={openedWithReplies ? styles.row : `${styles.row} ${styles.arrive}`} role="group" aria-label="Quick replies">
       {replies.map((r) => (
         <button key={r} type="button" className={styles.chip} title={r} onClick={() => pick(r)}>{r}</button>
       ))}

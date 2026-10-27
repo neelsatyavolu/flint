@@ -30,7 +30,8 @@ export function buildAiContext(d: AiContextDeps): AiContext {
     async getThreadForAi(threadId) {
       const first = store.getThreadRows(threadId);
       if (!first) return null;
-      await ensureBodies(store, d.syncs, first.messages.map((m) => m.id));
+      // Same order as the reader asks for them, so the two share downloads instead of queueing behind each other.
+      await ensureBodies(store, d.syncs, first.messages.map((m) => m.id).reverse());
       const rows = store.getThreadRows(threadId) ?? first;
       const account = store.getAccount(rows.accountId);
       const addresses = account ? [...new Set([account.email, ...account.aliases])] : [];

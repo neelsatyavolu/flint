@@ -69,6 +69,7 @@ export class AccountSync implements ImapRunner {
   #resumed = false;
   #cycle: Promise<void> = Promise.resolve();
   #lastExists = new Map<number, number>();
+  readonly #bodyFetches = new Map<number, Promise<void>>();
   #cycles = 0;
   readonly actions: ServerActions;
 
@@ -230,8 +231,19 @@ export class AccountSync implements ImapRunner {
 
   // ---------- bodies and attachments ----------
 
-  /** Downloads and stores the text and html of a message. No-op when the body is already stored. */
-  async fetchBody(messageRowId: number): Promise<void> {
+  /**
+   * Downloads and stores the text and html of a message. No-op when the body is already stored. Callers asking for a
+   * body already on its way (the reader, the summary and quick replies all want the same thread) share one download.
+   */
+  fetchBody(messageRowId: number): Promise<void> {
+    const pending = this.#bodyFetches.get(messageRowId);
+    if (pending) return pending;
+    const fetching = this.#downloadBody(messageRowId).finally(() => this.#bodyFetches.delete(messageRowId));
+    this.#bodyFetches.set(messageRowId, fetching);
+    return fetching;
+  }
+
+  async #downloadBody(messageRowId: number): Promise<void> {
     const { store } = this.#o;
     const msg = store.getMessage(messageRowId);
     if (!msg) throw new FlintError("not_found", "That message no longer exists.");

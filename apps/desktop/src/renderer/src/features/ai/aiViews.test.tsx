@@ -47,6 +47,15 @@ describe("QuickReplies", () => {
     expect(aiRun).not.toHaveBeenCalled();
   });
 
+  it("shows placeholders only once the model is asked, not while the thread is skimmed", async () => {
+    render(<QuickReplies threadId={203} onPick={vi.fn()} />);
+    await waitFor(() => expect(aiStatus).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 100));
+    expect(screen.queryByLabelText("Loading quick replies")).toBeNull();
+    await waitFor(() => expect(aiRun).toHaveBeenCalled(), { timeout: 3000 });
+    expect(await screen.findByLabelText("Loading quick replies")).toBeTruthy();
+  });
+
   it("renders nothing when AI is not connected", async () => {
     aiStatus.mockResolvedValue({ connected: false, enabled: true, provider: null, model: null, models: [] });
     const { container } = render(<QuickReplies threadId={102} onPick={() => undefined} />);

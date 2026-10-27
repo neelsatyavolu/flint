@@ -11,3 +11,7 @@
 @keyframes blink { 50% { opacity: 0; } }
 .error { margin-top: 4px; color: var(--fg-3); display: flex; align-items: center; gap: var(--s-2); }
 .lines { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+/* A summary written while the thread is open fades in instead of popping over the placeholder. */
+.arrive { animation: arrive 180ms var(--ease, ease) both; }
+@keyframes arrive { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .arrive { animation: none; } }

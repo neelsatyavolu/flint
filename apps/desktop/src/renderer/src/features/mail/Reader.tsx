@@ -156,6 +156,8 @@ function useMinuteClock(): number {
 
 /** Longest the reader waits for mail frames to report their height before showing the thread anyway. */
 const REVEAL_TIMEOUT_MS = 700;
+/** How long the newest message stays pinned while content above it settles. Long enough for a model to write the summary. */
+const PIN_NEWEST_MS = 15_000;
 const NOOP = () => undefined;
 
 type BodyProps = {
@@ -216,8 +218,14 @@ function ThreadBody({ thread, refetch, staged, stale, onReady }: BodyProps) {
     return () => clearTimeout(timer);
   }, [announce]);
 
-  /** Puts the newest card fully in view, with the Ask clearance below it. */
-  const showNewest = useCallback(() => {
+  /**
+   * How far below the newest card the quick replies end, measured when the card is placed. Replies that load later and
+   * wrap to a second row then stay below the fold instead of pulling the message up while it is being read.
+   */
+  const footReach = useRef<number | null>(null);
+
+  /** Puts the newest card fully in view, with the Ask clearance below it. `remeasure` takes the quick replies' space afresh. */
+  const showNewest = useCallback((remeasure = false) => {
     const list = messagesRef.current;
     const scroller = list?.closest("[data-reader-scroll]");
     const cards = list?.children;
@@ -225,36 +233,43 @@ function ThreadBody({ thread, refetch, staged, stale, onReady }: BodyProps) {
     if (!(scroller instanceof HTMLElement) || !(last instanceof HTMLElement)) return;
     const box = last.getBoundingClientRect();
     // Quick replies sit under the newest message; keep them in view too.
-    const end = Math.max(box.bottom, footRef.current?.getBoundingClientRect().bottom ?? 0);
+    if (remeasure || footReach.current === null) {
+      const foot = footRef.current?.getBoundingClientRect();
+      footReach.current = foot ? Math.max(0, foot.bottom - box.bottom) : 0;
+    }
+    const end = box.bottom + footReach.current;
     const top = box.top - scroller.getBoundingClientRect().top + scroller.scrollTop;
     const clearance = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ask-clearance")) || 72;
     scroller.scrollTop = scrollTargetTop({ cardTop: top, cardHeight: end - box.top, viewport: scroller.clientHeight, clearance });
   }, []);
 
   // Open on the newest message. Content above it (the summary) and the frames inside the cards grow after first
-  // paint; a ResizeObserver re-applies the position before the next paint, so the view never visibly hops.
+  // paint; a ResizeObserver re-applies the position before the next paint, so the view never visibly hops. Any scroll,
+  // key or click hands the view back to the user, so expanding an older message never snaps back to the newest.
   useLayoutEffect(() => {
     if (staged) return;
     const stage = stageRef.current;
     const scroller = stage?.closest("[data-reader-scroll]");
     if (!stage || !(scroller instanceof HTMLElement)) return;
     userScrolled.current = false;
-    showNewest();
+    showNewest(true);
     const stop = () => {
       userScrolled.current = true;
     };
     scroller.addEventListener("wheel", stop, { passive: true });
     scroller.addEventListener("touchmove", stop, { passive: true });
     scroller.addEventListener("keydown", stop);
+    scroller.addEventListener("pointerdown", stop);
     const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => !userScrolled.current && showNewest());
     ro?.observe(stage);
-    const timer = setTimeout(() => ro?.disconnect(), 3000);
+    const timer = setTimeout(() => ro?.disconnect(), PIN_NEWEST_MS);
     return () => {
       clearTimeout(timer);
       ro?.disconnect();
       scroller.removeEventListener("wheel", stop);
       scroller.removeEventListener("touchmove", stop);
       scroller.removeEventListener("keydown", stop);
+      scroller.removeEventListener("pointerdown", stop);
     };
   }, [staged, showNewest]);
 
@@ -295,7 +310,7 @@ function ThreadBody({ thread, refetch, staged, stale, onReady }: BodyProps) {
       useInlineReply.getState().close();
       setDraftRev((n) => n + 1);
       refetch();
-      if (result.reason === "sent" || result.reason === "closed") requestAnimationFrame(showNewest);
+      if (result.reason === "sent" || result.reason === "closed") requestAnimationFrame(() => showNewest(true));
     },
     [refetch, showNewest],
   );
