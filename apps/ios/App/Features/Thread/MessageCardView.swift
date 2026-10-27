@@ -47,7 +47,7 @@ struct MessageCardView: View {
             if let badge = message.verificationCode, !badge.used { CodeBanner(badge: badge) }
             MessageBodyView(message: message, vm: vm)
             AttachmentList(attachments: message.attachments.filter { !$0.inline }, onOpen: onOpenAttachment)
-            if let receipt = message.receipt { ReceiptRow(receipt: receipt, messageId: message.id) }
+            ReceiptPanel(message: message, selfAddresses: selfAddresses)
         }
         .padding(FlintMetrics.Space.s4)
         .frame(maxWidth: .infinity, alignment: .leading)

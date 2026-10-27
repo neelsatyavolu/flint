@@ -239,3 +239,18 @@ All seven track branches merged into `ios`. Shared-file changes made while integ
 ## From wave 3 fix, composer group (second pass)
 
 - Findings 6, 8, 12, 14, 16, 22, 23, 24 were already fixed in fa2c703 and re-checked in code; 12 got more exact (autoconfig also resolves MX and probes likely hosts, receipts also registers and polls). 15: the code chip is now its own button (`inbox.code.<id>`) laid over the chip, tested by UI test. 9: textClipped is now checked on inbox, Settings; still skipped on Search and Thread (other groups' screens). Thread: `thread.original.*` toggle fails the iPad contrast audit (Thread group).
+
+## From 4A (Receipts)
+
+Files: `App/Features/Receipts/` (new), `AppTests/Receipts/`, `AppUITests/ReceiptsTests.swift`. Logic (`ReceiptStatusText`, `ReceiptRows`, `ReadStatusesModel`, `ReceiptsPoller`) is pure and tested; views are `ReceiptPanel`, `ReadStatusesView`, `RecipientStatusRow`. Tests run the model over the real service with `AppTests/Receipts/FakeReceiptsServer.swift`, a copy of the package's `FakeReceiptsService` (the app tests cannot import the package's tests) with `servesAllEvents` added.
+
+Hooks in files I do not own (all small):
+- `Features/Thread/MessageCardView.swift`: the receipt placeholder `ReceiptRow` is replaced by `ReceiptPanel(message:selfAddresses:)`. `Features/Thread/ReceiptRow.swift` keeps only `MessageReceiptCheck`; `ReceiptText.line` (used only by the placeholder) is removed.
+- `Features/Composer`: no change. The tracking default comes from the service (`settings.receipts.enabled && defaultOn`), and the existing `SendChecks.receiptBlocker` already matches the desktop `receiptNote.ts`.
+
+Requests for the shell and other owners (file | change | why):
+- `App/Shell/AppModel.swift` `sceneBecameActive()` | after `service?.start()` call `if let service { await ReceiptsPoller.shared.pollIfDue(ServiceReceiptsSource(service: service)) }` | `start()` polls receipts once; foreground returns need their own (throttled, 30 s) poll. The thread's read status also polls when it appears, which covers only an open sent message.
+- `App/Shell/AppModel+Settings.swift` `syncNow(accountId:)` | same call with `force: true` when `accountId == nil` | "polling in refresh": inbox pull to refresh should ask the receipts service too. The Read statuses list already does this on its own pull to refresh.
+- `App/Shell/FeatureRegistry.swift` | add `ReceiptsModule()` | module exists (`Features/Receipts/ReceiptsModule.swift`), unregistered until a route exists.
+- `App/Shell/Route.swift`, `Features/Sidebar`, `Features/Settings` | a `Presented.receipts` case showing `ReadStatusesSheet()`, a "Read statuses" row in the sidebar (the desktop has one) and a link under Settings > Read receipts | today the list opens only from the read status of a sent message ("All read statuses"). Settings > Read receipts still lacks the desktop's "How it works" text and a Test button for the service address; `ReceiptsHowItWorks` (in `Features/Receipts/ReceiptsCopy.swift`) is ready to embed.
+- `App/Features/Inbox/InboxRowMarks.swift` `ReceiptCheck` | optional: use `ReceiptStatusText.marker(summary)` for the label so the list, the thread and the Read statuses list say the same thing.
