@@ -45,13 +45,8 @@ struct WelcomeStep: View {
                 OnboardingNotice(tone: .danger, text: text, identifier: "onboarding.error")
             }
         }
-        .task {
-            // The system Camera scanned the Mac's code and opened flint://pair#...
-            if case .pair(let payload)? = appModel.takePendingLink() {
-                linkPayload = payload
-                pairing = true
-            }
-        }
+        .task { takePairLink() }
+        .onChange(of: appModel.pendingLink) { _, _ in takePairLink() }
         .sheet(isPresented: $pairing, onDismiss: { linkPayload = nil }) {
             PairingFlow(model: PairingModel(services: appModel.pairingServices, pendingPayload: linkPayload)) { finished in
                 pairing = false
@@ -59,5 +54,12 @@ struct WelcomeStep: View {
             }
             .environment(appModel)
         }
+    }
+
+    /// The system Camera scanned the Mac's code and opened flint://pair#..., at launch or while this screen is up.
+    private func takePairLink() {
+        guard case .pair? = appModel.pendingLink, !pairing, case .pair(let payload)? = appModel.takePendingLink() else { return }
+        linkPayload = payload
+        pairing = true
     }
 }

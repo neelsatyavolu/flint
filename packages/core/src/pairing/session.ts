@@ -2,7 +2,7 @@
 // Expiry 180 s, one successful session, at most 3 failed attempts, then close. No state survives (docs/ios/DESIGN-NOTES.md section 7).
 
 import { createServer, type Server, type Socket } from "node:net";
-import { buildBundle, countPasswordAccounts, type BundleSource } from "./bundle";
+import { BundleError, buildBundle, countPasswordAccounts, type BundleSource } from "./bundle";
 import { Direction, generateKeypair, newSessionId, open, seal, type Keypair, type SessionKeys } from "./crypto";
 import { type PairedDevicesStore } from "./devices";
 import { chunkBundle, encodeFrame, FrameDecoder, FrameError, FrameType, type Frame } from "./frames";
@@ -12,18 +12,19 @@ import { encodeOffer } from "./qr";
 
 export const SESSION_TTL_MS = 180_000;
 export const HELLO_TIMEOUT_MS = 10_000;
-export const ACK_TIMEOUT_MS = 5 * 60_000;
+/** The phone reviews the bundle before it acknowledges, including a Google sign-in per account, so this is generous. */
+export const ACK_TIMEOUT_MS = 20 * 60_000;
 export const MAX_STRIKES = 3;
 
 export type AckCounts = { accounts: number; signatures: number; templates: number; rules: number; blockedSenders: number };
-export type CloseReason = "expired" | "cancelled" | "denied" | "too_many_attempts" | "connection_lost" | "failed" | "no_ack";
+export type CloseReason = "expired" | "cancelled" | "denied" | "too_many_attempts" | "connection_lost" | "failed" | "no_ack" | "too_large";
 
 export type PairingEvent =
   | { type: "listening"; url: string; expiresAt: number; port: number; addrs: string[] }
   | { type: "approval"; deviceName: string; sas: string; passwordAccounts: number }
   | { type: "sending" }
   | { type: "done"; deviceName: string; counts: AckCounts }
-  | { type: "closed"; reason: CloseReason };
+  | { type: "closed"; reason: CloseReason; bundleSent: boolean };
 
 export type PairingDeps = {
   source: BundleSource;
@@ -52,6 +53,8 @@ export class PairingSession {
   private mac: Keypair | null = generateKeypair();
   private timers = new Set<NodeJS.Timeout>();
   private addrs: string[] = [];
+  /** True once the first bundle byte may have left, so a later failure cannot claim nothing was sent. */
+  private bundleSent = false;
 
   constructor(private readonly deps: PairingDeps) {}
 
@@ -91,11 +94,13 @@ export class PairingSession {
     this.deps.onEvent({ type: "sending" });
     try {
       const bundle = await buildBundle(this.deps.source, opts);
+      const chunks = chunkBundle(Buffer.from(JSON.stringify(bundle)));
+      this.bundleSent = true;
       this.sendSealed(a, FrameType.ready, Buffer.alloc(0));
-      for (const chunk of chunkBundle(Buffer.from(JSON.stringify(bundle)))) this.sendSealed(a, FrameType.bundle, chunk);
+      for (const chunk of chunks) this.sendSealed(a, FrameType.bundle, chunk);
       this.later(this.deps.ackTimeoutMs ?? ACK_TIMEOUT_MS, () => this.finish("no_ack"));
-    } catch {
-      this.finish("failed");
+    } catch (error) {
+      this.finish(isTooLarge(error) ? "too_large" : "failed");
     }
   }
 
@@ -214,9 +219,11 @@ export class PairingSession {
     a?.socket.destroy();
     this.server?.close();
     this.server = null;
-    if (reason) this.deps.onEvent({ type: "closed", reason });
+    if (reason) this.deps.onEvent({ type: "closed", reason, bundleSent: this.bundleSent });
   }
 }
+
+const isTooLarge = (error: unknown): boolean => (error instanceof BundleError || error instanceof FrameError) && /too large/i.test(error.message);
 
 const stripV6 = (address: string): string => address.replace(/^::ffff:/, "");
 

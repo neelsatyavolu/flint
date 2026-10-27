@@ -16,13 +16,14 @@ struct PairingFlow: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("pairing.root")
         .interactiveDismissDisabled(model.step == .importing)
-        .task { if let payload = model.pendingPayload { model.handle(scanned: PairingOffer.prefix + payload) } }
+        .task { if let payload = model.pendingPayload { model.handle(link: payload) } }
     }
 
     @ViewBuilder private var content: some View {
         switch model.step {
         case .intro: PairingIntroStep(model: model)
         case .scan: PairingScanStep(model: model)
+        case .confirmLink(let hosts): PairingLinkConfirmStep(hosts: hosts, connect: { model.confirmLink() }, cancel: { model.cancel() })
         case .connecting: PairingConnectingStep()
         case .code(let digits): PairingCodeStep(digits: digits) { model.cancel() }
         case .review: PairingReviewStep(model: model)

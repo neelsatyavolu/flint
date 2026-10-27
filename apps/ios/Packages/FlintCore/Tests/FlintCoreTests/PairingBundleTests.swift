@@ -68,7 +68,7 @@ struct PairingBundleTests {
 
     @Test func buildsASettingsPatchWithOnlyTheKeysTheMacSent() throws {
         let bundle = try PairingBundle.decode(try json(try sample()))
-        let patch = try bundle.settings.patch()
+        let patch = try bundle.settings.patch(includeReceipts: true)
         guard case .object(let o) = patch else { Issue.record("not an object"); return }
         #expect(Set(o.keys) == ["compose", "sync", "inbox", "receipts", "appearance", "notifications"])
         #expect(o["compose"] == .object(["undoSendSeconds": .number(10)]))

@@ -17,8 +17,15 @@ const ENDED: Record<Extract<PairingUiEvent, { type: "closed" }>["reason"], { mes
   denied: { message: "Pairing cancelled. Nothing was sent.", retry: true },
   too_many_attempts: { message: "Too many failed attempts, so Flint closed this code. Show a new one.", retry: true },
   connection_lost: { message: "The iPhone disconnected before it finished. Nothing was saved on your Mac.", retry: true },
-  failed: { message: "Pairing didn't complete. Nothing was sent that your iPhone could use. Show a new code to try again.", retry: true },
+  failed: { message: "Pairing didn't complete. Nothing was sent. Show a new code to try again.", retry: true },
+  too_large: { message: "Your signatures, templates and rules are too large to send at once (over 2 MB). Remove some large signatures or templates, then show a new code.", retry: true },
   no_ack: { message: "The iPhone didn't confirm that it finished. Check your iPhone, then pair again if the accounts are missing.", retry: true },
+};
+
+/** After the bundle may have left the Mac, "nothing was sent" would be a claim the code cannot back. */
+const SENT: Partial<Record<keyof typeof ENDED, { message: string; retry: boolean }>> = {
+  connection_lost: { message: "The connection dropped after your Mac started sending. Check whether your iPhone has the accounts, and pair again if it doesn't.", retry: true },
+  failed: { message: "Pairing stopped after your Mac started sending, so your iPhone may have received the accounts. Check your iPhone, and pair again if they are missing.", retry: true },
 };
 
 /** Pure: the next view for an event. A closed event after "done" does not replace the summary. */
@@ -28,7 +35,7 @@ export function nextView(view: PairingView, event: PairingUiEvent): PairingView 
     case "approval": return { step: "approval", deviceName: event.deviceName, sas: event.sas, passwordAccounts: event.passwordAccounts };
     case "sending": return { step: "sending" };
     case "done": return { step: "done", deviceName: event.deviceName, counts: event.counts };
-    case "closed": return view.step === "done" ? view : { step: "ended", ...ENDED[event.reason] };
+    case "closed": return view.step === "done" ? view : { step: "ended", ...((event.bundleSent && SENT[event.reason]) || ENDED[event.reason]) };
     case "error": return { step: "ended", message: event.message, retry: true };
   }
 }

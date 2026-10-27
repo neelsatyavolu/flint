@@ -28,7 +28,7 @@ final class DemoMac: @unchecked Sendable {
      "templates":[{"name":"Thanks","subject":"Thank you","html":"<p>Thank you.</p>"},{"name":"Follow up","subject":"Following up","html":"<p>Checking in.</p>"}],
      "rules":[{"name":"Receipts","enabled":true,"accountEmail":null,"match":"any","sortOrder":0,"conditions":[{"field":"from","op":"contains","value":"receipts@"}],"actions":[{"type":"category","category":"notifications"}]}],
      "blockedSenders":["spam.example"],
-     "settings":{"compose":{"undoSendSeconds":10},"inbox":{"focused":true}}}
+     "settings":{"compose":{"undoSendSeconds":10},"inbox":{"focused":true},"receipts":{"enabled":true,"endpoint":"https://receipts.example.com"}}}
     """#
 }
 
@@ -116,6 +116,10 @@ actor DemoImportTarget: ImportTarget {
     func saveRule(_ rule: Rule) async throws {}
     func blockSender(_ pattern: String) async throws {}
     func applySettings(patch: JSONValue) async throws {}
+    func signatures() async throws -> [Signature] { [] }
+    func templates() async throws -> [Template] { [] }
+    func rules() async throws -> [Rule] { [] }
+    func blockedPatterns() async throws -> [String] { [] }
 
     private func append(email: String, name: String, provider: MailProvider, kind: AuthKind, server: ServerConfig?) throws -> Account {
         let config = server ?? ServerConfig(imapHost: "imap.gmail.com", imapPort: 993, imapSecure: true, smtpHost: "smtp.gmail.com", smtpPort: 465, smtpSecure: true, username: email)

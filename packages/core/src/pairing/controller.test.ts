@@ -30,7 +30,7 @@ describe("PairingController", () => {
     await controller.start();
     await controller.start();
     await settle();
-    expect(events.filter((e) => e.type === "closed")).toEqual([{ type: "closed", reason: "cancelled" }]);
+    expect(events.filter((e) => e.type === "closed")).toEqual([{ type: "closed", reason: "cancelled", bundleSent: false }]);
     expect(events.filter((e) => e.type === "listening")).toHaveLength(2);
     controller.cancel();
   });

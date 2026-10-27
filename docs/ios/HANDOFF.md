@@ -305,3 +305,9 @@ Requests for the shell and other owners (file | change | why):
 - Owners: Scheduling (4D) owns the `snooze.<thread>`, `send-later.<id>` and `follow-up.<id>` notices. 4B's planner builds the snooze with `SchedulingNotices.snooze` (same words, content-free) and no longer plans scheduled sends. A pending `send.<id>` from an older build is removed on the next reconcile.
 - Notification settings now gate Scheduling's notices (alerts off or scope none: none scheduled, waiting ones withdrawn; previews hidden: no recipient in the title, waiting ones rewritten). Turning alerts back on does not re-arm "Ready to send" for sends already queued; the next reschedule does.
 - Lock-screen Archive and Mark read use `.authenticationRequired`. The desktop has no setting that relaxes this.
+
+## Wave 4 fix: pairing group
+
+- Fixed review 4, 5, 9, 13, 14, 15, 20 and the pairing parts of 12 and 21. The code (SAS) now binds both public keys (`info = "flint-pair/sas" || A || B`); vectors regenerated on both sides, `pairing-e2e.sh` passes. A `flint://pair` link stops at a confirm step, and offers must name private, link-local or `.local` hosts. `ImportTarget` gained four list methods so a second pairing merges. Receipts endpoint and settings go through only with their own switch (off by default).
+- Shared files touched: none outside Features/Pairing, FlintPairing and the desktop pairing files. `App/Shell` deep-link handling is unchanged (a pending link already opens `PairingFlow`, which now confirms first).
+- Not fixed: account avatars are still not applied (the Mac still sends up to 64 KB each); the e2e script still has only happy, deny and expired (no cross-implementation wrong-code, replay or tamper run); the Mac gives no "leave items out" option for an oversize library, it only names the cause.

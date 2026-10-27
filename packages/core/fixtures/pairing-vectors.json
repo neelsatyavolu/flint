@@ -19,7 +19,7 @@
         "shared": "1dfbae63869aa0fde2f35ae8ff4950dd765aa10eea86868505195ddbb1ecd512",
         "keyMacToPhone": "376a1f6356c19ad57f65b3298f290f741c55972a2461e574408e7aa2967d67e8",
         "keyPhoneToMac": "d4730c7d969ee09afa9480cd5d8dac4339d21119d581ac79dc5b4205b8c50ad6",
-        "sas": "616395"
+        "sas": "623425"
       }
     },
     {
@@ -35,23 +35,23 @@
         "shared": "9e004098efc091d4ec2663b4e9f5cfd4d7064571690b4bea97ab146ab9f35056",
         "keyMacToPhone": "b54e9fe8ab550c0268ecbf5a693f511d9e9c2c531e9321379a91bc780b24573d",
         "keyPhoneToMac": "d77c37497a64a365e18c21b5f65194368fd2578ecaee2733e562b58a919421a8",
-        "sas": "971657"
+        "sas": "158515"
       }
     },
     {
       "name": "set with zero-padded code",
       "input": {
-        "sid": "01010101010101010101010101010101",
-        "macPrivate": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c301",
-        "phonePrivate": "d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d401"
+        "sid": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+        "macPrivate": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c30a",
+        "phonePrivate": "d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d40a"
       },
       "expect": {
-        "macPublic": "d67b46c568ed3b17c71ac9b0ec5a1fd31d5d822cb8be7ba44a16356498c8316b",
-        "phonePublic": "6b6112a327c8e594604c00d58a370de0335ccc1e93ef618f8a763cc684c1e853",
-        "shared": "4c2edfc628743bceca50691819e3681ba19cbc2cf84170fd8fa523259286ff13",
-        "keyMacToPhone": "111dfe941691f0f3f303ecae042c39508ff2564a14f4c2192fdb6d33e3403836",
-        "keyPhoneToMac": "5c4593dfd828c5a2456131c95fde4a7679d4996ad50bf738cfe239b6cadc4e08",
-        "sas": "042058"
+        "macPublic": "f2f9eb115a1b553d4623f15a0a942ec6f862e65ddcf576b00ff68dd772a0a61f",
+        "phonePublic": "4ddbf30d689cedf38784d28cca31f3ea4221c1b6acc31882ca87c7ad5b947b4a",
+        "shared": "0e46bf736b8657de3be0a4d7029beb1799a68ab0fbf4e97909ae08f5eafebd54",
+        "keyMacToPhone": "f1088d2bcbb5c376593db95e80faab634601831c8917e1fa37002fe3be6c778e",
+        "keyPhoneToMac": "b6323d29b3564ac8db0de985fe19d84b6e27bf6a3922c7eeb0fe8f32381bb27b",
+        "sas": "026756"
       }
     },
     {

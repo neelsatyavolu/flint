@@ -37,8 +37,17 @@ public actor PairingClient {
     private var opener: FrameOpener?
     private var sealer: FrameSealer?
     private var finished = false
+    private var expired = false
+    private let receiveTimeout: Duration
 
-    public init(offer: PairingOffer, deviceName: String, connector: @escaping PairingConnector, keypair: PairingKeypair = .generate()) {
+    /// The Mac gives up after 180 s, so the iPhone waits a little longer than that for the approval and the bundle.
+    public static let defaultReceiveTimeout: Duration = .seconds(200)
+
+    public init(
+        offer: PairingOffer, deviceName: String, connector: @escaping PairingConnector, keypair: PairingKeypair = .generate(),
+        receiveTimeout: Duration = PairingClient.defaultReceiveTimeout
+    ) {
+        self.receiveTimeout = receiveTimeout
         self.offer = offer
         self.deviceName = String(deviceName.prefix(64))
         self.connector = connector
@@ -61,7 +70,12 @@ public actor PairingClient {
 
     /// Waits for the Mac's approval (READY) and the bundle. Throws when the Mac cancels, the session expires or anything fails to verify.
     public func receiveBundle() async throws -> PairingBundle {
-        try await guarded {
+        let deadline = Task { [receiveTimeout] in
+            try await Task.sleep(for: receiveTimeout)
+            self.expire()
+        }
+        defer { deadline.cancel() }
+        return try await guarded {
             let ready = try await nextFrame()
             guard ready.type == PairingFrameType.ready, try open(ready).isEmpty else { throw PairingError.unexpectedFrame }
             var json = Data()
@@ -99,6 +113,12 @@ public actor PairingClient {
 
     // MARK: Private
 
+    /// Closing the transport makes a stalled read return, so a Mac that went to sleep cannot hold the screen forever.
+    private func expire() {
+        expired = true
+        close()
+    }
+
     private func helloBody() throws -> Data {
         try JSONSerialization.data(withJSONObject: ["v": PairingCrypto.protocolVersion, "sid": offer.sid.base64URL, "pk": keypair.publicKey.base64URL, "name": deviceName])
     }
@@ -124,6 +144,7 @@ public actor PairingClient {
             return try await step()
         } catch {
             close()
+            if expired { throw PairingError.timedOut }
             throw error is PairingError ? error : (error is CancellationError ? error : PairingError.connectionClosed)
         }
     }

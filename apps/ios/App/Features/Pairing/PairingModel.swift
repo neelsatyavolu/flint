@@ -10,6 +10,8 @@ final class PairingModel {
     enum Step: Equatable {
         case intro
         case scan
+        /// A `flint://pair` link was opened. Nothing connects until the person confirms the address shown.
+        case confirmLink(hosts: String)
         case connecting
         /// The six digits to compare with the Mac, then waiting for the Mac's approval.
         case code(String)
@@ -39,6 +41,7 @@ final class PairingModel {
     @ObservationIgnored private var client: PairingClient?
     @ObservationIgnored private var bundle: PairingBundle?
     @ObservationIgnored private var task: Task<Void, Never>?
+    @ObservationIgnored private var linkOffer: PairingOffer?
 
     /// The fragment of a `flint://pair#...` link the app was opened with (the system Camera scanned the code), if any.
     let pendingPayload: String?
@@ -64,6 +67,26 @@ final class PairingModel {
         }
     }
 
+    /// A `flint://pair#...` link the app was opened with. It may have come from a web page or a mail rather than the Mac's own screen,
+    /// so it stops at a confirm step instead of connecting.
+    func handle(link payload: String) {
+        guard step == .intro || step == .scan else { return }
+        do {
+            let offer = try PairingOffer.parse(PairingOffer.prefix + payload)
+            linkOffer = offer
+            step = .confirmLink(hosts: offer.addrs.joined(separator: ", "))
+        } catch {
+            step = .failed(failure(error))
+        }
+    }
+
+    /// "Connect" on the confirm step.
+    func confirmLink() {
+        guard case .confirmLink = step, let offer = linkOffer else { return }
+        linkOffer = nil
+        connect(to: offer)
+    }
+
     func useDemoMac() {
         if let offer = services.demoOffer { connect(to: offer) }
     }
@@ -82,6 +105,7 @@ final class PairingModel {
         let client = self.client
         self.client = nil
         bundle = nil
+        linkOffer = nil
         Task { await client?.close() }
         if case .done = step { return }
         step = .intro

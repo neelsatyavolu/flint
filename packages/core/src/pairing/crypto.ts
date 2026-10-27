@@ -60,10 +60,10 @@ export function sharedSecret(privateKey: Buffer, peerPublic: Buffer): Buffer {
 
 const hkdf = (ikm: Buffer, salt: Buffer, info: Buffer, length: number): Buffer => Buffer.from(hkdfSync("sha256", ikm, salt, info, length));
 
-/** Both directions' keys and the six-digit code, from the shared secret. `a` is the Mac's public key, `b` the phone's. */
+/** Both directions' keys and the six-digit code, from the shared secret. Both derivations bind the two public keys, so the code commits to them. `a` is the Mac's public key, `b` the phone's. */
 export function deriveSession(shared: Buffer, sid: Buffer, a: Buffer, b: Buffer): SessionKeys {
   const material = hkdf(shared, sid, Buffer.concat([INFO_KEYS, a, b]), 64);
-  const sasBytes = hkdf(shared, sid, INFO_SAS, 4);
+  const sasBytes = hkdf(shared, sid, Buffer.concat([INFO_SAS, a, b]), 4);
   const sas = String(sasBytes.readUInt32BE(0) % 1_000_000).padStart(6, "0");
   return { macToPhone: material.subarray(0, 32), phoneToMac: material.subarray(32, 64), sas };
 }

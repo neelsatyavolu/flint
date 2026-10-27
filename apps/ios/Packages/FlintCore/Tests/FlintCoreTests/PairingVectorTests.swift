@@ -97,7 +97,7 @@ struct PairingVectorTests {
 
     @Test func rejectsMalformedQRPayloads() throws {
         func url(_ o: [String: Any]) -> String { PairingOffer.prefix + ((try? JSONSerialization.data(withJSONObject: o)) ?? Data()).base64URL }
-        let good: [String: Any] = ["v": 1, "sid": Data(repeating: 1, count: 16).base64URL, "pk": Data(repeating: 2, count: 32).base64URL, "addrs": ["1.2.3.4"], "port": 80]
+        let good: [String: Any] = ["v": 1, "sid": Data(repeating: 1, count: 16).base64URL, "pk": Data(repeating: 2, count: 32).base64URL, "addrs": ["10.1.2.3"], "port": 80]
         _ = try PairingOffer.parse(url(good))
         let bads: [[String: Any]] = [["v": 0], ["sid": "AA"], ["pk": "AA"], ["addrs": [String]()], ["addrs": ["1", "2", "3", "4"]], ["port": 0], ["port": 70000], ["addrs": [""]]]
         for patch in bads { #expect(throws: PairingError.badQRCode) { try PairingOffer.parse(url(good.merging(patch) { $1 })) } }

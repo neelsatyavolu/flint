@@ -15,11 +15,23 @@ describe("nextView", () => {
   });
   it("keeps the summary when the session closes after done", () => {
     const done = nextView(START, { type: "done", deviceName: "x", counts: { accounts: 1, signatures: 0, templates: 0, rules: 0, blockedSenders: 0 } });
-    expect(nextView(done, { type: "closed", reason: "cancelled" })).toBe(done);
+    expect(nextView(done, { type: "closed", reason: "cancelled", bundleSent: false })).toBe(done);
+  });
+  it("does not say nothing was sent once the bundle may have left", () => {
+    for (const reason of ["failed", "connection_lost"] as const) {
+      const before = nextView(START, { type: "closed", reason, bundleSent: false }) as { message: string };
+      const after = nextView(START, { type: "closed", reason, bundleSent: true }) as { message: string };
+      expect(after.message).not.toBe(before.message);
+      expect(after.message).not.toMatch(/Nothing was (sent|saved)/);
+      expect(after.message).toMatch(/may have|started sending/);
+    }
+  });
+  it("names the cause when the library is too large", () => {
+    expect((nextView(START, { type: "closed", reason: "too_large", bundleSent: false }) as { message: string }).message).toMatch(/too large/);
   });
   it("explains every way a session can end without exclamation marks", () => {
-    for (const reason of ["expired", "cancelled", "denied", "too_many_attempts", "connection_lost", "failed", "no_ack"] as const) {
-      const v = nextView(START, { type: "closed", reason });
+    for (const reason of ["expired", "cancelled", "denied", "too_many_attempts", "connection_lost", "failed", "no_ack", "too_large"] as const) {
+      const v = nextView(START, { type: "closed", reason, bundleSent: false });
       expect(v.step).toBe("ended");
       expect((v as { message: string }).message).not.toContain("!");
       expect((v as { retry: boolean }).retry).toBe(true);

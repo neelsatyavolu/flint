@@ -68,7 +68,7 @@ public enum PairingCrypto {
         let ikm = SymmetricKey(data: shared)
         let material = HKDF<SHA256>.deriveKey(inputKeyMaterial: ikm, salt: sid, info: infoKeys + macPublic + phonePublic, outputByteCount: 64)
         let bytes = material.withUnsafeBytes { Data($0) }
-        let sasBytes = HKDF<SHA256>.deriveKey(inputKeyMaterial: ikm, salt: sid, info: infoSAS, outputByteCount: 4).withUnsafeBytes { Data($0) }
+        let sasBytes = HKDF<SHA256>.deriveKey(inputKeyMaterial: ikm, salt: sid, info: infoSAS + macPublic + phonePublic, outputByteCount: 4).withUnsafeBytes { Data($0) }
         let number = sasBytes.reduce(UInt32(0)) { ($0 << 8) | UInt32($1) } % 1_000_000
         return PairingSessionKeys(
             macToPhone: SymmetricKey(data: bytes.prefix(32)), phoneToMac: SymmetricKey(data: bytes.suffix(32)),

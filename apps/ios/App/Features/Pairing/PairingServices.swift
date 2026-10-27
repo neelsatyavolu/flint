@@ -30,6 +30,10 @@ struct ServiceImportTarget: ImportTarget {
     func saveRule(_ rule: Rule) async throws { _ = try await service.saveRule(rule) }
     func blockSender(_ pattern: String) async throws { try await service.blockSender(pattern) }
     func applySettings(patch: JSONValue) async throws { _ = try await service.updateSettings(patch: patch) }
+    func signatures() async throws -> [Signature] { try await service.listSignatures() }
+    func templates() async throws -> [Template] { try await service.listTemplates() }
+    func rules() async throws -> [Rule] { try await service.listRules() }
+    func blockedPatterns() async throws -> [String] { try await service.listBlocked().map(\.pattern) }
 }
 
 /// What Settings > Devices remembers about the last Mac: a name and a date. No key, no address.
@@ -81,4 +85,8 @@ private struct UnavailableImportTarget: ImportTarget {
     func saveRule(_ rule: Rule) async throws { throw fail() }
     func blockSender(_ pattern: String) async throws { throw fail() }
     func applySettings(patch: JSONValue) async throws { throw fail() }
+    func signatures() async throws -> [Signature] { throw fail() }
+    func templates() async throws -> [Template] { throw fail() }
+    func rules() async throws -> [Rule] { throw fail() }
+    func blockedPatterns() async throws -> [String] { throw fail() }
 }

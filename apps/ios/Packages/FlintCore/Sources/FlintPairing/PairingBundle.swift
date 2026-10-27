@@ -101,10 +101,22 @@ public struct BundleSettings: Codable, Hashable, Sendable {
 
     public init() {}
 
-    /// The nested object `FlintService.updateSettings(patch:)` takes: only keys the Mac sent.
-    public func patch() throws -> JSONValue {
-        let data = try JSONEncoder().encode(self)
+    /// The nested object `FlintService.updateSettings(patch:)` takes: only keys the Mac sent. The receipts service is left out
+    /// unless asked for, because it decides which server learns when a sent mail is opened.
+    public func patch(includeReceipts: Bool = false) throws -> JSONValue {
+        let data = try JSONEncoder().encode(includeReceipts ? self : withoutReceipts)
         return try JSONDecoder().decode(JSONValue.self, from: data)
+    }
+
+    public var withoutReceipts: BundleSettings {
+        var copy = self
+        copy.receipts = nil
+        return copy
+    }
+
+    /// The host of the Mac's receipts endpoint, for the review row. Nil when the Mac sent none or it is not a web address.
+    public var receiptsHost: String? {
+        receipts?.endpoint.flatMap { URL(string: $0)?.host }
     }
 }
 

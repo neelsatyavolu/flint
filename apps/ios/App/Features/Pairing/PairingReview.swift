@@ -73,7 +73,18 @@ struct PairingReviewStep: View {
                         isOn: $model.selection.includeSettings, identifier: "pairing.settings.toggle")
                 }
             }
+            if plan.hasReceipts {
+                SettingsGroup(title: pl("Read receipts"), note: pl("A read receipts service learns when mail you send is opened. Only turn this on if you trust the address shown.")) {
+                    SettingsToggleRow(
+                        title: pl("Use the Mac's receipts service"), detail: receiptsDetail(plan.settings),
+                        isOn: $model.selection.includeReceipts, identifier: "pairing.receipts.toggle")
+                }
+            }
         }
+    }
+
+    private func receiptsDetail(_ settings: BundleSettings) -> String {
+        settings.receiptsHost ?? pl("Uses the address from your Mac")
     }
 
     private func libraryRow(_ title: String, _ new: Int, _ already: Int, _ id: String) -> some View {
@@ -85,7 +96,7 @@ struct PairingReviewStep: View {
     }
 
     private func readyDetail(_ row: PlannedAccount) -> String {
-        model.addedRows.contains(row.id) ? pl("Added") : pl("Ready to add")
+        (model.addedRows.contains(row.id) ? pl("Added") : pl("Ready to add")) + ", " + row.account.imap.host
     }
 
     private func replaceBinding(_ id: String) -> Binding<Bool> {
@@ -147,7 +158,7 @@ private struct PairingPendingRow: View {
     }
 
     private var detail: String {
-        row.credential == .needsGoogleSignIn ? pl("Needs Google sign-in") : pl("Needs a password")
+        (row.credential == .needsGoogleSignIn ? pl("Needs Google sign-in") : pl("Needs a password")) + ", " + row.account.imap.host
     }
 
     private var buttonTitle: String { row.credential == .needsGoogleSignIn ? pl("Sign in") : pl("Add password") }
