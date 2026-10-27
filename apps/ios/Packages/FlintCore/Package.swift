@@ -15,6 +15,7 @@ let package = Package(
         .library(name: "FlintReceipts", targets: ["FlintReceipts"]),
         .library(name: "FlintHTML", targets: ["FlintHTML"]),
         .library(name: "FlintService", targets: ["FlintService"]),
+        .library(name: "FlintPairing", targets: ["FlintPairing"]),
     ],
     dependencies: [
         .package(url: "https://github.com/Cocoanetics/SwiftMail", revision: "88c45cbd31b347b373f7c87e197be63eb95efbc2"),
@@ -47,10 +48,12 @@ let package = Package(
             "FlintModel", "FlintStore", "FlintMail", "FlintClassify", "FlintReceipts", "FlintHTML",
             .product(name: "Logging", package: "swift-log"),
         ]),
+        // Mac pairing (Wave 4, track 4E): CryptoKit and Network only, plus the model types. No mail engine.
+        .target(name: "FlintPairing", dependencies: ["FlintModel"]),
         .testTarget(
             name: "FlintCoreTests",
             dependencies: [
-                "FlintModel", "FlintStore", "FlintMail", "FlintClassify", "FlintReceipts", "FlintHTML", "FlintService",
+                "FlintModel", "FlintStore", "FlintMail", "FlintClassify", "FlintReceipts", "FlintHTML", "FlintService", "FlintPairing",
                 .product(name: "Logging", package: "swift-log"),
             ],
             resources: [.copy("Fixtures")]

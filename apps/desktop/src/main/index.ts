@@ -136,7 +136,7 @@ async function main(): Promise<void> {
   if (!devUrl) serveRenderer(fileURLToPath(new URL("../renderer", import.meta.url)));
 
   serveAttachments(() => service, dataDir);
-  registerIpc({ getWindow: () => mainWindow, getService: () => service, appOrigin });
+  registerIpc({ getWindow: () => mainWindow, getService: () => service, appOrigin, pairing: { dataDir, secrets: platform.secrets } });
   // Packaged builds update themselves from GitHub Releases (app-update.yml is written by electron-builder).
   // settings.updates.mode is applied below once the service has loaded the settings.
   let updateMode: UpdateMode = "ask";

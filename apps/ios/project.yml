@@ -39,6 +39,8 @@ targets:
         product: FlintModel
       - package: FlintCore
         product: FlintStore
+      - package: FlintCore
+        product: FlintPairing
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: co.xanom.flint

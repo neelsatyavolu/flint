@@ -67,17 +67,6 @@
         }
       }
     },
-    "Available in a later update": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Available in a later update"
-          }
-        }
-      }
-    },
     "Back": {
       "extractionState": "manual",
       "localizations": {
@@ -107,6 +96,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Continue with Google"
+          }
+        }
+      }
+    },
+    "Copy your accounts over Wi-Fi": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy your accounts over Wi-Fi"
           }
         }
       }
@@ -287,9 +287,7 @@
         }
       }
     },
-    "Optional. Added under new mail and replies from this account. You can change it later in Settings.": {
-
-    },
+    "Optional. Added under new mail and replies from this account. You can change it later in Settings.": {},
     "Other email": {
       "extractionState": "manual",
       "localizations": {
@@ -444,9 +442,7 @@
         }
       }
     },
-    "Signature": {
-
-    },
+    "Signature": {},
     "Smart inbox": {
       "extractionState": "manual",
       "localizations": {

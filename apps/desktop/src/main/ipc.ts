@@ -4,6 +4,8 @@ import { ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from "electron";
 import { CHANNELS } from "../preload/channels";
 import { dispatchCall, extensionFolder, isSafeExternalUrl, isTrustedFrameUrl, type CallResult } from "./ipc-core";
 import { shell } from "electron";
+import { registerPairingIpc } from "./pairing-ipc";
+import type { SecretStore } from "@flint/core/platform";
 
 const log = logger("ipc");
 
@@ -11,6 +13,8 @@ export type IpcDeps = {
   getWindow: () => BrowserWindow | null;
   getService: () => FlintService | null;
   appOrigin: string;
+  /** Set up iPhone (Settings > Devices). */
+  pairing: { dataDir: string; secrets: SecretStore };
 };
 
 /** Registers the IPC handlers. Only the main window's top frame may call. */
@@ -29,6 +33,17 @@ export function registerIpc(deps: IpcDeps): void {
     const service = deps.getService();
     if (!service) return { ok: false, error: { code: "internal", message: "Flint is still starting" } };
     return dispatchCall(service as unknown as Record<string, (...a: unknown[]) => unknown>, method, args);
+  });
+
+  registerPairingIpc({
+    ipc: ipcMain,
+    trusted,
+    getService: deps.getService,
+    ...deps.pairing,
+    send: (event) => {
+      const win = deps.getWindow();
+      if (win && !win.isDestroyed()) win.webContents.send(CHANNELS.pairingEvent, event);
+    },
   });
 
   ipcMain.handle(CHANNELS.openExternal, async (e, url: unknown): Promise<void> => {

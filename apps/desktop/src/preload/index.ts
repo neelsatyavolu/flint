@@ -1,4 +1,6 @@
 import { FLINT_METHODS, type FlintApi } from "@flint/core/api";
+import type { PairingUiEvent } from "@flint/core/pairing/controller";
+import type { PairedDevice } from "@flint/core/pairing/devices";
 import type { FlintEvent } from "@flint/core/types";
 import { contextBridge, ipcRenderer, webFrame, webUtils, type IpcRendererEvent } from "electron";
 import { CHANNELS } from "./channels";
@@ -69,6 +71,14 @@ const flintHost: FlintHost = {
   onMenu: (cb) => listen<[string, string | undefined]>(CHANNELS.menu, cb),
   setZoomFactor: (factor) => {
     if (Number.isFinite(factor) && factor >= 0.5 && factor <= 2) webFrame.setZoomFactor(factor);
+  },
+  pairing: {
+    start: () => ipcRenderer.invoke(CHANNELS.pairingStart) as Promise<void>,
+    approve: (includePasswords) => ipcRenderer.invoke(CHANNELS.pairingApprove, includePasswords === true) as Promise<void>,
+    cancel: () => ipcRenderer.invoke(CHANNELS.pairingCancel) as Promise<void>,
+    devices: () => ipcRenderer.invoke(CHANNELS.pairingDevices) as Promise<PairedDevice[]>,
+    forget: (pairedAt) => ipcRenderer.invoke(CHANNELS.pairingForget, pairedAt) as Promise<PairedDevice[]>,
+    onEvent: (cb) => listen<[PairingUiEvent]>(CHANNELS.pairingEvent, cb),
   },
   onFlushDrafts: (cb) => {
     flushDrafts = cb;
