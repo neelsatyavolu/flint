@@ -18,7 +18,7 @@ export type NotificationOptions = {
 
 export type NotifierHooks = {
   onClick: (threadId: number | undefined) => void;
-  onAction: (action: "archive" | "markRead", threadId: number) => void;
+  onAction: (action: AlertAction, threadId: number) => void;
   /** The "Copy code" button on a verification code alert. */
   onCopy?: (text: string) => void;
 };
@@ -34,14 +34,17 @@ export type NotifierDeps = {
 /** Button order on a new-mail alert; the "action" event reports the index. */
 export const ALERT_ACTIONS = [
   { text: "Archive", action: "archive" },
+  { text: "Move to Trash", action: "trash" },
   { text: "Mark as read", action: "markRead" },
 ] as const;
+
+export type AlertAction = (typeof ALERT_ACTIONS)[number]["action"];
 
 /** The single button on a verification code alert. */
 export const COPY_CODE_ACTION = { text: "Copy code" } as const;
 
 /**
- * Shows OS alerts for Platform.notify: honors the sound (null = silent), puts Archive and Mark as read buttons on alerts
+ * Shows OS alerts for Platform.notify: honors the sound (null = silent), puts Archive, Move to Trash and Mark as read buttons on alerts
  * for a thread on macOS, opens the thread on click, and replaces the earlier alert that has the same group key.
  */
 export function createNotifier(deps: NotifierDeps): (req: NotifyRequest) => void {

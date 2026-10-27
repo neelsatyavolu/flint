@@ -37,12 +37,12 @@ describe("createNotifier", () => {
     expect(shown[2]!.options.sound).toBeUndefined();
   });
 
-  it("adds Archive and Mark as read on macOS for thread alerts only", () => {
+  it("adds Archive, Move to Trash and Mark as read on macOS for thread alerts only", () => {
     const { shown, make } = fake();
     make(true)({ title: "a", body: "b", threadId: 3, actions: true });
     make(true)({ title: "a", body: "b", actions: true });
     make(false)({ title: "a", body: "b", threadId: 3, actions: true });
-    expect(shown[0]!.options.actions?.map((a) => a.text)).toEqual(["Archive", "Mark as read"]);
+    expect(shown[0]!.options.actions?.map((a) => a.text)).toEqual(["Archive", "Move to Trash", "Mark as read"]);
     expect(shown[1]!.options.actions).toBeUndefined();
     expect(shown[2]!.options.actions).toBeUndefined();
   });
@@ -58,6 +58,8 @@ describe("createNotifier", () => {
     shown[1]!.n.fire("action", {}, 0);
     expect(hooks.onAction).toHaveBeenCalledWith("archive", 8);
     shown[1]!.n.fire("action", {}, 1);
+    expect(hooks.onAction).toHaveBeenCalledWith("trash", 8);
+    shown[1]!.n.fire("action", {}, 2);
     expect(hooks.onAction).toHaveBeenCalledWith("markRead", 8);
     shown[2]!.n.fire("click");
     expect(hooks.onClick).toHaveBeenCalledWith(9);
@@ -102,6 +104,6 @@ describe("verification code alerts", () => {
     make(false)({ title: "t", body: "b", copyText: "1" });
     expect(shown[0]!.options.actions).toBeUndefined();
     make(true)({ title: "t", body: "b", threadId: 1, actions: true });
-    expect(shown[1]!.options.actions).toHaveLength(2);
+    expect(shown[1]!.options.actions).toHaveLength(3);
   });
 });

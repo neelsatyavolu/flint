@@ -13,7 +13,7 @@ const log = logger("platform");
 export type PlatformHooks = {
   /** Called when the user clicks a notification. */
   onNotificationClick: (threadId: number | undefined) => void;
-  /** Called when the user presses Archive or Mark as read on a notification (macOS). */
+  /** Called when the user presses Archive, Move to Trash or Mark as read on a notification (macOS). */
   onNotificationAction: NotifierHooks["onAction"];
 };
 

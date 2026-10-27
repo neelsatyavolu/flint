@@ -129,7 +129,7 @@ async function main(): Promise<void> {
       if (threadId !== undefined) sendToRenderer(CHANNELS.openThread, threadId);
     },
     onNotificationAction: (action, threadId) => {
-      const run = action === "archive" ? service?.archive([threadId]) : service?.markRead([threadId], true);
+      const run = action === "archive" ? service?.archive([threadId]) : action === "trash" ? service?.trash([threadId]) : service?.markRead([threadId], true);
       run?.catch((err: unknown) => log.warn("notification action failed", { action, message: String(err) }));
     },
   });
