@@ -24,10 +24,20 @@ final class NotificationCoordinator {
     @ObservationIgnored private var batch: [NewMailInfo] = []
     @ObservationIgnored private var batchTask: Task<Void, Never>?
     @ObservationIgnored private var dueTask: Task<Void, Never>?
-    @ObservationIgnored private var runNewMail: Set<ThreadID> = []
-    @ObservationIgnored private var runAlerts = 0
-    @ObservationIgnored private var counting = false
+    /// What each background run in progress has seen. Runs can overlap (a refresh, a processing run, "Check now"), so each
+    /// has its own tally, keyed by the token `beginRunCount` returned.
+    @ObservationIgnored private var runs: [UUID: RunTally] = [:]
+    /// Threads a code alert was just posted for, with the time. Their ordinary new-mail alert would only repeat it.
+    @ObservationIgnored private var codeAlertedAt: [ThreadID: EpochMs] = [:]
     @ObservationIgnored var onCopied: @MainActor () -> Void = {}
+
+    private struct RunTally {
+        var threads: Set<ThreadID> = []
+        var alerts = 0
+    }
+
+    /// As on the desktop (`ALERT_COVER_MS` in `codes.ts`): a code alert covers the thread's new-mail alert for this long.
+    static let codeCoverMs = 10_000
 
     init(
         center: any NotificationScheduling, clipboard: any CodeClipboard, isForeground: @escaping @MainActor () -> Bool,
@@ -70,14 +80,14 @@ final class NotificationCoordinator {
     func ingest(_ event: FlintEvent) {
         switch event {
         case .newMail(let accountId, let threadId, let from, let subject, let category, let snippet, let forced):
-            if counting { runNewMail.insert(threadId) }
+            for token in runs.keys { runs[token]?.threads.insert(threadId) }
             guard !isForeground() else { return }
             batch.append(NewMailInfo(accountId: accountId, threadId: threadId, from: from, subject: subject, category: category, snippet: snippet, forced: forced))
             scheduleFlush()
         case .code(let code):
             Task { await handle(code: code) }
         case .toast(_, let message, _):
-            guard !isForeground(), let content = NotificationPolicy.reminderAlert(toast: message, id: UUID().uuidString, sound: notifySettings.sound) else { return }
+            guard !isForeground(), let content = NotificationPolicy.reminderAlert(toast: message, id: UUID().uuidString, settings: notifySettings) else { return }
             Task { await post(content) }
         case .mailChanged, .send, .settings:
             scheduleDueReconcile()
@@ -88,10 +98,11 @@ final class NotificationCoordinator {
 
     private func handle(code: VerificationCode) async {
         if isForeground() {
-            if CodesLogic.autoCopyCandidate(code, settings: codeSettings) { await copy(code: code.code, codeId: code.id) }
+            if CodesLogic.autoCopyCandidate(code, settings: codeSettings, notifications: notifySettings) { await copy(code: code.code, codeId: code.id) }
             return
         }
-        guard let content = NotificationPolicy.codeAlert(code, settings: codeSettings, sound: notifySettings.sound) else { return }
+        guard let content = NotificationPolicy.codeAlert(code, settings: codeSettings, notifications: notifySettings) else { return }
+        codeAlertedAt[code.threadId] = nowMs()
         await post(content)
     }
 
@@ -107,7 +118,9 @@ final class NotificationCoordinator {
     /// Posts the alert for the mail collected so far. A background run calls this before it finishes.
     func flush() async {
         batchTask?.cancel()
-        let taken = batch
+        let now = nowMs()
+        codeAlertedAt = codeAlertedAt.filter { now - $0.value <= Self.codeCoverMs }
+        let taken = batch.filter { codeAlertedAt[$0.threadId] == nil }
         batch = []
         guard let content = NotificationPolicy.alert(for: taken, settings: notifySettings) else { return }
         await post(content)
@@ -118,23 +131,23 @@ final class NotificationCoordinator {
         guard authorization == .allowed else { return }
         await center.post(content)
         alertsPosted += 1
-        if counting { runAlerts += 1 }
+        for token in runs.keys { runs[token]?.alerts += 1 }
     }
 
     // MARK: Run counting (background diagnostics)
 
-    func beginRunCount() {
-        counting = true
-        runNewMail = []
-        runAlerts = 0
+    func beginRunCount() -> UUID {
+        let token = UUID()
+        runs[token] = RunTally()
+        return token
     }
 
-    func endRunCount() -> (newMail: Int, alerts: Int) {
-        counting = false
-        return (runNewMail.count, runAlerts)
+    func endRunCount(_ token: UUID) -> (newMail: Int, alerts: Int) {
+        let tally = runs.removeValue(forKey: token) ?? RunTally()
+        return (tally.threads.count, tally.alerts)
     }
 
-    // MARK: Snooze, reminder and scheduled-send alerts
+    // MARK: Snooze wake-ups
 
     private func scheduleDueReconcile() {
         dueTask?.cancel()
@@ -145,14 +158,13 @@ final class NotificationCoordinator {
         }
     }
 
-    /// Makes the pending local notifications match the snoozed conversations and scheduled sends.
+    /// Makes the pending local notifications match the snoozed conversations.
     func reconcileDue() async {
         guard let service else { return }
         await refreshAuthorization()
         guard authorization == .allowed else { return }
         let snoozed = (try? await service.listThreads(ThreadQuery(view: .snoozed, limit: 100)))?.items ?? []
-        let scheduled = (try? await service.listScheduled()) ?? []
-        let desired = DueNotificationPlanner.plan(snoozed: snoozed, scheduled: scheduled, settings: notifySettings, nowMs: nowMs())
+        let desired = DueNotificationPlanner.plan(snoozed: snoozed, settings: notifySettings, nowMs: nowMs())
         let plan = DueNotificationPlanner.diff(desired: desired, pendingIds: await center.pendingIdentifiers())
         if !plan.remove.isEmpty { await center.removePending(plan.remove) }
         for content in plan.add { await center.post(content) }

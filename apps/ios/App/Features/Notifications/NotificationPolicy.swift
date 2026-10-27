@@ -16,8 +16,16 @@ struct NewMailInfo: Equatable, Sendable {
 enum NotificationPolicy {
     static let previewChars = 140
 
+    /// The switches every alert follows: the master switch, scope "none" and a muted account (`alertsAllowed` in the desktop's
+    /// `codes.ts`). Without an account (a follow-up toast) only the first two apply.
+    static func alertsAllowed(_ settings: Settings.Notifications, account: AccountID?) -> Bool {
+        guard settings.enabled, settings.scope != .none else { return false }
+        if let account, settings.disabledAccounts.contains(account) { return false }
+        return true
+    }
+
     static func wantsAlert(_ settings: Settings.Notifications, _ mail: NewMailInfo) -> Bool {
-        guard settings.enabled, settings.scope != .none, !settings.disabledAccounts.contains(mail.accountId) else { return false }
+        guard alertsAllowed(settings, account: mail.accountId) else { return false }
         if settings.scope == .people { return mail.category == .people || mail.forced }
         return true
     }
@@ -52,9 +60,13 @@ enum NotificationPolicy {
             threadIdentifier: identifier, sound: settings.sound, userInfo: info, fireAt: nil)
     }
 
-    /// The code alert reads "KAYAK code 530331" on the lock screen. Nil when codes are off or silent.
-    static func codeAlert(_ code: VerificationCode, settings: Settings.Codes, sound: Bool) -> NotificationContent? {
-        guard settings.enabled, settings.notify else { return nil }
+    /// The code alert reads "KAYAK code 530331" on the lock screen. Nil when codes are off or silent, and, as on the desktop
+    /// (`codes.ts` `announce`), when previews are hidden, alerts are off or the account is muted: a code must not appear in a
+    /// notification the person asked to keep content-free.
+    static func codeAlert(_ code: VerificationCode, settings: Settings.Codes, notifications: Settings.Notifications) -> NotificationContent? {
+        guard settings.enabled, settings.notify, notifications.preview != .none,
+              alertsAllowed(notifications, account: code.accountId) else { return nil }
+        let sound = notifications.sound
         let service = code.service.trimmingCharacters(in: .whitespaces)
         let title = service.isEmpty
             ? String(localized: "Code \(code.code)", table: "Notifications")
@@ -101,11 +113,13 @@ enum NotificationPolicy {
         return String(flat.prefix(previewChars - 1)).trimmingCharacters(in: .whitespaces) + "..."
     }
 
-    /// A fired follow-up reminder arrives as an info toast ("No reply from Ann yet"); only those become alerts.
-    static func reminderAlert(toast message: String, id: String, sound: Bool) -> NotificationContent? {
-        guard message.hasPrefix("No reply from") else { return nil }
+    /// A fired follow-up reminder arrives as an info toast ("No reply from Ann yet"); only those become alerts. The toast names
+    /// the recipient, so it stays out of the alert when previews are hidden.
+    static func reminderAlert(toast message: String, id: String, settings: Settings.Notifications) -> NotificationContent? {
+        guard message.hasPrefix("No reply from"), alertsAllowed(settings, account: nil) else { return nil }
         return NotificationContent(
-            identifier: "reminder.\(id)", title: String(localized: "Follow up", table: "Notifications"), body: message,
-            categoryId: NotificationIDs.reminderCategory, threadIdentifier: "reminders", sound: sound, userInfo: [:], fireAt: nil)
+            identifier: "reminder.\(id)", title: String(localized: "Follow up", table: "Notifications"),
+            body: settings.preview == .none ? "" : message, categoryId: NotificationIDs.reminderCategory, threadIdentifier: "reminders",
+            sound: settings.sound, userInfo: [:], fireAt: nil)
     }
 }

@@ -44,11 +44,11 @@ struct LocalNotice: Hashable, Sendable {
     }
 }
 
-/// The notices for send later, follow-up reminders and snooze wake-ups. Titles carry the person's name; subjects and bodies
-/// stay out of them because they show on the lock screen.
+/// The notices for send later, follow-up reminders and snooze wake-ups. Titles carry the person's name unless previews are
+/// hidden (`showNames` false); subjects and bodies stay out of them because they show on the lock screen.
 enum SchedulingNotices {
-    static func sendLater(scheduledId: Int, to: [Address], sendAt: EpochMs) -> LocalNotice {
-        let who = FlintFormat.participants(to)
+    static func sendLater(scheduledId: Int, to: [Address], sendAt: EpochMs, showNames: Bool = true) -> LocalNotice {
+        let who = showNames ? FlintFormat.participants(to) : ""
         let title = who.isEmpty ? String(localized: "Ready to send", table: "Scheduling") : String(localized: "Ready to send to \(who)", table: "Scheduling")
         var notice = LocalNotice(
             kind: .sendLater, id: LocalNotice.id(.sendLater, String(scheduledId)), title: title,
@@ -57,8 +57,8 @@ enum SchedulingNotices {
         return notice
     }
 
-    static func followUp(scheduledId: Int, to: [Address], threadId: ThreadID?, remindAt: EpochMs, sentAt: EpochMs) -> LocalNotice {
-        let who = FlintFormat.participants(to)
+    static func followUp(scheduledId: Int, to: [Address], threadId: ThreadID?, remindAt: EpochMs, sentAt: EpochMs, showNames: Bool = true) -> LocalNotice {
+        let who = showNames ? FlintFormat.participants(to) : ""
         let title = who.isEmpty ? String(localized: "Any reply?", table: "Scheduling") : String(localized: "Any reply from \(who)?", table: "Scheduling")
         var notice = LocalNotice(
             kind: .followUp, id: LocalNotice.id(.followUp, String(scheduledId)), title: title,
@@ -75,6 +75,20 @@ enum SchedulingNotices {
             body: String(localized: "A conversation you snoozed is due. Tap to open it.", table: "Scheduling"), fireAt: date(until))
         notice.threadId = threadId
         return notice
+    }
+
+    /// The same notice with the recipient taken out of the title, for when previews are switched to hidden after it was set.
+    static func withoutNames(_ notice: LocalNotice) -> LocalNotice {
+        var plain = notice
+        switch notice.kind {
+        case .sendLater: plain = LocalNotice(kind: .sendLater, id: notice.id, title: String(localized: "Ready to send", table: "Scheduling"), body: notice.body, fireAt: notice.fireAt)
+        case .followUp: plain = LocalNotice(kind: .followUp, id: notice.id, title: String(localized: "Any reply?", table: "Scheduling"), body: notice.body, fireAt: notice.fireAt)
+        case .snooze: return notice
+        }
+        plain.threadId = notice.threadId
+        plain.scheduledId = notice.scheduledId
+        plain.sentAt = notice.sentAt
+        return plain
     }
 
     private static func date(_ ms: EpochMs) -> Date { Date(timeIntervalSince1970: Double(ms) / 1000) }

@@ -117,12 +117,14 @@ struct NotificationPolicyTests {
 
     @Test("a code alert reads the service and the code, and carries the code for Copy code")
     func codeAlert() throws {
-        let alert = try #require(NotificationPolicy.codeAlert(Self.code(), settings: Settings.Codes(), sound: true))
+        let alert = try #require(NotificationPolicy.codeAlert(Self.code(), settings: Settings.Codes(), notifications: Settings.Notifications()))
         #expect(alert.title == "Pocket code 482913")
         #expect(alert.categoryId == NotificationIDs.codeCategory)
         #expect(alert.userInfo[NotificationIDs.Key.code] == "482913")
         #expect(alert.userInfo[NotificationIDs.Key.codeId] == "c1")
-        let unnamed = try #require(NotificationPolicy.codeAlert(Self.code(service: " "), settings: Settings.Codes(), sound: false))
+        var quiet = Settings.Notifications()
+        quiet.sound = false
+        let unnamed = try #require(NotificationPolicy.codeAlert(Self.code(service: " "), settings: Settings.Codes(), notifications: quiet))
         #expect(unnamed.title == "Code 482913")
         #expect(unnamed.sound == false)
     }
@@ -131,10 +133,26 @@ struct NotificationPolicyTests {
     func codeAlertOff() {
         var settings = Settings.Codes()
         settings.notify = false
-        #expect(NotificationPolicy.codeAlert(Self.code(), settings: settings, sound: true) == nil)
+        #expect(NotificationPolicy.codeAlert(Self.code(), settings: settings, notifications: Settings.Notifications()) == nil)
         settings.notify = true
         settings.enabled = false
-        #expect(NotificationPolicy.codeAlert(Self.code(), settings: settings, sound: true) == nil)
+        #expect(NotificationPolicy.codeAlert(Self.code(), settings: settings, notifications: Settings.Notifications()) == nil)
+    }
+
+    @Test("a code never reaches the lock screen when previews are hidden, alerts are off or the account is muted")
+    func codeAlertFollowsNotificationSettings() {
+        func alert(_ change: (inout Settings.Notifications) -> Void) -> NotificationContent? {
+            var notifications = Settings.Notifications()
+            change(&notifications)
+            return NotificationPolicy.codeAlert(Self.code(), settings: Settings.Codes(), notifications: notifications)
+        }
+        #expect(alert { _ in } != nil)
+        #expect(alert { $0.preview = .none } == nil)
+        #expect(alert { $0.enabled = false } == nil)
+        #expect(alert { $0.scope = .none } == nil)
+        #expect(alert { $0.disabledAccounts = ["a1"] } == nil)
+        #expect(alert { $0.disabledAccounts = ["other"] } != nil)
+        #expect(alert { $0.preview = .senderSubjectLine } != nil)
     }
 
     // MARK: Badge, reminders, responses
@@ -153,10 +171,25 @@ struct NotificationPolicyTests {
 
     @Test("only follow-up toasts become reminder alerts")
     func reminders() {
-        let alert = NotificationPolicy.reminderAlert(toast: "No reply from Ann yet", id: "x", sound: true)
+        let alert = NotificationPolicy.reminderAlert(toast: "No reply from Ann yet", id: "x", settings: Settings.Notifications())
         #expect(alert?.title == "Follow up")
         #expect(alert?.body == "No reply from Ann yet")
-        #expect(NotificationPolicy.reminderAlert(toast: "Couldn't send", id: "x", sound: true) == nil)
+        #expect(NotificationPolicy.reminderAlert(toast: "Couldn't send", id: "x", settings: Settings.Notifications()) == nil)
+    }
+
+    @Test("a reminder alert keeps the recipient off the lock screen with previews hidden, and follows the alert switches")
+    func reminderFollowsNotificationSettings() {
+        var settings = Settings.Notifications()
+        settings.preview = .none
+        let hidden = NotificationPolicy.reminderAlert(toast: "No reply from Ann yet", id: "x", settings: settings)
+        #expect(hidden?.body == "")
+        #expect(hidden?.title == "Follow up")
+        settings.preview = .senderSubject
+        settings.enabled = false
+        #expect(NotificationPolicy.reminderAlert(toast: "No reply from Ann yet", id: "x", settings: settings) == nil)
+        settings.enabled = true
+        settings.scope = .none
+        #expect(NotificationPolicy.reminderAlert(toast: "No reply from Ann yet", id: "x", settings: settings) == nil)
     }
 
     @Test("responses map to the right request")

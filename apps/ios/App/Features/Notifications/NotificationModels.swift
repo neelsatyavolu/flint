@@ -51,6 +51,14 @@ enum NotificationRequest: Equatable, Sendable {
     /// A tap on a notification that carries no thread (a scheduled send, a summary): just open the app.
     case openApp
 
+    /// True for the buttons that change mail without bringing the app forward.
+    var runsInBackground: Bool {
+        switch self {
+        case .archive, .markRead: true
+        case .open, .copyCode, .openApp: false
+        }
+    }
+
     /// Parses a delivered response. Unknown actions fall back to opening the thread when there is one.
     static func parse(action: String, userInfo: [String: String]) -> NotificationRequest {
         // Scheduling's local notices (4D) carry the thread under `flint.thread`.

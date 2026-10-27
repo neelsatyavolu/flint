@@ -103,11 +103,12 @@ final class MemoryNotificationScheduler: NotificationScheduling {
 }
 
 /// The three categories and their buttons. Copy code opens the app: writing the pasteboard from a background action is not
-/// dependable (DESIGN-NOTES section 9).
+/// dependable (DESIGN-NOTES section 9). Archive and Mark read change mail, so the phone must be unlocked first; the desktop has
+/// no setting that relaxes this.
 enum NotificationCategories {
     static func all() -> Set<UNNotificationCategory> {
-        let archive = UNNotificationAction(identifier: NotificationIDs.archiveAction, title: String(localized: "Archive", table: "Notifications"), options: [])
-        let markRead = UNNotificationAction(identifier: NotificationIDs.markReadAction, title: String(localized: "Mark read", table: "Notifications"), options: [])
+        let archive = UNNotificationAction(identifier: NotificationIDs.archiveAction, title: String(localized: "Archive", table: "Notifications"), options: [.authenticationRequired])
+        let markRead = UNNotificationAction(identifier: NotificationIDs.markReadAction, title: String(localized: "Mark read", table: "Notifications"), options: [.authenticationRequired])
         let copy = UNNotificationAction(identifier: NotificationIDs.copyCodeAction, title: String(localized: "Copy code", table: "Notifications"), options: [.foreground])
         return [
             UNNotificationCategory(identifier: NotificationIDs.mailCategory, actions: [archive, markRead], intentIdentifiers: [], options: []),

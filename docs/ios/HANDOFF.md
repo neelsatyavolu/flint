@@ -295,3 +295,13 @@ Requests for the shell and other owners (file | change | why):
 - The wave 3 `BackgroundSends` crash from 4E's note was already fixed by 4B.
 - Flaky, not fixed: `PairingTests.testCancelAtTheCodeReturnsToTheStart` and the first `EndToEndTests` run failed once and passed on rerun; `ShellFixTests.testKeyboardShortcutsOnIPad` fails when the whole class runs on iPad (Cmd-F gets no key command) and passes alone. Cause not found.
 - BGTaskScheduler `_simulateLaunchForTaskWithIdentifier` via lldb hung again (as in 4B); not verified in the simulator.
+
+## Wave 4 review fixes, notif group (branch wave4fix-notif)
+
+- Findings fixed: H1, H2, H3, M1, M2, M3, M5, M6, L3, L4, L5, L6 and the notification parts of M7 and the Info items (QA 12.1 wording, Face ID default hiding titles, noted in Settings > Notifications and QA 12.6). Not fixed: see the final report (M7 simulated BGTask launch, M2's persistent `.failed` phase).
+- `Packages/FlintCore/Sources/FlintService/FlintService.swift`, `Runtime.swift` | new `FlintService.startListeners()` (event listeners only: codes, reply watching); `start()` and `startListeners()` share `RuntimeState.installSubscriptionsIfNone`, so they never double | a background run in a warm process had no listeners after `stop()`. Test in `ServiceLifecycleTests`.
+- `App/Seed/DemoSeed.swift` | `DemoSeedResult.deliverCodeMail` (demo only) | tests of the background code path.
+- `App/Shell/AppModel.swift` | `bootstrap()` split: `bootstrapForBackgroundRun()` opens the service and wires the listeners without IDLE sessions or maintenance (`syncStarted` stays false); `bootstrap()` and `sceneBecameActive()` start sync. `pollReceiptsInBackground` is a replaceable closure. Both places that call `notifications.update(settings:)` also call `scheduling.update(notifications:)`.
+- Owners: Scheduling (4D) owns the `snooze.<thread>`, `send-later.<id>` and `follow-up.<id>` notices. 4B's planner builds the snooze with `SchedulingNotices.snooze` (same words, content-free) and no longer plans scheduled sends. A pending `send.<id>` from an older build is removed on the next reconcile.
+- Notification settings now gate Scheduling's notices (alerts off or scope none: none scheduled, waiting ones withdrawn; previews hidden: no recipient in the title, waiting ones rewritten). Turning alerts back on does not re-arm "Ready to send" for sends already queued; the next reschedule does.
+- Lock-screen Archive and Mark read use `.authenticationRequired`. The desktop has no setting that relaxes this.

@@ -51,7 +51,7 @@ struct NotificationsSettingsPage: View {
     // MARK: Alerts
 
     private var alertsGroup: some View {
-        SettingsGroup(title: nl("Alerts")) {
+        SettingsGroup(title: nl("Alerts"), note: nl("Hidden previews also keep codes out of alerts and off the clipboard. iOS can hide alert text until you unlock, which is the default with Face ID. Change it in the Settings app under Notifications, Flint, Show Previews.")) {
             SettingsToggleRow(
                 title: nl("Alert me to new mail"), isOn: model.boolSetting({ $0.notifications.enabled }, section: "notifications", key: "enabled"),
                 identifier: "settings.notifications.enabled")
@@ -104,7 +104,7 @@ struct NotificationsSettingsPage: View {
                 title: nl("Find verification codes"), detail: nl("Codes from new mail show above your inbox for ten minutes."),
                 isOn: model.boolSetting({ $0.codes.enabled }, section: "codes", key: "enabled"), identifier: "settings.codes.enabled")
             SettingsToggleRow(
-                title: nl("Alert for codes"), detail: nl("The alert reads the service and the code. Copy code is a button on it."),
+                title: nl("Alert for codes"), detail: nl("Needs previews on. The alert reads the service and the code. Copy code is a button on it."),
                 isOn: model.boolSetting({ $0.codes.notify }, section: "codes", key: "notify"), identifier: "settings.codes.notify",
                 disabled: !(model.settings?.codes.enabled ?? true))
             SettingsToggleRow(

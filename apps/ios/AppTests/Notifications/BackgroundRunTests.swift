@@ -60,12 +60,46 @@ struct BackgroundRunTests {
         await model.shutdown()
     }
 
+    @Test("a warm process that was stopped on the way to the background still detects and announces a code")
+    func warmRunDetectsCode() async throws {
+        let (model, center, _, seed) = try await model()
+        await model.bootstrap()
+        await model.service?.stop()
+        model.demoDeliverNewMail = seed.deliverCodeMail
+        let record = await model.runBackground(.refresh)
+        #expect(record.result == .completed)
+        #expect(center.posted.contains { $0.identifier.hasPrefix("code.") && $0.title.hasPrefix("Pocket code 61") })
+        await model.shutdown()
+    }
+
+    @Test("a background run polls the receipts service after mail")
+    func runPollsReceipts() async throws {
+        let (model, _, _, _) = try await model()
+        var polls = 0
+        model.pollReceiptsInBackground = { _ in polls += 1 }
+        _ = await model.runBackground(.refresh)
+        _ = await model.runBackground(.processing)
+        #expect(polls == 2)
+        await model.shutdown()
+    }
+
+    @Test("a background launch opens the service without sync, and the window's bootstrap starts it")
+    func lightBootstrap() async throws {
+        let (model, _, _, _) = try await model()
+        await model.bootstrapForBackgroundRun()
+        #expect(model.phase == .ready)
+        #expect(!model.syncStarted)
+        await model.bootstrap()
+        #expect(model.syncStarted)
+        await model.shutdown()
+    }
+
     @Test("the seeded code announces itself as the service and the code")
     func seededCode() async throws {
         let (model, _, _, _) = try await model()
         await model.bootstrap()
         let code = try #require(await model.service?.recentCodes().first)
-        let alert = try #require(NotificationPolicy.codeAlert(code, settings: Settings.Codes(), sound: true))
+        let alert = try #require(NotificationPolicy.codeAlert(code, settings: Settings.Codes(), notifications: Settings.Notifications()))
         #expect(alert.title == "Pocket code 482913")
         await model.shutdown()
     }

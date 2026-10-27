@@ -40,10 +40,17 @@ public final class FlintService: Sendable {
     /// maintenance. Calling it again on every foreground is cheap. Returns once the first start-up steps have been queued.
     public func start() async {
         if core.runtime.markStarted() {
-            core.runtime.set(subscriptions: core.wireListeners())
+            core.runtime.installSubscriptionsIfNone { core.wireListeners() }
             core.runtime.set(maintenance: Task { [core] in await core.runMaintenance() })
         }
         await core.sync.startAll()
+    }
+
+    /// Only the event listeners (verification codes, reply watching), for a background run that syncs by hand. A process that was
+    /// stopped on the way to the background and then woken for a refresh has none; this brings them back without the IDLE
+    /// sessions, the pump or the one-time maintenance. Safe to call again, and before or after `start()`.
+    public func startListeners() {
+        core.runtime.installSubscriptionsIfNone { core.wireListeners() }
     }
 
     /// Stops sync and the pump (the app is going to the background). `start()` resumes.

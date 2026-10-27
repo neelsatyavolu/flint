@@ -19,4 +19,15 @@ actor DemoBackgroundMail {
             minutesAgo: 0, unread: true)
         await DemoDelivery.deliver([message], to: .google, server: server, now: now, batch: 10 + delivered)
     }
+
+    /// One more sign-in code mail, for tests of the code path in a background run.
+    func deliverCode(now: Date = Date()) async {
+        delivered += 1
+        let message = SeedMessage(
+            key: "g-background-code-\(delivered)", from: DemoPeople.signIn, to: [DemoPeople.mayaGoogle],
+            subject: "Your Pocket verification code",
+            text: "Your Pocket verification code is 61\(delivered)204.\n\nIt expires in 10 minutes. If you did not ask for it, ignore this message.",
+            minutesAgo: 0, unread: true)
+        await DemoDelivery.deliver([message], to: .google, server: server, now: now, batch: 10 + delivered)
+    }
 }

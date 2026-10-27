@@ -13,6 +13,8 @@ struct DemoSeedResult: Sendable {
     let accounts: [Account]
     /// Delivers one more message to the Google account's server; a background run calls it before it syncs.
     let deliverNewMail: @Sendable () async -> Void
+    /// Delivers one more mail that carries a verification code (tests of the background code path).
+    let deliverCodeMail: @Sendable () async -> Void
 }
 
 enum DemoSeed {
@@ -60,7 +62,8 @@ enum DemoSeed {
         try await DemoSeedFinish.apply(service: service, store: store, now: now)
         let background = DemoBackgroundMail(server: google)
         return DemoSeedResult(
-            service: service, directory: root, accounts: try await service.listAccounts(), deliverNewMail: { await background.deliver() })
+            service: service, directory: root, accounts: try await service.listAccounts(), deliverNewMail: { await background.deliver() },
+            deliverCodeMail: { await background.deliverCode() })
     }
 
     private static func require<T>(_ value: T?) throws -> T {

@@ -221,6 +221,33 @@ struct ServiceSignalTests {
         #expect(await rig.service.recentCodes().isEmpty)
     }
 
+    @Test func aCodeIsAnnouncedInAWarmBackgroundRunAfterStopWithoutAFullStart() async throws {
+        let rig = try await ServiceRig.make()
+        defer { Task { await rig.cleanup() } }
+        try await rig.addAccount()
+        await rig.service.start()
+        await rig.service.waitForMaintenance()
+        await rig.deliver("Quiet day", ageDays: 1)
+        try await rig.service.syncNow()
+        await rig.service.stop()
+
+        // A background run in a process that was only suspended: listeners come back, sync sessions and maintenance do not.
+        await rig.service.startListeners()
+        await rig.service.startListeners()
+        await rig.deliver("Your Acme verification code is 482913", from: "no-reply@acme.example", body: "Your Acme verification code is 482913. It expires in 10 minutes.")
+        try await rig.service.syncNow()
+        #expect(await serviceEventually { rig.log.codes.count == 1 })
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(rig.log.codes.count == 1, "listeners are wired once, not once per call")
+
+        await rig.service.start()
+        await rig.deliver("Your Acme verification code is 111222", from: "no-reply@acme.example", body: "Your Acme verification code is 111222. It expires in 10 minutes.")
+        try await rig.service.syncNow()
+        #expect(await serviceEventually { rig.log.codes.count == 2 })
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(rig.log.codes.count == 2, "a later full start does not wire a second set of listeners")
+    }
+
     @Test func codesAreNotLookedForWhenTheSettingIsOffAndSurviveARestart() async throws {
         let rig = try await ServiceRig.make()
         defer { Task { await rig.cleanup() } }
