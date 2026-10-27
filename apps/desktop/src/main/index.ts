@@ -7,7 +7,7 @@ import { initLog, logger } from "@flint/core/log";
 import type { FlintService } from "@flint/core/service/index";
 import type { Settings } from "@flint/core/types";
 import type { BrowserWindow, IpcMainEvent } from "electron";
-import { app, dialog, ipcMain, nativeTheme, Notification, session } from "electron";
+import { app, dialog, ipcMain, nativeTheme, Notification, powerMonitor, session } from "electron";
 import electronUpdater from "electron-updater";
 import { CHANNELS } from "../preload/channels";
 import { APP_ORIGIN, APP_URL, registerAppScheme, serveRenderer } from "./app-protocol";
@@ -222,6 +222,8 @@ async function main(): Promise<void> {
 
   openWindow(dataDir);
   updates?.start();
+  // Connections die while the Mac sleeps; reconnect on wake instead of waiting out a backoff grown while offline.
+  powerMonitor.on("resume", () => service?.resume());
   app.on("activate", () => {
     if (!mainWindow) openWindow(dataDir);
     else focusWindow(mainWindow);

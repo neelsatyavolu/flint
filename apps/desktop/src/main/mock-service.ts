@@ -50,6 +50,7 @@ export function createMockService(dataDir: string): FlintService {
   return {
     async start() {},
     async stop() {},
+    resume() {},
     subscribe(listener) {
       listeners.add(listener);
       return () => { listeners.delete(listener); };

@@ -94,6 +94,11 @@ export class SyncManager {
     for (const s of this.statuses()) if (s.state === "auth_error") await this.restart(s.accountId);
   }
 
+  /** Reconnects every running account at once, e.g. after the computer wakes. */
+  resumeAll(): void {
+    for (const sync of this.running()) sync.resume();
+  }
+
   #startOne(accountId: AccountId): void {
     if (this.#started.has(accountId)) return;
     this.get(accountId).start();

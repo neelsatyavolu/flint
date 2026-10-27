@@ -40,8 +40,13 @@ const GMAIL_SYNC_ROLES: MailboxRole[] = ["trash", "spam", "all"]; // All Mail la
 const isAuthError = (e: unknown): boolean => e instanceof FlintError && e.code === "auth";
 const isNetworkError = (e: unknown): boolean => e instanceof FlintError && e.code === "network";
 
-/** Consecutive auth failures tolerated before the account is marked as needing a new sign-in. */
-const AUTH_RETRIES = 2;
+/**
+ * Consecutive rejected logins before the account shows "Sign in again". Gmail refuses a valid app password for a while
+ * when it sees many logins close together, so the first few count as temporary.
+ */
+const AUTH_RETRIES = 4;
+/** First wait after a rejected login; it doubles up to the backoff maximum. */
+const AUTH_BACKOFF_MS = 30_000;
 /** Messages whose bodies are prefetched per mailbox lock. */
 const PREFETCH_CHUNK = 5;
 
@@ -59,7 +64,9 @@ export class AccountSync implements ImapRunner {
   #stopped = true;
   #loop: Promise<void> | null = null;
   #wakeResolve: (() => void) | null = null;
+  #stopResolve: (() => void) | null = null;
   #pendingWake = false;
+  #resumed = false;
   #cycle: Promise<void> = Promise.resolve();
   #lastExists = new Map<number, number>();
   #cycles = 0;
@@ -83,8 +90,16 @@ export class AccountSync implements ImapRunner {
     this.#loop = this.#runLoop();
   }
 
+  /** The computer woke or came back online: reconnect now and start the retry backoff over. */
+  resume(): void {
+    if (this.#stopped) return;
+    this.#resumed = true;
+    this.#wake();
+  }
+
   async stop(): Promise<void> {
     this.#stopped = true;
+    this.#stopResolve?.();
     this.#wake();
     this.#closeClients();
     await this.#loop?.catch(() => undefined);
@@ -280,33 +295,49 @@ export class AccountSync implements ImapRunner {
     });
   }
 
+  /** Waits `ms`, ending early only when sync stops. Mail events and wakes don't cut it short. */
+  #pause(ms: number): Promise<void> {
+    if (this.#stopped) return Promise.resolve();
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => { this.#stopResolve = null; resolve(); }, ms);
+      this.#stopResolve = () => { clearTimeout(timer); this.#stopResolve = null; resolve(); };
+    });
+  }
+
   async #runLoop(): Promise<void> {
     const backoff = this.#o.backoff ?? { minMs: 5000, maxMs: 5 * 60 * 1000 };
+    const authStart = Math.max(backoff.minMs, Math.min(AUTH_BACKOFF_MS, backoff.maxMs));
     let delay = backoff.minMs;
+    let authDelay = authStart;
     let authFailures = 0;
     while (!this.#stopped) {
       try {
         await this.syncNow();
         delay = backoff.minMs;
+        authDelay = authStart;
         authFailures = 0;
         await this.#startIdle();
         await this.#sleepUntilWake(this.#idleClient ? (this.#o.idlePollMs ?? 10 * 60 * 1000) : (this.#o.pollMs ?? 2 * 60 * 1000));
       } catch (error) {
         if (this.#stopped) break;
         this.#closeClients();
-        // A rejected login may be a transient refusal (Gmail connection limits, a Google 5xx), so retry a couple of
-        // times with backoff before telling the user to sign in again.
-        if (isAuthError(error) && ++authFailures <= AUTH_RETRIES) {
-          log.warn("sign-in rejected, retrying", { account: this.#o.accountId, attempt: authFailures, reason: (error as Error).message });
-          this.#setStatus({ state: "error", error: (error as Error).message, progress: undefined });
-          await this.#sleepUntilWake(delay);
-          delay = Math.min(delay * 2, backoff.maxMs);
-          continue;
+        if (this.#resumed) {
+          this.#resumed = false;
+          delay = backoff.minMs;
         }
+        // A rejected login is often temporary (Gmail refusing a burst of logins, a Google 5xx). Say "Sign in again" only
+        // after several in a row, and keep retrying after that too, so a refusal that clears on its own needs nothing
+        // from the user. Wakes don't shorten the wait, or a run of mail events would become a run of logins.
         if (isAuthError(error)) {
-          log.warn("sign-in rejected", { account: this.#o.accountId, reason: (error as Error).message });
-          this.#setStatus({ state: "auth_error", error: "Sign in again.", progress: undefined });
-          return;
+          authFailures += 1;
+          const showSignIn = authFailures > AUTH_RETRIES;
+          log.warn("sign-in rejected", { account: this.#o.accountId, attempt: authFailures, reason: (error as Error).message });
+          this.#setStatus(showSignIn
+            ? { state: "auth_error", error: "Sign in again.", progress: undefined }
+            : { state: "error", error: "The server refused the sign-in. Trying again shortly.", progress: undefined });
+          await this.#pause(authDelay);
+          authDelay = Math.min(authDelay * 2, backoff.maxMs);
+          continue;
         }
         const offline = isNetworkError(error) || ["ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT", "ECONNRESET", "EAI_AGAIN", "NoConnection"].includes((error as { code?: string }).code ?? "");
         this.#setStatus({ state: offline ? "offline" : "error", error: (error as Error).message, progress: undefined });

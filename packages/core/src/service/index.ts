@@ -30,6 +30,8 @@ export type FlintService = FlintApi & {
   /** Opens the database, starts sync, the scheduler and (when enabled) the agent API server. */
   start(): Promise<void>;
   stop(): Promise<void>;
+  /** The computer woke from sleep: reconnect every account now instead of waiting out its retry backoff. */
+  resume(): void;
 };
 
 export type ServiceOptions = {
@@ -125,6 +127,10 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
       await ctx.scheduler.start();
       if (opts.agentServer) ctx.agent.handle = await startAgentWiring(ctx, api);
       log.info("service started");
+    },
+
+    resume() {
+      if (state === "started") ctx.syncs.resumeAll();
     },
 
     async stop() {
