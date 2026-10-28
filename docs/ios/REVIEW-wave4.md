@@ -73,6 +73,8 @@ Failure: a cold background launch during a migration error or a transient open f
 
 *Status: Partly fixed in 1e5797b. A failed background bootstrap now schedules the next runs. Open: the app model stays in the failed phase for the life of the process, so later warm runs keep failing until relaunch. No test, since a bootstrap failure cannot be forced safely.*
 
+*Recheck fix (wave5-recheck): Fixed. `AppModel` forgets a failed bootstrap task, `performBootstrap` accepts the failed phase, and a retry reuses a service that already opened. Tests use a new `serviceOpener` seam to fail the first open: the next background run and the window's `bootstrap()` both recover.*
+
 **M3. Expiry: `setTaskCompleted` waits for `service.stop()` and may come too late.**
 `Background.swift:172-176, 213-215`.
 The expiration handler cancels the work, and the runner returns `.expired` at once. `runBackground` then awaits `service.stop()`, which waits for the pump and `sync.stopAll()`, both possibly stuck on a network read, before it calls `setTaskCompleted`. iOS expects completion right after expiry and kills apps that miss it. That also hurts future scheduling. `bootstrap()` (:201) runs outside the cancellable runner, so a slow open is not cut short either. Fix: call `setTaskCompleted` from the expiration path first, then stop.
@@ -223,17 +225,25 @@ For an account already on the phone with `authKind == .password`, turning on the
 Failure: someone on the same café Wi-Fi sends a `flint://pair#…` link pointing at `192.168.1.66`, and the user taps Connect. The phone compares the code with the attacker's listener, which matches. On review, the user turns on "Use the Mac's details" for their iCloud account. On the next sync, the iPhone logs in to `192.168.1.66` with the real app password. The same goes for a pending row that reads "Needs a password, imap.mail.me.com" while its `smtp.host` is the attacker's: the user types the real password, and the first send delivers it to the attacker's server.
 Fix: show the IMAP and SMTP hosts (and a warning when `secure` is false) on every row that will use the bundle's servers, including conflict rows. When the server would change, also consider asking for the password again.
 
+*Recheck fix (wave5-recheck): Fixed. Every review row (ready, pending, conflict) shows IMAP and SMTP host, port and TLS ("no TLS" is spelled out). A conflict row for a password account whose IMAP or SMTP host differs has no switch any more: it asks for the password again ("Switch servers"), checks the login against the Mac's servers through `addAccount`, and only then replaces the stored server and password. When only a port, TLS flag or user name differs, the switch stays, but the servers move only after `storedPasswordWorks` logs in to them with the stored password; otherwise the name, color and aliases are applied, the old servers stay and the done screen says so. Unit tests cover unchanged, port-only, failed and throwing checks, host change, typed password and wrong typed password; UI tests show the rows on iPhone and iPad in both themes.*
+
 **R2. (Low, plausible, M6) The background code check depends on a 600 ms wait.**
 `App/Shell/Background.swift:254-256`. Code detection runs in an unstructured `Task` started by the `.newMail` subscriber (`Runtime.swift:66`). `syncForBackground` sleeps 600 ms and then calls `flush()`. If `codes.scan` (a settings read plus a scan of the thread) has not posted the `.code` event by then, `codeAlertedAt` is still empty and the ordinary "KAYAK: Your verification code" alert goes out next to the code alert. This was not reproduced. Deriving the code alert inside the flush, or awaiting the detection, would remove the timing dependency.
 
 ### New problems
 
+*Recheck fix (wave5-recheck): Fixed. The 600 ms sleep is gone. The service counts code scans in flight and codes announced (`FlintService.codeDetection`); the run waits (3 s cap, 20 ms poll) until no scan runs and the notification coordinator has heard every announced code, then awaits the code alert tasks and flushes. Tested: a code mail in a warm run posts one alert, not two.*
+
 **N1. (Low) Turning alerts off and on again deletes pending "Ready to send" and follow-up notices for good.**
 `App/Features/Scheduling/SchedulingCoordinator.swift:38-39`. With `alertsOn` false, `update(notifications:)` cancels every pending Scheduling notice. Nothing re-creates them when alerts come back on: `reconcile(waiting:)` (:75-79) only withdraws notices, and the snooze planner rebuilds only `snooze.` requests.
 Failure: the user schedules a mail for 9:00 tomorrow, turns "Alert me to new mail" off and back on that evening, and closes Flint. At 9:00 no "Ready to send" appears, so the mail waits until the app is next opened or a processing run happens to land. A follow-up reminder for a send made earlier is lost the same way.
 
+*Recheck fix (wave5-recheck): Fixed. The coordinator keeps what it cancels when alerts go off and schedules it again (future items only) when they come on; "Ready to send" notices missing from that list (for example after a relaunch while alerts were off) are rebuilt from the last queue it saw. Follow-up reminders cannot be rebuilt after a relaunch while alerts are off, since the queue does not carry them.*
+
 **N2. (Info) The receipts row can name a source that is not used.**
 `App/Features/Pairing/PairingReview.swift:86-88`. When the Mac's receipts block has no endpoint, or one that is not an https URL, the row reads "Uses the address from your Mac". If the user turns it on, `enabled` and `defaultOn` are applied and the iPhone keeps its own endpoint, because `ReceiptPixel.normalizeEndpoint` ignores anything that is not https. The wording should say the iPhone's address stays.
+
+*Recheck fix (wave5-recheck): Fixed. `receiptsHost` returns a host only for https endpoints; otherwise the row reads "Turns receipts on or off. This iPhone keeps its own address."*
 
 **N3. (Info) The link confirm step cannot tell a LAN attacker from the user's Mac.**
 `App/Features/Pairing/PairingSteps.swift` (`PairingLinkConfirmStep`). After H4, a link can only point at a private, link-local, loopback or `.local` host. Someone on the same network can still serve one, and a name like `neels-macbook.local` looks trustworthy. The confirm copy and the code comparison are the only defence left, which is why R1 matters.

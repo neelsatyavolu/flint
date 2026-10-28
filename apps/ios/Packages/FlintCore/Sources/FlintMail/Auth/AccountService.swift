@@ -47,6 +47,15 @@ public struct AccountService: Sendable {
         return await check(resolved)
     }
 
+    /// True when the password stored for a password account logs in to `server` over IMAP and SMTP. Saves nothing. Used before a
+    /// paired Mac's server settings replace the stored ones, so the password never goes to a server that was not checked.
+    public func storedPasswordWorks(_ id: AccountID, on server: ServerConfig) async throws -> Bool {
+        guard let account = try await accounts.account(id: id) else { throw FlintError(.notFound, "No such account.") }
+        guard account.authKind == .password, case .password(let password) = try await secrets.readAccountSecret(id) else { return false }
+        let result = await FlintMail.testConnection(server: server, credential: .password(user: server.username, password: password), transport: transport)
+        return result.firstError == nil
+    }
+
     // MARK: Password accounts
 
     public func addAccount(_ raw: AddAccountInput) async throws -> Account {

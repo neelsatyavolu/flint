@@ -29,6 +29,10 @@ final class NotificationCoordinator {
     @ObservationIgnored private var runs: [UUID: RunTally] = [:]
     /// Threads a code alert was just posted for, with the time. Their ordinary new-mail alert would only repeat it.
     @ObservationIgnored private var codeAlertedAt: [ThreadID: EpochMs] = [:]
+    /// `.code` events heard so far, and the tasks acting on them. A background run waits for both before it flushes, so a code
+    /// alert is known (and the thread's ordinary alert held back) by then.
+    @ObservationIgnored private(set) var codeEventsHeard = 0
+    @ObservationIgnored private var codeTasks: [Task<Void, Never>] = []
     @ObservationIgnored var onCopied: @MainActor () -> Void = {}
 
     private struct RunTally {
@@ -85,7 +89,8 @@ final class NotificationCoordinator {
             batch.append(NewMailInfo(accountId: accountId, threadId: threadId, from: from, subject: subject, category: category, snippet: snippet, forced: forced))
             scheduleFlush()
         case .code(let code):
-            Task { await handle(code: code) }
+            codeEventsHeard += 1
+            codeTasks.append(Task { await handle(code: code) })
         case .toast(_, let message, _):
             guard !isForeground(), let content = NotificationPolicy.reminderAlert(toast: message, id: UUID().uuidString, settings: notifySettings) else { return }
             Task { await post(content) }
@@ -104,6 +109,13 @@ final class NotificationCoordinator {
         guard let content = NotificationPolicy.codeAlert(code, settings: codeSettings, notifications: notifySettings) else { return }
         codeAlertedAt[code.threadId] = nowMs()
         await post(content)
+    }
+
+    /// Waits until every code heard so far has been turned into an alert (or dropped by the settings).
+    func settleCodeAlerts() async {
+        let tasks = codeTasks
+        codeTasks = []
+        for task in tasks { await task.value }
     }
 
     private func scheduleFlush() {

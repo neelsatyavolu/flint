@@ -72,6 +72,32 @@ struct BackgroundRunTests {
         await model.shutdown()
     }
 
+    @Test("a code alert holds back the same mail's ordinary alert, with no fixed wait")
+    func codeAlertCoversTheOrdinaryAlert() async throws {
+        let (model, center, _, seed) = try await model()
+        await model.bootstrap()
+        await model.service?.stop()
+        model.demoDeliverNewMail = seed.deliverCodeMail
+        let record = await model.runBackground(.refresh)
+        #expect(record.result == .completed)
+        #expect(center.posted.filter { $0.identifier.hasPrefix("code.") }.count == 1)
+        #expect(center.posted.count == 1, "the ordinary new-mail alert for the code mail is suppressed")
+        await model.shutdown()
+    }
+
+    @Test("waiting for code detection returns at once when settled, polls until it is, and gives up at the cap")
+    func settlingWait() async {
+        var slept = 0
+        #expect(await CodeSettling.wait(sleep: { _ in slept += 1 }, isSettled: { true }))
+        #expect(slept == 0)
+        var polls = 0
+        #expect(await CodeSettling.wait(sleep: { _ in polls += 1 }, isSettled: { polls >= 3 }))
+        #expect(polls == 3)
+        var capped = 0
+        let settled = await CodeSettling.wait(cap: .milliseconds(100), poll: .milliseconds(20), sleep: { _ in capped += 1 }, isSettled: { false })
+        #expect(!settled && capped == 5)
+    }
+
     @Test("a background run polls the receipts service after mail")
     func runPollsReceipts() async throws {
         let (model, _, _, _) = try await model()
@@ -80,6 +106,43 @@ struct BackgroundRunTests {
         _ = await model.runBackground(.refresh)
         _ = await model.runBackground(.processing)
         #expect(polls == 2)
+        await model.shutdown()
+    }
+
+    @Test("after a failed open, the next background run opens the service and works; so does the window")
+    func failedBootstrapIsRetried() async throws {
+        let (model, _, scheduler, seed) = try await model()
+        var attempts = 0
+        model.serviceOpener = {
+            attempts += 1
+            if attempts == 1 { throw FlintError(.internal, "database busy") }
+            return seed.service
+        }
+        let failed = await model.runBackground(.refresh)
+        #expect(failed.result == .failed)
+        #expect(scheduler.refreshes.count == 1, "the schedule survives a failed open")
+        guard case .failed = model.phase else { Issue.record("expected the failed phase"); return }
+
+        let record = await model.runBackground(.refresh)
+        #expect(attempts == 2)
+        #expect(record.result == .completed)
+        #expect(model.phase == .ready)
+        await model.shutdown()
+    }
+
+    @Test("the window retries a failed open too, and starts sync")
+    func windowRetriesFailedOpen() async throws {
+        let (model, _, _, seed) = try await model()
+        var attempts = 0
+        model.serviceOpener = {
+            attempts += 1
+            if attempts == 1 { throw FlintError(.internal, "database busy") }
+            return seed.service
+        }
+        await model.bootstrapForBackgroundRun()
+        guard case .failed = model.phase else { Issue.record("expected the failed phase"); return }
+        await model.bootstrap()
+        #expect(model.phase == .ready && model.syncStarted && attempts == 2)
         await model.shutdown()
     }
 

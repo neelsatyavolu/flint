@@ -14,18 +14,27 @@ actor FakeTarget: ImportTarget {
     var failLogin: Set<String> = []
     var failRules = false
     var googleCalls: [String?] = []
+    var loginOK = true
+    var loginThrows = false
+    var loginChecks: [ServerConfig] = []
     private var nextId = 1
 
     init(accounts: [Account] = []) { stored = accounts }
 
     func failLogins(_ emails: Set<String>) { failLogin = emails }
     func failAllRules() { failRules = true }
+    func setStoredLogin(works: Bool, throwing: Bool = false) { loginOK = works; loginThrows = throwing }
 
     func accounts() async throws -> [Account] { stored }
 
     func addAccount(_ input: AddAccountInput) async throws -> Account {
         if failLogin.contains(input.email) { throw FlintError(.auth, "no") }
         passwords[input.email] = input.password
+        if let i = stored.firstIndex(where: { $0.email.lowercased() == input.email.lowercased() }) {
+            // Like the real service: signing in again replaces the password and the server of the account that is there.
+            if let server = input.server { stored[i].server = server }
+            return stored[i]
+        }
         let account = Account(id: "acc\(nextId)", email: input.email, name: input.name, provider: input.provider ?? .imap, authKind: .password, server: input.server!)
         nextId += 1
         stored.append(account)
@@ -51,6 +60,12 @@ actor FakeTarget: ImportTarget {
         return stored[i]
     }
 
+    func storedLoginWorks(id: AccountID, on server: ServerConfig) async throws -> Bool {
+        loginChecks.append(server)
+        if loginThrows { throw FlintError(.network, "down") }
+        return loginOK
+    }
+
     func saveSignature(_ signature: Signature) async throws { signatures.append(signature) }
     func saveTemplate(_ template: Template) async throws { templates.append(template) }
     func saveRule(_ rule: Rule) async throws { if failRules { throw FlintError(.invalid, "bad") }; rules.append(rule) }
@@ -63,9 +78,16 @@ actor FakeTarget: ImportTarget {
 }
 
 func bundle() throws -> PairingBundle { try PairingBundle.decode(sampleBundleData()) }
-func phoneAccount(_ email: String, id: String = "phone1") -> Account {
+func phoneAccount(_ email: String, id: String = "phone1", server: ServerConfig? = nil) -> Account {
     Account(id: id, email: email, name: "Mine", provider: .imap, authKind: .password,
-            server: ServerConfig(imapHost: "old", imapPort: 993, imapSecure: true, smtpHost: "old", smtpPort: 465, smtpSecure: true, username: email), color: "#111111", aliases: ["keep@x.com"])
+            server: server ?? ServerConfig(imapHost: "old", imapPort: 993, imapSecure: true, smtpHost: "old", smtpPort: 465, smtpSecure: true, username: email), color: "#111111", aliases: ["keep@x.com"])
+}
+
+/// The phone's copy of the bundle's first account with `change` applied to the servers.
+func phoneAccount(like mac: BundleAccount, id: String = "phone1", _ change: (inout ServerConfig) -> Void = { _ in }) -> Account {
+    var server = mac.server
+    change(&server)
+    return phoneAccount(mac.email, id: id, server: server)
 }
 
 @Suite("Pairing import")
@@ -73,10 +95,10 @@ struct PairingImportTests {
     @Test func planSplitsNewFromExistingAndMarksCredentials() throws {
         let plan = ImportPlan.make(bundle: try bundle(), library: ImportLibrary(accounts: [phoneAccount("NEEL@example.com")]))
         #expect(plan.accounts.map(\.existsOnPhone) == [true, false])
-        #expect(plan.accounts[0].credential == .ready)
+        #expect(plan.accounts[0].credential == .needsPassword)
         #expect(plan.accounts[1].credential == .needsGoogleSignIn)
         #expect(plan.accountsNeedingCredentials.map(\.account.email) == ["neel@gmail.com"])
-        #expect(plan.conflictingAccounts.count == 1 && plan.newAccounts.count == 1)
+        #expect(plan.serverSwitches.count == 1 && plan.conflictingAccounts.isEmpty && plan.newAccounts.count == 1)
     }
 
     @Test func aPasswordAccountWithoutAPasswordNeedsOne() throws {
@@ -158,7 +180,7 @@ struct PairingImportTests {
     }
 
     @Test func existingAccountsAreKeptUnlessTheMacsVersionIsChosen() async throws {
-        let existing = phoneAccount("neel@example.com")
+        let existing = phoneAccount(like: try bundle().accounts[0])
         let plan = ImportPlan.make(bundle: try bundle(), library: ImportLibrary(accounts: [existing]))
 
         let keep = FakeTarget(accounts: [existing])
@@ -174,6 +196,98 @@ struct PairingImportTests {
         let account = await replace.stored[0]
         #expect(account.name == "Neel" && account.aliases == ["n@example.com"] && account.server.imapHost == "imap.example.com")
         #expect(await replace.passwords.isEmpty)
+        #expect(await replace.loginChecks.isEmpty)
+    }
+
+    // MARK: The stored password only follows servers that were checked
+
+    private func replaceOne(phone: Account, login: Bool = true, throwing: Bool = false) async throws -> (FakeTarget, ImportResult, ImportPlan) {
+        let target = FakeTarget(accounts: [phone])
+        await target.setStoredLogin(works: login, throwing: throwing)
+        let plan = ImportPlan.make(bundle: try bundle(), library: ImportLibrary(accounts: [phone]))
+        let result = await BundleImporter(target: target).apply(plan, ImportSelection(replaceAccounts: ["neel@example.com"]))
+        return (target, result, plan)
+    }
+
+    @Test func planClassifiesServerChanges() throws {
+        let mac = try bundle().accounts[0]
+        func change(_ edit: (inout ServerConfig) -> Void) -> ServerChange {
+            ImportPlan.make(bundle: (try? bundle())!, library: ImportLibrary(accounts: [phoneAccount(like: mac, edit)])).accounts[0].serverChange
+        }
+        #expect(change { _ in } == .none)
+        #expect(change { $0.imapHost = mac.imap.host.uppercased() } == .detailsOnly)
+        #expect(change { $0.imapPort = 143 } == .detailsOnly)
+        #expect(change { $0.smtpSecure = false } == .detailsOnly)
+        #expect(change { $0.username = "other@example.com" } == .detailsOnly)
+        #expect(change { $0.imapHost = "imap.elsewhere.test" } == .hostChanged)
+        #expect(change { $0.smtpHost = "smtp.elsewhere.test" } == .hostChanged)
+    }
+
+    @Test func aGoogleAccountOnThePhoneNeverCountsAsAServerChange() throws {
+        let mac = try bundle().accounts[0]
+        var google = phoneAccount(like: mac) { $0.imapHost = "imap.gmail.com" }
+        google.authKind = .oauthGoogle
+        let plan = ImportPlan.make(bundle: try bundle(), library: ImportLibrary(accounts: [google]))
+        #expect(plan.accounts[0].serverChange == .none && plan.accounts[0].credential == .ready)
+    }
+
+    @Test func aHostChangeNeedsThePasswordAgainAndIsNotReplacedBySelection() async throws {
+        let phone = phoneAccount("neel@example.com")
+        let (target, result, plan) = try await replaceOne(phone: phone)
+        #expect(plan.accounts[0].serverChange == .hostChanged && plan.accounts[0].credential == .needsPassword)
+        #expect(result.replacedAccounts == 0)
+        #expect(await target.loginChecks.isEmpty)
+        #expect(await target.stored[0].server == phone.server)
+        #expect(await target.stored[0].name == "Mine")
+    }
+
+    @Test func aChangedPortMovesOnlyAfterTheStoredLoginWorks() async throws {
+        let mac = try bundle().accounts[0]
+        let phone = phoneAccount(like: mac) { $0.imapPort = 143 }
+        let (target, result, _) = try await replaceOne(phone: phone)
+        #expect(await target.loginChecks == [mac.server])
+        #expect(result.replacedAccounts == 1 && result.keptServers.isEmpty)
+        #expect(await target.stored[0].server == mac.server)
+    }
+
+    @Test func aFailedLoginCheckKeepsTheStoredServersButStillTakesTheDetails() async throws {
+        let mac = try bundle().accounts[0]
+        for throwing in [false, true] {
+            let phone = phoneAccount(like: mac) { $0.smtpPort = 587 }
+            let (target, result, _) = try await replaceOne(phone: phone, login: false, throwing: throwing)
+            #expect(await target.stored[0].server == phone.server)
+            #expect(await target.stored[0].name == "Neel")
+            #expect(result.replacedAccounts == 1 && result.keptServers == ["neel@example.com"])
+        }
+    }
+
+    @Test func switchingServersWithATypedPasswordGoesThroughAddAccount() async throws {
+        let phone = phoneAccount("neel@example.com")
+        let target = FakeTarget(accounts: [phone])
+        let mac = try bundle().accounts[0]
+        let account = try await BundleImporter(target: target).switchServers(mac, password: "typed")
+        #expect(await target.passwords["neel@example.com"] == "typed")
+        #expect(account.server == mac.server && account.id == phone.id)
+        #expect(await target.stored.count == 1)
+    }
+
+    @Test func aWrongTypedPasswordChangesNothing() async throws {
+        let phone = phoneAccount("neel@example.com")
+        let target = FakeTarget(accounts: [phone])
+        await target.failLogins(["neel@example.com"])
+        await #expect(throws: FlintError.self) { _ = try await BundleImporter(target: target).switchServers(try bundle().accounts[0], password: "nope") }
+        #expect(await target.stored[0].server == phone.server)
+    }
+
+    @Test func receiptsHostOnlyForHttpsEndpoints() throws {
+        var settings = try bundle().settings
+        #expect(settings.receiptsHost == "receipts.example.com")
+        settings.receipts?.endpoint = "http://receipts.example.com"
+        #expect(settings.receiptsHost == nil)
+        settings.receipts?.endpoint = nil
+        #expect(settings.receiptsHost == nil)
+        settings.receipts?.endpoint = "ftp://x.example.com"
+        #expect(settings.receiptsHost == nil)
     }
 
     @Test func leavingTheLibraryAndSettingsOutImportsOnlyAccounts() async throws {

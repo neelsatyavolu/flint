@@ -15,6 +15,22 @@ final class DemoMac: @unchecked Sendable {
     var offer: PairingOffer { PairingOffer(sid: sid, macPublic: keypair.publicKey, addrs: ["192.168.1.20"], port: 49152) }
     var connector: PairingConnector { { [self] _, _ in DemoMacTransport(mac: self) } }
 
+    /// `-FlintPairingExisting` (UI tests): the demo iPhone already has two of the Mac's accounts, with other servers.
+    static var withExisting: Bool { ProcessInfo.processInfo.arguments.contains("-FlintPairingExisting") }
+
+    var currentBundleJSON: String {
+        guard Self.withExisting else { return Self.bundleJSON }
+        let extra = #"""
+         {"email":"demo.office@example.com","name":"Demo Office","provider":"imap","authKind":"password","username":"demo.office@example.com",
+          "imap":{"host":"imap.example.com","port":993,"secure":true},"smtp":{"host":"smtp.example.com","port":465,"secure":true},
+          "aliases":[],"showInUnified":true,"sortOrder":2,"password":"demo-app-password"},
+         {"email":"demo.edge@example.com","name":"Demo Edge","provider":"imap","authKind":"password","username":"demo.edge@example.com",
+          "imap":{"host":"imap.example.com","port":143,"secure":false},"smtp":{"host":"smtp.example.com","port":465,"secure":true},
+          "aliases":[],"showInUnified":true,"sortOrder":3,"password":"demo-app-password"},
+        """#
+        return Self.bundleJSON.replacingOccurrences(of: #""accounts":["#, with: #""accounts":["# + "\n" + extra, options: [], range: nil)
+    }
+
     static let bundleJSON = #"""
     {"v":1,"createdAt":1790000000000,"device":{"name":"Demo MacBook Pro"},
      "accounts":[
@@ -59,7 +75,7 @@ private final class DemoMacTransport: PairingTransport, @unchecked Sendable {
         approval = Task { [mac, continuation] in
             try? await Task.sleep(for: mac.approvalDelay)
             var sealer = sealer
-            guard !Task.isCancelled, let frames = try? Self.bundleFrames(sealer: &sealer) else { return }
+            guard !Task.isCancelled, let frames = try? Self.bundleFrames(mac: mac, sealer: &sealer) else { return }
             for frame in frames { continuation.yield(frame) }
         }
     }
@@ -76,9 +92,9 @@ private final class DemoMacTransport: PairingTransport, @unchecked Sendable {
         continuation.finish()
     }
 
-    private static func bundleFrames(sealer: inout FrameSealer) throws -> [Data] {
+    private static func bundleFrames(mac: DemoMac, sealer: inout FrameSealer) throws -> [Data] {
         var out = [try encodeFrame(type: PairingFrameType.ready, body: try sealer.seal(type: PairingFrameType.ready, plaintext: Data()))]
-        let json = Data(DemoMac.bundleJSON.utf8)
+        let json = Data(mac.currentBundleJSON.utf8)
         var offset = 0
         repeat {
             let end = min(offset + PairingLimits.chunkSize, json.count)
@@ -92,13 +108,19 @@ private final class DemoMacTransport: PairingTransport, @unchecked Sendable {
 
 /// Accounts and library for the demo pairing, kept in memory so nothing reaches the network or the demo mailbox.
 actor DemoImportTarget: ImportTarget {
-    private var stored: [Account] = []
+    private var stored: [Account]
     private var next = 1
+
+    init(existing: [Account] = []) { stored = existing }
 
     func accounts() async throws -> [Account] { stored }
 
     func addAccount(_ input: AddAccountInput) async throws -> Account {
-        try append(email: input.email, name: input.name, provider: input.provider ?? .imap, kind: .password, server: input.server)
+        if let i = stored.firstIndex(where: { $0.email.lowercased() == input.email.lowercased() }) {
+            if let server = input.server { stored[i].server = server }
+            return stored[i]
+        }
+        return try append(email: input.email, name: input.name, provider: input.provider ?? .imap, kind: .password, server: input.server)
     }
 
     func addGoogleAccount(loginHint: String?) async throws -> Account {
@@ -108,9 +130,11 @@ actor DemoImportTarget: ImportTarget {
     func updateAccount(id: AccountID, _ patch: AccountPatch) async throws -> Account {
         guard let i = stored.firstIndex(where: { $0.id == id }) else { throw FlintError(.notFound, "That account isn't here.") }
         if let name = patch.name { stored[i].name = name }
+        if let server = patch.server { stored[i].server = server }
         return stored[i]
     }
 
+    func storedLoginWorks(id: AccountID, on server: ServerConfig) async throws -> Bool { true }
     func saveSignature(_ signature: Signature) async throws {}
     func saveTemplate(_ template: Template) async throws {}
     func saveRule(_ rule: Rule) async throws {}
@@ -132,7 +156,19 @@ actor DemoImportTarget: ImportTarget {
 
 struct DemoPairingServices: PairingServices {
     let mac = DemoMac()
-    let target = DemoImportTarget()
+    let target = DemoImportTarget(existing: DemoMac.withExisting ? DemoPairingServices.existingAccounts : [])
+
+    /// What the demo iPhone already has when `-FlintPairingExisting` is set: one account on other hosts, one on another port.
+    static let existingAccounts: [Account] = [
+        existing("demo.office@example.com", imap: "imap.old.example.com", imapPort: 993, imapSecure: true),
+        existing("demo.edge@example.com", imap: "imap.example.com", imapPort: 993, imapSecure: true),
+    ]
+
+    private static func existing(_ email: String, imap: String, imapPort: Int, imapSecure: Bool) -> Account {
+        let server = ServerConfig(
+            imapHost: imap, imapPort: imapPort, imapSecure: imapSecure, smtpHost: "smtp.example.com", smtpPort: 465, smtpSecure: true, username: email)
+        return Account(id: "demo-\(email)", email: email, name: "Mine", provider: .imap, authKind: .password, server: server)
+    }
 
     var deviceName: String { ThisDevice.name }
     var offersDemoMac: Bool { true }

@@ -28,10 +28,29 @@ public enum AccountCredential: Equatable, Sendable {
     case needsPassword
 }
 
+/// How the Mac's servers for an account already on this iPhone compare with the ones stored here.
+public enum ServerChange: Equatable, Sendable {
+    /// Not a password account, or the same IMAP and SMTP hosts, ports, TLS flags and user name.
+    case none
+    /// The same hosts, but a port, TLS flag or user name differs. The stored password may move only after a login check.
+    case detailsOnly
+    /// An IMAP or SMTP host differs. The stored password never moves; the person types it again to switch.
+    case hostChanged
+
+    public static func between(stored: Account, mac: BundleAccount) -> ServerChange {
+        guard stored.authKind == .password else { return .none }
+        let a = stored.server, b = mac.server
+        if a == b { return .none }
+        let sameHosts = a.imapHost.lowercased() == b.imapHost.lowercased() && a.smtpHost.lowercased() == b.smtpHost.lowercased()
+        return sameHosts ? .detailsOnly : .hostChanged
+    }
+}
+
 public struct PlannedAccount: Identifiable, Equatable, Sendable {
     public var account: BundleAccount
     public var existsOnPhone: Bool
     public var credential: AccountCredential
+    public var serverChange: ServerChange = .none
     public var id: String { account.email.lowercased() }
 }
 
@@ -49,7 +68,10 @@ public struct ImportPlan: Equatable, Sendable {
     /// Accounts that still need a sign-in or a password before the rest can attach to them.
     public var accountsNeedingCredentials: [PlannedAccount] { accounts.filter { !$0.existsOnPhone && $0.credential != .ready } }
     public var newAccounts: [PlannedAccount] { accounts.filter { !$0.existsOnPhone } }
-    public var conflictingAccounts: [PlannedAccount] { accounts.filter(\.existsOnPhone) }
+    /// Accounts already here that can take the Mac's details through the "Use the Mac's details" switch.
+    public var conflictingAccounts: [PlannedAccount] { accounts.filter { $0.existsOnPhone && $0.serverChange != .hostChanged } }
+    /// Accounts already here whose Mac servers have other hosts. They switch only when the person types the password again.
+    public var serverSwitches: [PlannedAccount] { accounts.filter { $0.existsOnPhone && $0.serverChange == .hostChanged } }
     /// Settings other than the receipts service, which has its own choice.
     public var hasSettings: Bool { settings.withoutReceipts != BundleSettings() }
     /// The Mac's read receipts setup (on or off, default, endpoint). It is only applied when the person ticks it.
@@ -69,16 +91,20 @@ public struct ImportPlan: Equatable, Sendable {
         let newBlocked = bundle.blockedSenders.filter { seen.insert($0.lowercased()).inserted }
         return ImportPlan(
             deviceName: bundle.device.name,
-            accounts: bundle.accounts.map { planned($0, known: known[$0.email.lowercased()] != nil) },
+            accounts: bundle.accounts.map { planned($0, stored: known[$0.email.lowercased()]) },
             signatures: signatures, templates: templates, rules: rules, blockedSenders: newBlocked, settings: bundle.settings,
             alreadyHere: ImportCounts(
                 signatures: bundle.signatures.count - signatures.count, templates: bundle.templates.count - templates.count,
                 rules: bundle.rules.count - rules.count, blockedSenders: bundle.blockedSenders.count - newBlocked.count))
     }
 
-    private static func planned(_ a: BundleAccount, known: Bool) -> PlannedAccount {
-        let credential: AccountCredential = known ? .ready : a.needsGoogleSignIn ? .needsGoogleSignIn : a.needsPassword ? .needsPassword : .ready
-        return PlannedAccount(account: a, existsOnPhone: known, credential: credential)
+    private static func planned(_ a: BundleAccount, stored: Account?) -> PlannedAccount {
+        guard let stored else {
+            let credential: AccountCredential = a.needsGoogleSignIn ? .needsGoogleSignIn : a.needsPassword ? .needsPassword : .ready
+            return PlannedAccount(account: a, existsOnPhone: false, credential: credential)
+        }
+        let change = ServerChange.between(stored: stored, mac: a)
+        return PlannedAccount(account: a, existsOnPhone: true, credential: change == .hostChanged ? .needsPassword : .ready, serverChange: change)
     }
 }
 

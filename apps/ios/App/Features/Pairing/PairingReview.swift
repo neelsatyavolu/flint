@@ -48,7 +48,7 @@ struct PairingReviewStep: View {
             ForEach(model.pendingRows) { row in PairingPendingRow(model: model, row: row) }
             ForEach(model.conflictingRows) { row in
                 SettingsToggleRow(
-                    icon: .mail, title: row.account.email, detail: pl("Already on this iPhone. Use the Mac's details?"),
+                    icon: .mail, title: row.account.email, detail: conflictDetail(row),
                     isOn: replaceBinding(row.id), identifier: "pairing.replace.\(row.id)")
             }
         }
@@ -83,8 +83,16 @@ struct PairingReviewStep: View {
         }
     }
 
+    /// The Mac's address when it sent an https one. Otherwise the switch only turns receipts on or off and the iPhone keeps its own.
     private func receiptsDetail(_ settings: BundleSettings) -> String {
-        settings.receiptsHost ?? pl("Uses the address from your Mac")
+        settings.receiptsHost ?? pl("Turns receipts on or off. This iPhone keeps its own address.")
+    }
+
+    private func conflictDetail(_ row: PlannedAccount) -> String {
+        let note = row.serverChange == .detailsOnly
+            ? pl("Already on this iPhone. The Mac's servers are used only if your saved password signs in to them.")
+            : pl("Already on this iPhone. Use the Mac's details?")
+        return note + "\n" + PairingText.servers(of: row.account)
     }
 
     private func libraryRow(_ title: String, _ new: Int, _ already: Int, _ id: String) -> some View {
@@ -96,7 +104,8 @@ struct PairingReviewStep: View {
     }
 
     private func readyDetail(_ row: PlannedAccount) -> String {
-        (model.addedRows.contains(row.id) ? pl("Added") : pl("Ready to add")) + ", " + row.account.imap.host
+        let state = row.existsOnPhone ? pl("Servers updated") : model.addedRows.contains(row.id) ? pl("Added") : pl("Ready to add")
+        return state + "\n" + PairingText.servers(of: row.account)
     }
 
     private func replaceBinding(_ id: String) -> Binding<Bool> {
@@ -148,7 +157,7 @@ private struct PairingPendingRow: View {
                     OnboardingField(
                         label: pl("Password"), text: $password, prompt: pl("App password"), identifier: "pairing.password.\(row.id)", secure: true,
                         contentType: .password, submitLabel: .go) { submit() }
-                    Button(pl("Add account"), action: submit)
+                    Button(row.existsOnPhone ? pl("Switch servers") : pl("Add account"), action: submit)
                         .buttonStyle(FlintButtonStyle(kind: .secondary)).disabled(password.isEmpty)
                         .accessibilityIdentifier("pairing.password.add.\(row.id)")
                 }
@@ -158,10 +167,19 @@ private struct PairingPendingRow: View {
     }
 
     private var detail: String {
-        (row.credential == .needsGoogleSignIn ? pl("Needs Google sign-in") : pl("Needs a password")) + ", " + row.account.imap.host
+        let state: String
+        if row.existsOnPhone {
+            state = pl("Already on this iPhone. The Mac uses other servers, so type the password again to switch to them.")
+        } else {
+            state = row.credential == .needsGoogleSignIn ? pl("Needs Google sign-in") : pl("Needs a password")
+        }
+        return state + "\n" + PairingText.servers(of: row.account)
     }
 
-    private var buttonTitle: String { row.credential == .needsGoogleSignIn ? pl("Sign in") : pl("Add password") }
+    private var buttonTitle: String {
+        if row.existsOnPhone { return pl("Switch servers") }
+        return row.credential == .needsGoogleSignIn ? pl("Sign in") : pl("Add password")
+    }
 
     private func tap() {
         if row.credential == .needsGoogleSignIn { Task { await model.signIn(row) } } else { typing.toggle() }
@@ -203,9 +221,12 @@ struct PairingDoneStep: View {
     }
 
     private var notes: [String] {
-        let google = model.pendingRows.filter { $0.credential == .needsGoogleSignIn }.count
-        let password = model.pendingRows.filter { $0.credential == .needsPassword }.count
+        let pending = model.pendingRows.filter { !$0.existsOnPhone }
+        let google = pending.filter { $0.credential == .needsGoogleSignIn }.count
+        let password = pending.filter { $0.credential == .needsPassword }.count
         var out = PairingText.stillNeeds(google: google, password: password)
+        let kept = (model.result?.keptServers ?? []) + model.pendingRows.filter(\.existsOnPhone).map(\.account.email)
+        if !kept.isEmpty { out.append(pl("Kept this iPhone's servers for:") + " " + kept.joined(separator: ", ")) }
         let failed = model.result?.failedAccounts ?? []
         if !failed.isEmpty { out.append(pl("Couldn't sign in with the password from your Mac:") + " " + failed.joined(separator: ", ")) }
         if let skipped = model.result?.skippedNoAccount, skipped > 0 {

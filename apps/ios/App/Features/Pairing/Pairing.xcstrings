@@ -23,6 +23,17 @@
         }
       }
     },
+    "A read receipts service learns when mail you send is opened. Only turn this on if you trust the address shown.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A read receipts service learns when mail you send is opened. Only turn this on if you trust the address shown."
+          }
+        }
+      }
+    },
     "Accounts": {
       "extractionState": "manual",
       "localizations": {
@@ -96,6 +107,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Adding to this iPhone…"
+          }
+        }
+      }
+    },
+    "Already on this iPhone. The Mac uses other servers, so type the password again to switch to them.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already on this iPhone. The Mac uses other servers, so type the password again to switch to them."
+          }
+        }
+      }
+    },
+    "Already on this iPhone. The Mac's servers are used only if your saved password signs in to them.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already on this iPhone. The Mac's servers are used only if your saved password signs in to them."
           }
         }
       }
@@ -195,6 +228,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Compare the six digits on both screens, then approve on your Mac."
+          }
+        }
+      }
+    },
+    "Connect": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect"
           }
         }
       }
@@ -309,6 +353,17 @@
         }
       }
     },
+    "Kept this iPhone's servers for:": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kept this iPhone's servers for:"
+          }
+        }
+      }
+    },
     "Last: ": {
       "extractionState": "manual",
       "localizations": {
@@ -386,6 +441,17 @@
         }
       }
     },
+    "Only continue if you opened this link by scanning the code on your own Mac. A link from a web page or a message can point somewhere else. Flint will show six digits to compare with your Mac before anything is sent.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only continue if you opened this link by scanning the code on your own Mac. A link from a web page or a message can point somewhere else. Flint will show six digits to compare with your Mac before anything is sent."
+          }
+        }
+      }
+    },
     "Open Settings": {
       "extractionState": "manual",
       "localizations": {
@@ -393,6 +459,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open Settings"
+          }
+        }
+      }
+    },
+    "Pair with the Mac showing this code?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pair with the Mac showing this code?"
           }
         }
       }
@@ -415,6 +492,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Point the camera at the code on your Mac."
+          }
+        }
+      }
+    },
+    "Read receipts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read receipts"
           }
         }
       }
@@ -474,6 +562,17 @@
         }
       }
     },
+    "Servers updated": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servers updated"
+          }
+        }
+      }
+    },
     "Set up": {
       "extractionState": "manual",
       "localizations": {
@@ -529,6 +628,28 @@
         }
       }
     },
+    "Switch servers": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch servers"
+          }
+        }
+      }
+    },
+    "TLS": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TLS"
+          }
+        }
+      }
+    },
     "Templates": {
       "extractionState": "manual",
       "localizations": {
@@ -551,6 +672,17 @@
         }
       }
     },
+    "This link points to": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This link points to"
+          }
+        }
+      }
+    },
     "Try again": {
       "extractionState": "manual",
       "localizations": {
@@ -558,6 +690,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Try again"
+          }
+        }
+      }
+    },
+    "Turns receipts on or off. This iPhone keeps its own address.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turns receipts on or off. This iPhone keeps its own address."
           }
         }
       }
@@ -580,6 +723,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Use a demo Mac"
+          }
+        }
+      }
+    },
+    "Use the Mac's receipts service": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the Mac's receipts service"
           }
         }
       }
@@ -683,6 +837,28 @@
         }
       }
     },
+    "no TLS": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no TLS"
+          }
+        }
+      }
+    },
+    "port": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "port"
+          }
+        }
+      }
+    },
     "signatures or rules were skipped because their account isn't set up here.": {
       "extractionState": "manual",
       "localizations": {
@@ -690,94 +866,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "signatures or rules were skipped because their account isn't set up here."
-          }
-        }
-      }
-    },
-    "Pair with the Mac showing this code?": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pair with the Mac showing this code?"
-          }
-        }
-      }
-    },
-    "This link points to": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This link points to"
-          }
-        }
-      }
-    },
-    "Only continue if you opened this link by scanning the code on your own Mac. A link from a web page or a message can point somewhere else. Flint will show six digits to compare with your Mac before anything is sent.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Only continue if you opened this link by scanning the code on your own Mac. A link from a web page or a message can point somewhere else. Flint will show six digits to compare with your Mac before anything is sent."
-          }
-        }
-      }
-    },
-    "Connect": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connect"
-          }
-        }
-      }
-    },
-    "Read receipts": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Read receipts"
-          }
-        }
-      }
-    },
-    "A read receipts service learns when mail you send is opened. Only turn this on if you trust the address shown.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A read receipts service learns when mail you send is opened. Only turn this on if you trust the address shown."
-          }
-        }
-      }
-    },
-    "Use the Mac's receipts service": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use the Mac's receipts service"
-          }
-        }
-      }
-    },
-    "Uses the address from your Mac": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uses the address from your Mac"
           }
         }
       }

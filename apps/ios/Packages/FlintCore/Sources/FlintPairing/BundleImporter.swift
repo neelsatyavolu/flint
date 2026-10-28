@@ -10,6 +10,8 @@ public protocol ImportTarget: Sendable {
     func addAccount(_ input: AddAccountInput) async throws -> Account
     func addGoogleAccount(loginHint: String?) async throws -> Account
     func updateAccount(id: AccountID, _ patch: AccountPatch) async throws -> Account
+    /// True when the password stored for this account logs in to `server` (IMAP and SMTP). Nothing is saved or sent anywhere else.
+    func storedLoginWorks(id: AccountID, on server: ServerConfig) async throws -> Bool
     func saveSignature(_ signature: Signature) async throws
     func saveTemplate(_ template: Template) async throws
     func saveRule(_ rule: Rule) async throws
@@ -28,6 +30,9 @@ public struct ImportResult: Equatable, Sendable {
     public var replacedAccounts = 0
     /// Accounts whose login did not work with the password from the Mac. They stay on the review list.
     public var failedAccounts: [String] = []
+    /// Accounts that took the Mac's name, color and aliases but keep the servers stored here, because the stored password
+    /// did not log in to the Mac's servers.
+    public var keptServers: [String] = []
     /// Signatures and rules that belong to an account that is not set up on this iPhone.
     public var skippedNoAccount = 0
     public var failedItems = 0
@@ -52,6 +57,12 @@ public struct BundleImporter: Sendable {
     public func addPasswordAccount(_ a: BundleAccount, password: String) async throws -> Account {
         let created = try await target.addAccount(AddAccountInput(email: a.email, name: a.name, password: password, provider: a.provider, server: a.server))
         return try await applyDetails(a, to: created.id)
+    }
+
+    /// "Use the Mac's servers" for an account whose hosts differ: the person typed the password again. It is checked against the
+    /// Mac's servers before anything is saved, so a wrong password or an unreachable host changes nothing.
+    public func switchServers(_ a: BundleAccount, password: String) async throws -> Account {
+        try await addPasswordAccount(a, password: password)
     }
 
     /// Runs Google sign-in for a "Sign in" row, then restores the Mac's details for that account.
@@ -83,8 +94,7 @@ public struct BundleImporter: Sendable {
     private func importAccounts(_ plan: ImportPlan, _ selection: ImportSelection, into result: inout ImportResult) async {
         for row in plan.accounts {
             if row.existsOnPhone {
-                guard selection.replaceAccounts.contains(row.id), let existing = try? await findAccount(row.account.email) else { continue }
-                if (try? await applyDetails(row.account, to: existing.id, includeServer: existing.authKind == .password)) != nil { result.replacedAccounts += 1 }
+                await replace(row, selection, into: &result)
             } else if row.credential == .ready, let password = row.account.password {
                 do {
                     _ = try await addPasswordAccount(row.account, password: password)
@@ -94,6 +104,23 @@ public struct BundleImporter: Sendable {
                 }
             }
         }
+    }
+
+    /// Name, color and aliases always follow the Mac. The servers follow only when they are safe for the stored password:
+    /// unchanged hosts after a successful login check. A host change never goes through here.
+    private func replace(_ row: PlannedAccount, _ selection: ImportSelection, into result: inout ImportResult) async {
+        guard row.serverChange != .hostChanged, selection.replaceAccounts.contains(row.id),
+              let existing = try? await findAccount(row.account.email) else { return }
+        let move = row.serverChange == .detailsOnly && existing.authKind == .password
+        let allowed = move ? await loginWorks(existing.id, on: row.account.server) : false
+        if (try? await applyDetails(row.account, to: existing.id, includeServer: allowed)) != nil {
+            result.replacedAccounts += 1
+            if move && !allowed { result.keptServers.append(row.account.email) }
+        }
+    }
+
+    private func loginWorks(_ id: AccountID, on server: ServerConfig) async -> Bool {
+        (try? await target.storedLoginWorks(id: id, on: server)) ?? false
     }
 
     private func applyDetails(_ a: BundleAccount, to id: AccountID, includeServer: Bool = false) async throws -> Account {

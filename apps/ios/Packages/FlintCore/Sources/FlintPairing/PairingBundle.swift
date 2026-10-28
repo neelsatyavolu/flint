@@ -114,9 +114,13 @@ public struct BundleSettings: Codable, Hashable, Sendable {
         return copy
     }
 
-    /// The host of the Mac's receipts endpoint, for the review row. Nil when the Mac sent none or it is not a web address.
+    /// The host of the Mac's receipts endpoint, for the review row. Nil when the Mac sent none or it is not an https address,
+    /// since the iPhone ignores anything else and keeps its own.
     public var receiptsHost: String? {
-        receipts?.endpoint.flatMap { URL(string: $0)?.host }
+        receipts?.endpoint.flatMap { raw -> String? in
+            guard let url = URL(string: raw.trimmingCharacters(in: .whitespaces)), url.scheme?.lowercased() == "https" else { return nil }
+            return url.host
+        }
     }
 }
 
