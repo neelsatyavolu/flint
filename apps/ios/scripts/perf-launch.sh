@@ -3,8 +3,10 @@
 #   scripts/perf-launch.sh <Flint.app> [runs=5] [device type name, default "iPhone 17 Pro"] [simulator name, default flint-perf-sim] [runtime id]
 # The runtime defaults to iOS 26.5. The iOS 27.0 beta runtime spends about 700 ms before main in any app that links PhotosUI, SafariServices
 # or AuthenticationServices (measured with an empty SwiftUI app), so do not judge launch time on it.
-# Build the .app first (Release is the one to judge):
-#   xcodebuild -project Flint.xcodeproj -scheme Flint -configuration Release -destination 'generic/platform=iOS Simulator' -derivedDataPath <dd> build
+# Build the .app first (Release is the one to judge). The launch flags this script passes (-FlintSeed, -FlintPerfReport, -FlintFakeAuth)
+# are compiled out of Release, so the build needs the FLINT_PERF compile flag. Never set it for an archive or a TestFlight build:
+#   xcodebuild -project Flint.xcodeproj -scheme Flint -configuration Release -destination 'generic/platform=iOS Simulator' -derivedDataPath <dd> \
+#     SWIFT_ACTIVE_COMPILATION_CONDITIONS=FLINT_PERF build
 # Run 0 builds the database (about a minute) and is not counted. Runs 1..N are fresh processes on the built database; each
 # reports (from PerfProbe) the time from process start to the first inbox rows and the memory footprint at 1, 3, 6 and 10 s.
 # The simulator is created, booted and deleted by this script, even on failure. Budgets: first rows < 400 ms, memory < 200 MB.

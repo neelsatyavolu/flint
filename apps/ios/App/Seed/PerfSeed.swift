@@ -16,7 +16,11 @@ enum PerfSeed {
     private static let marker = "built-\(messageCount)"
 
     static func isRequested(defaults: UserDefaults = .standard) -> Bool {
+        #if DEBUG || FLINT_PERF
         defaults.string(forKey: DemoSeed.argumentKey) == value
+        #else
+        false
+        #endif
     }
 
     static func make(now: Date = Date()) async throws -> DemoSeedResult {

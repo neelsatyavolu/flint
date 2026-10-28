@@ -16,7 +16,13 @@ final class DemoMac: @unchecked Sendable {
     var connector: PairingConnector { { [self] _, _ in DemoMacTransport(mac: self) } }
 
     /// `-FlintPairingExisting` (UI tests): the demo iPhone already has two of the Mac's accounts, with other servers.
-    static var withExisting: Bool { ProcessInfo.processInfo.arguments.contains("-FlintPairingExisting") }
+    static var withExisting: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-FlintPairingExisting")
+        #else
+        false
+        #endif
+    }
 
     var currentBundleJSON: String {
         guard Self.withExisting else { return Self.bundleJSON }

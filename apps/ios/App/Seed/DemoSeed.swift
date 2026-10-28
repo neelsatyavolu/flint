@@ -24,7 +24,11 @@ enum DemoSeed {
 
     /// `-FlintSeed demo`, or `-FlintSeed perf50k` (the 50,000-message measurement mailbox, see `PerfSeed`).
     static func isRequested(defaults: UserDefaults = .standard) -> Bool {
+        #if DEBUG || FLINT_PERF
         defaults.string(forKey: argumentKey) == demoValue || PerfSeed.isRequested(defaults: defaults)
+        #else
+        false
+        #endif
     }
 
     /// Builds the whole demo mailbox. Throws if the temporary database cannot be created or the first sync fails.

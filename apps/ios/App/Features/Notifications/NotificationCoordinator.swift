@@ -216,12 +216,21 @@ final class NotificationCoordinator {
 }
 
 extension NotificationCoordinator {
+    /// `-FlintSystemNotifications YES` keeps the system centre for a demo run. Debug builds only.
+    private static func systemNotificationsForced(_ defaults: UserDefaults) -> Bool {
+        #if DEBUG
+        defaults.bool(forKey: "FlintSystemNotifications")
+        #else
+        false
+        #endif
+    }
+
     /// The coordinator the app uses. The system centre is used for a normal launch. Unit tests, `-FlintFakeNotifications` and
     /// the demo mailbox (unless `-FlintSystemNotifications YES`) get an in-memory one: a demo run never shows a real prompt.
     @MainActor
     static func makeDefault(defaults: UserDefaults = .standard) -> NotificationCoordinator {
         let fake = FlintDebugFlags.fakeNotifications(defaults: defaults)
-        let demo = DemoSeed.isRequested(defaults: defaults) && !defaults.bool(forKey: "FlintSystemNotifications")
+        let demo = DemoSeed.isRequested(defaults: defaults) && !systemNotificationsForced(defaults)
         let inMemory = fake || demo || FlintDebugFlags.isHostingUnitTests
         let center: any NotificationScheduling = inMemory
             ? MemoryNotificationScheduler(status: fake ? FlintDebugFlags.fakeNotificationStatus(defaults: defaults) : .notDetermined)
