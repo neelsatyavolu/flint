@@ -22,11 +22,23 @@ final class EndToEndTests: XCTestCase {
         return app.descendants(matching: .any).matching(predicate).firstMatch
     }
 
+    /// First run on a simulator that has not answered it: iOS asks "Flint would like to send you notifications" right after the account
+    /// is added, and the SpringBoard alert covers "Go to inbox". That was the cause of the first-run failure of e2e-greenmail.sh.
+    /// An interruption monitor does not fire here because the waits never touch the covered element.
+    @MainActor
+    private func allowNotifications() {
+        let allow = XCUIApplication(bundleIdentifier: "com.apple.springboard").alerts.buttons["Allow"]
+        if allow.exists { allow.tap() }
+    }
+
     /// Waits for an element to take taps (a sheet may still be closing). On a timeout, saves what the screen shows to
     /// `TEST_RUNNER_FLINT_SHOT_DIR` and prints the element tree, then fails.
     @MainActor
     private func waitHittable(_ app: XCUIApplication, _ element: XCUIElement, _ what: String, timeout: Int = 20) {
-        for _ in 0..<(timeout * 2) where !element.isHittable { usleep(500_000) }
+        for _ in 0..<(timeout * 2) where !element.isHittable {
+            allowNotifications()
+            usleep(500_000)
+        }
         guard !element.isHittable else { return }
         if let dir = env["FLINT_SHOT_DIR"] {
             try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)

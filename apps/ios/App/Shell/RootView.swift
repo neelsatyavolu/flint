@@ -35,6 +35,7 @@ struct RootView: View {
         .task {
             // The theme gallery is a design check: it opens no mailbox, so onboarding does not cover it.
             guard !FlintDebugFlags.isHostingUnitTests, !FlintDebugFlags.themeGallery() else { return }
+            PerfProbe.mark("rootTask")
             await model.bootstrap()
             await model.applyLaunchRoute(LaunchRoute.fromArguments())
         }

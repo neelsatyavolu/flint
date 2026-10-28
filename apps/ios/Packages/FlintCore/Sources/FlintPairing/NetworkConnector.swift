@@ -41,7 +41,7 @@ public enum NetworkConnector {
     }
 
     private static func attempt(host: String, port: Int) async throws -> any PairingTransport {
-        guard let nwPort = NWEndpoint.Port(rawValue: UInt16(port)) else { throw PairingError.badQRCode }
+        guard let raw = UInt16(exactly: port), let nwPort = NWEndpoint.Port(rawValue: raw) else { throw PairingError.badQRCode }
         let connection = NWConnection(host: NWEndpoint.Host(host), port: nwPort, using: .tcp)
         let transport = NetworkTransport(connection)
         do {

@@ -3,6 +3,7 @@ import UIKit
 
 @main
 struct FlintApp: App {
+    private let launchMark: Void = PerfProbe.mark("appEntry") // first stored property: runs before the model below is built
     @State private var model = BackgroundHub.model
     @State private var lock = AppLock.live(reason: String(localized: "Unlock Flint", table: "Shell"))
     @State private var lockWindow = LockWindowPresenter()
