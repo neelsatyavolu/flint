@@ -97,10 +97,12 @@ xcodegen generate >/dev/null
 ARCHIVE="$OUT_DIR/Flint.xcarchive"
 rm -rf "$ARCHIVE" "$OUT_DIR/export"
 mkdir -p "$OUT_DIR"
+# Profile goes through FLINT_PROFILE_SPECIFIER: a command-line PROVISIONING_PROFILE_SPECIFIER would also hit the
+# package resource bundles, which cannot take one.
 xcodebuild -project Flint.xcodeproj -scheme "$SCHEME" -configuration Release -destination 'generic/platform=iOS' \
   -archivePath "$ARCHIVE" -derivedDataPath "$OUT_DIR/build" archive -jobs 4 \
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="$TEAM_ID" \
-  CODE_SIGN_IDENTITY="$IDENTITY" PROVISIONING_PROFILE_SPECIFIER="$PROFILE_UUID" \
+  CODE_SIGN_IDENTITY="$IDENTITY" FLINT_PROFILE_SPECIFIER="$PROFILE_UUID" \
   OTHER_CODE_SIGN_FLAGS="--keychain $KC" \
   > "$OUT_DIR/archive.log" 2>&1 || { grep -E "error:" "$OUT_DIR/archive.log" | sort -u >&2; exit 1; }
 

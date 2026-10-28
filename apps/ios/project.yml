@@ -45,6 +45,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: co.xanom.flint
         PRODUCT_NAME: Flint
+        # Empty except in scripts/testflight.sh, which sets it so only the app target gets the App Store profile.
+        PROVISIONING_PROFILE_SPECIFIER: $(FLINT_PROFILE_SPECIFIER)
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
