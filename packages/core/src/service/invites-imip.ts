@@ -122,10 +122,17 @@ export function createRsvp(ctx: ServiceContext, deps: RsvpDeps) {
     let mail = true;
     let mailOptional = false;
     if (route.kind === "google") {
-      const done = await attempt(() => route.via === "mail"
-        ? rsvpViaGoogle(ctx, route.account, invite, response, note)
-        : rsvpViaGoogleCalendar(ctx, route.row, account, invite, response, note));
-      if (done) { via = "google-calendar"; mail = false; }
+      // An event Google never saw (the invitation came to another inbox) is added from the invitation, except on a no and
+      // for a single occurrence of a series. Adding it tells the organizer nothing, so the answer still goes by mail.
+      const opts = { addIfMissing: response !== "declined" && !invite.recurrenceId };
+      let imported = false;
+      const done = await attempt(async () => {
+        const out = route.via === "mail"
+          ? await rsvpViaGoogle(ctx, route.account, invite, response, note, opts)
+          : await rsvpViaGoogleCalendar(ctx, route.row, account, invite, response, note, opts);
+        imported = Boolean(out.imported);
+      });
+      if (done) { via = "google-calendar"; mail = imported; mailOptional = imported; }
     } else if (route.kind === "caldav") {
       const row = route.row;
       let address = "";

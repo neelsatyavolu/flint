@@ -20,14 +20,16 @@ const log = logger("service.invites-calendars");
 
 export async function rsvpViaGoogleCalendar(
   ctx: ServiceContext, row: StoredCalendarAccount, account: Account, invite: ParsedInvite, response: RsvpResponse, note: string | undefined,
-): Promise<void> {
+  opts: { addIfMissing?: boolean } = {},
+): Promise<{ imported?: true }> {
   const accessToken = await calendarAccessToken(ctx, row);
   try {
-    await calendarClient(ctx).respond({
+    const done = await calendarClient(ctx).respond({
       accessToken, uid: invite.uid, recurrenceId: invite.recurrenceId, selfAddresses: selfAddressesOf(account, invite, row), response,
-      ...(note ? { comment: note } : {}),
+      ...(note ? { comment: note } : {}), ...(opts.addIfMissing ? { fromInvite: invite } : {}),
     });
     markStatus(ctx, row.id, "ok", null);
+    return done.imported ? { imported: true } : {};
   } catch (error) {
     if (isScopeMissing(error)) markStatus(ctx, row.id, "needs-signin", "Flint no longer has permission to use this calendar. Sign in again.");
     throw error;

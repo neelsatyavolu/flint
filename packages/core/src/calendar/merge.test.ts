@@ -52,3 +52,15 @@ describe("nextOccurrence", () => {
     expect(nextOccurrence("FREQ=WEEKLY;BYDAY=TU", wall, "UTC", after, [], [after + DAY])).toBe(after + DAY);
   });
 });
+
+describe("your answer", () => {
+  it("shows your recorded answer on your own guest entry, not the PARTSTAT the invitation carried", () => {
+    const invite = parsed("zoom-scheduled.ics");
+    expect(invite.attendees.find((a) => a.isYou)?.response).toBe("needs-action");
+    const stored: StoredInvite = { messageId: 1, accountId: "a", invite, ics: "", parserVersion: 2, parsedAt: 0 };
+    const response = { accountId: "a", uid: invite.uid, recurrenceId: "", response: "accepted" as const, note: null, via: "imip" as const, sequence: invite.sequence, respondedAt: invite.start - 2 * DAY };
+    const out = mergeInvite({ stored, versions: [stored], response }, { now: invite.start - DAY, ownAddresses: ["me@example.com"], account, zone: "UTC" });
+    expect(out.yourResponse).toBe("accepted");
+    expect(out.attendees.find((a) => a.isYou)?.response).toBe("accepted");
+  });
+});

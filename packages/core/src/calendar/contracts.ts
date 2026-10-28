@@ -81,6 +81,8 @@ export type GoogleRespondInput = {
   selfAddresses: readonly string[];
   response: RsvpResponse;
   comment?: string;
+  /** When the event is not on the calendar, add it from this invitation (events.import, no mail to anyone) instead of failing with not_found. */
+  fromInvite?: ParsedInvite;
 };
 
 /**
@@ -89,8 +91,12 @@ export type GoogleRespondInput = {
  * not on this calendar: caller falls back to iMIP), "network" (429/5xx/offline).
  */
 export interface GoogleCalendarClient {
-  /** events.list?iCalUID=… then events.patch with attendees[self].responseStatus and sendUpdates=all (instance lookup via events.instances for recurrence). */
-  respond(input: GoogleRespondInput): Promise<{ eventId: string; htmlLink: string | null }>;
+  /**
+   * events.list?iCalUID=… then events.patch with attendees[self].responseStatus and sendUpdates=all (instance lookup via
+   * events.instances for recurrence). `imported` when the event was missing and added from `fromInvite`: the organizer
+   * was not told, so the caller still sends the answer by mail.
+   */
+  respond(input: GoogleRespondInput): Promise<{ eventId: string; htmlLink: string | null; imported?: true }>;
   /** events.list on the primary calendar between from and to (epoch ms), single events expanded, cancelled and declined left out. */
   listEvents(input: { accessToken: string; from: number; to: number }): Promise<GoogleCalendarEvent[]>;
 }

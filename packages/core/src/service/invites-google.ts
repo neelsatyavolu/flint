@@ -50,14 +50,14 @@ function dropCalendarScope(ctx: ServiceContext, account: Account): void {
  * calendar, so the caller falls back to an iMIP reply), "network", "invalid".
  */
 export async function rsvpViaGoogle(
-  ctx: ServiceContext, account: Account, invite: ParsedInvite, response: RsvpResponse, note?: string,
-): Promise<{ eventId: string; htmlLink: string | null }> {
+  ctx: ServiceContext, account: Account, invite: ParsedInvite, response: RsvpResponse, note?: string, opts: { addIfMissing?: boolean } = {},
+): Promise<{ eventId: string; htmlLink: string | null; imported?: true }> {
   if (!canUseGoogleCalendar(account)) throw new FlintError("auth", "Connect Google Calendar to answer from Flint.");
   const accessToken = await accessTokenFor(ctx, account);
   try {
     return await calendarClient(ctx).respond({
       accessToken, uid: invite.uid, recurrenceId: invite.recurrenceId, selfAddresses: selfAddresses(account, invite), response,
-      ...(note?.trim() ? { comment: note.trim() } : {}),
+      ...(note?.trim() ? { comment: note.trim() } : {}), ...(opts.addIfMissing ? { fromInvite: invite } : {}),
     });
   } catch (error) {
     if (isScopeMissing(error)) dropCalendarScope(ctx, account);

@@ -44,6 +44,37 @@ describe("calendar accounts, end to end", () => {
     expect(r.fake.log).toHaveLength(0);
   });
 
+  it("IMAP mailbox + Google calendar without the event: adds it to the calendar and mails the organizer; a no is only mailed", async () => {
+    const calls: ApiCall[] = [];
+    const reply = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
+    const r = rig({
+      mailAddress: "neel@xanom.co",
+      calendarApi: (url, init) => {
+        const call = { method: init?.method ?? "GET", url: new URL(url), body: init?.body ? JSON.parse(init.body) : undefined };
+        calls.push(call);
+        return call.method === "GET" ? reply({ items: [] }) : reply({ id: "imported1", htmlLink: null });
+      },
+    });
+    (r.ctx.invites as { googleAuth?: unknown }).googleAuth = async () => ({
+      email: ADDRESS, name: "Neel", accessToken: "GAT", refreshToken: "GRT", expiresAt: NOW + 3_600_000, scope: `openid email profile ${GOOGLE_CALENDAR_SCOPE}`,
+    });
+    const { messageId } = receiveInvite(r, { ics: invite(), ownAddresses: [ADDRESS] });
+    await r.api.addGoogleCalendarAccount({ loginHint: ADDRESS });
+
+    const out = await r.api.rsvp(messageId, "accepted");
+    expect(out.yourResponse).toBe("accepted");
+    expect(out.attendees.find((a) => a.isYou)?.response).toBe("accepted");
+    const imported = calls.filter((c) => c.method === "POST" && c.url.pathname.endsWith("/events/import"));
+    expect(imported).toHaveLength(1);
+    expect((imported[0]!.body as { iCalUID: string }).iCalUID).toBe(UID);
+    expect(r.sent).toHaveLength(1);
+    expect(r.sent[0]!.to.address).toBe("carla@northwind.example");
+
+    await r.api.rsvp(messageId, "declined");
+    expect(calls.filter((c) => c.method === "POST")).toHaveLength(1);
+    expect(r.sent).toHaveLength(2);
+  });
+
   it("IMAP mailbox + iCloud CalDAV with scheduling: updates PARTSTAT with a PUT, the server notifies the organizer", async () => {
     const r = rig({ addresses: ["appleid@icloud.com", ADDRESS] });
     await addICloud(r, []);

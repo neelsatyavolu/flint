@@ -8,6 +8,7 @@ import { GOOGLE_CALENDAR_SCOPE } from "../src/mail/google-oauth";
 import { memorySecrets, type Platform } from "../src/platform";
 import { createContext } from "../src/service/context";
 import { conflictsFor, connectGoogleCalendar, rsvpViaGoogle } from "../src/service/invites-google";
+import { parsed } from "../src/calendar/fixtures";
 import { FlintError, type Account } from "../src/types";
 
 type Call = { method: string; url: URL; headers: Record<string, string>; body: unknown };
@@ -102,6 +103,38 @@ describe("Google Calendar client: respond", () => {
     await expect(createGoogleCalendarClient({ fetch: empty.fetch }).respond({ accessToken: "t", uid: "u", recurrenceId: null, selfAddresses: ["me@gmail.com"], response: "accepted" })).rejects.toMatchObject({ code: "not_found" });
     const other = fakeApi(() => reply(200, { items: [{ ...series, attendees: [{ email: "x@y.z" }] }] }));
     await expect(createGoogleCalendarClient({ fetch: other.fetch }).respond({ accessToken: "t", uid: "u", recurrenceId: null, selfAddresses: ["me@gmail.com"], response: "accepted" })).rejects.toMatchObject({ code: "not_found" });
+  });
+
+  it("adds the event from the invitation (events.import) when Google does not have it, with your answer on it", async () => {
+    const invite = parsed("zoom-scheduled.ics");
+    const api = fakeApi((c) => (c.method === "GET" ? reply(200, { items: [] }) : reply(200, { id: "new1", htmlLink: "https://cal/new1" })));
+    const out = await createGoogleCalendarClient({ fetch: api.fetch }).respond({
+      accessToken: "t", uid: invite.uid, recurrenceId: null, selfAddresses: ["me@example.com"], response: "tentative", comment: "Maybe late", fromInvite: invite,
+    });
+    expect(out).toEqual({ eventId: "new1", htmlLink: "https://cal/new1", imported: true });
+    const post = api.calls.find((c) => c.method === "POST")!;
+    expect(post.url.pathname).toBe("/calendar/v3/calendars/primary/events/import");
+    expect(post.url.searchParams.get("sendUpdates")).toBeNull();
+    expect(post.body).toMatchObject({
+      iCalUID: invite.uid, summary: "Customer call: Lumen Labs", location: "https://lumen.zoom.us/j/98765432101",
+      start: { dateTime: "2026-10-26T21:00:00.000Z" }, end: { dateTime: "2026-10-26T21:45:00.000Z" },
+      organizer: { email: "aiden@lumen.example", displayName: "Aiden Cho" },
+    });
+    const me = (post.body as { attendees: { email: string; responseStatus: string; comment?: string }[] }).attendees.find((a) => a.email === "me@example.com");
+    expect(me).toMatchObject({ responseStatus: "tentative", comment: "Maybe late" });
+  });
+
+  it("imports an all-day series with its dates, RRULE and EXDATEs", async () => {
+    const base = parsed("google-weekly-meet.ics");
+    const invite: ParsedInvite = {
+      ...base, allDay: true, timeZone: null, startDate: "2026-10-06", endDate: "2026-10-07", start: Date.UTC(2026, 9, 6), end: Date.UTC(2026, 9, 7),
+      recurrence: { summary: "Weekly", rrule: "FREQ=WEEKLY;BYDAY=TU", hasExceptions: true, excluded: [Date.UTC(2026, 9, 13)] },
+    };
+    const api = fakeApi((c) => (c.method === "GET" ? reply(200, { items: [] }) : reply(200, { id: "new2" })));
+    await createGoogleCalendarClient({ fetch: api.fetch }).respond({ accessToken: "t", uid: invite.uid, recurrenceId: null, selfAddresses: ["me@example.com"], response: "accepted", fromInvite: invite });
+    expect(api.calls.find((c) => c.method === "POST")!.body).toMatchObject({
+      start: { date: "2026-10-06" }, end: { date: "2026-10-07" }, recurrence: ["RRULE:FREQ=WEEKLY;BYDAY=TU", "EXDATE;VALUE=DATE:20261013"],
+    });
   });
 
   it("retries once from a fresh read when the event changed (412)", async () => {

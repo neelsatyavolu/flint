@@ -155,7 +155,9 @@ export function mergeInvite(input: MergeInput, env: MergeEnv): Invite {
   const own = new Set(env.ownAddresses.map((a) => a.toLowerCase()));
   const isOrganizer = inv.organizer !== null && own.has(inv.organizer.address.toLowerCase());
   const yours = ownResponse(inv, input.response, isOrganizer);
-  const base = { ...inv, ...yours, changes: [] as InviteChange[], newerMessageId: null as number | null };
+  // The guest list shows your answer too, not the PARTSTAT the invitation carried.
+  const attendees = inv.attendees.map((a) => (a.isYou ? { ...a, response: yours.yourResponse } : a));
+  const base = { ...inv, ...yours, attendees, changes: [] as InviteChange[], newerMessageId: null as number | null };
 
   const finish = (state: InviteState, extra: Partial<Pick<Invite, "changes" | "newerMessageId" | "start" | "end" | "startDate" | "endDate">> = {}): Invite =>
     ({ ...base, ...extra, state, rsvpVia: rsvpRoute(env, inv, state, isOrganizer) });

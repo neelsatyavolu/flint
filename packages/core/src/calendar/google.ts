@@ -1,5 +1,5 @@
 import { FlintError, type InviteResponse, type RsvpResponse } from "../types";
-import type { GoogleCalendarClient, GoogleCalendarEvent, GoogleRespondInput } from "./contracts";
+import type { GoogleCalendarClient, GoogleCalendarEvent, GoogleRespondInput, ParsedInvite } from "./contracts";
 
 export const CALENDAR_API = "https://www.googleapis.com/calendar/v3/calendars/primary";
 
@@ -105,7 +105,16 @@ export function createGoogleCalendarClient(opts: { fetch: CalendarFetch }): Goog
   return {
     async respond(input: GoogleRespondInput) {
       const { call } = client(opts.fetch, input.accessToken);
-      const target = await findEvent(call, input);
+      let target: ApiEvent;
+      try {
+        target = await findEvent(call, input);
+      } catch (error) {
+        // Mail Google never saw (a Zoom invite to a Proton inbox) is not on the calendar: add it with the answer on it.
+        if (!input.fromInvite || !(error instanceof FlintError) || error.code !== "not_found") throw error;
+        const { data } = await call("POST", "/events/import", undefined, importBody(input.fromInvite, input));
+        const made = data as ApiEvent;
+        return { eventId: made.id ?? "", htmlLink: made.htmlLink ?? null, imported: true };
+      }
       for (let attempt = 0; attempt < 2; attempt++) {
         const fresh = attempt === 0 ? target : await fetchEvent(call, target.id!);
         const self = selfOf(fresh, input.selfAddresses);
@@ -153,6 +162,42 @@ export function createGoogleCalendarClient(opts: { fetch: CalendarFetch }): Goog
 }
 
 type Call = ReturnType<typeof client>["call"];
+
+const GOOGLE_STATUS: Record<InviteResponse, string> = { ...STATUS, "needs-action": "needsAction" };
+const ymd = (ms: number): string => new Date(ms).toISOString().slice(0, 10).replaceAll("-", "");
+const utcStamp = (ms: number): string => new Date(ms).toISOString().replace(/[-:]|\.\d{3}/g, "");
+
+/** The events.import body for an invitation: its times, series, organizer and guests, with the user's answer set. */
+function importBody(inv: ParsedInvite, input: GoogleRespondInput): Record<string, unknown> {
+  const own = new Set(input.selfAddresses.map((a) => a.toLowerCase()));
+  const yours = { responseStatus: STATUS[input.response], ...(input.comment ? { comment: input.comment } : {}) };
+  const guests = inv.attendees.map((a) => ({
+    email: a.address, ...(a.name ? { displayName: a.name } : {}), ...(a.role === "optional" ? { optional: true } : {}),
+    ...(own.has(a.address) ? yours : { responseStatus: GOOGLE_STATUS[a.response] }),
+  }));
+  const attendees = guests.some((g) => own.has(g.email)) ? guests : [...guests, { email: input.selfAddresses[0], ...yours }];
+  // Google needs a zone on a timed series; a floating one is read as UTC.
+  const zone = inv.timeZone ?? (inv.recurrence ? "UTC" : null);
+  const when = (ms: number, date: string | null) => (inv.allDay
+    ? { date: date ?? new Date(ms).toISOString().slice(0, 10) }
+    : { dateTime: new Date(ms).toISOString(), ...(zone ? { timeZone: zone } : {}) });
+  const stamp = (ms: number): string => (inv.allDay ? `;VALUE=DATE:${ymd(ms)}` : `:${utcStamp(ms)}`);
+  const r = inv.recurrence;
+  const recurrence = r ? [`RRULE:${r.rrule}`, ...(r.excluded ?? []).map((ms) => `EXDATE${stamp(ms)}`), ...(r.added ?? []).map((ms) => `RDATE${stamp(ms)}`)] : null;
+  const location = inv.location ?? inv.conference?.url ?? null;
+  // The parser drops join-link blocks from the description: keep the link when the location does not carry it.
+  const join = inv.conference && !location?.includes(inv.conference.url) ? `Join: ${inv.conference.url}` : null;
+  const description = [inv.description, join].filter(Boolean).join("\n\n");
+  return {
+    iCalUID: inv.uid, sequence: inv.sequence, status: "confirmed", summary: inv.title,
+    start: when(inv.start, inv.startDate), end: when(inv.end, inv.endDate),
+    ...(recurrence ? { recurrence } : {}),
+    ...(location ? { location } : {}),
+    ...(description ? { description } : {}),
+    ...(inv.organizer ? { organizer: { email: inv.organizer.address, ...(inv.organizer.name ? { displayName: inv.organizer.name } : {}) } } : {}),
+    attendees,
+  };
+}
 
 async function fetchEvent(call: Call, id: string): Promise<ApiEvent> {
   const { data } = await call("GET", `/events/${encodeURIComponent(id)}`);
