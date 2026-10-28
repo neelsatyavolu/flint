@@ -12,7 +12,7 @@ settings:
     SWIFT_VERSION: "6.0"
     IPHONEOS_DEPLOYMENT_TARGET: "26.0"
     DEVELOPMENT_TEAM: VTQW687WBQ
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
@@ -50,6 +50,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: co.xanom.flint
         PRODUCT_NAME: Flint
+        # Empty except in scripts/testflight.sh, which sets it so only the app target gets the App Store profile.
+        PROVISIONING_PROFILE_SPECIFIER: $(FLINT_PROFILE_SPECIFIER)
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor

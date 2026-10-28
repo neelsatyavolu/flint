@@ -8,3 +8,4 @@ xcuserdata/
 .swiftpm/
 .build/
 scripts/testflight.local.sh
+.derived/
