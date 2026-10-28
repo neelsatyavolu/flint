@@ -1,4 +1,4 @@
-# Flint for iOS: QA checklist (Waves 3 and 4)
+# Flint for iOS: QA checklist (Waves 3 to 5)
 
 The lead's manual script for the Wave 3 and Wave 4 build. Each step is marked:
 
@@ -23,6 +23,8 @@ scripts/e2e-greenmail.sh $SIM $D/dd            # GreenMail end to end, see below
 TEST_RUNNER_FLINT_SHOT_DIR=$D/shots xcodebuild test-without-building ... -only-testing:FlintUITests/ScreenTourTests   # screenshots
 xcrun simctl delete $SIM                         # always
 swift test --package-path Packages/FlintCore     # engine, on the Mac
+FLINT_INTEGRATION=1 swift test --package-path Packages/FlintCore   # plus the GreenMail suites (needs Java)
+scripts/verify.sh --ui --label qa                # all of the above in one go, one temporary simulator at a time
 ```
 
 ## 1. Build and launch
@@ -230,3 +232,16 @@ swift test --package-path Packages/FlintCore     # engine, on the Mac
 | 15.4 | Scan the Mac QR with the in-app scanner, local network prompt, approve on the Mac | Accounts and settings import; Google accounts show Sign in | device (O5) |
 | 15.5 | System Camera opens `flint://pair` | Pairing flow starts | device (O5) |
 | 15.6 | Mac approval dialog look in the running Electron app | Dialog shows the phone name and SAS | owner |
+
+## 16. Wave 5: speed, release, UI suite
+
+| # | Step | Expected | Mark |
+|---|---|---|---|
+| 16.1 | `scripts/perf-launch.sh` on the perf50k seed, Release | Median first rows about 350 ms on the iOS 26.5 simulator (was 560) | sim |
+| 16.2 | App does not link SafariServices, QuickLook or AuthenticationServices; they live in FlintLazyWeb.framework | `LazyWebTests` pass | auto |
+| 16.3 | IDLE redial wakes a sync at once, not at the next poll | `FLINT_INTEGRATION=1 swift test`, `theSessionSyncsAtOnceWhenIdleRedialsAndNeverWaitsForThePoll` | auto |
+| 16.4 | Tap a link, open an attachment (Quick Look, Done button), Google sign-in through the lazy framework | Each opens and closes normally | device (O5) |
+| 16.5 | Launch speed on a real iPhone, and on the iOS 27 beta | Same or better than the simulator figure | device (O5) |
+| 16.6 | `scripts/testflight.sh`: signed archive and export with the embedded FlintLazyWeb.framework | Archive validates; no upload without the owner | owner |
+| 16.7 | iPad at AX3: sidebar overlay leaves the codes strip readable by VoiceOver under the sidebar | Known gap, test skips that one label | open |
+| 16.8 | `scripts/verify.sh --ui`: onboarding to inbox, reply and send, archive with undo, search operators, settings persist, audits, AX3, Graphite and Paper | `verify: OK` | auto |

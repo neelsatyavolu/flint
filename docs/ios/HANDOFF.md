@@ -353,3 +353,10 @@ Requests for the shell and other owners (file | change | why):
 
 - Added `apps/ios/scripts/testflight.sh`, `asc.py`, `testflight.local.sh.example`, `gen-third-party.py`, `App/Resources/PrivacyInfo.xcprivacy` (picked up by the existing `App` source path in `project.yml`, no project.yml change), `apps/ios/THIRD-PARTY.md` (generated from `ThirdPartyLicenses.json`) and `docs/ios/RELEASING.md`. One line added to `apps/ios/.gitignore`: `.derived/`.
 - Signed `.ipa` not produced: 1Password returned `authorization timeout` (O4 needs the owner at the Mac). Settings > About > Licenses already existed and is unchanged.
+
+## Wave 5, integrated
+
+- Merged wave5-recheck, wave5-perf, wave5-speed, wave5-ui and wave5-release into ios (--no-ff). Conflicts: HANDOFF.md sections (both kept) and `AppModel.openService`. There the recheck `serviceOpener` test hook stays first, then speed's `beginOpening()` path; a failed open now clears the shared `opening` and `prefetch` tasks so the retry from the recheck (M2) opens again instead of replaying the failure.
+- Checked on the merged tree: `scripts/verify.sh --ui` (swift test 782 tests, iPhone build, FlintTests, FlintUITests on iPhone and iPad, `verify: OK`), `FLINT_INTEGRATION=1 swift test` (782 tests, GreenMail suites included), `e2e-greenmail.sh`, `pairing-e2e.sh`, desktop `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test`.
+- Flake: desktop `packages/core` `history.test.ts` ("search results mix local and server mail...", 3 tests) failed once while the Mac was also building iOS; passes alone and in a second full run.
+- Still open: the iPad sidebar overlay leaving the covered codes strip readable by VoiceOver (shell owner); interactive checks of Quick Look and Google sign-in through FlintLazyWeb; App Store export with the embedded FlintLazyWeb.framework; the signed `.ipa` (O4); real-device checks (O5). Not pushed, nothing uploaded.
