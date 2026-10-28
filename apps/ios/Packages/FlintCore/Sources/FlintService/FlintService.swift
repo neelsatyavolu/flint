@@ -78,9 +78,19 @@ public final class FlintService: Sendable {
     public func syncNow(accountId: AccountID? = nil) async throws {
         let accounts = try await core.store.listAccounts().filter { $0.enabled && (accountId == nil || $0.id == accountId) }
         if let accountId, accounts.isEmpty { throw FlintError(.notFound, "No such account: \(accountId).") }
-        var firstError: Error?
-        for account in accounts {
-            do { try await core.sync.session(for: account.id).syncNow() } catch { firstError = firstError ?? error }
+        // Each account has its own session and connections, so they sync side by side: a refresh takes as long as the slowest
+        // account, not the sum of all of them.
+        let sync = core.sync
+        let firstError = await withTaskGroup(of: Error?.self) { group -> Error? in
+            for account in accounts {
+                group.addTask {
+                    do { try await sync.session(for: account.id).syncNow() } catch { return error }
+                    return nil
+                }
+            }
+            var first: Error?
+            for await error in group { first = first ?? error }
+            return first
         }
         if let firstError, accounts.count == 1 { throw firstError }
     }

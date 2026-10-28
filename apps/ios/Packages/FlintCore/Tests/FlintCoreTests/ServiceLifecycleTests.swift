@@ -80,6 +80,19 @@ struct ServiceSyncLifecycleTests {
         await #expect(throws: FlintError.self) { try await rig.service.syncNow(accountId: account.id) }
     }
 
+    @Test func syncNowRunsAccountsSideBySide() async throws {
+        let rig = try await ServiceRig.make()
+        defer { Task { await rig.cleanup() } }
+        try await rig.addAccount()
+        _ = try await rig.service.addAccount(AddAccountInput(email: "other@test.local", name: "Other", password: "pw", provider: .imap, server: mailTestServer))
+        await rig.fake.stallNext("listFolders")
+        let sync = Task { try await rig.service.syncNow() }
+        // While one account waits on a slow server, the other gets on with its own sync.
+        #expect(await serviceEventually { await rig.fake.calls.filter { $0 == "listFolders" }.count >= 2 })
+        await rig.fake.release("listFolders")
+        try await sync.value
+    }
+
     @Test func accountsAndFoldersAreObservable() async throws {
         let rig = try await ServiceRig.make()
         defer { Task { await rig.cleanup() } }

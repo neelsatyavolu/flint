@@ -2,8 +2,10 @@
 // in the app that imports SwiftMail, so the library can be swapped or patched without touching the sync engine.
 //
 // Behavior the engine relies on, and where SwiftMail differs from the desktop's imapflow:
-//   - `capabilities.condstore` is always false: SwiftMail cannot send `FETCH ... (CHANGEDSINCE n)`. QRESYNC works through
-//     `selectMailbox(resyncingFrom:)`, so servers that have it (iCloud, Dovecot, Fastmail) report flag changes on SELECT.
+//   - SwiftMail cannot send `FETCH ... (CHANGEDSINCE n)`, so `fetchFlags(changedSince:)` asks `UID SEARCH MODSEQ n+1` for the
+//     changed UIDs and fetches only those. That is what keeps Gmail (CONDSTORE, no QRESYNC) from re-reading every flag and
+//     label each cycle. QRESYNC works through `selectMailbox(resyncingFrom:)`, so servers that have it (iCloud, Dovecot,
+//     Fastmail) report flag changes on SELECT.
 //   - `capabilities.gmail` is true when X-GM-EXT-1 is advertised. SwiftMail has no X-GM-LABELS store and no X-GM-RAW
 //     search, so label edits are MOVE/COPY (see ServerActions) and `.gmailRaw` is refused.
 //   - `fetchPart` returns the part with its transfer encoding removed. SwiftMail returns the raw bytes, so the encoding
@@ -119,7 +121,7 @@ public actor SwiftMailTransport: MailTransport {
         func has(_ name: String) -> Bool { names.contains(name) }
         return TransportCapabilities(
             idle: has("IDLE"), move: await server.supportsMove, uidPlus: await server.supportsUIDPlus,
-            condstore: false, qresync: has("QRESYNC") && has("ENABLE"), gmail: await server.supportsGmailExtensions)
+            condstore: has("CONDSTORE"), qresync: has("QRESYNC") && has("ENABLE"), gmail: await server.supportsGmailExtensions)
     }
 
     // MARK: Folders
@@ -283,13 +285,18 @@ public actor SwiftMailTransport: MailTransport {
     }
 
     public func fetchFlags(_ uids: UIDSet, includeLabels: Bool, changedSince: UInt64?) async throws -> [FlagState] {
-        if changedSince != nil { throw FlintError(.invalid, "This connection can't fetch only the changes since a mod-sequence.") }
         let server = try server()
-        let set = Self.uidSet(uids)
-        guard !set.isEmpty else { return [] }
         do {
+            var target = uids
+            if let changedSince {
+                let changed = try await Self.changedUIDs(server, in: uids, since: changedSince)
+                guard !changed.isEmpty else { return [] }
+                target = .uids(changed)
+            }
+            let set = Self.uidSet(target)
+            guard !set.isEmpty else { return [] }
             var states: [FlagState] = []
-            for info in try await Self.fetchInfos(server, uids, set, options: .uidFlagsOnly, headerFields: nil) {
+            for info in try await Self.fetchInfos(server, target, set, options: .uidFlagsOnly, headerFields: nil) {
                 guard let uid = info.uid else { continue }
                 states.append(FlagState(uid: Int(uid.value), flags: Set(Self.flagStrings(info.flags))))
             }
@@ -301,6 +308,15 @@ public actor SwiftMailTransport: MailTransport {
                 return copy
             }
         } catch { throw Self.map(error) }
+    }
+
+    /// UIDs in `uids` whose mod-sequence is above `modseq` (RFC 7162 `SEARCH MODSEQ`), standing in for `CHANGEDSINCE`.
+    private static func changedUIDs(_ server: IMAPServer, in uids: UIDSet, since modseq: UInt64) async throws -> [Int] {
+        guard modseq < UInt64(Int64.max) else { return [] }
+        let criteria: SwiftMail.SearchCriteria = .modSeq(.init(extensions: [:], sequenceValue: .init(modseq + 1)))
+        let result = try await server.extendedSearch(identifierSet: uidSet(uids), criteria: [criteria]) as ExtendedSearchResult<UID>
+        let found = result.ordered ?? result.all?.toArray() ?? []
+        return found.map { Int($0.value) }.sorted()
     }
 
     public func fetchBodyStructure(uid: Int) async throws -> BodyPart? {
