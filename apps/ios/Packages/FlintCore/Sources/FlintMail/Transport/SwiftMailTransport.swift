@@ -382,6 +382,7 @@ public actor SwiftMailTransport: MailTransport {
 
     public func idle(mailbox: String) async -> AsyncStream<IdleEvent> {
         guard let server = imap else { return Self.endedStream("Not connected.") }
+        let reconnects = IdleReconnectBus.stream() // before the session, so a fast redial cannot slip past
         let session: IMAPIdleSession
         do { session = try await server.idle(on: mailbox) } catch { return Self.endedStream(Self.map(error).message) }
         return AsyncStream { continuation in
@@ -401,8 +402,12 @@ public actor SwiftMailTransport: MailTransport {
                 continuation.yield(.disconnected(reason: nil))
                 continuation.finish()
             }
+            let reconnectPump = Task {
+                for await _ in reconnects { continuation.yield(.reconnected) }
+            }
             continuation.onTermination = { _ in
                 pump.cancel()
+                reconnectPump.cancel()
                 Task { try? await session.done() }
             }
         }

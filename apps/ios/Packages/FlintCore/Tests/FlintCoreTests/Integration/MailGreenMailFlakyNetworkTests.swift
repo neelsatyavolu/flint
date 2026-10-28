@@ -1,5 +1,6 @@
 import Darwin
 import FlintModel
+import FlintService
 import FlintStore
 import Foundation
 import Testing
@@ -151,6 +152,37 @@ struct MailGreenMailFlakyNetworkTests {
         #expect(arrived)
         let state = await session.status.state
         #expect(state != .authError)
+        await session.stop()
+    }
+
+    /// Mail that lands while IDLE redials is not pushed. The transport reports the redial as `.reconnected`, so the session syncs at
+    /// once: the safety polls here are 600 s and the wait is 25 s, so only the event can explain the message showing up.
+    @Test func theSessionSyncsAtOnceWhenIdleRedialsAndNeverWaitsForThePoll() async throws {
+        FlintLogging.bootstrap() // the reconnect signal travels through the privacy log handler
+        let (server, user) = try await MailSharedGreenMail.shared.freshUser()
+        let store = MailTestStore()
+        await store.addAccount(server.account(for: user))
+        await store.setOwnAddresses([server.email(user)])
+        var config = SessionConfiguration(cacheRoot: FileManager.default.temporaryDirectory.appendingPathComponent("flint-gm-\(UUID().uuidString)"))
+        config.pollInterval = .seconds(600)
+        config.idlePollInterval = .seconds(600)
+        config.backoffMinimum = .milliseconds(200)
+        config.backoffMaximum = .seconds(1)
+        let credential = server.credential(user)
+        let session = AccountSession(accountId: "a1", store: store, transportFactory: SwiftMailTransport.factory, credentials: { credential }, emit: { _ in }, configuration: config)
+        await session.start()
+        let settled = await mailEventually(timeout: .seconds(20)) { await session.status.state == .idle }
+        #expect(settled)
+        try await Task.sleep(for: .seconds(1)) // IDLE is running
+        async let blip: Void = server.blip(downFor: .seconds(2))
+        try await Task.sleep(for: .milliseconds(500))
+        try server.deliverBySMTP(to: user, subject: "delivered during the redial") // SMTP is not behind the proxy
+        try await blip
+        let arrived = await mailEventually(timeout: .seconds(25)) {
+            guard let folder = try? await store.folder(accountId: "a1", path: "INBOX") else { return false }
+            return await store.allMessages(in: folder.id).map(\.subject).contains("delivered during the redial")
+        }
+        #expect(arrived, "the redial must wake the session; the 600 s poll cannot have run")
         await session.stop()
     }
 

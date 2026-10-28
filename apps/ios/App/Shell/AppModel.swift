@@ -74,6 +74,9 @@ final class AppModel {
     /// Demo only: delivers one more message before a background run syncs.
     @ObservationIgnored var demoDeliverNewMail: (@Sendable () async -> Void)?
     @ObservationIgnored private var bootstrapTask: Task<Void, Never>?
+    /// Set by `beginOpening()` (AppModel+Prefetch.swift): the service is opened, and the first inbox page read, off the main actor.
+    @ObservationIgnored var opening: Task<OpenedService, Error>?
+    @ObservationIgnored var prefetch: Task<FirstPagePrefetch?, Never>?
     /// False after a background launch that opened the service without starting sync sessions; the first foreground start fixes it.
     @ObservationIgnored private(set) var syncStarted = false
     /// Polls the receipts service at the end of a background run (DESIGN-NOTES section 8). Tests replace it.
@@ -140,9 +143,12 @@ final class AppModel {
             try await loadInitialState(from: service)
             PerfProbe.mark("initialState")
             startObserving(service)
+            // The window shows as soon as the state is in; starting sync sessions can take a while and nothing on screen waits for it.
+            phase = .ready
+            PerfProbe.mark("ready")
+            prewarmLazyFrameworks()
             if startingSync { await startSync() } else { service.startListeners() }
             PerfProbe.mark("syncStarted")
-            phase = .ready
             if accounts.isEmpty && !isDemo { presented = .onboarding }
         } catch {
             phase = .failed(FlintErrorText.message(for: error))
@@ -150,17 +156,11 @@ final class AppModel {
     }
 
     private func openService() async throws -> FlintService {
-        switch mode {
-        case .injected(let service):
-            return service
-        case .demo:
-            let seeded = try await DemoSeed.make()
-            demoDirectory = seeded.directory
-            demoDeliverNewMail = seeded.deliverNewMail
-            return seeded.service
-        case .live:
-            return try await FlintService.open(configuration: LiveConfiguration.make())
-        }
+        let opened = try await beginOpening().value
+        // Only a demo launch brings these; tests set the hook themselves before they bootstrap an injected service.
+        if let directory = opened.demoDirectory { demoDirectory = directory }
+        if let deliver = opened.demoDeliverNewMail { demoDeliverNewMail = deliver }
+        return opened.service
     }
 
     /// Foreground: start sync again and send whatever came due while the app was away. Cheap when already running.
@@ -182,14 +182,18 @@ final class AppModel {
     // MARK: Observation
 
     private func loadInitialState(from service: FlintService) async throws {
-        accounts = try await service.listAccounts()
-        settings = try await service.currentSettings()
+        async let accountsRead = service.listAccounts()
+        async let settingsRead = service.currentSettings()
+        async let statusesRead = service.syncStatuses()
+        async let sidebarRead = Self.firstValue(of: service.sidebar())
+        accounts = try await accountsRead
+        settings = try await settingsRead
+        syncStatuses = try await statusesRead
+        sidebar = try await sidebarRead
         if let settings {
             notifications.update(settings: settings)
             await scheduling.update(notifications: settings.notifications)
         }
-        syncStatuses = try await service.syncStatuses()
-        sidebar = try await Self.firstValue(of: service.sidebar())
     }
 
     private func startObserving(_ service: FlintService) {

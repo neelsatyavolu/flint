@@ -320,6 +320,8 @@ public enum IdleEvent: Hashable, Sendable {
     case newMessages(exists: Int)
     case expunged
     case flagsChanged
+    /// The IDLE connection dropped and redialed by itself. Mail that arrived during the redial is not pushed, so callers sync.
+    case reconnected
     /// The connection ended; the stream finishes after this. Callers reconnect with backoff.
     case disconnected(reason: String?)
 }
