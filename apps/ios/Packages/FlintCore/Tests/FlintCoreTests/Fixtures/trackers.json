@@ -1,0 +1,563 @@
+{
+  "meta": {
+    "version": 1,
+    "module": "sanitize",
+    "source": "packages/core/src/sanitize/trackers.ts",
+    "note": "rules is generated from TRACKER_RULES (FLINT_FIXTURES_UPDATE=1); path.source/flags are JavaScript regex syntax"
+  },
+  "rules": [
+    {
+      "host": "mailtrack.io"
+    },
+    {
+      "host": "pixel.mailtrack.io"
+    },
+    {
+      "host": "mailsuite.com"
+    },
+    {
+      "host": "mailspring.com"
+    },
+    {
+      "host": "pixel.superhuman.com"
+    },
+    {
+      "host": "r.superhuman.com"
+    },
+    {
+      "host": "t.hubspotemail.net"
+    },
+    {
+      "host": "track.hubspot.com"
+    },
+    {
+      "host": "hubspotlinks.com",
+      "path": {
+        "source": "\\/(e2t|__ptq)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "t.yesware.com"
+    },
+    {
+      "host": "yesware.com",
+      "path": {
+        "source": "\\/(trk|track|pixel)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "mailstat.us"
+    },
+    {
+      "host": "t.streak.com"
+    },
+    {
+      "host": "mailfoogae.appspot.com"
+    },
+    {
+      "host": "track.mixmax.com"
+    },
+    {
+      "host": "mixmax.com",
+      "path": {
+        "source": "\\/(api\\/track|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "cirrusinsight.com"
+    },
+    {
+      "host": "bl-1.com"
+    },
+    {
+      "host": "bananatag.com"
+    },
+    {
+      "host": "bl.bananatag.com"
+    },
+    {
+      "host": "email.getnotify.com"
+    },
+    {
+      "host": "getnotify.com"
+    },
+    {
+      "host": "sendibt2.com"
+    },
+    {
+      "host": "sendibt3.com"
+    },
+    {
+      "host": "sendinblue.com",
+      "path": {
+        "source": "\\/(track|open)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "brevo.com",
+      "path": {
+        "source": "\\/(track|open)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "mandrillapp.com",
+      "path": {
+        "source": "\\/track\\/open",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "mcsv.net",
+      "path": {
+        "source": "\\/track",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "list-manage.com",
+      "path": {
+        "source": "\\/track\\/open",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "rs6.net",
+      "path": {
+        "source": "\\/(on|o)\\.jsp",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "r20.rs6.net",
+      "path": {
+        "source": "\\/on\\.jsp",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "constantcontact.com",
+      "path": {
+        "source": "\\/(o|on)\\.jsp|\\/track",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "salesloft.com",
+      "path": {
+        "source": "\\/(open|track|e\\/o)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "sdr.salesloft.com"
+    },
+    {
+      "host": "outreach.io",
+      "path": {
+        "source": "\\/(open|track|e\\/o)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "app.outreach.io",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "apollo.io",
+      "path": {
+        "source": "\\/(open|track|e\\/o)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "lemlist.com",
+      "path": {
+        "source": "\\/api\\/(opened|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "app.lemlist.com",
+      "path": {
+        "source": "\\/api\\/opened",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "intercom-mail.com",
+      "path": {
+        "source": "\\/(via\\/)?(o|open|track)\\b",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "intercom-clicks.com",
+      "path": {
+        "source": "\\/(o|open|track)\\b",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "customeriomail.com",
+      "path": {
+        "source": "\\/e\\/o\\/",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "customer.io",
+      "path": {
+        "source": "\\/e\\/o\\/",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "sparkpostmail.com",
+      "path": {
+        "source": "\\/q\\/|\\/o\\/",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "sendgrid.net",
+      "path": {
+        "source": "\\/wf\\/open",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "postmarkapp.com",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "pstmrk.it",
+      "path": {
+        "source": "\\/open",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "mailgun.org",
+      "path": {
+        "source": "\\/(o|open)\\/",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "mgsend.net",
+      "path": {
+        "source": "\\/o\\/",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "klaviyomail.com",
+      "path": {
+        "source": "\\/(open|wf\\/open)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "klaviyo.com",
+      "path": {
+        "source": "\\/(open|wf\\/open|trk)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "exacttarget.com",
+      "path": {
+        "source": "\\/(o|open)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "sfmc-content.com",
+      "path": {
+        "source": "\\/(open|o)\\b",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "marketo.com",
+      "path": {
+        "source": "\\/trk|\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "mktdns.com",
+      "path": {
+        "source": "\\/trk|\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "pardot.com",
+      "path": {
+        "source": "\\/(r|o|track)\\/",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "eloqua.com",
+      "path": {
+        "source": "\\/(e\\/)?(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "emltrk.com"
+    },
+    {
+      "host": "ymlp.com",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "mailchimp.com",
+      "path": {
+        "source": "\\/track\\/open",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "campaign-archive.com",
+      "path": {
+        "source": "\\/track\\/open",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "amazonses.com",
+      "path": {
+        "source": "\\/(o|open)\\b|\\/ses\\/o",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "convertkit-mail.com",
+      "path": {
+        "source": "\\/open",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "ck.page",
+      "path": {
+        "source": "\\/open",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "flodesk.com",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "substack.com",
+      "path": {
+        "source": "\\/(o|open)\\b|\\/track\\/open",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "beehiiv.com",
+      "path": {
+        "source": "\\/(o|open|track)\\b",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "ghost.io",
+      "path": {
+        "source": "\\/(o|open|track)\\b",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "linkedin.com",
+      "path": {
+        "source": "\\/emimp\\/",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "facebookmail.com",
+      "path": {
+        "source": "\\/email\\/pixel|\\/track",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "email.mg.substack.com"
+    },
+    {
+      "host": "open.convertkit-mail2.com"
+    },
+    {
+      "host": "trk.klclick.com"
+    },
+    {
+      "host": "tracking.mail.reply.io"
+    },
+    {
+      "host": "reply.io",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "woodpecker.co",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "close.com",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "pipedrive.com",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "zoho.com",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "zohocampaigns.com",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "campaigner.com",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "gmass.co",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "cloudhq.net",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "cloudhq-mkt3.net"
+    },
+    {
+      "host": "docsend.com",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "boomerangapp.com",
+      "path": {
+        "source": "\\/(open|track)",
+        "flags": "i"
+      }
+    },
+    {
+      "host": "contactmonkey.com"
+    },
+    {
+      "host": "polymail.io",
+      "path": {
+        "source": "\\/(open|track|v2\\/track)",
+        "flags": "i"
+      }
+    }
+  ],
+  "cases": [
+    {"name":"hostOf \"//Cdn.Example/a\"","input":{"fn":"hostOf","url":"//Cdn.Example/a"},"expect":"cdn.example"},
+    {"name":"hostOf \"not a url\"","input":{"fn":"hostOf","url":"not a url"},"expect":null},
+    {"name":"hostOf \"https://User@Sub.Example.com:8080/p?q=1\"","input":{"fn":"hostOf","url":"https://User@Sub.Example.com:8080/p?q=1"},"expect":"sub.example.com"},
+    {"name":"hostOf \"HTTP://EXAMPLE.COM\"","input":{"fn":"hostOf","url":"HTTP://EXAMPLE.COM"},"expect":"example.com"},
+    {"name":"hostOf \"\"","input":{"fn":"hostOf","url":""},"expect":null},
+    {"name":"hostOf \"//host\"","input":{"fn":"hostOf","url":"//host"},"expect":"host"},
+    {"name":"matchesTrackerRule https://mailtrack.io/x.png","input":{"fn":"matchesTrackerRule","url":"https://mailtrack.io/x.png"},"expect":true},
+    {"name":"matchesTrackerRule https://sub.mailtrack.io/x.png","input":{"fn":"matchesTrackerRule","url":"https://sub.mailtrack.io/x.png"},"expect":true},
+    {"name":"matchesTrackerRule https://notmailtrack.io/x.png","input":{"fn":"matchesTrackerRule","url":"https://notmailtrack.io/x.png"},"expect":false},
+    {"name":"matchesTrackerRule https://u1.ct.sendgrid.net/wf/open?upn=1","input":{"fn":"matchesTrackerRule","url":"https://u1.ct.sendgrid.net/wf/open?upn=1"},"expect":true},
+    {"name":"matchesTrackerRule https://u1.ct.sendgrid.net/images/logo.png","input":{"fn":"matchesTrackerRule","url":"https://u1.ct.sendgrid.net/images/logo.png"},"expect":false},
+    {"name":"matchesTrackerRule garbage","input":{"fn":"matchesTrackerRule","url":"garbage"},"expect":false},
+    {"name":"matchesTrackerRule https://mailtrack.io/trace/mail/abc.png","input":{"fn":"matchesTrackerRule","url":"https://mailtrack.io/trace/mail/abc.png"},"expect":true},
+    {"name":"matchesTrackerRule https://pixel.mailtrack.io/x.gif","input":{"fn":"matchesTrackerRule","url":"https://pixel.mailtrack.io/x.gif"},"expect":true},
+    {"name":"matchesTrackerRule https://t.hubspotemail.net/e2t/o/abc","input":{"fn":"matchesTrackerRule","url":"https://t.hubspotemail.net/e2t/o/abc"},"expect":true},
+    {"name":"matchesTrackerRule https://u123.ct.sendgrid.net/wf/open?upn=abc","input":{"fn":"matchesTrackerRule","url":"https://u123.ct.sendgrid.net/wf/open?upn=abc"},"expect":true},
+    {"name":"matchesTrackerRule https://us1.list-manage.com/track/open.php?u=1&id=2","input":{"fn":"matchesTrackerRule","url":"https://us1.list-manage.com/track/open.php?u=1&id=2"},"expect":true},
+    {"name":"matchesTrackerRule https://mandrillapp.com/track/open.php?u=1","input":{"fn":"matchesTrackerRule","url":"https://mandrillapp.com/track/open.php?u=1"},"expect":true},
+    {"name":"matchesTrackerRule https://r.superhuman.com/abc.gif","input":{"fn":"matchesTrackerRule","url":"https://r.superhuman.com/abc.gif"},"expect":true},
+    {"name":"matchesTrackerRule https://app.yesware.com/trk/abc","input":{"fn":"matchesTrackerRule","url":"https://app.yesware.com/trk/abc"},"expect":true},
+    {"name":"matchesTrackerRule https://track.mixmax.com/api/track/abc","input":{"fn":"matchesTrackerRule","url":"https://track.mixmax.com/api/track/abc"},"expect":true},
+    {"name":"matchesTrackerRule https://bl.bananatag.com/x.gif","input":{"fn":"matchesTrackerRule","url":"https://bl.bananatag.com/x.gif"},"expect":true},
+    {"name":"matchesTrackerRule https://email.getnotify.com/x.gif","input":{"fn":"matchesTrackerRule","url":"https://email.getnotify.com/x.gif"},"expect":true},
+    {"name":"matchesTrackerRule https://sendibt2.com/abc","input":{"fn":"matchesTrackerRule","url":"https://sendibt2.com/abc"},"expect":true},
+    {"name":"matchesTrackerRule https://a.klaviyomail.com/open/abc","input":{"fn":"matchesTrackerRule","url":"https://a.klaviyomail.com/open/abc"},"expect":true},
+    {"name":"matchesTrackerRule https://link.apollo.io/e/o/abc","input":{"fn":"matchesTrackerRule","url":"https://link.apollo.io/e/o/abc"},"expect":true},
+    {"name":"matchesTrackerRule https://app.lemlist.com/api/opened/abc","input":{"fn":"matchesTrackerRule","url":"https://app.lemlist.com/api/opened/abc"},"expect":true},
+    {"name":"matchesTrackerRule https://sdr.salesloft.com/x","input":{"fn":"matchesTrackerRule","url":"https://sdr.salesloft.com/x"},"expect":true},
+    {"name":"matchesTrackerRule https://t.streak.com/x.gif","input":{"fn":"matchesTrackerRule","url":"https://t.streak.com/x.gif"},"expect":true},
+    {"name":"matchesTrackerRule https://cirrusinsight.com/x.gif","input":{"fn":"matchesTrackerRule","url":"https://cirrusinsight.com/x.gif"},"expect":true},
+    {"name":"matchesTrackerRule https://r20.rs6.net/on.jsp?t=1","input":{"fn":"matchesTrackerRule","url":"https://r20.rs6.net/on.jsp?t=1"},"expect":true},
+    {"name":"matchesTrackerRule https://trk.customeriomail.com/e/o/abc","input":{"fn":"matchesTrackerRule","url":"https://trk.customeriomail.com/e/o/abc"},"expect":true},
+    {"name":"matchesTrackerRule https://us1.list-manage.com/images/logo.png","input":{"fn":"matchesTrackerRule","url":"https://us1.list-manage.com/images/logo.png"},"expect":false},
+    {"name":"matchesTrackerRule https://cdn.example/icons/dot.png","input":{"fn":"matchesTrackerRule","url":"https://cdn.example/icons/dot.png"},"expect":false},
+    {"name":"matchesTrackerRule https://news.example.org/open/abc.gif","input":{"fn":"matchesTrackerRule","url":"https://news.example.org/open/abc.gif"},"expect":false},
+    {"name":"matchesTrackerRule https://MAILTRACK.IO/X.png","input":{"fn":"matchesTrackerRule","url":"https://MAILTRACK.IO/X.png"},"expect":true},
+    {"name":"matchesTrackerRule //mailtrack.io/x.png","input":{"fn":"matchesTrackerRule","url":"//mailtrack.io/x.png"},"expect":true},
+    {"name":"looksLikePixelUrl https://x.example/track/abc.gif","input":{"fn":"looksLikePixelUrl","url":"https://x.example/track/abc.gif"},"expect":true},
+    {"name":"looksLikePixelUrl https://x.example/img/logo.png","input":{"fn":"looksLikePixelUrl","url":"https://x.example/img/logo.png"},"expect":false},
+    {"name":"looksLikePixelUrl bad","input":{"fn":"looksLikePixelUrl","url":"bad"},"expect":false},
+    {"name":"looksLikePixelUrl https://news.example.org/open/abc.gif","input":{"fn":"looksLikePixelUrl","url":"https://news.example.org/open/abc.gif"},"expect":true},
+    {"name":"looksLikePixelUrl https://news.example.org/pixel?id=3","input":{"fn":"looksLikePixelUrl","url":"https://news.example.org/pixel?id=3"},"expect":true},
+    {"name":"looksLikePixelUrl https://x.example/beacon.gif","input":{"fn":"looksLikePixelUrl","url":"https://x.example/beacon.gif"},"expect":true},
+    {"name":"looksLikePixelUrl https://x.example/p/1x1.png","input":{"fn":"looksLikePixelUrl","url":"https://x.example/p/1x1.png"},"expect":false},
+    {"name":"looksLikePixelUrl https://x.example/images/hero.jpg","input":{"fn":"looksLikePixelUrl","url":"https://x.example/images/hero.jpg"},"expect":false},
+    {"name":"isReceiptsUrl https://r.example/i/a.gif host=r.example","input":{"fn":"isReceiptsUrl","url":"https://r.example/i/a.gif","receiptsHost":"r.example"},"expect":true},
+    {"name":"isReceiptsUrl https://x.r.example/i/a.gif host=https://r.example/base","input":{"fn":"isReceiptsUrl","url":"https://x.r.example/i/a.gif","receiptsHost":"https://r.example/base"},"expect":true},
+    {"name":"isReceiptsUrl https://other.example/i/a.gif host=r.example","input":{"fn":"isReceiptsUrl","url":"https://other.example/i/a.gif","receiptsHost":"r.example"},"expect":false},
+    {"name":"isReceiptsUrl https://r.example/i/a.gif host=undefined","input":{"fn":"isReceiptsUrl","url":"https://r.example/i/a.gif","receiptsHost":null},"expect":false},
+    {"name":"isReceiptsUrl https://notr.example/i/a.gif host=r.example","input":{"fn":"isReceiptsUrl","url":"https://notr.example/i/a.gif","receiptsHost":"r.example"},"expect":false},
+    {"name":"isReceiptsUrl https://R.EXAMPLE/i/a.gif host=R.Example","input":{"fn":"isReceiptsUrl","url":"https://R.EXAMPLE/i/a.gif","receiptsHost":"R.Example"},"expect":true}
+  ]
+}

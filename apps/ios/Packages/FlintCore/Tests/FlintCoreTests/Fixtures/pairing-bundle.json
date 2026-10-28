@@ -1,0 +1,1902 @@
+{
+  "meta": {
+    "version": 1,
+    "module": "mac pairing bundle",
+    "source": "packages/core/src/pairing/bundle.ts",
+    "note": "Bundle v1. Decoders drop unknown keys and re-encode to `canonical`. Regenerate with FLINT_FIXTURES_UPDATE=1 pnpm exec vitest run src/pairing/fixtures.test.ts in packages/core."
+  },
+  "allowedKeys": {
+    "bundle": [
+      "v",
+      "createdAt",
+      "device",
+      "accounts",
+      "signatures",
+      "templates",
+      "rules",
+      "blockedSenders",
+      "settings"
+    ],
+    "account": [
+      "email",
+      "name",
+      "provider",
+      "authKind",
+      "imap",
+      "smtp",
+      "username",
+      "color",
+      "aliases",
+      "showInUnified",
+      "sortOrder",
+      "avatar",
+      "password"
+    ],
+    "googleAccount": [
+      "email",
+      "name",
+      "provider",
+      "authKind",
+      "imap",
+      "smtp",
+      "username",
+      "color",
+      "aliases",
+      "showInUnified",
+      "sortOrder",
+      "avatar"
+    ]
+  },
+  "cases": [
+    {
+      "name": "full bundle",
+      "input": {
+        "v": 1,
+        "createdAt": 1790000000000,
+        "device": {
+          "name": "Neel's MacBook Pro"
+        },
+        "accounts": [
+          {
+            "email": "neel@example.com",
+            "name": "Neel",
+            "provider": "imap",
+            "authKind": "password",
+            "imap": {
+              "host": "imap.example.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.example.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@example.com",
+            "color": "#4C8DFF",
+            "aliases": [
+              "n@example.com"
+            ],
+            "showInUnified": true,
+            "sortOrder": 0,
+            "password": "app-password-sample"
+          },
+          {
+            "email": "neel@gmail.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          }
+        ],
+        "signatures": [
+          {
+            "name": "Work",
+            "html": "<p>Neel</p>",
+            "accountEmails": [
+              "neel@example.com"
+            ],
+            "defaultNew": true,
+            "defaultReply": false
+          }
+        ],
+        "templates": [
+          {
+            "name": "Thanks",
+            "subject": "Thank you",
+            "html": "<p>Thanks!</p>"
+          }
+        ],
+        "rules": [
+          {
+            "name": "Receipts",
+            "enabled": true,
+            "accountEmail": null,
+            "match": "any",
+            "sortOrder": 0,
+            "conditions": [
+              {
+                "field": "from",
+                "op": "contains",
+                "value": "receipts@"
+              },
+              {
+                "field": "has_attachment",
+                "op": "is_true",
+                "value": ""
+              }
+            ],
+            "actions": [
+              {
+                "type": "category",
+                "category": "notifications"
+              },
+              {
+                "type": "notify",
+                "enabled": false
+              },
+              {
+                "type": "move",
+                "folderPath": "Receipts"
+              }
+            ]
+          }
+        ],
+        "blockedSenders": [
+          "spam.example",
+          "bad@example.org"
+        ],
+        "settings": {
+          "compose": {
+            "undoSendSeconds": 10
+          },
+          "sync": {
+            "initialDays": 90
+          },
+          "inbox": {
+            "focused": true
+          },
+          "receipts": {
+            "endpoint": "https://receipts.example.com"
+          },
+          "appearance": {
+            "theme": "dark"
+          },
+          "notifications": {
+            "scope": "people"
+          }
+        }
+      },
+      "expect": {
+        "valid": true,
+        "canonical": {
+          "v": 1,
+          "createdAt": 1790000000000,
+          "device": {
+            "name": "Neel's MacBook Pro"
+          },
+          "accounts": [
+            {
+              "email": "neel@example.com",
+              "name": "Neel",
+              "provider": "imap",
+              "authKind": "password",
+              "imap": {
+                "host": "imap.example.com",
+                "port": 993,
+                "secure": true
+              },
+              "smtp": {
+                "host": "smtp.example.com",
+                "port": 465,
+                "secure": true
+              },
+              "username": "neel@example.com",
+              "color": "#4C8DFF",
+              "aliases": [
+                "n@example.com"
+              ],
+              "showInUnified": true,
+              "sortOrder": 0,
+              "password": "app-password-sample"
+            },
+            {
+              "email": "neel@gmail.com",
+              "name": "Neel S",
+              "provider": "gmail",
+              "authKind": "oauth_google",
+              "imap": {
+                "host": "imap.gmail.com",
+                "port": 993,
+                "secure": true
+              },
+              "smtp": {
+                "host": "smtp.gmail.com",
+                "port": 465,
+                "secure": true
+              },
+              "username": "neel@gmail.com",
+              "aliases": [],
+              "showInUnified": false,
+              "sortOrder": 1
+            }
+          ],
+          "signatures": [
+            {
+              "name": "Work",
+              "html": "<p>Neel</p>",
+              "accountEmails": [
+                "neel@example.com"
+              ],
+              "defaultNew": true,
+              "defaultReply": false
+            }
+          ],
+          "templates": [
+            {
+              "name": "Thanks",
+              "subject": "Thank you",
+              "html": "<p>Thanks!</p>"
+            }
+          ],
+          "rules": [
+            {
+              "name": "Receipts",
+              "enabled": true,
+              "accountEmail": null,
+              "match": "any",
+              "sortOrder": 0,
+              "conditions": [
+                {
+                  "field": "from",
+                  "op": "contains",
+                  "value": "receipts@"
+                },
+                {
+                  "field": "has_attachment",
+                  "op": "is_true",
+                  "value": ""
+                }
+              ],
+              "actions": [
+                {
+                  "type": "category",
+                  "category": "notifications"
+                },
+                {
+                  "type": "notify",
+                  "enabled": false
+                },
+                {
+                  "type": "move",
+                  "folderPath": "Receipts"
+                }
+              ]
+            }
+          ],
+          "blockedSenders": [
+            "spam.example",
+            "bad@example.org"
+          ],
+          "settings": {
+            "compose": {
+              "undoSendSeconds": 10
+            },
+            "sync": {
+              "initialDays": 90
+            },
+            "inbox": {
+              "focused": true
+            },
+            "receipts": {
+              "endpoint": "https://receipts.example.com"
+            },
+            "appearance": {
+              "theme": "dark"
+            },
+            "notifications": {
+              "scope": "people"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "empty bundle",
+      "input": {
+        "v": 1,
+        "createdAt": 0,
+        "device": {
+          "name": "Mac"
+        },
+        "accounts": [],
+        "signatures": [],
+        "templates": [],
+        "rules": [],
+        "blockedSenders": [],
+        "settings": {}
+      },
+      "expect": {
+        "valid": true,
+        "canonical": {
+          "v": 1,
+          "createdAt": 0,
+          "device": {
+            "name": "Mac"
+          },
+          "accounts": [],
+          "signatures": [],
+          "templates": [],
+          "rules": [],
+          "blockedSenders": [],
+          "settings": {}
+        }
+      }
+    },
+    {
+      "name": "unknown keys are dropped",
+      "input": {
+        "v": 1,
+        "createdAt": 1790000000000,
+        "device": {
+          "name": "Neel's MacBook Pro"
+        },
+        "accounts": [
+          {
+            "email": "neel@example.com",
+            "name": "Neel",
+            "provider": "imap",
+            "authKind": "password",
+            "imap": {
+              "host": "imap.example.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.example.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@example.com",
+            "color": "#4C8DFF",
+            "aliases": [
+              "n@example.com"
+            ],
+            "showInUnified": true,
+            "sortOrder": 0,
+            "password": "app-password-sample"
+          },
+          {
+            "email": "neel@gmail.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1,
+            "accessToken": "x"
+          }
+        ],
+        "signatures": [
+          {
+            "name": "Work",
+            "html": "<p>Neel</p>",
+            "accountEmails": [
+              "neel@example.com"
+            ],
+            "defaultNew": true,
+            "defaultReply": false
+          }
+        ],
+        "templates": [
+          {
+            "name": "Thanks",
+            "subject": "Thank you",
+            "html": "<p>Thanks!</p>"
+          }
+        ],
+        "rules": [
+          {
+            "name": "Receipts",
+            "enabled": true,
+            "accountEmail": null,
+            "match": "any",
+            "sortOrder": 0,
+            "conditions": [
+              {
+                "field": "from",
+                "op": "contains",
+                "value": "receipts@"
+              },
+              {
+                "field": "has_attachment",
+                "op": "is_true",
+                "value": ""
+              }
+            ],
+            "actions": [
+              {
+                "type": "category",
+                "category": "notifications"
+              },
+              {
+                "type": "notify",
+                "enabled": false
+              },
+              {
+                "type": "move",
+                "folderPath": "Receipts"
+              }
+            ]
+          }
+        ],
+        "blockedSenders": [
+          "spam.example",
+          "bad@example.org"
+        ],
+        "settings": {
+          "compose": {
+            "undoSendSeconds": 10
+          },
+          "sync": {
+            "initialDays": 90
+          },
+          "inbox": {
+            "focused": true
+          },
+          "receipts": {
+            "endpoint": "https://receipts.example.com"
+          },
+          "appearance": {
+            "theme": "dark"
+          },
+          "notifications": {
+            "scope": "people"
+          }
+        },
+        "refreshToken": "must-not-survive"
+      },
+      "expect": {
+        "valid": true,
+        "canonical": {
+          "v": 1,
+          "createdAt": 1790000000000,
+          "device": {
+            "name": "Neel's MacBook Pro"
+          },
+          "accounts": [
+            {
+              "email": "neel@example.com",
+              "name": "Neel",
+              "provider": "imap",
+              "authKind": "password",
+              "imap": {
+                "host": "imap.example.com",
+                "port": 993,
+                "secure": true
+              },
+              "smtp": {
+                "host": "smtp.example.com",
+                "port": 465,
+                "secure": true
+              },
+              "username": "neel@example.com",
+              "color": "#4C8DFF",
+              "aliases": [
+                "n@example.com"
+              ],
+              "showInUnified": true,
+              "sortOrder": 0,
+              "password": "app-password-sample"
+            },
+            {
+              "email": "neel@gmail.com",
+              "name": "Neel S",
+              "provider": "gmail",
+              "authKind": "oauth_google",
+              "imap": {
+                "host": "imap.gmail.com",
+                "port": 993,
+                "secure": true
+              },
+              "smtp": {
+                "host": "smtp.gmail.com",
+                "port": 465,
+                "secure": true
+              },
+              "username": "neel@gmail.com",
+              "aliases": [],
+              "showInUnified": false,
+              "sortOrder": 1
+            }
+          ],
+          "signatures": [
+            {
+              "name": "Work",
+              "html": "<p>Neel</p>",
+              "accountEmails": [
+                "neel@example.com"
+              ],
+              "defaultNew": true,
+              "defaultReply": false
+            }
+          ],
+          "templates": [
+            {
+              "name": "Thanks",
+              "subject": "Thank you",
+              "html": "<p>Thanks!</p>"
+            }
+          ],
+          "rules": [
+            {
+              "name": "Receipts",
+              "enabled": true,
+              "accountEmail": null,
+              "match": "any",
+              "sortOrder": 0,
+              "conditions": [
+                {
+                  "field": "from",
+                  "op": "contains",
+                  "value": "receipts@"
+                },
+                {
+                  "field": "has_attachment",
+                  "op": "is_true",
+                  "value": ""
+                }
+              ],
+              "actions": [
+                {
+                  "type": "category",
+                  "category": "notifications"
+                },
+                {
+                  "type": "notify",
+                  "enabled": false
+                },
+                {
+                  "type": "move",
+                  "folderPath": "Receipts"
+                }
+              ]
+            }
+          ],
+          "blockedSenders": [
+            "spam.example",
+            "bad@example.org"
+          ],
+          "settings": {
+            "compose": {
+              "undoSendSeconds": 10
+            },
+            "sync": {
+              "initialDays": 90
+            },
+            "inbox": {
+              "focused": true
+            },
+            "receipts": {
+              "endpoint": "https://receipts.example.com"
+            },
+            "appearance": {
+              "theme": "dark"
+            },
+            "notifications": {
+              "scope": "people"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "unknown major version",
+      "input": {
+        "v": 2,
+        "createdAt": 1790000000000,
+        "device": {
+          "name": "Neel's MacBook Pro"
+        },
+        "accounts": [
+          {
+            "email": "neel@example.com",
+            "name": "Neel",
+            "provider": "imap",
+            "authKind": "password",
+            "imap": {
+              "host": "imap.example.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.example.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@example.com",
+            "color": "#4C8DFF",
+            "aliases": [
+              "n@example.com"
+            ],
+            "showInUnified": true,
+            "sortOrder": 0,
+            "password": "app-password-sample"
+          },
+          {
+            "email": "neel@gmail.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          }
+        ],
+        "signatures": [
+          {
+            "name": "Work",
+            "html": "<p>Neel</p>",
+            "accountEmails": [
+              "neel@example.com"
+            ],
+            "defaultNew": true,
+            "defaultReply": false
+          }
+        ],
+        "templates": [
+          {
+            "name": "Thanks",
+            "subject": "Thank you",
+            "html": "<p>Thanks!</p>"
+          }
+        ],
+        "rules": [
+          {
+            "name": "Receipts",
+            "enabled": true,
+            "accountEmail": null,
+            "match": "any",
+            "sortOrder": 0,
+            "conditions": [
+              {
+                "field": "from",
+                "op": "contains",
+                "value": "receipts@"
+              },
+              {
+                "field": "has_attachment",
+                "op": "is_true",
+                "value": ""
+              }
+            ],
+            "actions": [
+              {
+                "type": "category",
+                "category": "notifications"
+              },
+              {
+                "type": "notify",
+                "enabled": false
+              },
+              {
+                "type": "move",
+                "folderPath": "Receipts"
+              }
+            ]
+          }
+        ],
+        "blockedSenders": [
+          "spam.example",
+          "bad@example.org"
+        ],
+        "settings": {
+          "compose": {
+            "undoSendSeconds": 10
+          },
+          "sync": {
+            "initialDays": 90
+          },
+          "inbox": {
+            "focused": true
+          },
+          "receipts": {
+            "endpoint": "https://receipts.example.com"
+          },
+          "appearance": {
+            "theme": "dark"
+          },
+          "notifications": {
+            "scope": "people"
+          }
+        }
+      },
+      "expect": {
+        "valid": false
+      }
+    },
+    {
+      "name": "missing accounts",
+      "input": {
+        "v": 1,
+        "createdAt": 1790000000000,
+        "device": {
+          "name": "Neel's MacBook Pro"
+        },
+        "signatures": [
+          {
+            "name": "Work",
+            "html": "<p>Neel</p>",
+            "accountEmails": [
+              "neel@example.com"
+            ],
+            "defaultNew": true,
+            "defaultReply": false
+          }
+        ],
+        "templates": [
+          {
+            "name": "Thanks",
+            "subject": "Thank you",
+            "html": "<p>Thanks!</p>"
+          }
+        ],
+        "rules": [
+          {
+            "name": "Receipts",
+            "enabled": true,
+            "accountEmail": null,
+            "match": "any",
+            "sortOrder": 0,
+            "conditions": [
+              {
+                "field": "from",
+                "op": "contains",
+                "value": "receipts@"
+              },
+              {
+                "field": "has_attachment",
+                "op": "is_true",
+                "value": ""
+              }
+            ],
+            "actions": [
+              {
+                "type": "category",
+                "category": "notifications"
+              },
+              {
+                "type": "notify",
+                "enabled": false
+              },
+              {
+                "type": "move",
+                "folderPath": "Receipts"
+              }
+            ]
+          }
+        ],
+        "blockedSenders": [
+          "spam.example",
+          "bad@example.org"
+        ],
+        "settings": {
+          "compose": {
+            "undoSendSeconds": 10
+          },
+          "sync": {
+            "initialDays": 90
+          },
+          "inbox": {
+            "focused": true
+          },
+          "receipts": {
+            "endpoint": "https://receipts.example.com"
+          },
+          "appearance": {
+            "theme": "dark"
+          },
+          "notifications": {
+            "scope": "people"
+          }
+        }
+      },
+      "expect": {
+        "valid": false
+      }
+    },
+    {
+      "name": "port out of range",
+      "input": {
+        "v": 1,
+        "createdAt": 1790000000000,
+        "device": {
+          "name": "Neel's MacBook Pro"
+        },
+        "accounts": [
+          {
+            "email": "neel@example.com",
+            "name": "Neel",
+            "provider": "imap",
+            "authKind": "password",
+            "imap": {
+              "host": "imap.example.com",
+              "port": 0,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.example.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@example.com",
+            "color": "#4C8DFF",
+            "aliases": [
+              "n@example.com"
+            ],
+            "showInUnified": true,
+            "sortOrder": 0,
+            "password": "app-password-sample"
+          },
+          {
+            "email": "neel@gmail.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          }
+        ],
+        "signatures": [
+          {
+            "name": "Work",
+            "html": "<p>Neel</p>",
+            "accountEmails": [
+              "neel@example.com"
+            ],
+            "defaultNew": true,
+            "defaultReply": false
+          }
+        ],
+        "templates": [
+          {
+            "name": "Thanks",
+            "subject": "Thank you",
+            "html": "<p>Thanks!</p>"
+          }
+        ],
+        "rules": [
+          {
+            "name": "Receipts",
+            "enabled": true,
+            "accountEmail": null,
+            "match": "any",
+            "sortOrder": 0,
+            "conditions": [
+              {
+                "field": "from",
+                "op": "contains",
+                "value": "receipts@"
+              },
+              {
+                "field": "has_attachment",
+                "op": "is_true",
+                "value": ""
+              }
+            ],
+            "actions": [
+              {
+                "type": "category",
+                "category": "notifications"
+              },
+              {
+                "type": "notify",
+                "enabled": false
+              },
+              {
+                "type": "move",
+                "folderPath": "Receipts"
+              }
+            ]
+          }
+        ],
+        "blockedSenders": [
+          "spam.example",
+          "bad@example.org"
+        ],
+        "settings": {
+          "compose": {
+            "undoSendSeconds": 10
+          },
+          "sync": {
+            "initialDays": 90
+          },
+          "inbox": {
+            "focused": true
+          },
+          "receipts": {
+            "endpoint": "https://receipts.example.com"
+          },
+          "appearance": {
+            "theme": "dark"
+          },
+          "notifications": {
+            "scope": "people"
+          }
+        }
+      },
+      "expect": {
+        "valid": false
+      }
+    },
+    {
+      "name": "bad rule action",
+      "input": {
+        "v": 1,
+        "createdAt": 1790000000000,
+        "device": {
+          "name": "Neel's MacBook Pro"
+        },
+        "accounts": [
+          {
+            "email": "neel@example.com",
+            "name": "Neel",
+            "provider": "imap",
+            "authKind": "password",
+            "imap": {
+              "host": "imap.example.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.example.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@example.com",
+            "color": "#4C8DFF",
+            "aliases": [
+              "n@example.com"
+            ],
+            "showInUnified": true,
+            "sortOrder": 0,
+            "password": "app-password-sample"
+          },
+          {
+            "email": "neel@gmail.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          }
+        ],
+        "signatures": [
+          {
+            "name": "Work",
+            "html": "<p>Neel</p>",
+            "accountEmails": [
+              "neel@example.com"
+            ],
+            "defaultNew": true,
+            "defaultReply": false
+          }
+        ],
+        "templates": [
+          {
+            "name": "Thanks",
+            "subject": "Thank you",
+            "html": "<p>Thanks!</p>"
+          }
+        ],
+        "rules": [
+          {
+            "name": "Receipts",
+            "enabled": true,
+            "accountEmail": null,
+            "match": "any",
+            "sortOrder": 0,
+            "conditions": [
+              {
+                "field": "from",
+                "op": "contains",
+                "value": "receipts@"
+              },
+              {
+                "field": "has_attachment",
+                "op": "is_true",
+                "value": ""
+              }
+            ],
+            "actions": [
+              {
+                "type": "delete_everything"
+              }
+            ]
+          }
+        ],
+        "blockedSenders": [
+          "spam.example",
+          "bad@example.org"
+        ],
+        "settings": {
+          "compose": {
+            "undoSendSeconds": 10
+          },
+          "sync": {
+            "initialDays": 90
+          },
+          "inbox": {
+            "focused": true
+          },
+          "receipts": {
+            "endpoint": "https://receipts.example.com"
+          },
+          "appearance": {
+            "theme": "dark"
+          },
+          "notifications": {
+            "scope": "people"
+          }
+        }
+      },
+      "expect": {
+        "valid": false
+      }
+    },
+    {
+      "name": "password is not a string",
+      "input": {
+        "v": 1,
+        "createdAt": 1790000000000,
+        "device": {
+          "name": "Neel's MacBook Pro"
+        },
+        "accounts": [
+          {
+            "email": "neel@example.com",
+            "name": "Neel",
+            "provider": "imap",
+            "authKind": "password",
+            "imap": {
+              "host": "imap.example.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.example.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@example.com",
+            "color": "#4C8DFF",
+            "aliases": [
+              "n@example.com"
+            ],
+            "showInUnified": true,
+            "sortOrder": 0,
+            "password": 7
+          },
+          {
+            "email": "neel@gmail.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          }
+        ],
+        "signatures": [
+          {
+            "name": "Work",
+            "html": "<p>Neel</p>",
+            "accountEmails": [
+              "neel@example.com"
+            ],
+            "defaultNew": true,
+            "defaultReply": false
+          }
+        ],
+        "templates": [
+          {
+            "name": "Thanks",
+            "subject": "Thank you",
+            "html": "<p>Thanks!</p>"
+          }
+        ],
+        "rules": [
+          {
+            "name": "Receipts",
+            "enabled": true,
+            "accountEmail": null,
+            "match": "any",
+            "sortOrder": 0,
+            "conditions": [
+              {
+                "field": "from",
+                "op": "contains",
+                "value": "receipts@"
+              },
+              {
+                "field": "has_attachment",
+                "op": "is_true",
+                "value": ""
+              }
+            ],
+            "actions": [
+              {
+                "type": "category",
+                "category": "notifications"
+              },
+              {
+                "type": "notify",
+                "enabled": false
+              },
+              {
+                "type": "move",
+                "folderPath": "Receipts"
+              }
+            ]
+          }
+        ],
+        "blockedSenders": [
+          "spam.example",
+          "bad@example.org"
+        ],
+        "settings": {
+          "compose": {
+            "undoSendSeconds": 10
+          },
+          "sync": {
+            "initialDays": 90
+          },
+          "inbox": {
+            "focused": true
+          },
+          "receipts": {
+            "endpoint": "https://receipts.example.com"
+          },
+          "appearance": {
+            "theme": "dark"
+          },
+          "notifications": {
+            "scope": "people"
+          }
+        }
+      },
+      "expect": {
+        "valid": false
+      }
+    },
+    {
+      "name": "setting out of range",
+      "input": {
+        "v": 1,
+        "createdAt": 1790000000000,
+        "device": {
+          "name": "Neel's MacBook Pro"
+        },
+        "accounts": [
+          {
+            "email": "neel@example.com",
+            "name": "Neel",
+            "provider": "imap",
+            "authKind": "password",
+            "imap": {
+              "host": "imap.example.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.example.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@example.com",
+            "color": "#4C8DFF",
+            "aliases": [
+              "n@example.com"
+            ],
+            "showInUnified": true,
+            "sortOrder": 0,
+            "password": "app-password-sample"
+          },
+          {
+            "email": "neel@gmail.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          }
+        ],
+        "signatures": [
+          {
+            "name": "Work",
+            "html": "<p>Neel</p>",
+            "accountEmails": [
+              "neel@example.com"
+            ],
+            "defaultNew": true,
+            "defaultReply": false
+          }
+        ],
+        "templates": [
+          {
+            "name": "Thanks",
+            "subject": "Thank you",
+            "html": "<p>Thanks!</p>"
+          }
+        ],
+        "rules": [
+          {
+            "name": "Receipts",
+            "enabled": true,
+            "accountEmail": null,
+            "match": "any",
+            "sortOrder": 0,
+            "conditions": [
+              {
+                "field": "from",
+                "op": "contains",
+                "value": "receipts@"
+              },
+              {
+                "field": "has_attachment",
+                "op": "is_true",
+                "value": ""
+              }
+            ],
+            "actions": [
+              {
+                "type": "category",
+                "category": "notifications"
+              },
+              {
+                "type": "notify",
+                "enabled": false
+              },
+              {
+                "type": "move",
+                "folderPath": "Receipts"
+              }
+            ]
+          }
+        ],
+        "blockedSenders": [
+          "spam.example",
+          "bad@example.org"
+        ],
+        "settings": {
+          "compose": {
+            "undoSendSeconds": 7
+          },
+          "sync": {
+            "initialDays": 90
+          },
+          "inbox": {
+            "focused": true
+          },
+          "receipts": {
+            "endpoint": "https://receipts.example.com"
+          },
+          "appearance": {
+            "theme": "dark"
+          },
+          "notifications": {
+            "scope": "people"
+          }
+        }
+      },
+      "expect": {
+        "valid": false
+      }
+    },
+    {
+      "name": "too many accounts",
+      "input": {
+        "v": 1,
+        "createdAt": 1790000000000,
+        "device": {
+          "name": "Neel's MacBook Pro"
+        },
+        "accounts": [
+          {
+            "email": "a0@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a1@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a2@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a3@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a4@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a5@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a6@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a7@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a8@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a9@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a10@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a11@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a12@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a13@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a14@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a15@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a16@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a17@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a18@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a19@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          },
+          {
+            "email": "a20@example.com",
+            "name": "Neel S",
+            "provider": "gmail",
+            "authKind": "oauth_google",
+            "imap": {
+              "host": "imap.gmail.com",
+              "port": 993,
+              "secure": true
+            },
+            "smtp": {
+              "host": "smtp.gmail.com",
+              "port": 465,
+              "secure": true
+            },
+            "username": "neel@gmail.com",
+            "aliases": [],
+            "showInUnified": false,
+            "sortOrder": 1
+          }
+        ],
+        "signatures": [
+          {
+            "name": "Work",
+            "html": "<p>Neel</p>",
+            "accountEmails": [
+              "neel@example.com"
+            ],
+            "defaultNew": true,
+            "defaultReply": false
+          }
+        ],
+        "templates": [
+          {
+            "name": "Thanks",
+            "subject": "Thank you",
+            "html": "<p>Thanks!</p>"
+          }
+        ],
+        "rules": [
+          {
+            "name": "Receipts",
+            "enabled": true,
+            "accountEmail": null,
+            "match": "any",
+            "sortOrder": 0,
+            "conditions": [
+              {
+                "field": "from",
+                "op": "contains",
+                "value": "receipts@"
+              },
+              {
+                "field": "has_attachment",
+                "op": "is_true",
+                "value": ""
+              }
+            ],
+            "actions": [
+              {
+                "type": "category",
+                "category": "notifications"
+              },
+              {
+                "type": "notify",
+                "enabled": false
+              },
+              {
+                "type": "move",
+                "folderPath": "Receipts"
+              }
+            ]
+          }
+        ],
+        "blockedSenders": [
+          "spam.example",
+          "bad@example.org"
+        ],
+        "settings": {
+          "compose": {
+            "undoSendSeconds": 10
+          },
+          "sync": {
+            "initialDays": 90
+          },
+          "inbox": {
+            "focused": true
+          },
+          "receipts": {
+            "endpoint": "https://receipts.example.com"
+          },
+          "appearance": {
+            "theme": "dark"
+          },
+          "notifications": {
+            "scope": "people"
+          }
+        }
+      },
+      "expect": {
+        "valid": false
+      }
+    },
+    {
+      "name": "not an object",
+      "input": [
+        1,
+        2,
+        3
+      ],
+      "expect": {
+        "valid": false
+      }
+    }
+  ]
+}

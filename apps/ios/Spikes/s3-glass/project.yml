@@ -1,0 +1,35 @@
+name: GlassSpike
+options:
+  bundleIdPrefix: co.xanom.spike
+  deploymentTarget:
+    iOS: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: VTQW687WBQ
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGNING_ALLOWED: NO
+targets:
+  GlassDefault:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    info:
+      path: build/GlassDefault-Info.plist
+      properties:
+        UILaunchScreen: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.xanom.spike.glassdefault
+  GlassCompat:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    info:
+      path: build/GlassCompat-Info.plist
+      properties:
+        UILaunchScreen: {}
+        UIDesignRequiresCompatibility: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.xanom.spike.glasscompat

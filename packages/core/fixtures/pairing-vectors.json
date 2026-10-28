@@ -1,0 +1,172 @@
+{
+  "meta": {
+    "version": 1,
+    "module": "mac pairing crypto and framing",
+    "source": "packages/core/src/pairing/crypto.ts, frames.ts, qr.ts",
+    "note": "Test-only keys. Regenerate with FLINT_FIXTURES_UPDATE=1 pnpm exec vitest run src/pairing/fixtures.test.ts in packages/core."
+  },
+  "cases": [
+    {
+      "name": "set 1",
+      "input": {
+        "sid": "000102030405060708090a0b0c0d0e0f",
+        "macPrivate": "a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0",
+        "phonePrivate": "b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1"
+      },
+      "expect": {
+        "macPublic": "f0b4fd8be480349293ab61f0505ebb5bafccdf8a4127de221e6ef3db20e03d29",
+        "phonePublic": "d3337e4d4ee503a66976feb1fadf5bd21ba96fc2b1571b3e980d87cf49797510",
+        "shared": "1dfbae63869aa0fde2f35ae8ff4950dd765aa10eea86868505195ddbb1ecd512",
+        "keyMacToPhone": "376a1f6356c19ad57f65b3298f290f741c55972a2461e574408e7aa2967d67e8",
+        "keyPhoneToMac": "d4730c7d969ee09afa9480cd5d8dac4339d21119d581ac79dc5b4205b8c50ad6",
+        "sas": "623425"
+      }
+    },
+    {
+      "name": "set 2",
+      "input": {
+        "sid": "f0e0d0c0b0a090807060504030201000",
+        "macPrivate": "1111111111111111111111111111111111111111111111111111111111111111",
+        "phonePrivate": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "expect": {
+        "macPublic": "7b4e909bbe7ffe44c465a220037d608ee35897d31ef972f07f74892cb0f73f13",
+        "phonePublic": "0faa684ed28867b97f4a6a2dee5df8ce974e76b7018e3f22a1c4cf2678570f20",
+        "shared": "9e004098efc091d4ec2663b4e9f5cfd4d7064571690b4bea97ab146ab9f35056",
+        "keyMacToPhone": "b54e9fe8ab550c0268ecbf5a693f511d9e9c2c531e9321379a91bc780b24573d",
+        "keyPhoneToMac": "d77c37497a64a365e18c21b5f65194368fd2578ecaee2733e562b58a919421a8",
+        "sas": "158515"
+      }
+    },
+    {
+      "name": "set with zero-padded code",
+      "input": {
+        "sid": "0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a",
+        "macPrivate": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c30a",
+        "phonePrivate": "d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d40a"
+      },
+      "expect": {
+        "macPublic": "f2f9eb115a1b553d4623f15a0a942ec6f862e65ddcf576b00ff68dd772a0a61f",
+        "phonePublic": "4ddbf30d689cedf38784d28cca31f3ea4221c1b6acc31882ca87c7ad5b947b4a",
+        "shared": "0e46bf736b8657de3be0a4d7029beb1799a68ab0fbf4e97909ae08f5eafebd54",
+        "keyMacToPhone": "f1088d2bcbb5c376593db95e80faab634601831c8917e1fa37002fe3be6c778e",
+        "keyPhoneToMac": "b6323d29b3564ac8db0de985fe19d84b6e27bf6a3922c7eeb0fe8f32381bb27b",
+        "sas": "026756"
+      }
+    },
+    {
+      "name": "ready frame, counter 0",
+      "input": {
+        "sid": "000102030405060708090a0b0c0d0e0f",
+        "direction": "macToPhone",
+        "type": 2,
+        "counter": 0,
+        "key": "376a1f6356c19ad57f65b3298f290f741c55972a2461e574408e7aa2967d67e8",
+        "plaintext": ""
+      },
+      "expect": {
+        "nonce": "000000000000000000000000",
+        "sealed": "c4a3fddb48d95766b9d76b48cdc94df6",
+        "frame": "0000001102c4a3fddb48d95766b9d76b48cdc94df6"
+      }
+    },
+    {
+      "name": "bundle chunk, counter 1",
+      "input": {
+        "sid": "000102030405060708090a0b0c0d0e0f",
+        "direction": "macToPhone",
+        "type": 3,
+        "counter": 1,
+        "key": "376a1f6356c19ad57f65b3298f290f741c55972a2461e574408e7aa2967d67e8",
+        "plaintext": "017b2276223a317d"
+      },
+      "expect": {
+        "nonce": "000000000000000000000001",
+        "sealed": "a38d40dfc4a1e13d13ff7f4f824c08cd50b3649373b67e48",
+        "frame": "0000001903a38d40dfc4a1e13d13ff7f4f824c08cd50b3649373b67e48"
+      }
+    },
+    {
+      "name": "ack from phone, counter 0",
+      "input": {
+        "sid": "000102030405060708090a0b0c0d0e0f",
+        "direction": "phoneToMac",
+        "type": 4,
+        "counter": 0,
+        "key": "d4730c7d969ee09afa9480cd5d8dac4339d21119d581ac79dc5b4205b8c50ad6",
+        "plaintext": "7b226163636f756e7473223a322c227369676e617475726573223a312c2274656d706c61746573223a302c2272756c6573223a31322c22626c6f636b656453656e64657273223a337d"
+      },
+      "expect": {
+        "nonce": "000000000000000000000000",
+        "sealed": "d4f20822a2cb5ef96c2ae49712b4c4caac0cedcdb58379178d393c2881547bf3ab77f1bbdbe33f9c242ab674f0ede916005023f04e728e0b50374fe2e23cc3e1f4fdb636c40502b7d9e371beae4b06cf1fc65a8bc3c830dfb8",
+        "frame": "0000005a04d4f20822a2cb5ef96c2ae49712b4c4caac0cedcdb58379178d393c2881547bf3ab77f1bbdbe33f9c242ab674f0ede916005023f04e728e0b50374fe2e23cc3e1f4fdb636c40502b7d9e371beae4b06cf1fc65a8bc3c830dfb8"
+      }
+    },
+    {
+      "name": "large counter",
+      "input": {
+        "sid": "f0e0d0c0b0a090807060504030201000",
+        "direction": "macToPhone",
+        "type": 3,
+        "counter": 4294967296,
+        "key": "b54e9fe8ab550c0268ecbf5a693f511d9e9c2c531e9321379a91bc780b24573d",
+        "plaintext": "00414243"
+      },
+      "expect": {
+        "nonce": "000000000000000100000000",
+        "sealed": "a772a710e106d28beff90681d1f331a2463a28b1",
+        "frame": "0000001503a772a710e106d28beff90681d1f331a2463a28b1"
+      }
+    },
+    {
+      "name": "qr payload",
+      "input": {
+        "sid": "000102030405060708090a0b0c0d0e0f",
+        "macPublic": "f0b4fd8be480349293ab61f0505ebb5bafccdf8a4127de221e6ef3db20e03d29",
+        "addrs": [
+          "192.168.1.20",
+          "10.0.0.5"
+        ],
+        "port": 49152
+      },
+      "expect": {
+        "url": "flint://pair#eyJ2IjoxLCJzaWQiOiJBQUVDQXdRRkJnY0lDUW9MREEwT0R3IiwicGsiOiI4TFQ5aS1TQU5KS1RxMkh3VUY2N1c2X00zNHBCSjk0aUhtN3oyeURnUFNrIiwiYWRkcnMiOlsiMTkyLjE2OC4xLjIwIiwiMTAuMC4wLjUiXSwicG9ydCI6NDkxNTJ9"
+      }
+    },
+    {
+      "name": "hello body",
+      "input": {
+        "sid": "000102030405060708090a0b0c0d0e0f",
+        "phonePublic": "d3337e4d4ee503a66976feb1fadf5bd21ba96fc2b1571b3e980d87cf49797510",
+        "name": "Neel's iPhone"
+      },
+      "expect": {
+        "json": "{\"v\":1,\"sid\":\"AAECAwQFBgcICQoLDA0ODw\",\"pk\":\"0zN-TU7lA6Zpdv6x-t9b0hupb8KxVxs-mA2Hz0l5dRA\",\"name\":\"Neel's iPhone\"}",
+        "frame": "00000071017b2276223a312c22736964223a2241414543417751464267634943516f4c4441304f4477222c22706b223a22307a4e2d5455376c41365a70647636782d7439623068757062384b785678732d6d4132487a306c35645241222c226e616d65223a224e65656c2773206950686f6e65227d"
+      }
+    }
+  ],
+  "framing": {
+    "maxFrame": 65536,
+    "rejects": [
+      {
+        "name": "zero length",
+        "hex": "00000000"
+      },
+      {
+        "name": "length over the cap",
+        "hex": "00010001"
+      },
+      {
+        "name": "huge length",
+        "hex": "ffffffff"
+      }
+    ],
+    "accepts": [
+      {
+        "name": "length exactly at the cap header",
+        "hex": "00010000"
+      }
+    ]
+  }
+}

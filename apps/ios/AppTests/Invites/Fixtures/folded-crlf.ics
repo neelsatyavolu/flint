@@ -1,0 +1,20 @@
+BEGIN:VCALENDAR
+PRODID:-//Google Inc//Google Calendar 70.9054//EN
+VERSION:2.0
+METHOD:REQUEST
+BEGIN:VEVENT
+DTSTART:20261201T170000Z
+DTEND:20261201T173000Z
+DTSTAMP:20261120T000000Z
+ORGANIZER;CN=Mina Okafor:mailto:mina@northwind.example
+UID:foldedcase9@google.com
+ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=
+ TRUE;CN=me@example.com;X-NUM-GUESTS=0:mailto:me@example.com
+SUMMARY:Planning\, budget\; and a very long title that the sender folded across 
+ two lines for good measure
+DESCRIPTION:Line one\nLine two with a backslash \\ and a comma\, plus unicode caf
+ é split mid-word
+LOCATION:Café Roma\, 12 Via Appia
+SEQUENCE:0
+END:VEVENT
+END:VCALENDAR

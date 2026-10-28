@@ -1,0 +1,22 @@
+name: LoopbackSpike
+options:
+  deploymentTarget:
+    iOS: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    CODE_SIGNING_ALLOWED: NO
+targets:
+  LoopbackSpike:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    info:
+      path: build/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.xanom.spike.loopback
