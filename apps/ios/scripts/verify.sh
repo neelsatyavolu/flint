@@ -3,7 +3,7 @@
 #
 #   scripts/verify.sh [--ui] [--e2e] [--label name]
 #
-# Always: xcodegen, `swift test` on FlintCore, an iPhone build, then FlintTests on a temporary simulator.
+# Always: xcodegen (pinned to FlintCore's Package.resolved by scripts/gen-project.sh), `swift test` on FlintCore, an iPhone build, then FlintTests on a temporary simulator.
 # --ui   also the UI tests (FlintUITests), first on an iPhone, then on an iPad, one simulator at a time.
 # --e2e  also scripts/e2e-greenmail.sh on the iPhone (GreenMail on this Mac, needs Java; only with --ui).
 # Every simulator is created here and deleted on exit, also on failure or Ctrl-C. Nothing touches real accounts or data: the UI
@@ -85,8 +85,12 @@ summarize() {
   grep -E "error:|Test Case .* failed" "$log" | head -20
 }
 
-step "xcodegen"
-xcodegen generate >/dev/null || fail "xcodegen"
+step "xcodegen and package pins"
+scripts/gen-project.sh >/dev/null || fail "gen-project.sh"
+done_step
+
+step "keychain list helpers"
+/bin/bash scripts/tests/keychain-list-test.sh || fail "keychain-list-test.sh"
 done_step
 
 step "swift test (FlintCore)"
@@ -95,7 +99,7 @@ done_step
 
 step "build for iOS Simulator"
 xcodebuild -project Flint.xcodeproj -scheme Flint -destination 'generic/platform=iOS Simulator' \
-  -derivedDataPath "$DERIVED" -jobs 4 CODE_SIGNING_ALLOWED=NO build-for-testing > "$DERIVED.build.log" 2>&1 \
+  -derivedDataPath "$DERIVED" -jobs 4 -onlyUsePackageVersionsFromResolvedFile CODE_SIGNING_ALLOWED=NO build-for-testing > "$DERIVED.build.log" 2>&1 \
   || { tail -30 "$DERIVED.build.log"; fail "build"; }
 done_step
 
