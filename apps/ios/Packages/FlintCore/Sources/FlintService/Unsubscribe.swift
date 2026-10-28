@@ -6,7 +6,7 @@ import FlintModel
 import FlintStore
 import Foundation
 
-/// How an unsubscribe went. `.browser` carries the address the UI should open.
+/// How an unsubscribe went. `.browser` carries the http or https address the UI should open.
 public enum UnsubscribeMethod: Hashable, Sendable {
     case oneClick
     case mailto
@@ -79,13 +79,14 @@ extension ServiceCore {
             try await sendJob.sendRaw(accountId: message.accountId, to: [Address(address: mail.to)], subject: mail.subject, text: mail.body)
             return .mailto
         }
-        if let raw = info.url ?? info.mailto, let url = URL(string: raw) { return .browser(url) }
+        // Only a web address goes to the browser. A mailto the parser rejected must never reach Safari's view.
+        if let raw = info.url, let url = URL(string: raw), ["http", "https"].contains(url.scheme?.lowercased()) { return .browser(url) }
         throw FlintError(.invalid, "This message's unsubscribe address is not usable.")
     }
 
     private func oneClick(_ url: URL) async -> Bool {
         guard UnsubscribeSafety.isPublicHTTPS(url), let host = url.host, await UnsubscribeSafety.resolvesToPublicOnly(host) else { return false }
-        guard let response = try? await config.http.postForm(url, ["List-Unsubscribe": "One-Click"]) else { return false }
+        guard let response = try? await config.http.postFormWithoutRedirects(url, ["List-Unsubscribe": "One-Click"]) else { return false }
         // RFC 8058: any 2xx means the request was accepted.
         return (200..<300).contains(response.status)
     }

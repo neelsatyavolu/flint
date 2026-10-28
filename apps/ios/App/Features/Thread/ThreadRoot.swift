@@ -143,7 +143,7 @@ struct ThreadRoot: View {
     private func unsubscribe(_ message: MessageView) async {
         guard let method = await model.unsubscribe(messageId: message.id) else { return }
         switch method {
-        case .browser(let url): vm.safariURL = url
+        case .browser(let url): vm.showInBrowser(url)
         case .oneClick: model.toasts.show(String(localized: "Unsubscribed", table: "Thread"))
         case .mailto: model.toasts.show(String(localized: "Sent an unsubscribe email", table: "Thread"))
         }

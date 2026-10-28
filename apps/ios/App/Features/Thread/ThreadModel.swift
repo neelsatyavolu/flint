@@ -127,15 +127,21 @@ final class ThreadModel {
     func route(href: String, text: String) -> String? {
         switch LinkPolicy.decide(href: href, text: text) {
         case .compose(let address): return address
-        case .open(let url): safariURL = url
+        case .open(let url): showInBrowser(url)
         case .confirm(let url, let shown): linkPrompt = LinkPrompt(url: url, shown: shown)
         case .ignore: break
         }
         return nil
     }
 
+    /// Opens Safari's in-app view. It raises for any scheme but http and https, so nothing else is ever handed to it.
+    func showInBrowser(_ url: URL) {
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return }
+        safariURL = url
+    }
+
     func confirmLink() {
-        safariURL = linkPrompt?.url
+        if let url = linkPrompt?.url { showInBrowser(url) }
         linkPrompt = nil
     }
 

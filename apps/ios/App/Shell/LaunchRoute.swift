@@ -37,7 +37,11 @@ enum LaunchRoute: Equatable {
     }
 
     static func fromArguments(_ defaults: UserDefaults = .standard) -> LaunchRoute? {
+        #if DEBUG
         defaults.string(forKey: argumentKey).flatMap(parse)
+        #else
+        nil
+        #endif
     }
 }
 

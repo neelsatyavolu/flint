@@ -25,9 +25,11 @@ enum FlintAppearance: String, CaseIterable, Sendable {
     }
 
     static func resolved(stored: String, arguments: UserDefaults = .standard) -> FlintAppearance {
+        #if DEBUG
         if let forced = arguments.string(forKey: "FlintAppearance"), let value = FlintAppearance(rawValue: forced) {
             return value
         }
+        #endif
         return FlintAppearance(rawValue: stored) ?? .system
     }
 }

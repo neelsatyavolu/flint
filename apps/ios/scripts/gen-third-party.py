@@ -12,6 +12,27 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CATALOG = ROOT / "App/Features/Settings/ThirdPartyLicenses.json"
 OUT = ROOT / "THIRD-PARTY.md"
+RESOLVED = ROOT / "Packages/FlintCore/Package.resolved"
+# Linked packages that vendor code under a licence of its own: the catalog must carry that text too.
+VENDORED = {"swift-nio-ssl": ("BoringSSL", ["OpenSSL License", "Original SSLeay License", "ISC license", "fiat-crypto"])}
+
+
+def problems(catalog: dict) -> list[str]:
+    """What is wrong with the catalog compared with Package.resolved: missing vendored licence texts, stale versions."""
+    found = []
+    items = {item["name"]: item for item in catalog["items"]}
+    pins = {p["identity"]: p["state"] for p in json.loads(RESOLVED.read_text())["pins"]}
+    for identity, (prefix, needles) in VENDORED.items():
+        if identity not in pins:
+            continue
+        item = next((i for n, i in items.items() if n.startswith(prefix)), None)
+        text = catalog["texts"].get(item["textId"], "") if item else ""
+        found += [f"{identity} vendors {prefix}: licence text lacks '{n}'" for n in needles if n not in text]
+    for identity, state in pins.items():
+        item = items.get(identity)
+        if item and item["version"] not in (state.get("version"), state["revision"][:7]):
+            found.append(f"{identity}: catalog says {item['version']}, Package.resolved pins {state.get('version') or state['revision'][:7]}")
+    return found
 
 
 def render(catalog: dict) -> str:
@@ -42,7 +63,13 @@ def render(catalog: dict) -> str:
 
 
 if __name__ == "__main__":
-    text = render(json.loads(CATALOG.read_text()))
+    catalog = json.loads(CATALOG.read_text())
+    text = render(catalog)
+    issues = problems(catalog)
+    for issue in issues:
+        print(f"gen-third-party: {issue}", file=sys.stderr)
     if "--check" in sys.argv:
-        sys.exit(0 if OUT.exists() and OUT.read_text() == text else 1)
+        sys.exit(0 if OUT.exists() and OUT.read_text() == text and not issues else 1)
+    if issues:
+        sys.exit(1)
     OUT.write_text(text)

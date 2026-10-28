@@ -19,7 +19,13 @@ enum PerfProbe {
         marks.withLock { $0.append((name, ms)) }
     }
 
-    static var isArmed: Bool { UserDefaults.standard.bool(forKey: "FlintPerfReport") }
+    static var isArmed: Bool {
+        #if DEBUG || FLINT_PERF
+        UserDefaults.standard.bool(forKey: "FlintPerfReport")
+        #else
+        false
+        #endif
+    }
 
     /// Call when the inbox first has rows. Later calls do nothing.
     @MainActor static func firstRows(count: Int) {

@@ -35,11 +35,14 @@ for arg in "$@"; do
   esac
 done
 
+umask 077
 TMP="$(mktemp -d)"
 KC="$TMP/flint-sign.keychain-db"
 LOGIN="$HOME/Library/Keychains/login.keychain-db"
+source scripts/keychain-list.sh
+ORIGINAL_KEYCHAINS="$(keychain_list_save)"   # the person's own search list, put back exactly on exit
 cleanup() {
-  security list-keychains -d user -s "$LOGIN" >/dev/null 2>&1 || true
+  keychain_list_restore "$ORIGINAL_KEYCHAINS" || true
   security delete-keychain "$KC" >/dev/null 2>&1 || true
   rm -rf "$TMP"
 }
@@ -57,17 +60,24 @@ printf %s "$KEY_ID" > "$TMP/asc/keyid"
 "${OP[@]}" read "op://$OP_VAULT/$ASC_ITEM/AuthKey_${KEY_ID}.p8" --out-file "$TMP/asc/AuthKey_${KEY_ID}.p8" >/dev/null
 CERT_ID="$("${OP[@]}" item get "$CERT_ITEM" --fields 'label=Apple Certificate ID')"
 "${OP[@]}" read "op://$OP_VAULT/$CERT_ITEM/AppleDistribution_${TEAM_ID}.p12" --out-file "$TMP/dist.p12" >/dev/null
-P12_PASS="$("${OP[@]}" item get "$CERT_ITEM" --fields label=password --reveal)"
+# The .p12 password goes to openssl through a file in the 700 temp folder, never on a command line (ps shows arguments).
+( umask 077; "${OP[@]}" item get "$CERT_ITEM" --fields label=password --reveal | tr -d '\n' > "$TMP/p12pass" )
 
 echo "==> Importing the distribution certificate into a temporary keychain"
-KC_PASS="$(openssl rand -hex 16)"
+# The temporary keychain has an empty password, so no password is ever on a command line. It lives in the 700 temp folder for
+# this run only and is deleted on exit.
+KC_PASS=""
 security create-keychain -p "$KC_PASS" "$KC"
 security set-keychain-settings -lut 3600 "$KC"
 security unlock-keychain -p "$KC_PASS" "$KC"
-security import "$TMP/dist.p12" -k "$KC" -P "$P12_PASS" -T /usr/bin/codesign -T /usr/bin/security >/dev/null
-unset P12_PASS
+# `security import -P` would put the password on its command line, so OpenSSL opens the .p12 (password from a file) and the
+# unencrypted PEM goes into the temporary keychain instead. The PEM lives in the 700 temp folder for these few lines.
+openssl pkcs12 -in "$TMP/dist.p12" -passin "file:$TMP/p12pass" -nodes -out "$TMP/dist.pem"
+rm -f "$TMP/p12pass" "$TMP/dist.p12"
+security import "$TMP/dist.pem" -k "$KC" -T /usr/bin/codesign -T /usr/bin/security >/dev/null
+rm -f "$TMP/dist.pem"
 security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KC_PASS" "$KC" >/dev/null
-security list-keychains -d user -s "$KC" "$LOGIN"   # login holds Apple's WWDR intermediates
+keychain_list_add "$KC" "$LOGIN"   # the person's own keychains stay in the list: login holds Apple's WWDR intermediates
 IDENTITY="$(security find-identity -v -p codesigning "$KC" | sed -nE 's/.*"(Apple Distribution: [^"]+)".*/\1/p' | head -1)"
 [[ -n "$IDENTITY" ]] || { echo "error: no Apple Distribution identity in the certificate item" >&2; exit 1; }
 
@@ -93,14 +103,14 @@ mkdir -p "$PROFILES_DIR"
 cp "$TMP/profile.mobileprovision" "$PROFILES_DIR/$PROFILE_UUID.mobileprovision"
 
 echo "==> Archiving build $BUILD_NUMBER"
-xcodegen generate >/dev/null
+scripts/gen-project.sh >/dev/null
 ARCHIVE="$OUT_DIR/Flint.xcarchive"
 rm -rf "$ARCHIVE" "$OUT_DIR/export"
 mkdir -p "$OUT_DIR"
 # Profile goes through FLINT_PROFILE_SPECIFIER: a command-line PROVISIONING_PROFILE_SPECIFIER would also hit the
 # package resource bundles, which cannot take one.
 xcodebuild -project Flint.xcodeproj -scheme "$SCHEME" -configuration Release -destination 'generic/platform=iOS' \
-  -archivePath "$ARCHIVE" -derivedDataPath "$OUT_DIR/build" archive -jobs 4 \
+  -archivePath "$ARCHIVE" -derivedDataPath "$OUT_DIR/build" archive -jobs 4 -onlyUsePackageVersionsFromResolvedFile \
   CURRENT_PROJECT_VERSION="$BUILD_NUMBER" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="$TEAM_ID" \
   CODE_SIGN_IDENTITY="$IDENTITY" FLINT_PROFILE_SPECIFIER="$PROFILE_UUID" \
   OTHER_CODE_SIGN_FLAGS="--keychain $KC" \
