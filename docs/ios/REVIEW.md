@@ -39,17 +39,23 @@ swift-nio-ssl vendors BoringSSL as `CNIOBoringSSL`, and it is linked into the ap
 Scenario: a TestFlight or App Store binary ships BoringSSL without its required notices, and Settings > About > Licenses (the same catalog) has the same gap.
 Fix: add a "BoringSSL (in swift-nio-ssl)" item to `ThirdPartyLicenses.json` with the full text of BoringSSL's LICENSE file at the vendored revision (OpenSSL License, SSLeay License, ISC, and the fiat-crypto MIT/Apache/BSD notice), then regenerate. swift-crypto vendors BoringSSL too, but it is not linked today, so listing it is harmless and not required.
 
+**Status:** fixed in 1f57699. The catalog now has a "BoringSSL (in swift-nio-ssl)" item with the LICENSE text of the vendored revision (`817ab07`: OpenSSL License, Original SSLeay License, ISC, and the fiat-crypto MIT notice; the upstream file's Go and Chromium sections cover test and build code that is not compiled into the library, so they are left out). THIRD-PARTY.md is regenerated, and `scripts/gen-third-party.py --check` now also fails when the catalog lacks those texts or names a version other than `Package.resolved`. `AppTests/Settings/LicenseCatalogTests.swift` checks the texts.
+
 **M2. The app build does not pin dependency versions, so a release can ship different packages than the ones tested and listed.**
 `.gitignore:2` (`Flint.xcodeproj/`), `scripts/testflight.sh:96-107`.
 The only committed `Package.resolved` is FlintCore's. Xcode resolves packages for the generated project and keeps its own resolved file under `Flint.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/`. That folder is gitignored, and no resolved file exists there now. `testflight.sh` runs `xcodegen generate` and archives with a fresh `-derivedDataPath`, so the archive takes the newest versions the manifests allow (`GRDB from: 7.11.1`, `swift-nio from: 2.101.3` through SwiftMail, `swift-nio-ssl from: 2.37.1`, and so on). Today the DerivedData checkouts happen to match FlintCore's pins.
 Scenario: a GRDB or swift-nio-ssl release lands between `swift test` and the TestFlight run. The uploaded build contains code that no test ran, and THIRD-PARTY.md names the wrong versions.
 Fix: commit a resolved file for the app. For example, have `testflight.sh` and `verify.sh` copy `Packages/FlintCore/Package.resolved` into `Flint.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved` after `xcodegen generate`, and pass `-onlyUsePackageVersionsFromResolvedFile` to `xcodebuild`, so a mismatch fails instead of resolving. Then check that `swift package show-dependencies` and the archive's checkouts agree.
 
+**Status:** fixed in 63a32dd. `scripts/gen-project.sh` runs XcodeGen and copies FlintCore's `Package.resolved` into the generated project's workspace; `testflight.sh` and `verify.sh` use it and build with `-onlyUsePackageVersionsFromResolvedFile`. The Release build for generic iOS resolved swift-nio-ssl 2.37.5, GRDB 7.11.1, swift-nio 2.104.0 and SwiftSoup 2.14.3, the same as `swift test`. See RELEASING.md, "Package versions".
+
 **M3. The privacy manifest and the App Privacy answers say no data is collected, but the owner runs a receipts service that the iPhone can be pointed at.**
 `App/Resources/PrivacyInfo.xcprivacy:9-10`; `Packages/FlintCore/Sources/FlintReceipts/ReceiptsClient.swift:103-160`; `services/receipts/wrangler.toml:18-20`; `services/receipts/migrations/0001_init.sql`.
 On iOS the receipts endpoint is empty by default (`FlintModel/Settings.swift:59-60`), so a fresh install sends nothing to xanom. But pairing can copy the Mac's endpoint (`flintr.xanom.co` by default on the desktop) behind its own switch, and the person can type it in Settings. From then on, the iPhone sends the owner's server an install ID and secret, a random message ref and one random token per tracked recipient (`ReceiptsWire.swift:10-16`). The server stores the install, registration times and an HMAC of the sender's IP (`sender_fingerprints`), and keeps them past the request. That is collection by the developer under Apple's definition. No message content, addresses or names are sent, which the code confirms.
 Scenario: App Review or a user compares the "Data Not Collected" label with the privacy policy at flint.xanom.co/privacy, which describes the receipts service storing tokens and hashed IPs.
 Fix: the owner decides (see "App Privacy answers" below). If the iOS app may use flintr.xanom.co, declare Identifiers > Device ID and Usage Data > Product Interaction, both not linked, not tracking, App Functionality, and add matching `NSPrivacyCollectedDataTypes` entries to the manifest. If it may not, block the xanom host in `normalizeEndpoint` on iOS and drop it from the pairing import.
+
+**Status:** fixed in 7809a59 (manifest and test) and in the docs commit that follows it (this file and RELEASING.md). The owner chose option A: declare the data. `PrivacyInfo.xcprivacy` lists Device ID and Product Interaction (App Functionality, not linked, not tracking); `NSPrivacyTracking` stays false with no tracking domains. `AppTests/Settings/PrivacyManifestTests.swift` checks the manifest. The exact App Store Connect answers are in RELEASING.md, O3 step 4. Not verifiable here: the App Store Connect form itself.
 
 ### Low
 
@@ -59,11 +65,15 @@ Fix: the owner decides (see "App Privacy answers" below). If the iOS app may use
 Scenario: a hostile newsletter's List-Unsubscribe URL answers 307 to `https://192.168.1.1/apply`. After the person taps Unsubscribe, the iPhone repeats the POST on the home network. iOS allows it because Local Network access was granted for pairing. The body is fixed and there are no cookies (ephemeral session), so the harm is limited to a blind POST to a LAN device with a valid certificate.
 Fix: give the one-click POST a session delegate that refuses redirects (`willPerformHTTPRedirection` returning nil). A 3xx then counts as "not accepted" and falls through to mailto or browser, as on the desktop.
 
+**Status:** fixed in be7a78c. `HTTPClient` has `postFormWithoutRedirects`, which refuses redirects through a task delegate, and the one-click POST uses it; a 3xx counts as not accepted and falls through to mailto or the browser. Test: `HTTPClientRedirectTests` (a stubbed 307 to a LAN address is returned and never followed) and `oneClickUsesThePostThatDoesNotFollowRedirects`.
+
 **L2. A crafted List-Unsubscribe header crashes the app when the person taps Unsubscribe.**
 `Packages/FlintCore/Sources/FlintService/Unsubscribe.swift:82`, `App/Features/Thread/ThreadRoot.swift:146`, `LazyWeb/LazyWeb.swift:20-23`.
 With no http(s) target and a mailto that `parseMailto` rejects (for example `List-Unsubscribe: <mailto:?subject=x>` or `<mailto:%20>`, where the address is empty), `unsubscribe` returns `.browser(URL("mailto:..."))`. ThreadRoot puts it in `safariURL`, and `SFSafariViewController` raises `NSInvalidArgumentException` for any scheme other than http or https.
 Scenario: a spam mail with that header, the person taps Unsubscribe, the app crashes. It is a denial of service only, and it repeats each time the person tries.
 Fix: return `.browser` only for http(s) URLs in `Unsubscribe.swift:82` (throw the "not usable" error otherwise), and guard the scheme in `LazyWeb.safariController` as well.
+
+**Status:** fixed in be7a78c. `unsubscribe` returns `.browser` only for http(s) addresses and otherwise throws "not usable", so a mailto that cannot be sent is never offered to the browser. `ThreadModel.showInBrowser` and `LazyWeb.safariController` both refuse any other scheme, so the Safari view can no longer be reached with one. Tests: `aHeaderWithNoWebAddressAndNoUsableMailtoIsNotOpenedInTheBrowser` (four headers) and `SafariEntryTests`. A valid mailto still sends from the account, as before; an unusable one now shows the "not usable" error and does not open the composer.
 
 **L3. Pairing adds rules, signatures and blocked senders that the review screen shows only as counts.**
 `Packages/FlintCore/Sources/FlintPairing/BundleImporter.swift:139-166`, `App/Features/Pairing/PairingReview.swift:57-67`.
@@ -71,11 +81,15 @@ Fix: return `.browser` only for http(s) URLs in `Unsubscribe.swift:82` (throw th
 Scenario: the N3 path from wave 4 (a `flint://pair` link to a listener on the same Wi-Fi, confirmed by the person). The bundle adds "From contains bank → Trash, Mark read" and a signature with a remote image. Bank alerts go to the server's Trash on every device, and each sent mail carries the attacker's pixel.
 Fix: list rule names with their actions and signature names on the review screen (or behind a "Show" row). Alternatively, import rules disabled when they have a destructive action, and strip remote images from imported signatures.
 
+**Status:** left open. Owner and product decision, as instructed (what the pairing review should show for rules, signatures and blocked senders).
+
 **L4. Release builds honour test-only launch flags, including one that answers the Face ID lock.**
 `App/Shell/FlintDebugFlags.swift:16-23`, `App/Shell/AppLock.swift:71-78`; also `App/Seed/DemoSeed.swift:26-27`, `App/Shell/LaunchRoute.swift:39`, `App/Seed/PerfProbe.swift:22`.
 `FlintFakeAuth`, `FlintSeed`, `FlintRoute`, `FlintFakeNotifications`, `FlintThemeGallery` and `FlintPerfReport` are read from `UserDefaults.standard`. That reads the persistent app domain as well as launch arguments, and none of these reads is behind `#if DEBUG`. `FlintFakeAuth pass` replaces the Face ID prompt with success.
 Scenario: a value written into the app's preferences plist (for example through a modified backup) keeps the app lock open on every launch. This needs the device passcode, so it adds little to an attacker who has it. It is still a security switch that ships in release.
 Fix: compile these readers out of Release (`#if DEBUG`), or read them only from `ProcessInfo.processInfo.arguments` in Debug.
+
+**Status:** fixed in ddf41fe. Every reader of `FlintFakeAuth`, `FlintSeed`, `FlintRoute`, `FlintPerfReport`, `FlintFakeNotifications`, `FlintSystemNotifications`, `FlintThemeGallery`, `FlintAppearance` and `-FlintPairingExisting` is inside `#if DEBUG`; the seed, probe and Face ID answer are also available when `FLINT_PERF` is defined, which only `scripts/perf-launch.sh` asks for in its Release build (documented in the script and in RELEASING.md; the archive never sets it). Checked on the Release generic iOS build: `strings` on the app binary finds none of the flag names or `perf50k`. UI tests run in Debug and are unaffected.
 
 **L5. `testflight.sh` puts the .p12 password on a command line and resets the keychain search list to login only.**
 `scripts/testflight.sh:67`, `:64`, `:70`, `:42`.
@@ -83,11 +97,15 @@ Fix: compile these readers out of Release (`#if DEBUG`), or read them only from 
 Scenario: another process run by the same user (or root) on the Mac reads the distribution certificate password from the process list during the import.
 Fix: decrypt the .p12 without a password on argv (for example `openssl pkcs12 -passin fd:3 3<<<"$P12_PASS"` to a PEM in `$TMP`, then import that), or accept the risk on a single-user Mac and note it in RELEASING.md. Save the search list first (`security list-keychains -d user`) and restore exactly that list in cleanup.
 
+**Status:** fixed in 63a32dd (same commit as M2). The .p12 password is read into a file in the 700 temp folder and handed to OpenSSL with `-passin file:`; OpenSSL writes a PEM that `security import` takes without a password, and the temporary keychain has an empty password, so no secret is ever an argument. `scripts/keychain-list.sh` saves the user's keychain search list before the run, puts the temporary keychain in front of it, and cleanup restores exactly the saved list. Tests: `scripts/tests/keychain-list-test.sh` (fake `security`, also run by `verify.sh`), and a manual run with a throwaway keychain and self-signed .p12 in a scratch folder (PEM import, partition list and list restore all worked). `testflight.sh` itself was only syntax-checked (`bash -n`).
+
 **L6. `ITSAppUsesNonExemptEncryption` is false, but the app ships its own TLS library.**
 `project.yml:95`, `App/Resources/Info.plist:51-52`.
 Mail TLS runs through BoringSSL (NIOSSL), not the system TLS stack, and pairing uses X25519, HKDF and ChaCha20-Poly1305 from CryptoKit. App Store Connect's questionnaire treats standard algorithms used "instead of, or in addition to" the OS encryption differently from plain URLSession HTTPS. That usually still means no documents, but it is a separate answer, and France has its own declaration.
 Scenario: the plist key skips the export compliance questions on every upload, and the stored answer does not match what the binary does.
 Fix: part of O3. The owner answers the questionnaire once for this build (standard algorithms, not proprietary, mass market), then sets the key to the value Apple's flow gives. If the answer stays "exempt", record the reasoning in RELEASING.md.
+
+**Status:** left open. Owner item O3 (export compliance questionnaire), as instructed.
 
 ### Info
 
@@ -129,26 +147,28 @@ The table in THIRD-PARTY.md matches `Packages/FlintCore/Package.resolved` for ev
 
 ## Privacy manifest
 
-`App/Resources/PrivacyInfo.xcprivacy` declares no tracking, no tracking domains, no collected data, and one required-reason API: UserDefaults with `CA92.1`.
+`App/Resources/PrivacyInfo.xcprivacy` declared (at review time) no tracking, no tracking domains, no collected data, and one required-reason API: UserDefaults with `CA92.1`.
 
 - App code: UserDefaults (`@AppStorage`, settings, swipe configuration, diagnostics, paired-Mac record) is the only required-reason category used. There are no file timestamp reads (`DraftFiles` reads only `fileSizeKey` and `isRegularFileKey`), no disk space queries, no `systemUptime` or `mach_absolute_time` (the sync code uses `ContinuousClock`), and no active keyboard queries. `PerfProbe`'s `sysctl(KERN_PROC_PID)` reads the process start time, which is not on Apple's list. `CA92.1` is the right reason.
 - Dependencies: NIOPosix, NIOFS and _NIOFileSystem ship manifests declaring FileTimestamp `0A2A.1`; NIOSSL, GRDB and the swift-crypto targets ship manifests declaring no API use. The built app carries the GRDB, NIOPosix and NIOSSL bundles with their manifests. swift-system wraps `stat`, `lstat` and `fstat` without a manifest of its own, but only `_NIOFileSystem` uses it, and that is not linked. SwiftMail, SwiftSoup, SwiftCross, swift-nio-imap and swift-log call none of the listed APIs.
-- Collected data: correct for an iPhone that never uses a xanom-run receipts service. See M3.
+- Collected data: Device ID and Product Interaction are now declared (M3), matching an iPhone that uses the xanom-run receipts service.
 
-## App Privacy answers (draft for App Store Connect)
+## App Privacy answers (for App Store Connect)
+
+**Decision (2026-10-27): the owner chose option A, declare the data.** The privacy manifest has the two entries below (fixed in 7809a59), and the exact entries to make in App Store Connect are in RELEASING.md, O3 step 4. Option B is kept below only as the record of the alternative.
 
 **Tracking:** No. There is no ad SDK, analytics or IDFA, and no data is combined with third-party data.
 
-**Data collection, option A (recommended while pairing can import `flintr.xanom.co`):** "Yes, we collect data."
+**Data collection, option A (CHOSEN; pairing can import `flintr.xanom.co`):** "Yes, we collect data."
 
 | Data type | Collected for | Linked to the user | Used for tracking | What it is |
 |---|---|---|---|---|
 | Identifiers > Device ID | App Functionality | No | No | The receipts install ID (random, made by the service) and an HMAC of the IP the iPhone calls from, used to drop the sender's own opens. No account, email address or name goes with it |
 | Usage Data > Product Interaction | App Functionality | No | No | When a tracked message was registered and how many recipient tokens it has. The message ref and tokens are random |
 
-Not collected under option A: Contact Info, Contacts, User Content (mail bodies, subjects and addresses never reach the receipts service), Location (the service derives a city or country for the recipient's open, not for the user), Health, Financial, Browsing or Search History, Diagnostics, Purchases, Sensitive Info. The privacy manifest should then list `NSPrivacyCollectedDataTypeDeviceID` and `NSPrivacyCollectedDataTypeProductInteraction`, each with `NSPrivacyCollectedDataTypeLinked` false, `NSPrivacyCollectedDataTypeTracking` false and purpose `NSPrivacyCollectedDataTypePurposeAppFunctionality`.
+Not collected under option A: Contact Info, Contacts, User Content (mail bodies, subjects and addresses never reach the receipts service), Location (the service derives a city or country for the recipient's open, not for the user), Health, Financial, Browsing or Search History, Diagnostics, Purchases, Sensitive Info. The privacy manifest lists `NSPrivacyCollectedDataTypeDeviceID` and `NSPrivacyCollectedDataTypeProductInteraction`, each with `NSPrivacyCollectedDataTypeLinked` false, `NSPrivacyCollectedDataTypeTracking` false and purpose `NSPrivacyCollectedDataTypePurposeAppFunctionality`.
 
-**Data collection, option B (only if the iOS app can never point at a xanom-run service):** "No, we do not collect data from this app." The current manifest already matches this.
+**Data collection, option B (not chosen; only if the iOS app could never point at a xanom-run service):** "No, we do not collect data from this app." The manifest no longer matches this.
 
 Under either option, these flows are not developer collection, because the data goes straight to services the user chose and xanom has no access to it: IMAP and SMTP to the user's own mail servers; Google sign-in and Gmail; Mozilla's ISPDB (`autoconfig.thunderbird.net`), which receives only the email domain during setup; DNS MX lookups; one-click unsubscribe POSTs to the sender's URL; a self-hosted receipts endpoint. The privacy policy URL (flint.xanom.co/privacy) is required either way and should mention the iPhone app.
 
