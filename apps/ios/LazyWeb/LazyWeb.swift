@@ -18,6 +18,8 @@ public final class LazyWeb: NSObject, ASWebAuthenticationPresentationContextProv
     /// Safari's in-app view for a link. No Flint data goes with it, and it shares no cookies with the reader.
     @MainActor @objc(safariControllerForURL:)
     public static func safariController(for url: NSURL) -> UIViewController {
+        // SFSafariViewController raises for any scheme but http and https.
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return UIViewController() }
         let configuration = SFSafariViewController.Configuration()
         configuration.entersReaderIfAvailable = false
         return SFSafariViewController(url: url as URL, configuration: configuration)

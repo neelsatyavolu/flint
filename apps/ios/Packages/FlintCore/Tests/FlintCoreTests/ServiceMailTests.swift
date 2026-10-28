@@ -325,6 +325,38 @@ struct ServiceUnsubscribeTests {
         #expect(posts.all.count == 1)
     }
 
+    @Test func oneClickUsesThePostThatDoesNotFollowRedirects() async throws {
+        let posts = ServicePostLog()
+        let http = HTTPClient(
+            get: { _ in HTTPResponse(status: 404, body: Data()) },
+            postForm: { _, _ in Issue.record("followed redirects"); return HTTPResponse(status: 200, body: Data()) },
+            postFormWithoutRedirects: { url, _ in posts.add(url); return HTTPResponse(status: 307, body: Data()) })
+        let rig = try await ServiceRig.make(http: http)
+        defer { Task { await rig.cleanup() } }
+        try await rig.addAccount()
+        await rig.deliver("Deals", ageDays: 1, headers: [
+            "list-unsubscribe": "<https://93.184.216.34/u/abc>", "list-unsubscribe-post": "List-Unsubscribe=One-Click",
+        ])
+        try await rig.service.syncNow()
+        let id = try #require(try await rig.service.listThreads(inbox()).items.first?.id)
+        let messageId = try #require(try await rig.service.thread(id: id).messages.first?.id)
+        // A redirect is not an acceptance: the link goes back to the person.
+        #expect(try await rig.service.unsubscribe(messageId: messageId) == .browser(URL(string: "https://93.184.216.34/u/abc")!))
+        #expect(posts.all.count == 1)
+    }
+
+    @Test(arguments: ["<mailto:?subject=x>", "<mailto:%20>", "<ftp://list.example.com/u>", "<javascript:alert(1)>"])
+    func aHeaderWithNoWebAddressAndNoUsableMailtoIsNotOpenedInTheBrowser(header: String) async throws {
+        let rig = try await ServiceRig.make()
+        defer { Task { await rig.cleanup() } }
+        try await rig.addAccount()
+        await rig.deliver("Deals", ageDays: 1, headers: ["list-unsubscribe": header])
+        try await rig.service.syncNow()
+        let id = try #require(try await rig.service.listThreads(inbox()).items.first?.id)
+        let messageId = try #require(try await rig.service.thread(id: id).messages.first?.id)
+        await #expect(throws: FlintError.self) { _ = try await rig.service.unsubscribe(messageId: messageId) }
+    }
+
     @Test func aMessageWithoutTheHeaderHasNothingToUnsubscribeFrom() async throws {
         let rig = try await ServiceRig.make()
         defer { Task { await rig.cleanup() } }
