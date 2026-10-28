@@ -118,6 +118,18 @@ final class ScreenTourTests: XCTestCase {
     @MainActor func testGraphiteRoutes() { routeScreens("dark") }
     @MainActor func testPaperRoutes() { routeScreens("light") }
 
+    /// On an iPad whose window is too narrow for a sidebar column (portrait, or AX text sizes) the `sidebar` route can settle
+    /// with the sidebar collapsed; the menu button opens it, as a person would.
+    @MainActor
+    static func revealPadSidebar(_ app: XCUIApplication, id: String) {
+        guard id == "sidebar.root", UIDevice.current.userInterfaceIdiom == .pad else { return }
+        let root = app.descendants(matching: .any)[id].firstMatch
+        // The shell may collapse the sidebar just after the route opened it, so look again after it settles.
+        if root.waitForExistence(timeout: 8) { sleep(2); if root.exists { return } }
+        let menu = app.descendants(matching: .any)["inbox.menu"].firstMatch
+        if menu.waitForExistence(timeout: 20) { menu.tap() }
+    }
+
     /// iPad only: the sidebar column from the menu button, then all three columns in landscape with a thread open.
     @MainActor
     func testPadColumns() throws {
