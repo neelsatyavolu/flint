@@ -22,10 +22,11 @@ final class AccessibilityAuditTests: XCTestCase {
     override func setUp() { continueAfterFailure = true }
 
     @MainActor
-    private func audit(
+    func audit(
         route: String?, waitFor id: String, appearance: String = "dark", textSize: String? = nil, checksClipping: Bool = true
     ) throws {
         let app = ScreenTourTests.launch(appearance: appearance, route: route, textSize: textSize)
+        ScreenTourTests.revealPadSidebar(app, id: id)
         XCTAssertTrue(app.descendants(matching: .any)[id].firstMatch.waitForExistence(timeout: 30), id)
         sleep(2)
         let keyboard = app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame : .null
@@ -35,7 +36,12 @@ final class AccessibilityAuditTests: XCTestCase {
         // so that many unplaced clipping issues are explained and any further one fails.
         var unplacedBudget = id == "inbox.root" ? 2 * app.descendants(matching: .any).matching(identifier: "inbox.bundle.summary").count : 0
         try app.performAccessibilityAudit(for: checksClipping ? XCUIAccessibilityAuditType.all : XCUIAccessibilityAuditType.all.subtracting(.textClipped)) { issue in
-            var skip = Self.isExpected(issue, keyboard: keyboard) || Self.isOutside(issue, screen: screen)
+            // The keyboard may have come or gone since the screen settled, so read it again for each issue.
+            let liveKeyboard = app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame : keyboard
+            var skip = Self.isExpected(issue, keyboard: liveKeyboard) || Self.isOutside(issue, screen: screen)
+            // iPad at AX sizes: the sidebar slides over the list, and the codes strip's "N min left" under it is still read, at the
+            // sidebar's pixels (measured: only there, and `accessibilityHidden` on the list does not remove it from the audit).
+            if id == "sidebar.root", issue.auditType == .contrast, issue.element?.label.hasSuffix("min left") == true { skip = true }
             if !skip, Self.isUnplacedClipping(issue), unplacedBudget > 0 {
                 unplacedBudget -= 1
                 skip = true
@@ -63,6 +69,8 @@ final class AccessibilityAuditTests: XCTestCase {
         if issue.auditType == .textClipped, element.elementType == .textField, element.identifier.hasSuffix(".field") { return true }
         if element.elementType == .webView || element.identifier.hasPrefix("thread.body.") { return true }
         if !keyboard.isNull, keyboard.insetBy(dx: 0, dy: -60).contains(element.frame) { return true }
+        // Text that runs under the keyboard (the search screen's hint below the results) is read with the keyboard's blur and its suggestion bar (about 60 pt above the keys) over it.
+        if issue.auditType == .contrast, !keyboard.isNull, keyboard.insetBy(dx: 0, dy: -60).intersects(element.frame) { return true }
         if isAvatar(element), issue.auditType == .dynamicType || issue.auditType == .contrast { return true }
         // The bundle row's one-line "sender subject" summary truncates by design, like a subject in a row.
         if issue.auditType == .textClipped, element.identifier == "inbox.bundle.summary" { return true }
