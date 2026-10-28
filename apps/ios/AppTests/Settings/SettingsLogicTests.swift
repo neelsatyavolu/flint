@@ -250,6 +250,16 @@ struct LicenseCatalogTests {
         #expect(catalog.text(for: try #require(catalog.item(named: "Geist"))).contains("SIL OPEN FONT LICENSE"))
         #expect(catalog.text(for: try #require(catalog.item(named: "Lucide icons"))).contains("ISC License"))
     }
+
+    @Test("BoringSSL ships inside swift-nio-ssl, so its licence texts are in the catalog")
+    func boringSSL() throws {
+        let catalog = try #require(LicenseCatalog.load(bundle: Bundle(for: BundleToken.self)) ?? LicenseCatalog.load())
+        let item = try #require(catalog.items.first { $0.name.hasPrefix("BoringSSL") })
+        let text = catalog.text(for: item)
+        for required in ["OpenSSL License", "Original SSLeay License", "Eric Young", "ISC license", "fiat-crypto"] {
+            #expect(text.contains(required), "\(required)")
+        }
+    }
 }
 
 private final class BundleToken {}
