@@ -30,8 +30,22 @@ launch_and_wait() {  # $1 = seconds to wait for the report
 echo "run 0 (builds the database, not counted)"
 launch_and_wait 400 || { echo "no report from the build run" >&2; exit 1; }
 xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1; sleep 2
+REPORTS=$(mktemp -t flint-perf-reports)
 for run in $(seq 1 "$RUNS"); do
   launch_and_wait 60 || { echo "run $run: no report" >&2; continue; }
   echo "run $run: $(tr -d '\n' < "$REPORT")"
+  tr -d '\n' < "$REPORT" >> "$REPORTS"; echo >> "$REPORTS"
   xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1; sleep 2
 done
+# Medians over the counted runs: first rows, then every stage mark and the memory samples.
+python3 - "$REPORTS" <<'PY'
+import json, statistics, sys
+runs = [json.loads(line) for line in open(sys.argv[1]) if line.strip()]
+if runs:
+    def med(values): return round(statistics.median(values), 1)
+    print(f"median over {len(runs)} runs: firstRowsMs {med([r['firstRowsMs'] for r in runs])}")
+    stages = sorted({k for r in runs for k in r.get('stagesMs', {})}, key=lambda k: med([r['stagesMs'][k] for r in runs if k in r['stagesMs']]))
+    print("  stages (ms from process start): " + ", ".join(f"{k} {med([r['stagesMs'][k] for r in runs if k in r['stagesMs']])}" for k in stages))
+    print("  footprint MB: " + ", ".join(f"{s}s {med([r['footprintMBAtSecond'][s] for r in runs])}" for s in runs[0]['footprintMBAtSecond']))
+PY
+rm -f "$REPORTS"

@@ -20,6 +20,11 @@ enum LaunchMode: Sendable {
         if case .demo = self { return true }
         return false
     }
+
+    var isInjected: Bool {
+        if case .injected = self { return true }
+        return false
+    }
 }
 
 enum LiveConfiguration {

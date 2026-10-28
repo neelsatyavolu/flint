@@ -91,6 +91,7 @@ final class InboxViewModel {
         guard let query = makeQuery(mailbox) else { return }
         self.query = query
         PerfProbe.mark("inboxWatch")
+        if let first = await model.takePrefetchedPage(for: query) { apply(first) }
         do {
             for try await page in model.threadPages(query) { apply(page) }
         } catch {

@@ -41,6 +41,11 @@ targets:
         product: FlintStore
       - package: FlintCore
         product: FlintPairing
+      # Embedded, not linked: loaded on first use (App/Shell/LazyWeb.swift). Linking SafariServices and AuthenticationServices
+      # (and QuickLook) into the app costs about 150 ms of every launch.
+      - target: FlintLazyWeb
+        link: false
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: co.xanom.flint
@@ -99,6 +104,20 @@ targets:
         NSCameraUsageDescription: Flint uses the camera to scan the pairing code shown on your Mac and to attach photos you choose to take.
         NSFaceIDUsageDescription: Flint uses Face ID to unlock the app when you turn on the app lock.
         NSCalendarsWriteOnlyAccessUsageDescription: Flint adds an event to your calendar when you choose Add to Calendar on an invitation.
+  FlintLazyWeb:
+    type: framework
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: LazyWeb
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.xanom.flint.lazyweb
+        PRODUCT_NAME: FlintLazyWeb
+        GENERATE_INFOPLIST_FILE: YES
+        MACH_O_TYPE: mh_dylib
+        SKIP_INSTALL: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
   FlintTests:
     type: bundle.unit-test
     platform: iOS

@@ -12,7 +12,10 @@ struct FlintApp: App {
 
     private var appearance: FlintAppearance { FlintAppearance.resolved(stored: appearanceRaw) }
 
-    init() { BackgroundHub.install() }
+    init() {
+        BackgroundHub.install()
+        BackgroundHub.model.bootstrapAtLaunch()
+    }
 
     var body: some Scene {
         WindowGroup {

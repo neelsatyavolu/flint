@@ -1,5 +1,4 @@
 import FlintModel
-import QuickLook
 import SwiftUI
 
 /// The conversation: header, message cards (older ones folded), sends waiting in their undo window, and the reply dock.
@@ -24,7 +23,12 @@ struct ThreadRoot: View {
         .background(FlintColor.plane2)
         .task(id: model.openThread) { await watch() }
         .task(id: model.openThread) { if let id = model.openThread { await vm.watchQueued(model, threadId: id) } }
-        .quickLookPreview($previewURL)
+        .onChange(of: previewURL) { _, url in
+            // Quick Look comes from the lazily loaded web framework (LazyWeb), which presents it itself.
+            guard let url else { return }
+            LazyWeb.preview(url)
+            previewURL = nil
+        }
         .sheet(isPresented: safariBinding) { if let url = vm.safariURL { SafariView(url: url).ignoresSafeArea() } }
         .alert(item: $vm.linkPrompt, content: linkAlert)
         .confirmationDialog(unsubscribeTitle, isPresented: unsubscribeBinding, titleVisibility: .visible, presenting: confirmUnsubscribe) { message in
