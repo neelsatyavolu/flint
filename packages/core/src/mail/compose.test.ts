@@ -146,8 +146,9 @@ describe("buildReplyDraft", () => {
     const d = buildReplyDraft(source(), "forward", own, { forwardAttachments: att, timeZone: "UTC" });
     expect(d.to).toEqual([]);
     expect(d.subject).toBe("Fwd: Plan");
-    expect(d.inReplyTo).toBeNull();
-    expect(d.references).toEqual([]);
+    // Threading headers keep the sent forward in the original conversation, as Gmail and Apple Mail do.
+    expect(d.inReplyTo).toBe("m1@example.org");
+    expect(d.references).toEqual(["m0@example.org", "m1@example.org"]);
     expect(d.attachments).toEqual(att);
     expect(d.quotedHtml).toContain("---------- Forwarded message ---------");
     expect(d.quotedHtml).toContain("From: Carla &lt;carla@example.org&gt;");

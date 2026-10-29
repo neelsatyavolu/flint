@@ -186,6 +186,9 @@ export function buildReplyDraft(message: ReplySource, mode: Exclude<ComposeMode,
   const fromMe = sender ? own.has(sender.address.toLowerCase()) : false;
   const subject = prefixedSubject(message.subject, mode);
   const body = originalBodyHtml(message, opts);
+  // Forwards carry these too, so the sent forward stays in the original conversation (as Gmail and Apple Mail do).
+  const refs = message.messageId ? [...message.references, message.messageId] : [...message.references];
+  const threading = { inReplyTo: message.messageId, references: [...new Set(refs)] };
 
   if (mode === "forward") {
     const lines = [
@@ -197,7 +200,7 @@ export function buildReplyDraft(message: ReplySource, mode: Exclude<ComposeMode,
       ...(message.cc.length ? [`Cc: ${message.cc.map(formatAddress).join(", ")}`] : []),
     ].map(escapeHtml).join("<br>");
     return {
-      to: [], cc: [], subject, inReplyTo: null, references: [],
+      to: [], cc: [], subject, ...threading,
       quotedHtml: `<div class="flint_forward"><div>${lines}</div><br>${body}</div>`,
       attachments: opts.forwardAttachments ?? [],
     };
@@ -215,6 +218,5 @@ export function buildReplyDraft(message: ReplySource, mode: Exclude<ComposeMode,
   const who = sender ? formatAddress(sender) : "the sender";
   const header = `On ${formatWhen(message.date, opts.timeZone)}, ${escapeHtml(who)} wrote:`;
   const quotedHtml = `<div class="flint_quote"><div>${header}</div><blockquote style="margin:0 0 0 0.8ex;padding-left:1ex;border-left:1px solid #ccc">${body}</blockquote></div>`;
-  const refs = message.messageId ? [...message.references, message.messageId] : [...message.references];
-  return { to, cc, subject, quotedHtml, inReplyTo: message.messageId, references: [...new Set(refs)], attachments: [] };
+  return { to, cc, subject, quotedHtml, ...threading, attachments: [] };
 }

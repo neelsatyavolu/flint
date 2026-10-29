@@ -63,7 +63,9 @@ struct MailReplyDraftTests {
     @Test func forwardBuildsAHeaderBlockAndCarriesAttachmentsOver() {
         let att = [DraftAttachment(id: "1", filename: "a.pdf", contentType: "application/pdf", size: 10, path: "/tmp/a.pdf")]
         let d = build(source(), .forward, attachments: att)
-        #expect(d.to.isEmpty && d.cc.isEmpty && d.subject == "Fwd: Plan" && d.inReplyTo == nil && d.references.isEmpty && d.attachments == att)
+        #expect(d.to.isEmpty && d.cc.isEmpty && d.subject == "Fwd: Plan" && d.attachments == att)
+        // Threading headers keep the sent forward in the original conversation, as Gmail and Apple Mail do.
+        #expect(d.inReplyTo == "m1@example.org" && d.references == ["m0@example.org", "m1@example.org"])
         #expect(d.quotedHtml.contains("---------- Forwarded message ---------"))
         #expect(d.quotedHtml.contains("From: Carla &lt;carla@example.org&gt;") && d.quotedHtml.contains("Subject: Plan") && d.quotedHtml.contains("Cc: Eve"))
     }

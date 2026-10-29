@@ -98,6 +98,11 @@ public enum ReplyDraftBuilder {
         let sender = message.from.first
         let fromMe = sender.map { own.contains($0.address.lowercased()) } ?? false
         let subject = prefixedSubject(message.subject, mode: mode)
+        // Forwards carry these too, so the sent forward stays in the original conversation (as Gmail and Apple Mail do).
+        var refs = message.references
+        if let id = message.messageId { refs.append(id) }
+        var seen = Set<String>()
+        let references = refs.filter { seen.insert($0).inserted }
 
         if mode == .forward {
             var lines = [
@@ -110,8 +115,8 @@ public enum ReplyDraftBuilder {
             if !message.cc.isEmpty { lines.append("Cc: \(message.cc.map(format).joined(separator: ", "))") }
             let header = lines.map(escapeHTML).joined(separator: "<br>")
             return ReplyDraft(
-                to: [], cc: [], subject: subject, quotedHtml: "<div class=\"flint_forward\"><div>\(header)</div><br>\(quotedBodyHTML)</div>", inReplyTo: nil,
-                references: [], attachments: forwardAttachments)
+                to: [], cc: [], subject: subject, quotedHtml: "<div class=\"flint_forward\"><div>\(header)</div><br>\(quotedBodyHTML)</div>", inReplyTo: message.messageId,
+                references: references, attachments: forwardAttachments)
         }
 
         let primary = fromMe ? message.to : (message.replyTo.isEmpty ? message.from : message.replyTo)
@@ -125,9 +130,6 @@ public enum ReplyDraftBuilder {
         let who = sender.map(format) ?? "the sender"
         let header = "On \(formatWhen(message.date, timeZone: timeZone)), \(escapeHTML(who)) wrote:"
         let quoted = "<div class=\"flint_quote\"><div>\(header)</div><blockquote style=\"margin:0 0 0 0.8ex;padding-left:1ex;border-left:1px solid #ccc\">\(quotedBodyHTML)</blockquote></div>"
-        var refs = message.references
-        if let id = message.messageId { refs.append(id) }
-        var seen = Set<String>()
-        return ReplyDraft(to: to, cc: cc, subject: subject, quotedHtml: quoted, inReplyTo: message.messageId, references: refs.filter { seen.insert($0).inserted }, attachments: [])
+        return ReplyDraft(to: to, cc: cc, subject: subject, quotedHtml: quoted, inReplyTo: message.messageId, references: references, attachments: [])
     }
 }
