@@ -54,6 +54,11 @@ describe("buildSrcdoc", () => {
     expect(doc).toContain("background:#111110");
     expect(doc).toContain("padding:0px");
   });
+  it("keeps the height attribute of an image with no width", () => {
+    const doc = buildSrcdoc({ html: "x", allowRemoteImages: true });
+    expect(doc).toContain("img{max-width:100%}");
+    expect(doc).toContain("img[width],img:not([height]){height:auto}");
+  });
   it("never allows scripts in the sandbox", () => {
     expect(MAIL_FRAME_SANDBOX).not.toContain("allow-scripts");
     expect(MAIL_FRAME_SANDBOX).toContain("allow-same-origin");

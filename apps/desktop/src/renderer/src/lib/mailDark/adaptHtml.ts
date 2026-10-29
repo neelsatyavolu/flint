@@ -86,7 +86,8 @@ export function adaptBody(body: HTMLElement): void {
       continue;
     }
     if (tag === "IMG") {
-      if (needsPlate(el)) {
+      // On a fill the sender chose (kept), the logo already looks as designed.
+      if (!ctx.kept && needsPlate(el)) {
         const style = el.getAttribute("style");
         el.setAttribute("style", style ? `${style};${PLATE}` : PLATE);
       }

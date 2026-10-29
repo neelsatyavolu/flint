@@ -77,7 +77,8 @@ export function buildSrcdoc(opts: SrcdocOptions): string {
 html{background:${c.bg};color-scheme:${opts.scheme ?? "light"}}
 body{margin:0;padding:${pad}px;background:${c.bg};color:${c.fg};font:14.5px/1.5 "Geist Variable",ui-sans-serif,-apple-system,"Helvetica Neue",Arial,sans-serif;overflow-wrap:anywhere;word-break:normal;-webkit-font-smoothing:antialiased}
 a{color:${c.link}}
-img{max-width:100%;height:auto}
+img{max-width:100%}
+img[width],img:not([height]){height:auto}
 .flint-blocked-img{display:inline-block;box-sizing:border-box;width:100%;max-width:100%;min-height:48px;background:rgba(128,128,128,.12);border-radius:2px;vertical-align:top}
 table{max-width:100%}
 blockquote{margin:0 0 0 4px;padding-left:12px;border-left:2px solid ${c.line ?? "rgba(128,128,128,.35)"};color:inherit;opacity:.85}
