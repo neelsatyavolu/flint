@@ -9,6 +9,10 @@ describe("buildCsp", () => {
     expect(csp).toContain("default-src 'none'");
   });
   it("allows https images when asked", () => expect(buildCsp(true)).toContain("img-src data: flint-attachment: https:"));
+  it("upgrades http images to https when images are allowed", () => {
+    expect(buildCsp(true)).toContain("upgrade-insecure-requests");
+    expect(buildCsp(false)).not.toContain("upgrade-insecure-requests");
+  });
 });
 
 describe("blocked images", () => {

@@ -22,6 +22,13 @@ public enum CSSCleaner {
         #"position\s*:\s*(?:fixed|sticky)"#, #"@import"#, #"@charset"#,
     ].map { try! NSRegularExpression(pattern: $0, options: [.caseInsensitive]) }
 
+    /// An http:// or protocol-relative URL start inside a reference; the reader only loads https, so these are upgraded.
+    private static let insecureStart = try! NSRegularExpression(pattern: #"(^|[('"\s,])(?:http:)?//"#, options: [.caseInsensitive])
+
+    private static func upgradingInsecure(_ ref: String) -> String {
+        insecureStart.stringByReplacingMatches(in: ref, range: NSRange(ref.startIndex..., in: ref), withTemplate: "$1https://")
+    }
+
     // MARK: - Escapes
 
     /// Decodes CSS escapes so `p\6fsition:fixed` is checked as `position:fixed`. Two passes, like the TypeScript.
@@ -249,7 +256,7 @@ public enum CSSCleaner {
             var found: [String] = []
             let out = replaceRemoteRefs(text) { match in
                 found.append(match)
-                return allowRemote ? match : "none"
+                return allowRemote ? upgradingInsecure(match) : "none"
             }
             return (out, found)
         }

@@ -165,6 +165,11 @@ private func matches(_ regex: NSRegularExpression, _ s: String) -> Bool {
     regex.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)) != nil
 }
 
+/// The readers load remote images over https only (desktop CSP, iOS App Transport Security), so http:// and // are upgraded.
+private func httpsURL(_ url: String) -> String {
+    Policy.remoteSrc.stringByReplacingMatches(in: url, range: NSRange(url.startIndex..., in: url), withTemplate: "https://")
+}
+
 private func firstGroupNumber(_ regex: NSRegularExpression, _ s: String) -> Double? {
     guard let m = regex.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)), m.numberOfRanges > 1, let r = Range(m.range(at: 1), in: s) else { return nil }
     return Double(s[r])
@@ -297,7 +302,7 @@ private struct SanitizeRun {
                 let blocked = !options.allowRemoteImages
                     || TrackerRules.isReceiptsURL(bg, receiptsHost: options.receiptsHost)
                     || (options.blockTrackers && TrackerRules.matches(bg))
-                if blocked { attrs = setting(attrs, "background", nil) }
+                attrs = setting(attrs, "background", blocked ? nil : httpsURL(bg))
             } else {
                 attrs = setting(attrs, "background", nil)
             }
@@ -338,7 +343,7 @@ private struct SanitizeRun {
             return matches(Policy.dataImage, src) ? attrs : nil
         }
         guard matches(Policy.remoteSrc, src) else { return nil }
-        let full = src.hasPrefix("//") ? "https:\(src)" : src
+        let full = httpsURL(src)
         if TrackerRules.isReceiptsURL(full, receiptsHost: options.receiptsHost) { return nil }
         if options.blockTrackers && (TrackerRules.matches(full) || (isTinyOrHidden(attrs) && TrackerRules.looksLikePixel(full))) {
             trackerCount += 1

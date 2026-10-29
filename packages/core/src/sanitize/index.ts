@@ -70,6 +70,11 @@ function isRemote(src: string): boolean {
   return /^(?:https?:)?\/\//i.test(src.trim());
 }
 
+/** The readers load remote images over https only (desktop CSP, iOS App Transport Security), so http:// and // are upgraded. */
+function toHttps(url: string): string {
+  return url.replace(/^(?:http:)?\/\//i, "https://");
+}
+
 /**
  * Makes mail HTML safe for a sandboxed iframe. Output is a body fragment, not a document.
  * Scripts, event handlers, forms, frames, objects, meta refresh, base tags, javascript: and non-image data: URLs
@@ -106,7 +111,7 @@ export function sanitizeForDisplay(html: string, opts: SanitizeOptions): Sanitiz
     }
     if (/^data:/i.test(src)) return DATA_IMAGE.test(src) ? { tagName, attribs: out } : drop();
     if (!isRemote(src)) return drop();
-    const full = src.startsWith("//") ? `https:${src}` : src;
+    const full = toHttps(src);
     if (isReceiptsUrl(full, opts.receiptsHost)) return drop();
     if (blockTrackers && (matchesTrackerRule(full) || (isTinyOrHidden(out) && looksLikePixelUrl(full)))) {
       hasTrackers = true;
@@ -126,6 +131,7 @@ export function sanitizeForDisplay(html: string, opts: SanitizeOptions): Sanitiz
       if (isRemote(bg)) {
         hasRemoteImages = true;
         if (!opts.allowRemoteImages || isReceiptsUrl(bg, opts.receiptsHost) || (blockTrackers && matchesTrackerRule(bg))) delete out["background"];
+        else out["background"] = toHttps(bg);
       } else delete out["background"];
     }
     return { tagName, attribs: out };

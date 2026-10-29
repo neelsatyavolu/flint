@@ -15,6 +15,8 @@ const DANGEROUS = [
 const REF_OPEN = /(?:-webkit-)?image-set\(|url\(/gi;
 const REMOTE_START = /^\s*['"]?\s*(?:https?:)?\/\//i;
 const REMOTE_STRING = /['"]\s*(?:https?:)?\/\//i;
+/** An http:// or protocol-relative URL start inside a reference; the reader only loads https, so these are upgraded. */
+const INSECURE_START = /(^|[('"\s,])(?:http:)?\/\//gi;
 
 /** A single style attribute or block larger than this is dropped; real mail CSS is far smaller. */
 export const MAX_CSS_LENGTH = 512 * 1024;
@@ -110,7 +112,7 @@ export function cleanCss(input: string, opts: CssOptions): CssResult {
     const found: string[] = [];
     const out = replaceRemoteRefs(text, (match) => {
       found.push(match);
-      return opts.allowRemote ? match : "none";
+      return opts.allowRemote ? match.replace(INSECURE_START, "$1https://") : "none";
     });
     return { out, found };
   };

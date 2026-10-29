@@ -28,7 +28,9 @@ const WHITE_SHEET: NonNullable<SrcdocOptions["colors"]> = { bg: "#ffffff", fg: "
 export function buildCsp(allowRemoteImages: boolean): string {
   const img = allowRemoteImages ? "img-src data: flint-attachment: https:" : "img-src data: flint-attachment:";
   const font = allowRemoteImages ? "font-src https: data:" : "font-src data:";
-  return `default-src 'none'; ${img}; ${font}; style-src 'unsafe-inline'; media-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'`;
+  // Some senders (Zoom) still link http:// images; fetch them over https instead of blocking them.
+  const upgrade = allowRemoteImages ? "; upgrade-insecure-requests" : "";
+  return `default-src 'none'; ${img}; ${font}; style-src 'unsafe-inline'; media-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'${upgrade}`;
 }
 
 const LOCAL_SRC = /^(data:|flint-attachment:|cid:|blob:)/i;
