@@ -33,6 +33,8 @@ public actor FakeMailTransport: MailTransport {
     private var delayedFailures: [String: (skip: Int, error: FlintError)] = [:]
     private var idleListeners: [UUID: (mailbox: String, continuation: AsyncStream<IdleEvent>.Continuation)] = [:]
     private var rejectedLogins = false
+    private var stallNextCall: Set<String> = []
+    private var stalledCalls: [String: [CheckedContinuation<Void, Never>]] = [:]
 
     /// Every transport method called, in order, by name (for example "select", "storeFlags").
     public private(set) var calls: [String] = []
@@ -64,6 +66,14 @@ public actor FakeMailTransport: MailTransport {
 
     /// The call to `method` after `skip` more calls throws `error` (one shot).
     public func failNextAfter(_ method: String, skip: Int, with error: FlintError) { delayedFailures[method] = (skip, error) }
+
+    /// The next call to `method` waits until `release(method)`, like a slow server; other calls keep going meanwhile (one shot).
+    /// Only `listFolders` honors it.
+    public func stallNext(_ method: String) { stallNextCall.insert(method) }
+
+    public func release(_ method: String) {
+        for waiter in stalledCalls.removeValue(forKey: method) ?? [] { waiter.resume() }
+    }
 
     public func addFolder(_ folder: RemoteFolder, uidValidity: Int = 1000) {
         Self.add(folder, uidValidity: uidValidity, to: &boxes, order: &folderOrder)
@@ -248,6 +258,9 @@ public actor FakeMailTransport: MailTransport {
 
     public func listFolders() async throws -> [RemoteFolder] {
         try begin("listFolders")
+        if stallNextCall.remove("listFolders") != nil {
+            await withCheckedContinuation { stalledCalls["listFolders", default: []].append($0) }
+        }
         return folderOrder.compactMap { path in boxes[path].map { RemoteFolder(path: path, delimiter: $0.delimiter, attributes: $0.attributes) } }
     }
 
