@@ -6,7 +6,8 @@ import { htmlToText } from "../sanitize/htmlToText";
  * Works on HTML-only mail (the html is converted to text). A code is only accepted next to a cue ("verification code",
  * "one time password", "OTP", ...): inline ("Your verification code is 262495"), reversed in a subject
  * ("530331 is your KAYAK verification code"), or alone on the line after a cue line. Years, phone numbers, prices, order
- * numbers and dates never qualify because the token must stand alone and follow a cue.
+ * numbers and dates never qualify because the token must stand alone and follow a cue. A bare "Passcode" in a meeting or
+ * webinar invite is for joining the call, so it is not a cue there.
  */
 export type DetectInput = {
   subject: string;
@@ -49,6 +50,10 @@ const NOT_A_HANDOVER = /\b(?:settings?|enabled|disabled|updated|changed|compromi
 /** A cue in a booking or order context is a reference number, not a one-time code. */
 const NOT_A_CODE_CONTEXT = /\b(?:order|booking|reservation|itinerary|receipt|invoice|tracking|flight|ticket|promo|coupon|discount|gift)\b/i;
 
+/** A meeting or webinar invite: its bare "Passcode" is for joining the call, not a one-time code. */
+const MEETING_INVITE = /\b(?:meeting|webinar)[ -]?(?:id|number)\b|\bjoin\s+(?:(?:the|this|our|zoom|teams)\s+)*(?:meeting|webinar)\b/i;
+const BARE_PASSCODE_CUE = /^pass ?code$/i;
+
 const YEAR_OK_CUE = /verification|otp|one[- ]?time/i;
 
 type Hit = { token: string; cue: string };
@@ -77,20 +82,21 @@ function normalize(raw: string, cue: string): string | null {
   return ALNUM_OK_CUE.test(cue) && /^[A-Z0-9]{6,8}$/.test(t) ? t : null;
 }
 
-function firstValid(matches: IterableIterator<RegExpMatchArray>, cueOf: (m: RegExpMatchArray) => string, tokenIndex: number): Hit | null {
+function firstValid(matches: IterableIterator<RegExpMatchArray>, cueOf: (m: RegExpMatchArray) => string, tokenIndex: number, meeting = false): Hit | null {
   for (const m of matches) {
     const cue = cueOf(m);
+    if (meeting && BARE_PASSCODE_CUE.test(cue)) continue;
     const token = normalize(m[tokenIndex] ?? "", cue);
     if (token) return { token, cue };
   }
   return null;
 }
 
-function findInline(line: string): Hit | null {
+function findInline(line: string, meeting = false): Hit | null {
   if (line.length > MAX_LINE_CHARS * 2) return null;
   if (NOT_A_CODE_CONTEXT.test(line) || NOT_A_HANDOVER.test(line)) return null;
   return (
-    firstValid(line.matchAll(INLINE), (m) => m[1] ?? "", 2) ??
+    firstValid(line.matchAll(INLINE), (m) => m[1] ?? "", 2, meeting) ??
     firstValid(line.matchAll(BARE_INLINE), () => "code", 1)
   );
 }
@@ -114,10 +120,11 @@ function isCueLine(line: string): boolean {
 }
 
 /** The cue line, then (after at most two blank lines) a line holding nothing but the code. */
-function findAfterCueLine(lines: string[]): Hit | null {
+function findAfterCueLine(lines: string[], meeting = false): Hit | null {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
     if (!isCueLine(line)) continue;
+    if (meeting && BARE_PASSCODE_CUE.test(CUE_ANYWHERE.exec(line)?.[0] ?? "")) continue;
     let j = i + 1;
     // A wrapped cue sentence continues on up to two more non-blank lines.
     for (let k = 0; k < 2 && j < lines.length && lines[j] !== "" && !SOLE_TOKEN.test(lines[j]!) && lines[j]!.length <= MAX_LINE_CHARS; k++) j++;
@@ -202,12 +209,13 @@ export function detectCode(input: DetectInput): DetectedCode | null {
   if (input.html?.trim()) bodies.push(htmlToText(input.html.slice(0, 200_000)));
   for (const body of bodies) {
     if (body.length > MAX_BODY_CHARS) continue;
+    const meeting = MEETING_INVITE.test(body);
     const lines = bodyLines(body);
     for (const line of lines) {
-      const hit = findInline(line);
+      const hit = findInline(line, meeting);
       if (hit) return resolve(hit.token);
     }
-    const hit = findAfterCueLine(lines);
+    const hit = findAfterCueLine(lines, meeting);
     if (hit) return resolve(hit.token);
   }
   return null;

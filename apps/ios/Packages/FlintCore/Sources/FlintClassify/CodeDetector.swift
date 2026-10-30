@@ -65,6 +65,9 @@ public struct CodeDetector: Sendable {
     private static let soleToken = JSRegex(literal: "^" + tokenRe + #"\z"#, ignoreCase: true)
     private static let notAHandover = JSRegex(literal: #"\b(?:settings?|enabled|disabled|updated|changed|compromised|may be|might be|has been|have been|was used|were used|did not|didn't|unauthori[sz]ed|suspicious|reset|expired)\b"#, ignoreCase: true)
     private static let notACodeContext = JSRegex(literal: #"\b(?:order|booking|reservation|itinerary|receipt|invoice|tracking|flight|ticket|promo|coupon|discount|gift)\b"#, ignoreCase: true)
+    /// A meeting or webinar invite: its bare "Passcode" is for joining the call, not a one-time code.
+    private static let meetingInvite = JSRegex(literal: #"\b(?:meeting|webinar)[ -]?(?:id|number)\b|\bjoin\s+(?:(?:the|this|our|zoom|teams)\s+)*(?:meeting|webinar)\b"#, ignoreCase: true)
+    private static let barePasscodeCue = JSRegex(literal: #"^pass ?code\z"#, ignoreCase: true)
     private static let yearOKCue = JSRegex(literal: #"verification|otp|one[- ]?time"#, ignoreCase: true)
 
     private static let year = JSRegex(literal: #"^(?:19|20)\d\d\z"#)
@@ -113,9 +116,10 @@ public struct CodeDetector: Sendable {
         return alnumOKCue.test(cue) && plainAlnum.test(t) ? t : nil
     }
 
-    private static func firstValid(_ matches: [JSRegex.Match], cue: (JSRegex.Match) -> String, tokenIndex: Int) -> Hit? {
+    private static func firstValid(_ matches: [JSRegex.Match], cue: (JSRegex.Match) -> String, tokenIndex: Int, meeting: Bool = false) -> Hit? {
         for m in matches {
             let c = cue(m)
+            if meeting && barePasscodeCue.test(c) { continue }
             if let token = normalize(m[tokenIndex] ?? "", cue: c) { return Hit(token: token, cue: c) }
         }
         return nil
@@ -123,10 +127,10 @@ public struct CodeDetector: Sendable {
 
     // MARK: Finders
 
-    private static func findInline(_ line: String) -> Hit? {
+    private static func findInline(_ line: String, meeting: Bool = false) -> Hit? {
         if line.utf16.count > maxLineChars * 2 { return nil }
         if notACodeContext.test(line) || notAHandover.test(line) { return nil }
-        return firstValid(inline.all(in: line), cue: { $0[1] ?? "" }, tokenIndex: 2)
+        return firstValid(inline.all(in: line), cue: { $0[1] ?? "" }, tokenIndex: 2, meeting: meeting)
             ?? firstValid(bareInline.all(in: line), cue: { _ in "code" }, tokenIndex: 1)
     }
 
@@ -157,10 +161,11 @@ public struct CodeDetector: Sendable {
     }
 
     /// The cue line, then (after at most two blank lines) a line holding nothing but the code.
-    private static func findAfterCueLine(_ lines: [String]) -> Hit? {
+    private static func findAfterCueLine(_ lines: [String], meeting: Bool = false) -> Hit? {
         for i in lines.indices {
             let line = lines[i]
             if !isCueLine(line) { continue }
+            if meeting && barePasscodeCue.test(cueAnywhere.first(in: line)?[0] ?? "") { continue }
             var j = i + 1
             // A wrapped cue sentence continues on up to two more non-blank lines.
             var k = 0
@@ -254,9 +259,10 @@ public struct CodeDetector: Sendable {
         if let html = input.html, !html.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { bodies.append(htmlToText(String(html.prefix(200_000)))) }
         for body in bodies {
             if body.utf16.count > Self.maxBodyChars { continue }
+            let meeting = Self.meetingInvite.test(body)
             let lines = Self.bodyLines(body)
-            for line in lines { if let hit = Self.findInline(line) { return resolve(hit.token) } }
-            if let hit = Self.findAfterCueLine(lines) { return resolve(hit.token) }
+            for line in lines { if let hit = Self.findInline(line, meeting: meeting) { return resolve(hit.token) } }
+            if let hit = Self.findAfterCueLine(lines, meeting: meeting) { return resolve(hit.token) }
         }
         return nil
     }
