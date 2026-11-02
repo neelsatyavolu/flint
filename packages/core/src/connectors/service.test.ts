@@ -92,18 +92,29 @@ describe("connector service", () => {
     await expect(t.service.api.pairConnector(preview.token, "AB12CD34")).rejects.toThrow("preview expired");
   });
 
-  it("fetches before body matching in preview and refuses an incomplete preview", async () => {
+  it("searches bodies of recent mail in one batch, but never downloads old mail to search it", async () => {
     const t = setup();
     const next = manifest();
     next.match.any = [{ field: "body", op: "contains", value: "booking" }];
     t.remote(next);
-    const m = t.add("Confirmation");
-    t.ensureBodies.mockImplementationOnce(async () => undefined);
-    await expect(t.service.api.previewConnector("https://app.example")).rejects.toThrow("accurate preview");
+    const recent = t.add("Confirmation", T0 - 3 * DAY);
+    const old = t.add("Old confirmation", T0 - 200 * DAY);
     const preview = await t.service.api.previewConnector("https://app.example");
     expect(preview.count).toBe(1);
-    expect(t.store.getMessage(m.messageRowId)!.bodyLoaded).toBe(true);
+    expect(t.ensureBodies).toHaveBeenCalledTimes(1);
+    expect(t.ensureBodies).toHaveBeenCalledWith([recent.messageRowId]);
+    expect(t.store.getMessage(old.messageRowId)!.bodyLoaded).toBe(false);
     expect(deliveries(t)).toHaveLength(0);
+  });
+
+  it("still finishes the preview when bodies can't be fetched", async () => {
+    const t = setup();
+    const next = manifest();
+    next.match.any = [{ field: "body", op: "contains", value: "booking" }];
+    t.remote(next);
+    t.add("Confirmation");
+    t.ensureBodies.mockRejectedValueOnce(new Error("offline"));
+    expect((await t.service.api.previewConnector("https://app.example")).count).toBe(0);
   });
 
   it("uses the existing body rule fallback for HTML-only mail", async () => {

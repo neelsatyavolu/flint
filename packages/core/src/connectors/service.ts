@@ -11,6 +11,8 @@ import { assertPublicConnectorUrl } from "./network";
 import { deliveryHeaders } from "./signer";
 
 export type ConnectorsApi = Pick<FlintApi, "listConnectors" | "previewConnector" | "openConnectorPairPage" | "pairConnector" | "previewConnectorApproval" | "approveConnector" | "removeConnector">;
+/** Older mail without a downloaded body is matched on its headers only. */
+const CONNECTOR_BODY_FETCH_DAYS = 14;
 type Consent = ConnectorPreview & { expires: number; connectionId: string | null; opened: boolean };
 export type ConnectorDeps = {
   store: Store; platform: Pick<Platform, "secrets" | "openExternal">; fetch: typeof fetch; now(): number;
@@ -119,22 +121,29 @@ export class ConnectorService {
   async #preview(manifestUrl: string, manifest: ConnectorManifest, connectionId: string | null): Promise<ConnectorPreview> {
     const { store, now, ensureBodies } = this.deps;
     const ids = store.connectorHistory(now() - manifest.historyDays * CONNECTOR_DAY);
-    const bodyMatch = manifest.match.schemaTypes.length > 0 || manifest.match.any.some((c) => c.field === "body");
     let count = 0;
     const subjects: string[] = [];
+    const take = (subject: string) => {
+      count++;
+      if (subjects.length < 5) subjects.push(subject);
+    };
+    // Header rules see the whole window. Body rules only see bodies on this computer, plus recent
+    // mail fetched in one batch: never download a year of mail just to search it.
+    const toFetch: number[] = [];
     for (const id of ids) {
       if (this.#stopped) throw new FlintError("invalid", "Connected apps are shutting down.");
-      let m = store.getMessage(id);
+      const m = store.getMessage(id);
       if (!m || !store.connectorEligible(id)) continue;
-      if (bodyMatch && !m.bodyLoaded && !matches(manifest, m)) {
-        await ensureBodies([id]);
-        m = store.getMessage(id);
-        if (!m || !store.connectorEligible(id)) continue;
-        if (!m.bodyLoaded) throw new FlintError("network", "Couldn't load mail for an accurate preview. Reconnect your mail account and try again.");
+      if (matches(manifest, m)) take(m.subject);
+      else if (this.#mayFetchBody(manifest, m)) toFetch.push(id);
+    }
+    if (toFetch.length) {
+      // A body that can't be fetched just isn't counted; the header matches above still are.
+      await ensureBodies(toFetch).catch(() => undefined);
+      for (const id of toFetch) {
+        const m = store.getMessage(id);
+        if (m?.bodyLoaded && store.connectorEligible(id) && matches(manifest, m)) take(m.subject);
       }
-      if (!matches(manifest, m)) continue;
-      count++;
-      if (subjects.length < 5) subjects.push(m.subject);
     }
     for (const [token, c] of this.#consents) if (c.expires < now()) this.#consents.delete(token);
     // Keep only a small number of pending consent sheets, all scoped to this running desktop process.
@@ -202,6 +211,12 @@ export class ConnectorService {
     this.deps.poke();
   }
 
+  /** A body rule could still match, and the body is on this computer or recent enough to fetch. */
+  #mayFetchBody(manifest: ConnectorManifest, m: { bodyLoaded: boolean; date: number }): boolean {
+    const bodyRules = manifest.match.schemaTypes.length > 0 || manifest.match.any.some((c) => c.field === "body");
+    return bodyRules && (m.bodyLoaded || m.date >= this.deps.now() - CONNECTOR_BODY_FETCH_DAYS * CONNECTOR_DAY);
+  }
+
   async #deliver(delivery: ConnectorDelivery): Promise<void> {
     const { store, now, platform, ensureBodies } = this.deps;
     const finish = (state: "failed" | "skipped") => store.finishConnectorDelivery(delivery, state, now());
@@ -214,9 +229,8 @@ export class ConnectorService {
     try {
       let m = store.getMessage(id);
       if (!m) { finish("skipped"); return; }
-      // Always fetch before sending. If only headers can match, avoid fetching clearly unrelated mail.
-      const bodyMatch = connection.manifest.match.schemaTypes.length > 0 || connection.manifest.match.any.some((c) => c.field === "body");
-      if (!bodyMatch && !matches(connection.manifest, m)) { finish("skipped"); return; }
+      // Fetch a body only for mail its headers already match, or recent mail Flint downloads anyway.
+      if (!matches(connection.manifest, m) && !this.#mayFetchBody(connection.manifest, m)) { finish("skipped"); return; }
       if (!m.bodyLoaded) await ensureBodies([id]);
       m = store.getMessage(id);
       if (!m || !store.connectorEligible(id)) { finish("skipped"); return; }
