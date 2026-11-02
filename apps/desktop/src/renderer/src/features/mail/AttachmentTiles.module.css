@@ -1,4 +1,4 @@
-/* Attachment tiles under a message (DESIGN.md, Reader): 4px radius, 200px wide, glyph or thumbnail, name, size in Data. */
+/* Attachment tiles under a message (DESIGN.md, Reader): 6px radius, 200px wide, glyph or thumbnail, name, size in Data. */
 .wrap { margin: 16px 0 0; }
 .tiles { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .tile { display: flex; align-items: center; width: 200px; padding-right: 4px; border: 1px solid var(--line-strong); border-radius: var(--r-control); }

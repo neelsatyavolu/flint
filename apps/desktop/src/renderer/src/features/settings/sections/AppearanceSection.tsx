@@ -47,7 +47,7 @@ export function AppearanceSection() {
         icon={<Palette size={18} strokeWidth={1.5} />}
         title="Theme"
         value={a.theme}
-        choices={[{ value: "system", label: "As in system" }, { value: "dark", label: "Graphite (dark)" }, { value: "light", label: "Paper (light)" }]}
+        choices={[{ value: "system", label: "As in system" }, { value: "dark", label: "Dark" }, { value: "light", label: "Light" }]}
         onChange={(v) => void save({ appearance: { theme: v } })}
       />
       <SettingsRow icon={<Type size={18} strokeWidth={1.5} />} title="Text size" description="Scales the whole window. Saved on this computer.">

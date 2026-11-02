@@ -37,7 +37,7 @@ function rememberHeight(key: string, px: number): void {
   heights.set(key, px);
   if (heights.size > MAX_HEIGHTS) heights.delete(heights.keys().next().value as string);
 }
-const LIGHT = { bg: "#ffffff", fg: "#1a1a17", link: "#2f6fe0" };
+const LIGHT = { bg: "#ffffff", fg: "#0a0a0c", link: "#2f6fe0" };
 
 /** Sandboxed mail iframe that sizes itself to its content. See lib/html.ts for why same-origin is needed. */
 export function MailFrame({ html, allowRemoteImages, colors, sheet, padding, title = "Message", className, onLink, onReady }: Props) {

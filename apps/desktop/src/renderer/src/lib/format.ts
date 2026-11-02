@@ -32,16 +32,16 @@ export function formatFullDate(ts: number): string {
   return format(new Date(ts), "MMM d, yyyy, h:mm a");
 }
 
-/** Group label for list sections. Uppercase; the Label style also uppercases. */
+/** Group label for list sections, in sentence case (DESIGN.md §3 Label). */
 export function dateGroupLabel(ts: number, now: number = Date.now()): string {
   const d = new Date(ts);
   const n = new Date(now);
-  if (isSameDay(d, n)) return "TODAY";
-  if (isSameDay(d, subDays(n, 1))) return "YESTERDAY";
+  if (isSameDay(d, n)) return "Today";
+  if (isSameDay(d, subDays(n, 1))) return "Yesterday";
   const weekStart = startOfWeek(n, { weekStartsOn: 1 });
-  if (d >= weekStart) return "THIS WEEK";
-  if (d >= subDays(weekStart, 7)) return "LAST WEEK";
-  if (isSameYear(d, n)) return format(d, "MMMM").toUpperCase();
+  if (d >= weekStart) return "This week";
+  if (d >= subDays(weekStart, 7)) return "Last week";
+  if (isSameYear(d, n)) return format(d, "MMMM");
   return format(d, "yyyy");
 }
 

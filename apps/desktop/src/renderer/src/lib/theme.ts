@@ -107,11 +107,11 @@ function subscribeTheme(onChange: () => void): () => void {
 
 export type FrameColors = { bg: string; fg: string; link: string; line: string };
 
-/** Mail-frame colors from the live tokens (the iframe cannot read CSS variables itself). Falls back to the Graphite/Paper values. */
+/** Mail-frame colors from the live tokens (the iframe cannot read CSS variables itself). Falls back to the dark/light token values. */
 export function readFrameColors(theme: ResolvedTheme): FrameColors {
   const fallback: FrameColors = theme === "dark"
-    ? { bg: "#232321", fg: "#edebe5", link: "#4c8dff", line: "rgba(237,235,229,0.18)" }
-    : { bg: "#ffffff", fg: "#1a1a17", link: "#2f6fe0", line: "rgba(26,26,23,0.2)" };
+    ? { bg: "#111114", fg: "#fcfdff", link: "#4c8dff", line: "rgba(255,255,255,0.14)" }
+    : { bg: "#ffffff", fg: "#0a0a0c", link: "#2f6fe0", line: "rgba(0,0,0,0.12)" };
   if (typeof document === "undefined" || typeof getComputedStyle !== "function") return fallback;
   const cs = getComputedStyle(document.documentElement);
   const pick = (name: string, fb: string) => cs.getPropertyValue(name).trim() || fb;

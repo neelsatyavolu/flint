@@ -52,7 +52,7 @@ export function GalleryPanel({ theme, title }: { theme: "dark" | "light"; title:
   return (
     <div data-theme={theme} className={styles.panel}>
       <h1 className="t-subject">{title}</h1>
-      <p style={{ color: "var(--fg-3)", marginTop: 4 }}>Primitives for the Flint renderer. Geist for UI, Geist Mono for data, Newsreader for prose.</p>
+      <p style={{ color: "var(--fg-3)", marginTop: 4 }}>Primitives for the Flint renderer. Geist for UI and prose, Geist Mono for code and keys, Geist Serif for display.</p>
 
       <Section title="Planes and tokens">
         <div className={styles.planes}>

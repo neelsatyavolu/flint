@@ -5,7 +5,7 @@
   height: 18px;
   padding: 0 6px;
   border-radius: var(--r-control);
-  font: 400 var(--text-data) / 1 var(--font-mono);
+  font: 400 var(--text-data) / 1 var(--font-ui);
   font-variant-numeric: tabular-nums;
   background: var(--active);
   color: var(--fg-2);

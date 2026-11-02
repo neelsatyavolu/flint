@@ -21,7 +21,7 @@
 .subject:focus { outline: none; }
 .summarySlot > section, .summarySlot > div { margin-inline: 16px; }
 .chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
-.categoryChip { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 6px; border-radius: var(--r-control); background: var(--active); color: var(--fg-2); font: 400 var(--text-data) / 1 var(--font-mono); cursor: default; white-space: nowrap; }
+.categoryChip { all: unset; box-sizing: border-box; display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 6px; border-radius: var(--r-control); background: var(--active); color: var(--fg-2); font: 400 var(--text-data) / 1 var(--font-ui); cursor: default; white-space: nowrap; }
 .categoryChip:hover { background: var(--hover); color: var(--fg); }
 .categoryChip:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .acctDot { width: 6px; height: 6px; border-radius: 50%; flex: none; }

@@ -5,8 +5,8 @@ import styles from "./Gallery.module.css";
 export function Gallery() {
   return (
     <div className={styles.page}>
-      <GalleryPanel theme="dark" title="Graphite" />
-      <GalleryPanel theme="light" title="Paper" />
+      <GalleryPanel theme="dark" title="Dark" />
+      <GalleryPanel theme="light" title="Light" />
     </div>
   );
 }

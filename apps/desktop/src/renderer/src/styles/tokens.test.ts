@@ -88,7 +88,7 @@ describe("design tokens", () => {
   });
 });
 
-// Shared with the iOS app: tokens.json carries the Graphite (dark) and Paper (light) values and the contrast cases.
+// Shared with the iOS app: tokens.json carries the dark and light values and the contrast cases.
 refreshData("tokens", "themes", { dark, light, darkMore: block('[data-theme="dark"]', moreContrast), lightMore: block('[data-theme="light"]', moreContrast) });
 refreshData("tokens", "root", block(":root {"));
 const shared = loadFixture<Record<string, string>, any>("tokens");

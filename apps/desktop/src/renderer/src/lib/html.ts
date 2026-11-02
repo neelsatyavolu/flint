@@ -23,7 +23,7 @@ export type SrcdocOptions = {
   padding?: number;
 };
 
-const WHITE_SHEET: NonNullable<SrcdocOptions["colors"]> = { bg: "#ffffff", fg: "#1a1a17", link: "#2f6fe0" };
+const WHITE_SHEET: NonNullable<SrcdocOptions["colors"]> = { bg: "#ffffff", fg: "#0a0a0c", link: "#2f6fe0" };
 
 export function buildCsp(allowRemoteImages: boolean): string {
   const img = allowRemoteImages ? "img-src data: flint-attachment: https:" : "img-src data: flint-attachment:";

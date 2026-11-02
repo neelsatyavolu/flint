@@ -10,7 +10,7 @@ import styles from "../HomeView.module.css";
 export function Hero({ title, now, scene }: { title: string; now: number; scene: Scene | null }): JSX.Element {
   return (
     <div className={styles.band}>
-      <h1 className={clsx("t-subject", styles.greeting)}>{title}</h1>
+      <h1 className={clsx("t-display", styles.greeting)}>{title}</h1>
       <p className={clsx("t-data", styles.date)}>
         {format(now, "EEEE, MMMM d")}
         <span aria-hidden> · </span>

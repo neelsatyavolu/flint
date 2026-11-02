@@ -33,11 +33,11 @@ describe("formatAgo", () => {
 
 describe("dateGroupLabel", () => {
   it.each([
-    [at(2026, 10, 25, 9), "TODAY"],
-    [at(2026, 10, 24, 23), "YESTERDAY"],
-    [at(2026, 10, 21), "THIS WEEK"],
-    [at(2026, 10, 15), "LAST WEEK"],
-    [at(2026, 9, 30), "SEPTEMBER"],
+    [at(2026, 10, 25, 9), "Today"],
+    [at(2026, 10, 24, 23), "Yesterday"],
+    [at(2026, 10, 21), "This week"],
+    [at(2026, 10, 15), "Last week"],
+    [at(2026, 9, 30), "September"],
     [at(2025, 12, 2), "2025"],
   ])("labels %#", (ts, label) => expect(dateGroupLabel(ts, NOW)).toBe(label));
 });

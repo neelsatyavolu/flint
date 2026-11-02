@@ -78,7 +78,7 @@ describe("DraftCard", () => {
     const del = vi.mocked(flint.deleteDraft).mockResolvedValue(undefined);
     const changed = vi.fn();
     wrap(<DraftCard draftId={5} threadId={3} messageId={7} reloadKey={0} onChanged={changed} />);
-    await waitFor(() => expect(screen.getByText("DRAFT")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Draft")).toBeTruthy());
     expect(screen.getByText("Carla Mendes")).toBeTruthy();
     expect(screen.getByText(/Thanks, see you/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
@@ -101,7 +101,7 @@ describe("DraftCard", () => {
     expect(ended).not.toHaveBeenCalled();
     await act(async () => resolve(draft));
     expect(ended).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("DRAFT")).toBeTruthy();
+    expect(screen.getByText("Draft")).toBeTruthy();
   });
   it("lets the reveal go when the draft cannot be loaded", async () => {
     vi.mocked(flint.getDraft).mockRejectedValue(new Error("gone"));
@@ -112,7 +112,7 @@ describe("DraftCard", () => {
       </FrameGateContext.Provider>,
     );
     await waitFor(() => expect(ended).toHaveBeenCalledTimes(1));
-    expect(screen.queryByText("DRAFT")).toBeNull();
+    expect(screen.queryByText("Draft")).toBeNull();
   });
   it("turns draft HTML into plain preview text", () => {
     expect(draftPreviewText("<p>One</p><p>Two<br>three</p>")).toBe("One\nTwo\nthree");

@@ -12,10 +12,10 @@ export type Oklch = { l: number; c: number; h: number };
  * A test keeps them in sync with tokens.css.
  */
 export const DARK = {
-  bg: "#232321",
-  fg: "#edebe5",
+  bg: "#111114",
+  fg: "#fcfdff",
   accent: "#4c8dff",
-  line: "rgba(237, 235, 229, 0.18)",
+  line: "rgba(255, 255, 255, 0.14)",
 } as const;
 
 const NAMED: Record<string, string> = {
@@ -146,7 +146,7 @@ export function mapBackground(c: Rgba): { color: Rgba; kept: boolean } {
   if (!light) return { color: c, kept: true };
   const neutral = o.c < 0.012;
   return {
-    color: fromOklch({ l: 0.265 + (1 - o.l) * 0.4, c: neutral ? 0 : Math.min(o.c * 1.5, 0.08), h: o.h }, c.a),
+    color: fromOklch({ l: 0.18 + (1 - o.l) * 0.4, c: neutral ? 0 : Math.min(o.c * 1.5, 0.08), h: o.h }, c.a),
     kept: false,
   };
 }
@@ -164,7 +164,7 @@ export function mapText(c: Rgba): Rgba {
 export function mapBorder(c: Rgba): Rgba {
   const o = toOklch(c);
   if (c.a < 0.05) return c;
-  if (o.c < 0.05 && o.l >= 0.6) return { r: 237, g: 235, b: 229, a: 0.18 };
+  if (o.c < 0.05 && o.l >= 0.6) return { r: 255, g: 255, b: 255, a: 0.14 };
   if (o.l < 0.45) return fromOklch({ l: Math.min(0.94 - o.l * 0.55, 0.7), c: Math.min(o.c, 0.12), h: o.h }, c.a);
   return c;
 }

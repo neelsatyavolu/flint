@@ -41,7 +41,7 @@
 
 .draft { padding: 12px 20px 16px; }
 .draftHead { display: flex; align-items: center; gap: 10px; }
-.draftTag { flex: none; padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: var(--r-control); color: var(--fg-2); letter-spacing: 0.04em; }
+.draftTag { flex: none; padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: var(--r-control); color: var(--fg-2); }
 .draftTo { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .draftActions { display: flex; align-items: center; gap: 4px; flex: none; }
 .draftDivider { width: 1px; height: 16px; margin: 0 4px; background: var(--line-strong); }

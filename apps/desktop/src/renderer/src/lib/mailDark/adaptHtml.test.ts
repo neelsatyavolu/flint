@@ -50,7 +50,7 @@ describe("Gmail reply", () => {
   });
   it("swaps the pale grey quote rule for the theme line", () => {
     const bq = doc.querySelector("blockquote")!;
-    expect(inline(bq, "border-left")).toMatch(/rgba\(237,235,229,0\.18\)/);
+    expect(inline(bq, "border-left")).toMatch(/rgba\(255,255,255,0\.14\)/);
     expect(inline(bq, "margin")).toBe("0px 0px 0px 0.8ex"); // layout declarations are untouched
   });
   it("leaves every text color readable", () => expect(worstContrast(out.html).ratio).toBeGreaterThan(4.5));
@@ -82,7 +82,7 @@ describe("Outlook MsoNormal reply", () => {
   });
   it("replaces the pale separator border", () => {
     const sep = doc.querySelector("div[style*='border']")!;
-    expect(inline(sep, "border-top")).toContain("rgba(237,235,229,0.18)");
+    expect(inline(sep, "border-top")).toContain("rgba(255,255,255,0.14)");
   });
 });
 

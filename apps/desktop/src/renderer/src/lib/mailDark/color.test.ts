@@ -73,7 +73,7 @@ describe("mapText", () => {
 
 describe("mapBorder", () => {
   it("uses the theme line for pale neutral rules, lightens black, keeps brand lines", () => {
-    expect(mapBorder(c("#cccccc"))).toMatchObject({ r: 237, g: 235, b: 229 });
+    expect(mapBorder(c("#cccccc"))).toMatchObject({ r: 255, g: 255, b: 255 });
     expect(contrast(mapBorder(c("#000000")), c(DARK.bg))).toBeGreaterThan(3);
     expect(formatColor(mapBorder(c("#4c8dff")))).toBe("#4c8dff");
   });

@@ -4,9 +4,9 @@
  * --scene-scrim's alpha is the theme floor; a photo with a brighter top band raises it through --photo-scrim.
  */
 .home {
-  --on-scene: #f4f2ec;
+  --on-scene: #fcfdff;
   --scene-scrim-alpha: 0.3;
-  --scene-scrim: rgba(17, 17, 16, max(var(--scene-scrim-alpha), var(--photo-scrim, 0)));
+  --scene-scrim: rgba(0, 0, 0, max(var(--scene-scrim-alpha), var(--photo-scrim, 0)));
   --band-fg: var(--fg);
   --band-fg-2: var(--fg-3);
   position: relative;
@@ -35,7 +35,7 @@
 /* The band: about 200px with the header above it while a photo is on (held before it loads, so nothing shifts). */
 .band { display: flex; flex-direction: column; max-width: 720px; margin-inline: auto; padding: 0 25px 16px; color: var(--band-fg); transition: color var(--dur-panel) var(--ease); }
 .photoOn .band { min-height: 144px; }
-.greeting { color: inherit; }
+.greeting { margin: 0 0 var(--s-2); color: inherit; }
 .date { margin-top: 4px; color: var(--band-fg-2); transition: color var(--dur-panel) var(--ease); }
 .credit { margin-top: auto; padding-top: 16px; color: var(--band-fg-2); }
 

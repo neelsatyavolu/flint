@@ -80,7 +80,7 @@ export function DraftCard({ draftId, threadId, messageId, reloadKey, onChanged }
     <article className={clsx(styles.card, styles.draft)} aria-label="Draft reply">
       <header className={styles.draftHead}>
         <Avatar address={draft.from} accountId={draft.accountId} size={32} />
-        <span className={clsx("t-data", styles.draftTag)}>DRAFT</span>
+        <span className={clsx("t-data", styles.draftTag)}>Draft</span>
         {first ? (
           <span className={clsx("t-body", styles.draftTo)}>
             <span className={styles.toWord}>to</span> <span className={styles.toAccent}>{displayName(first)}{extra > 0 ? ` +${extra}` : ""}</span>
@@ -93,7 +93,7 @@ export function DraftCard({ draftId, threadId, messageId, reloadKey, onChanged }
           <Button size="sm" variant="ghost" className={styles.draftDelete} onClick={remove} disabled={busy}>Delete</Button>
           <Button size="sm" variant="ghost" onClick={edit} disabled={busy}>Edit</Button>
           <span className={styles.draftDivider} aria-hidden />
-          <Button size="sm" variant="primary" onClick={send} disabled={busy || draft.to.length === 0}>Send</Button>
+          <Button size="sm" variant="ghost" onClick={send} disabled={busy || draft.to.length === 0}>Send</Button>
         </div>
       </header>
       {text ? <div className={clsx("selectable", styles.pre, styles.messageText, styles.draftText)}>{text}</div> : <div className={clsx("t-body", styles.toPlain)}>Empty draft</div>}
