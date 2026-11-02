@@ -87,15 +87,10 @@ flint_prepare_signing_keychain() {
     p12_path="${AGMUX_APPLE_CREDS_DIR}/certificate.p12"
   fi
 
-  # Prefer an already-valid Developer ID identity (with private key) in search list.
-  if security find-identity -v -p codesigning 2>/dev/null | grep -Fq "$IDENTITY"; then
-    echo "  Flint: using existing keychain identity: $IDENTITY"
-    unset CSC_LINK CSC_KEY_PASSWORD APPLE_CERTIFICATE 2>/dev/null || true
-    return 0
-  fi
-
+  # Always sign with the certificate from 1Password in our own temporary keychain. Never fall back
+  # to an identity in the login keychain: codesign would then ask for a keychain password.
   if [ -z "$p12_path" ] || [ ! -f "$p12_path" ]; then
-    echo "error: no Developer ID identity in keychain and no .p12 to import" >&2
+    echo "error: no Developer ID .p12 came from 1Password (item: ${AGMUX_APPLE_SIGNING_ITEM:-?})" >&2
     return 1
   fi
   if [ -z "${APPLE_CERTIFICATE_PASSWORD:-}" ]; then
@@ -111,8 +106,15 @@ flint_prepare_signing_keychain() {
 
   security delete-keychain "$kc" >/dev/null 2>&1 || true
   security create-keychain -p "$kc_pass" "$kc"
-  security set-keychain-settings -lut 21600 "$kc"
+  # No auto-lock and no lock on sleep: its password is random, so nobody could answer an unlock prompt.
+  security set-keychain-settings "$kc"
   security unlock-keychain -p "$kc_pass" "$kc"
+  # Belt and braces for long notarization waits: keep re-unlocking it until this shell exits.
+  # Detached from our output, so a caller that pipes it never waits on this loop.
+  ( while kill -0 "$$" 2>/dev/null && [ -f "$kc" ]; do security unlock-keychain -p "$kc_pass" "$kc" >/dev/null 2>&1 || true; sleep 30; done ) </dev/null >/dev/null 2>&1 &
+  FLINT_KEYCHAIN_KEEPER=$!
+  disown "$FLINT_KEYCHAIN_KEEPER" 2>/dev/null || true
+  export FLINT_KEYCHAIN_KEEPER
 
   # Intermediates / roots first so the leaf becomes a valid codesigning identity.
   local cer
@@ -167,6 +169,7 @@ flint_disable_notarization_env() {
 
 flint_cleanup_apple_creds() {
   local login="$HOME/Library/Keychains/login.keychain-db"
+  if [ -n "${FLINT_KEYCHAIN_KEEPER:-}" ]; then kill "$FLINT_KEYCHAIN_KEEPER" >/dev/null 2>&1 || true; fi
   # Restore a clean search list (drop temp keychains).
   if [ -n "${FLINT_PREV_KEYCHAINS:-}" ]; then
     # shellcheck disable=SC2086
