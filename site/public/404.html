@@ -3,19 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
   <title>Not found · Flint</title>
   <meta name="robots" content="noindex">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400&display=swap" rel="stylesheet">
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/geist@1.9.0/dist/fonts/geist-serif/GeistSerifVF.woff2" as="font" type="font/woff2" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
+  <script src="/theme.js"></script>
 </head>
 <body>
-  <header class="top">
+  <header class="nav">
     <div class="wrap">
       <a class="brand" href="/"><img src="/favicon.svg" alt="">Flint</a>
-      <nav><a href="https://github.com/neelsatyavolu/flint">GitHub</a><a href="/privacy">Privacy</a><a class="nav-cta" href="/#download">Download</a></nav>
+      <ul>
+        <li><a href="https://github.com/neelsatyavolu/flint">GitHub</a></li>
+        <li><a href="/privacy">Privacy</a></li>
+      </ul>
+      <div class="right">
+        <button class="btn btn-ghost icon-btn" id="theme" type="button" aria-label="Change theme"></button>
+        <a class="btn btn-primary" href="/#download">Download</a>
+      </div>
     </div>
   </header>
 
@@ -30,7 +40,7 @@
   <footer>
     <div class="wrap">
       <span>Flint is made by <a href="https://xanom.co">Xanom</a>. MIT licensed.</span>
-      <span><a href="https://github.com/neelsatyavolu/flint">GitHub</a> · <a href="/privacy">Privacy policy</a> · <a href="mailto:neel@xanom.co">neel@xanom.co</a></span>
+      <span><a href="https://github.com/neelsatyavolu/flint">GitHub</a><span class="sep">·</span><a href="/privacy">Privacy policy</a><span class="sep">·</span><a href="mailto:neel@xanom.co">neel@xanom.co</a></span>
     </div>
   </footer>
 </body>
