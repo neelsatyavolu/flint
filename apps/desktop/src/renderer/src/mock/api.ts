@@ -11,6 +11,7 @@ import { ALL_CONTACTS } from "./people";
 import { mockAvatarApi } from "./avatars";
 import { mockCategoryApi } from "./categories";
 import { mockSparkApi } from "./spark";
+import { mockConnectorApi } from "./connectors";
 import { buildState } from "./seed";
 import { deepMerge, liveDrafts, nextId, type MThread, type MockState } from "./state";
 import { hiddenAccounts, isQueuedDraft, matchesSearch, parseSearch, queryThreads, sortedOlder, unreadCount, withCode } from "./threads";
@@ -90,6 +91,7 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
   };
 
   const api: FlintApi = {
+    ...mockConnectorApi(state, now),
     // Accounts
     async listAccounts() { await delay(); return [...state.accounts].sort((a, b) => a.sortOrder - b.sortOrder); },
     async autoconfig(email) {

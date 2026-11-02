@@ -377,4 +377,28 @@ export const MIGRATIONS: readonly string[] = [
     created_at INTEGER NOT NULL
   );
   `,
+  /* 11: connector consent snapshots and durable delivery ledger. No secrets or message bodies. */ `
+  CREATE TABLE connector_connections (
+    id TEXT PRIMARY KEY,
+    manifest_url TEXT NOT NULL,
+    manifest_json TEXT NOT NULL,
+    pending_manifest_json TEXT,
+    status TEXT NOT NULL DEFAULT 'active',
+    checked_at INTEGER NOT NULL,
+    last_delivery INTEGER,
+    delivered_count INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE TABLE connector_deliveries (
+    connection_id TEXT NOT NULL REFERENCES connector_connections(id) ON DELETE CASCADE,
+    message_id TEXT NOT NULL,
+    message_row_id INTEGER REFERENCES messages(id) ON DELETE SET NULL,
+    state TEXT NOT NULL DEFAULT 'pending',
+    attempts INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    first_attempt INTEGER,
+    next_attempt INTEGER NOT NULL,
+    PRIMARY KEY (connection_id, message_id)
+  );
+  CREATE INDEX connector_deliveries_due ON connector_deliveries (state, next_attempt);
+  `,
 ];

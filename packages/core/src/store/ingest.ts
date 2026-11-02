@@ -1,3 +1,4 @@
+import { enqueueConnectorIngest } from "./connectors";
 import { categorize } from "../categorize";
 import { tx } from "../db/open";
 import { evaluateRules, resolveCategory, senderMatchesBlocked, type RuleMessage } from "../rules";
@@ -27,6 +28,14 @@ type Run = {
 };
 
 export class IngestRepo {
+  private ingestListeners = new Set<() => void>();
+
+  /** A wake-up only; callbacks run after the synchronous ingest transaction has committed. */
+  onIngest(listener: () => void): () => void {
+    this.ingestListeners.add(listener);
+    return () => { this.ingestListeners.delete(listener); };
+  }
+
   constructor(
     protected q: Sql,
     private accounts: AccountsRepo,
@@ -55,6 +64,16 @@ export class IngestRepo {
       const outcomes = items.map((item) => this.#ingestOne(run, item));
       recomputeThreads(this.q, run.touched);
       this.#attachReceiptChanges(run, outcomes);
+      // Destructive rule actions run after body prefetch in the sync engine. Do not export mail while
+      // it is waiting to move to an excluded folder; archive actions intentionally remain eligible.
+      const excludedRoles = new Set(["spam", "trash", "sent", "drafts"]);
+      const excludedThreads = new Set(outcomes.filter((o) => o.blocked || o.ruleActions.some((action) =>
+        action.type === "trash" || (action.type === "move" && excludedRoles.has(run.folders.get(action.folderPath)?.role ?? "")),
+      )).map((o) => o.threadId));
+      for (const outcome of outcomes) {
+        if (!excludedThreads.has(outcome.threadId)) enqueueConnectorIngest(this.q, outcome.messageRowId, run.now);
+      }
+      queueMicrotask(() => { for (const listener of this.ingestListeners) listener(); });
       return outcomes;
     });
   }

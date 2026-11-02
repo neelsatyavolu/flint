@@ -1,5 +1,5 @@
 import type {
-  AutoconfigResult,
+  AutoconfigResult, ConnectorConnection, ConnectorPreview,
   Account, AccountId, AddAccountInput, Category, AgentActivity, AgentSkillStatus, AiProvider, AiRun, AiStatus, AiTask, Contact,
   DeepPartial, Draft, DraftInit, DraftPatch, FlintEvent, Folder, FolderId, HomeData, MessageRowId,
   MessageView, ReceiptDetail, Rule, ScheduledSend, SendResult, ServerConfig, Settings, SidebarData, AvatarRef,
@@ -203,6 +203,15 @@ export interface FlintApi {
   /** Upcoming invitations (not cancelled, not past) soonest first, newest version per event. `from` / `to` are epoch ms; default from now. */
   listInvites(opts?: { accountId?: AccountId; from?: number; to?: number; limit?: number }): Promise<InviteListItem[]>;
 
+  // Connected apps (consent and external delivery are desktop-only administrative actions)
+  listConnectors(): Promise<ConnectorConnection[]>;
+  previewConnector(url: string): Promise<ConnectorPreview>;
+  openConnectorPairPage(token: string): Promise<void>;
+  pairConnector(token: string, code: string): Promise<ConnectorConnection>;
+  previewConnectorApproval(id: string): Promise<ConnectorPreview>;
+  approveConnector(id: string, token: string): Promise<void>;
+  removeConnector(id: string): Promise<void>;
+
   // Settings
   getSettings(): Promise<Settings>;
   updateSettings(patch: DeepPartial<Settings>): Promise<Settings>;
@@ -248,6 +257,8 @@ export const METHOD_TIERS: Record<FlintMethod, "read" | "modify" | "send" | "adm
   autofillStatus: "admin", requestAutofillPermission: "admin", tryAutofillDemo: "admin",
   getInvite: "read", rsvp: "send", inviteConflicts: "read", connectGoogleCalendar: "admin", listInvites: "read",
   listCalendarAccounts: "admin", addGoogleCalendarAccount: "admin", addCalDavAccount: "admin", updateCalendarAccount: "admin", removeCalendarAccount: "admin",
+  listConnectors: "admin", previewConnector: "admin", openConnectorPairPage: "admin", pairConnector: "admin",
+  previewConnectorApproval: "admin", approveConnector: "admin", removeConnector: "admin",
   getSettings: "admin", updateSettings: "admin", sendTestNotification: "admin",
 };
 

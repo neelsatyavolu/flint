@@ -792,3 +792,36 @@ export class FlintError extends Error {
     this.name = "FlintError";
   }
 }
+
+/** Generic connected-app protocol v1. Secrets are stored only in Platform.secrets. */
+export type ConnectorField = "messageId" | "from" | "to" | "subject" | "date" | "text" | "html";
+export type ConnectorManifest = {
+  flintConnector: 1;
+  id: string;
+  name: string;
+  description: string;
+  homepage: string;
+  pairPage: string;
+  pairEndpoint: string;
+  deliverEndpoint: string;
+  revokeEndpoint: string;
+  match: { any: RuleCondition[]; schemaTypes: string[] };
+  fields: ConnectorField[];
+  historyDays: number;
+};
+export type ConnectorConnection = {
+  id: string;
+  manifestUrl: string;
+  manifest: ConnectorManifest;
+  status: "active" | "needs_approval" | "stopped";
+  pendingManifest: ConnectorManifest | null;
+  lastDelivery: number | null;
+  deliveredCount: number;
+};
+export type ConnectorPreview = {
+  token: string;
+  manifestUrl: string;
+  manifest: ConnectorManifest;
+  count: number;
+  subjects: string[];
+};

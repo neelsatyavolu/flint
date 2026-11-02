@@ -17,6 +17,15 @@ export class Scheduler {
   readonly #ctx: JobContext;
   readonly #receipts: ReceiptsCadence;
   #timer: TimerHandle | null = null;
+  #background = new Set<{ nextDueAt(): number | null; run(): Promise<void> }>();
+
+  /** Register a durable background job with the existing timer wheel. */
+  addJob(job: { nextDueAt(): number | null; run(): Promise<void> }): () => void {
+    this.#background.add(job);
+    this.poke();
+    return () => { this.#background.delete(job); this.poke(); };
+  }
+
   #running = false;
   #started = false;
   #inFlight: Promise<void> | null = null;
@@ -53,7 +62,7 @@ export class Scheduler {
 
   /** The time the timer is armed for, or null. Exposed for tests and diagnostics. */
   nextDueAt(): number | null {
-    const times = [nextSendAt(this.#ctx), nextSnoozeAt(this.#ctx), nextReminderAt(this.#ctx), this.#receipts.nextPollAt(), this.#receipts.nextPingAt()]
+    const times = [nextSendAt(this.#ctx), nextSnoozeAt(this.#ctx), nextReminderAt(this.#ctx), this.#receipts.nextPollAt(), this.#receipts.nextPingAt(), ...[...this.#background].map((j) => j.nextDueAt())]
       .filter((t): t is number => t !== null);
     return times.length ? Math.min(...times) : null;
   }
@@ -73,7 +82,7 @@ export class Scheduler {
     this.#disarm();
     this.#running = true;
     try {
-      await Promise.all([runSends(this.#ctx), runSnoozes(this.#ctx), runReminders(this.#ctx), withReceipts ? this.#receipts.run() : Promise.resolve()].map((p) =>
+      await Promise.all([runSends(this.#ctx), runSnoozes(this.#ctx), runReminders(this.#ctx), withReceipts ? this.#receipts.run() : Promise.resolve(), ...(withReceipts ? [...this.#background].map((j) => j.run()) : [])].map((p) =>
         p.catch((err: unknown) => log.error("job failed", { error: err instanceof Error ? err.message : String(err) }))));
     } finally {
       this.#running = false;

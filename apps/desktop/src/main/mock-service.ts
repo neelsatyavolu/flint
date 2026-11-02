@@ -68,6 +68,14 @@ export function createMockService(dataDir: string): FlintService {
 
     async sendTestNotification() {},
 
+    async listConnectors() { return []; },
+    async previewConnector() { throw new FlintError("invalid", "Connected apps are unavailable in the empty desktop mock. Use the browser preview to try connecting an app."); },
+    async openConnectorPairPage() { throw notFound("Connector preview"); },
+    async pairConnector() { throw notFound("Connector preview"); },
+    async previewConnectorApproval() { throw notFound("Connection"); },
+    async approveConnector() { throw notFound("Connection"); },
+    async removeConnector() {},
+
     async syncNow() {},
     async getSyncStatus() { return syncStatus; },
 
