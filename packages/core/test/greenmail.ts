@@ -116,6 +116,29 @@ export type StartOptions = { users?: string[] };
 export async function startGreenMail(opts: StartOptions = {}): Promise<GreenMail> {
   const jar = await ensureJar();
   const names = opts.users ?? ["alice", "bob", "carol", "dave"];
+  // freePort() closes the port before Java binds it, so a parallel test file's GreenMail can take
+  // it first; then this file would log in to the wrong server. Confirm the users and retry if not.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await startOnce(jar, names);
+    } catch (error) {
+      if (attempt >= 4) throw error;
+    }
+  }
+}
+
+/** The users a GreenMail API port reports, or null when it doesn't answer. */
+async function apiUsers(apiPort: number): Promise<string[] | null> {
+  try {
+    const res = await fetch(`http://127.0.0.1:${apiPort}/api/user`, { signal: AbortSignal.timeout(2000) });
+    const list = (await res.json()) as { email?: string }[];
+    return list.map((u) => String(u.email)).sort();
+  } catch {
+    return null;
+  }
+}
+
+async function startOnce(jar: string, names: string[]): Promise<GreenMail> {
   const [imapPort, smtpPort, apiPort] = [await freePort(), await freePort(), await freePort()];
   const args = [
     `-Dgreenmail.imap.hostname=127.0.0.1`, `-Dgreenmail.imap.port=${imapPort}`,
@@ -128,9 +151,21 @@ export async function startGreenMail(opts: StartOptions = {}): Promise<GreenMail
   const kill = () => { if (child.exitCode === null) child.kill("SIGKILL"); };
   process.once("exit", kill);
   try {
-    await waitForPorts([imapPort, smtpPort], child);
+    await waitForPorts([imapPort, smtpPort, apiPort], child);
+    const expected = names.map((n) => `${n}@${TEST_DOMAIN}`).sort();
+    // Ours only if the API lists exactly our users and our process is still the one running.
+    let users: string[] | null = null;
+    for (let i = 0; i < 20 && child.exitCode === null; i++) {
+      users = await apiUsers(apiPort);
+      if (users) break;
+      await sleep(200);
+    }
+    // A lost IMAP or SMTP bind makes our process exit shortly after its API answers.
+    await sleep(500);
+    if (child.exitCode !== null || JSON.stringify(users) !== JSON.stringify(expected)) throw new Error("GreenMail port was taken by another instance");
   } catch (error) {
     kill();
+    process.off("exit", kill);
     throw error;
   }
   const users = names.map((name) => ({ name, email: `${name}@${TEST_DOMAIN}`, password: TEST_PASSWORD }));
