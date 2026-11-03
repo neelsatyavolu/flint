@@ -1,6 +1,6 @@
 {
   "name": "@flint/desktop",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "license": "MIT",
   "private": true,
   "type": "module",
