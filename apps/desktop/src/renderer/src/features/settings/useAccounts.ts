@@ -1,10 +1,10 @@
 import { useCallback } from "react";
-import type { Account, AccountId, SyncStatus } from "@flint/core";
+import type { Account, AccountId, ServerField, SyncStatus } from "@flint/core";
 import { flint } from "../../lib/api";
 import { useFlintQuery } from "../../lib/hooks";
 import { useToast } from "../../ui";
 
-export type AccountPatch = Partial<Pick<Account, "name" | "color" | "sortOrder" | "enabled" | "showInUnified" | "aliases">>;
+export type AccountPatch = Partial<Pick<Account, "name" | "color" | "sortOrder" | "enabled" | "showInUnified" | "aliases" | ServerField>>;
 
 export function errorText(err: unknown, fallback: string): string {
   return err instanceof Error && err.message ? err.message : fallback;

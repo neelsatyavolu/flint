@@ -8,19 +8,20 @@ import styles from "../settings.module.css";
 import { errorText, type AccountPatch } from "../useAccounts";
 import { AccountPhoto } from "./AccountPhoto";
 import { AliasEditor } from "./AliasEditor";
+import { ServerEditor } from "./ServerEditor";
 import { describeStatus } from "./accountStatus";
 
 type Props = {
   account: Account;
   sync: SyncStatus | undefined;
-  onPatch: (patch: AccountPatch) => void;
+  onPatch: (patch: AccountPatch) => Promise<boolean>;
   onRemove: () => Promise<void>;
   onSignIn: () => Promise<void>;
   /** Called after something outside onPatch changed the account (its photo). */
   onChanged?: () => void;
 };
 
-/** Edit panel under an account row: name, photo, aliases, color, unified inbox, sign in again, remove. */
+/** Edit panel under an account row: name, photo, aliases, color, unified inbox, servers, sign in again, remove. */
 export function AccountDetail({ account, sync, onPatch, onRemove, onSignIn, onChanged }: Props) {
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -76,12 +77,16 @@ export function AccountDetail({ account, sync, onPatch, onRemove, onSignIn, onCh
         <span className={`t-label ${styles.fieldLabel}`}>Color</span>
         <ColorSwatches value={account.color} label={`Color for ${account.email}`} onChange={(color) => onPatch({ color })} />
       </div>
-      <div className={styles.field}>
-        <span className={`t-label ${styles.fieldLabel}`}>Servers</span>
-        <span className={`${styles.mono} ${styles.muted}`}>
-          IMAP {account.imapHost}:{account.imapPort} · SMTP {account.smtpHost}:{account.smtpPort} · {account.authKind === "oauth_google" ? "Google sign-in" : "Password"}
-        </span>
-      </div>
+      {account.authKind === "password" ? (
+        <ServerEditor account={account} onSave={onPatch} />
+      ) : (
+        <div className={styles.field}>
+          <span className={`t-label ${styles.fieldLabel}`}>Servers</span>
+          <span className={`${styles.mono} ${styles.muted}`}>
+            IMAP {account.imapHost}:{account.imapPort} · SMTP {account.smtpHost}:{account.smtpPort} · Google sign-in
+          </span>
+        </div>
+      )}
       <div className={styles.inline}>
         {status.needsSignIn ? (
           <Button variant="primary" disabled={busy} onClick={() => run(onSignIn)}>Sign in again</Button>

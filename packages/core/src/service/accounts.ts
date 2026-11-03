@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { FlintApi } from "../api";
 import { logger } from "../log";
 import { autoconfig as detectServers, KNOWN_PROVIDERS } from "../mail/autoconfig";
-import { secretKey } from "../mail/connect";
+import { resolveAuth, secretKey } from "../mail/connect";
 import { hasCalendarScope, startGoogleAuth } from "../mail/google-oauth";
 import { safeFilename } from "../mail/sync/attachments";
 import { FlintError, type Account, type AddAccountInput, type AutoconfigResult, type Provider, type ServerConfig } from "../types";
@@ -38,7 +38,10 @@ const patchSchema = z.object({
   enabled: z.boolean(),
   showInUnified: z.boolean(),
   aliases: z.array(emailSchema).max(50),
+  ...serverSchema.shape,
 }).partial().strict();
+
+const SERVER_FIELDS = ["imapHost", "imapPort", "imapSecure", "smtpHost", "smtpPort", "smtpSecure", "username"] as const;
 
 function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   const result = schema.safeParse(value);
@@ -65,6 +68,21 @@ export function accountsApi(ctx: ServiceContext): AccountsApi {
 
   async function saveCredentials(accountId: string, secret: object): Promise<void> {
     await platform.secrets.set(secretKey(accountId), JSON.stringify(secret));
+  }
+
+  /** Logs in to the new servers with the saved credentials; throws unless both answer. Returns the patch to save. */
+  async function checkNewServer(before: Account, patch: z.infer<typeof patchSchema>): Promise<z.infer<typeof patchSchema>> {
+    const server = serverOf({ ...before, ...patch });
+    const auth = await resolveAuth({ ...before, username: server.username }, {
+      secrets: platform.secrets,
+      google: () => ctx.googleClient() ?? { clientId: "", clientSecret: "" },
+      fetch: (url, init) => ctx.fetch(url, init),
+      now: ctx.now,
+    });
+    const result = await checkConnection(server, auth);
+    if (result.imap !== "ok") throw new FlintError("auth", result.imap);
+    if (result.smtp !== "ok") throw new FlintError("auth", result.smtp);
+    return result.smtpSecure === undefined ? patch : { ...patch, smtpSecure: result.smtpSecure };
   }
 
   return {
@@ -150,8 +168,10 @@ export function accountsApi(ctx: ServiceContext): AccountsApi {
     async updateAccount(id, rawPatch) {
       const patch = parse(patchSchema, rawPatch);
       const before = store.requireAccount(id);
-      const account = store.updateAccount(id, patch);
-      if (patch.enabled !== undefined && patch.enabled !== before.enabled) await ctx.syncs.restart(id);
+      const serverChanged = SERVER_FIELDS.some((key) => patch[key] !== undefined && patch[key] !== before[key]);
+      const checked = serverChanged ? await checkNewServer(before, patch) : patch;
+      const account = store.updateAccount(id, checked);
+      if (serverChanged || (patch.enabled !== undefined && patch.enabled !== before.enabled)) await ctx.syncs.restart(id);
       changed(id);
       return account;
     },

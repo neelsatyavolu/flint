@@ -35,7 +35,9 @@ export function AccountsSection({ page }: { page?: string }) {
   }, [accounts, target?.accountId, target?.reauth]);
 
   const patch = async (id: string, p: Parameters<typeof update>[1]) => {
-    if (await update(id, p)) refetch();
+    const ok = await update(id, p);
+    if (ok) refetch();
+    return ok;
   };
 
   const remove = async (id: string) => {
@@ -96,7 +98,7 @@ export function AccountsSection({ page }: { page?: string }) {
                 <AccountDetail
                   account={a}
                   sync={syncOf(a.id)}
-                  onPatch={(p) => void patch(a.id, p)}
+                  onPatch={(p) => patch(a.id, p)}
                   onRemove={() => remove(a.id)}
                   onSignIn={() => signIn(a)}
                   onChanged={refetch}

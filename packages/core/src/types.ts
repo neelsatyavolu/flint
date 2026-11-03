@@ -20,6 +20,9 @@ export type ServerConfig = {
   username: string;
 };
 
+/** The server settings an existing account can change from Settings. */
+export type ServerField = "imapHost" | "imapPort" | "imapSecure" | "smtpHost" | "smtpPort" | "smtpSecure" | "username";
+
 /** What autoconfig returns: server settings plus an optional note for the sign-in form. Never stored on an account. */
 export type AutoconfigResult = ServerConfig & { hint?: ServerHint };
 

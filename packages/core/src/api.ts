@@ -2,7 +2,7 @@ import type {
   AutoconfigResult, ConnectorConnection, ConnectorPreview,
   Account, AccountId, AddAccountInput, Category, AgentActivity, AgentSkillStatus, AiProvider, AiRun, AiStatus, AiTask, Contact,
   DeepPartial, Draft, DraftInit, DraftPatch, FlintEvent, Folder, FolderId, HomeData, MessageRowId,
-  MessageView, ReceiptDetail, Rule, ScheduledSend, SendResult, ServerConfig, Settings, SidebarData, AvatarRef,
+  MessageView, ReceiptDetail, Rule, ScheduledSend, SendResult, ServerConfig, ServerField, Settings, SidebarData, AvatarRef,
   Invite, InviteConflicts, InviteListItem, RsvpResponse,
   CalendarAccount, AddCalDavAccountInput, AddGoogleCalendarInput,
   Signature, SyncStatus, VerificationCode, BrowserHelperStatus, AutofillStatus, Template, ThreadDetail, ThreadId, ThreadPage, ThreadQuery, LoadOlderResult, ServerSearchResult, TrackedMessage,
@@ -32,7 +32,8 @@ export interface FlintApi {
   addAccount(input: AddAccountInput): Promise<Account>;
   /** Opens the system browser for Google sign-in and resolves once the loopback callback lands. */
   addGoogleAccount(): Promise<Account>;
-  updateAccount(id: AccountId, patch: Partial<Pick<Account, "name" | "color" | "sortOrder" | "enabled" | "aliases" | "showInUnified">>): Promise<Account>;
+  /** Server fields (host, port, SSL, username) are checked with a test connection first; the account keeps its old settings if it fails. */
+  updateAccount(id: AccountId, patch: Partial<Pick<Account, "name" | "color" | "sortOrder" | "enabled" | "aliases" | "showInUnified" | ServerField>>): Promise<Account>;
   removeAccount(id: AccountId): Promise<void>;
   /** Sets (a square PNG or JPEG data URL, already cropped and resized by the UI) or removes (null) the account's own profile picture. */
   setAccountAvatar(id: AccountId, image: string | null): Promise<Account>;

@@ -343,6 +343,19 @@ describe.skipIf(!gm)("accounts", { timeout: 60_000 }, () => {
     } finally { await rig.service.stop(); }
   });
 
+  it("changing server ports checks the connection first and keeps the old settings when it fails", async () => {
+    const rig = await boot();
+    try {
+      const account = await signIn(rig.service, "resign");
+      await expect(rig.service.updateAccount(account.id, { imapPort: 1 })).rejects.toMatchObject({ code: "auth" });
+      expect((await rig.service.listAccounts())[0]!.imapPort).toBe(gm!.imapPort);
+      await expect(rig.service.updateAccount(account.id, { smtpPort: 0 })).rejects.toMatchObject({ code: "invalid" });
+
+      const moved = await rig.service.updateAccount(account.id, { imapHost: "localhost", smtpHost: "localhost" });
+      expect(moved).toMatchObject({ imapHost: "localhost", smtpHost: "localhost", imapPort: gm!.imapPort, smtpPort: gm!.smtpPort });
+    } finally { await rig.service.stop(); }
+  });
+
   it("starts the agent API socket when asked and removes it on stop", async () => {
     const rig = await boot({ agentServer: true });
     const socket = join(rig.dataDir, "agent.sock");
