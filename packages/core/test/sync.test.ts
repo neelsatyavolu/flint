@@ -67,6 +67,27 @@ describe.skipIf(!gm)("IMAP sync against GreenMail", () => {
     expect(items.map((t) => t.subject)).toEqual(["Keep"]);
   });
 
+  it("removes an expunged message when new mail kept the folder's count the same", async () => {
+    // Proton Bridge files its Sent copy after Flint's, and Flint deletes it: one in, one out, same EXISTS.
+    const rig = makeRig(g, "gina");
+    await g.deliver({ to: addr("gina"), subject: "Ours", text: "o" });
+    await rig.sync.syncNow();
+    await g.deliver({ to: addr("gina"), subject: "Late copy", text: "l" });
+    await rig.sync.syncNow();
+    expect(rig.store.listThreads({ view: "inbox" }).items).toHaveLength(2);
+    await g.deliver({ to: addr("gina"), subject: "Next", text: "n" });
+    await rig.server(async (c) => {
+      const lock = await c.getMailboxLock("INBOX");
+      try {
+        const [uid] = (await c.search({ subject: "Late copy" }, { uid: true })) as number[];
+        await c.messageDelete(String(uid), { uid: true });
+      } finally { lock.release(); }
+    });
+    await rig.sync.syncNow();
+    const subjects = rig.store.listThreads({ view: "inbox" }).items.map((t) => t.subject).sort();
+    expect(subjects).toEqual(["Next", "Ours"]);
+  });
+
   it("detects new mail while the loop runs and emits new_mail", async () => {
     const rig = makeRig(g, "dave");
     rig.sync.start();

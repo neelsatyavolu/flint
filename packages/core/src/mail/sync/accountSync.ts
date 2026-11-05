@@ -68,7 +68,8 @@ export class AccountSync implements ImapRunner {
   #pendingWake = false;
   #resumed = false;
   #cycle: Promise<void> = Promise.resolve();
-  #lastExists = new Map<number, number>();
+  /** EXISTS and UIDNEXT at each folder's last expunge check. */
+  #lastSeen = new Map<number, string>();
   readonly #bodyFetches = new Map<number, Promise<void>>();
   #cycles = 0;
   readonly actions: ServerActions;
@@ -531,11 +532,13 @@ export class AccountSync implements ImapRunner {
   async #reconcile(client: ImapFlow, folder: Folder): Promise<void> {
     const lock = await client.getMailboxLock(folder.path, { readOnly: true });
     try {
-      const exists = client.mailbox ? client.mailbox.exists : 0;
+      // The count alone misses one message arriving while another is expunged (a late server Sent copy that
+      // fileSentCopy then deletes); UIDNEXT moves on every arrival.
+      const seen = client.mailbox ? `${client.mailbox.exists}:${client.mailbox.uidNext}` : "0:0";
       const periodic = this.#cycles % 15 === 0;
-      if (!periodic && this.#lastExists.get(folder.id) === exists) return;
+      if (!periodic && this.#lastSeen.get(folder.id) === seen) return;
       await reconcileExpunges({ store: this.#o.store, client, changed: (ids) => this.#emitChanged(ids) }, folder);
-      this.#lastExists.set(folder.id, exists);
+      this.#lastSeen.set(folder.id, seen);
     } finally {
       lock.release();
     }
