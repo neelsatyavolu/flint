@@ -28,7 +28,7 @@ import { MessageItem } from "./MessageItem";
 import { ReaderToolbar, OUT_OF_INBOX } from "./ReaderToolbar";
 import { categoryMenuItems } from "./rowMenu";
 import { initialExpanded, wordCount } from "./quotedText";
-import { scrollTargetTop } from "./scrollTarget";
+import { onUserScroll, scrollTargetTop } from "./scrollTarget";
 import { prefetchThread, useThread } from "./useThread";
 import { unsubscribeExplanation, unsubscribedMessage } from "./blockSender";
 import { PRINT_EVENT, printThread } from "./printThread";
@@ -179,6 +179,8 @@ function ThreadBody({ thread, refetch, staged, stale, onReady }: BodyProps) {
   const dockRef = useRef<HTMLDivElement>(null);
   const footRef = useRef<HTMLDivElement>(null);
   const userScrolled = useRef(false);
+  /** Where showNewest last put the reader, so a scroll from anywhere else counts as the user's. */
+  const placedAt = useRef<number | null>(null);
   const [draftRev, setDraftRev] = useState(0);
   const now = useMinuteClock();
   const target = replyTarget(thread.messages);
@@ -241,6 +243,7 @@ function ThreadBody({ thread, refetch, staged, stale, onReady }: BodyProps) {
     const top = box.top - scroller.getBoundingClientRect().top + scroller.scrollTop;
     const clearance = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ask-clearance")) || 72;
     scroller.scrollTop = scrollTargetTop({ cardTop: top, cardHeight: end - box.top, viewport: scroller.clientHeight, clearance });
+    placedAt.current = scroller.scrollTop;
   }, []);
 
   // Open on the newest message. Content above it (the summary) and the frames inside the cards grow after first
@@ -260,12 +263,15 @@ function ThreadBody({ thread, refetch, staged, stale, onReady }: BodyProps) {
     scroller.addEventListener("touchmove", stop, { passive: true });
     scroller.addEventListener("keydown", stop);
     scroller.addEventListener("pointerdown", stop);
+    // A trackpad scroll over a mail frame sends its wheel events to the frame, not here; the scroll itself still shows.
+    const stopOnScroll = onUserScroll(scroller, () => placedAt.current, stop);
     const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => !userScrolled.current && showNewest());
     ro?.observe(stage);
     const timer = setTimeout(() => ro?.disconnect(), PIN_NEWEST_MS);
     return () => {
       clearTimeout(timer);
       ro?.disconnect();
+      stopOnScroll();
       scroller.removeEventListener("wheel", stop);
       scroller.removeEventListener("touchmove", stop);
       scroller.removeEventListener("keydown", stop);
