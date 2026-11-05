@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
-import { BrowserWindow, dialog, nativeTheme, screen } from "electron";
+import { BrowserWindow, Menu, clipboard, dialog, nativeTheme, screen, shell } from "electron";
 import { logger } from "@flint/core/log";
+import { findPerchApp, linkMenuTemplate, openInPerch } from "./perch";
 import { lockNavigation } from "./security";
 import { planeBackground } from "./theme";
 import { loadWindowState, MIN_HEIGHT, MIN_WIDTH, trackWindowState } from "./window-state";
@@ -39,8 +40,22 @@ export function createMainWindow(opts: WindowOptions): BrowserWindow {
   win.on("closed", () => nativeTheme.off("updated", onTheme));
 
   watchRenderer(win);
+  addLinkMenu(win);
   void win.loadURL(opts.appUrl);
   return win;
+}
+
+/** Right-clicking a link, in mail or in the app, offers Open Link, Open in Perch (when Perch is installed) and Copy Link. */
+function addLinkMenu(win: BrowserWindow): void {
+  win.webContents.on("context-menu", (_e, params) => {
+    const items = linkMenuTemplate(params.linkURL, {
+      perch: findPerchApp() !== null,
+      open: (url) => void shell.openExternal(url),
+      openInPerch: (url) => void openInPerch(url).catch((err: unknown) => log.warn("open in Perch failed", { error: String(err) })),
+      copy: (text) => clipboard.writeText(text),
+    });
+    if (items && !win.isDestroyed()) Menu.buildFromTemplate(items).popup({ window: win });
+  });
 }
 
 /** A second crash within this window of the last automatic reload is left alone, so a crash on load can't loop. */
