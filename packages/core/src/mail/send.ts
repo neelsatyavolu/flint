@@ -45,8 +45,13 @@ export type SentFolders = {
   trashPath?: string | null;
   /** Wait times between searches for a server-saved copy (Gmail files its own copy a moment after SMTP). */
   delaysMs?: number[];
+  /** Waits between searches, after the APPEND, for copies the server files late. Given, the searches run before fileSentCopy returns. */
+  recheckMs?: number[];
   sleep?: (ms: number) => Promise<void>;
 };
+
+/** Proton Bridge files its own copy, one per SMTP send, 5 to 15 seconds after the send; Exchange a few seconds after. */
+const RECHECK_MS = [2500, 5000, 10_000, 20_000, 30_000];
 
 const sleepReal = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
 
@@ -130,7 +135,7 @@ async function removeServerCopies(runner: ImapRunner, folders: SentFolders, sent
  * Returns the UID of the copy that remains in Sent when known.
  */
 export async function fileSentCopy(
-  runner: ImapRunner, folders: SentFolders, messageId: string, cleanMime: Buffer, opts: { serverCopyIsClean?: boolean } = {},
+  runner: ImapRunner, folders: SentFolders, messageId: string, cleanMime: Buffer, opts: { serverCopyIsClean?: boolean; serverCopies?: number } = {},
 ): Promise<{ path: string; uid: number | null }> {
   const sentPath = folders.sentPath ?? (await specialUsePath(runner, "\\Sent"));
   if (!sentPath) throw new FlintError("not_found", "This account has no Sent folder to save the message in.");
@@ -151,18 +156,27 @@ export async function fileSentCopy(
   const appended = await runner.run((c) => appendCreating(c, sentPath, cleanMime, ["\\Seen"]));
   const ours = appended.uid ?? null;
 
-  // Servers such as Exchange file their own copy a few seconds after SMTP. Look again and drop any copy that is not ours.
+  // Servers such as Exchange and Proton Bridge file their own copies seconds after SMTP, one per send. Keep looking until
+  // as many copies as sends have been dropped, or the schedule runs out. Only copies that are not ours are dropped.
   // With the default schedule this runs in the background so sending does not wait for it; an explicit schedule runs inline.
+  const expected = opts.serverCopies ?? 1;
+  const schedule = folders.recheckMs ?? (folders.delaysMs ? [0] : RECHECK_MS);
   const recheck = async (): Promise<void> => {
+    let removed = found.length;
     try {
-      if (!folders.delaysMs) await sleep(2500);
-      const late = (await findUids(runner, sentPath, messageId)).filter((u) => u !== ours);
-      if (ours !== null && late.length > 0) await removeServerCopies(runner, folders, sentPath, late, messageId);
+      for (const wait of schedule) {
+        if (ours === null || removed >= expected) return;
+        if (wait > 0) await sleep(wait);
+        const late = (await findUids(runner, sentPath, messageId)).filter((u) => u !== ours);
+        if (late.length === 0) continue;
+        await removeServerCopies(runner, folders, sentPath, late, messageId);
+        removed += late.length;
+      }
     } catch (error) {
       log.warn("sent copy re-check failed", { reason: (error as Error).message });
     }
   };
-  if (folders.delaysMs) await recheck();
+  if (folders.delaysMs || folders.recheckMs) await recheck();
   else void recheck();
   return { path: sentPath, uid: ours };
 }
@@ -194,11 +208,11 @@ export type SendOutcome = {
   sent: { path: string; uid: number | null } | null;
 };
 
-async function fileCopy(input: SendInput, messageId: string, serverCopyIsClean = false): Promise<SendOutcome["sent"]> {
+async function fileCopy(input: SendInput, messageId: string, serverCopies: number, serverCopyIsClean = false): Promise<SendOutcome["sent"]> {
   if (!input.runner) return null;
   try {
     const clean = await buildMime({ ...input.message, messageId, keepBcc: true });
-    return await fileSentCopy(input.runner, input.folders, messageId, clean, { serverCopyIsClean });
+    return await fileSentCopy(input.runner, input.folders, messageId, clean, { serverCopyIsClean, serverCopies });
   } catch (error) {
     log.warn("could not file the sent copy", { reason: (error as Error).message });
     return null;
@@ -214,7 +228,7 @@ export async function sendUntracked(transport: Smtp, input: SendInput): Promise<
   const messageId = input.message.messageId ?? newMessageId(input.message.from.address);
   const mime = await buildMime({ ...input.message, messageId, keepBcc: false });
   await sendMessage(transport, mime, { from: input.message.from.address, to: allRecipients(input.message) });
-  return { messageId, copies: 1, failed: [], sent: await fileCopy(input, messageId, true) };
+  return { messageId, copies: 1, failed: [], sent: await fileCopy(input, messageId, 1, true) };
 }
 
 /**
@@ -247,7 +261,7 @@ export async function sendTracked(transport: Smtp, input: SendTrackedInput): Pro
     }
   }
   if (copies === 0) throw new FlintError("network", failed[0]?.error ?? "The message could not be sent.");
-  return { messageId, copies, failed, sent: await fileCopy(input, messageId, input.tracked.length === 0) };
+  return { messageId, copies, failed, sent: await fileCopy(input, messageId, copies, input.tracked.length === 0) };
 }
 
 // ---------- Server drafts ----------

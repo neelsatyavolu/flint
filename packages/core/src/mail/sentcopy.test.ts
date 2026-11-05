@@ -68,7 +68,18 @@ function blindSearch(sent: { uid: number; messageId: string }[]) {
     append: async () => { calls.push({ method: "append", args: [] }); box = [...box, { uid: 99, messageId: "id@x" }]; return { uid: 99 }; },
   } as unknown as ImapFlow;
   const runner: ImapRunner = { run: (fn) => fn(client) };
-  return { runner, calls, box: () => box };
+  return { runner, calls, box: () => box, add: (m: { uid: number; messageId: string }) => { box = [...box, m]; } };
+}
+
+/** Like blindSearch, but the server files its copies late: `file(n)` adds the copy due after the n-th sleep. */
+function blindSearchWithLateCopies(opts: { arriveAfterSleeps: Record<number, number> }) {
+  const inner = blindSearch([]);
+  const pending = new Map(Object.entries(opts.arriveAfterSleeps).map(([n, uid]) => [Number(n), uid]));
+  const file = (n: number): void => {
+    const uid = pending.get(n);
+    if (uid !== undefined) inner.add({ uid, messageId: "id@x" });
+  };
+  return { ...inner, file };
 }
 
 describe("fileSentCopy when the server's header search finds nothing", () => {
@@ -80,6 +91,15 @@ describe("fileSentCopy when the server's header search finds nothing", () => {
     expect(out.uid).toBe(99);
     expect(calls.find((c) => c.method === "delete")?.args).toEqual(["637,638"]);
     expect(box().map((m) => m.uid)).toEqual([5, 99]);
+  });
+
+  it("keeps looking until every late server copy is gone (Proton Bridge files one per SMTP send, seconds later)", async () => {
+    const { runner, box, file } = blindSearchWithLateCopies({ arriveAfterSleeps: { 2: 637, 3: 638 } });
+    const sleeps: number[] = [];
+    const out = await fileSentCopy(runner, { ...imap, recheckMs: [1, 2, 3, 4, 5], sleep: async (ms) => { sleeps.push(ms); file(sleeps.length); } }, "id@x", Buffer.from("m"), { serverCopies: 2 });
+    expect(out.uid).toBe(99);
+    expect(box().map((m) => m.uid)).toEqual([99]);
+    expect(sleeps).toEqual([1, 2, 3]);
   });
 
   it("only scans the newest messages, by sequence number", async () => {
