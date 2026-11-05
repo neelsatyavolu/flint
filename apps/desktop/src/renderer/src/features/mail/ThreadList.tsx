@@ -102,6 +102,7 @@ export function ThreadList() {
   const serverSearch = useList((s) => s.serverSearch);
   const loadingOlder = useList((s) => s.loadingOlder);
   const olderOnServer = useList((s) => s.olderOnServer);
+  const hiddenIn = useList((s) => s.hiddenIn);
   const listKey = useList((s) => s.queryKey);
   const autoOlder = useRef<string | null>(null);
   const { run } = useThreadActions();
@@ -278,7 +279,7 @@ export function ThreadList() {
     );
   }
   if (rows.length === 0) {
-    if (olderOnServer || serverSearch !== "idle" || loadingOlder) return <div className={styles.fill}><ListFooter empty /></div>;
+    if (olderOnServer || serverSearch !== "idle" || loadingOlder || hiddenIn.length > 0) return <div className={styles.fill}><ListFooter empty /></div>;
     const filtered = nav.listFilter !== "all" && filterable(nav);
     const syncing = !filtered && !(nav.searchOpen && nav.search.trim()) ? firstSyncProgress(sidebar?.accounts ?? [], nav.accountId) : null;
     if (syncing) {

@@ -1,6 +1,6 @@
 import clsx from "clsx";
-import { listStore, useList } from "../../state/listStore";
-import { useNav } from "../../state/nav";
+import { listStore, useList, type HiddenIn } from "../../state/listStore";
+import { navStore, useNav } from "../../state/nav";
 import styles from "./ListFooter.module.css";
 
 /** What a list's local rows leave unsaid: older mail still on the server, or a search the server has not answered. */
@@ -13,6 +13,7 @@ export function ListFooter({ empty = false }: { empty?: boolean }) {
   const serverSearch = useList((s) => s.serverSearch);
   const loadingMore = useList((s) => s.loadingMore);
   const pageError = useList((s) => s.pageError);
+  const hiddenIn = useList((s) => s.hiddenIn);
   // The "Has attachments" filter runs as a search too, but it is not one the user typed.
   const filterSearch = useNav((s) => s.listFilter !== "all" && !(s.searchOpen && s.search.trim()));
   if (pageError && !loadingMore) {
@@ -52,13 +53,38 @@ export function ListFooter({ empty = false }: { empty?: boolean }) {
       </div>
     );
   }
+  const hint = searching && !filterSearch && hiddenIn.length > 0 ? <HiddenMatches hiddenIn={hiddenIn} /> : null;
   if (searching && !filterSearch && (serverSearch === "idle" || serverSearch === "done") && !empty) {
     return (
-      <div className={styles.foot}>
-        <span className={styles.text}>Not seeing it?</span>
-        <button type="button" className={styles.link} onClick={() => void listStore.getState().searchServer({ explicit: true })}>Search the server</button>
-      </div>
+      <>
+        {hint}
+        <div className={styles.foot}>
+          <span className={styles.text}>Not seeing it?</span>
+          <button type="button" className={styles.link} onClick={() => void listStore.getState().searchServer({ explicit: true })}>Search the server</button>
+        </div>
+      </>
     );
   }
-  return null;
+  return hint;
+}
+
+const FOLDER_NAME = { trash: "Trash", spam: "Spam" } as const;
+
+/** Search leaves Trash and Spam out unless asked; this says when they hold matches and narrows the search to one of them. */
+function HiddenMatches({ hiddenIn }: { hiddenIn: HiddenIn }) {
+  const show = (role: HiddenIn[number]) => {
+    const nav = navStore.getState();
+    nav.setSearch(`${nav.search.trim()} in:${role}`);
+  };
+  return (
+    <div className={styles.foot}>
+      <span className={styles.text}>Some matches are in {hiddenIn.map((r) => FOLDER_NAME[r]).join(" and ")}</span>
+      {hiddenIn.map((role) => (
+        <span key={role} className={styles.group}>
+          <span className={styles.dot} aria-hidden>·</span>
+          <button type="button" className={styles.link} onClick={() => show(role)}>{hiddenIn.length === 1 ? "Show them" : `Show ${FOLDER_NAME[role]}`}</button>
+        </span>
+      ))}
+    </div>
+  );
 }

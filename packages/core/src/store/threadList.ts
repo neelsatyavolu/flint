@@ -47,10 +47,13 @@ export class ThreadListRepo {
       const page = rows.slice(0, limit);
       const items = this.#hydrate(page.map((r) => r.id), where);
       const last = page[page.length - 1];
+      const nextCursor = rows.length > limit && last ? encodeCursor(last.k, last.id) : null;
+      const hiddenIn = nextCursor === null ? this.#hiddenIn(query, now) : [];
       return {
         items,
         bundles: query.focused && query.view === "inbox" && !query.category ? this.#bundles(query, now) : [],
-        nextCursor: rows.length > limit && last ? encodeCursor(last.k, last.id) : null,
+        nextCursor,
+        ...(hiddenIn.length > 0 ? { hiddenIn } : {}),
       };
     } catch (error) {
       if (error instanceof FlintError) throw error;
@@ -105,26 +108,40 @@ export class ThreadListRepo {
     return { ...item, participants: people, draft: { draftId: null, messageId: m.id } };
   }
 
+  /** For a search that leaves out Trash and Spam: the ones of them holding matches. */
+  #hiddenIn(query: ThreadQuery, now: number): ("trash" | "spam")[] {
+    if (query.view !== "search") return [];
+    const where = this.#buildWhere(query, now, { keepTrashSpam: true });
+    if (!where?.excludedTrashSpam) return [];
+    const roles = ["trash", "spam"] as const;
+    return roles.filter((role) => this.q.get(
+      `SELECT 1 FROM messages m JOIN threads t ON t.id = m.thread_id WHERE ${where.sql} AND ${roleMember(role)} LIMIT 1`, ...where.params,
+    ) !== undefined);
+  }
+
   // ---- query building
 
-  #buildWhere(query: ThreadQuery, now: number): Where | null {
+  /** `keepTrashSpam` skips the search's default Trash/Spam exclusion; `excludedTrashSpam` says whether the search would apply it. */
+  #buildWhere(query: ThreadQuery, now: number, opts: { keepTrashSpam?: boolean } = {}): (Where & { excludedTrashSpam?: boolean }) | null {
     const base = viewPredicate(query, now, query.view === "inbox" || query.view === "blocked" ? this.rulesRepo.blockedPatterns() : new Set());
     if (!base) return null;
     const parts: string[] = [base.sql];
     const params: Param[] = [...base.params];
+    let excludedTrashSpam = false;
     if (query.view === "search") {
       const parsed = parseSearch(query.search ?? "");
       if (isEmptySearch(parsed)) return null;
       const s = buildSearchWhere(parsed, now);
       parts.push(s.sql);
       params.push(...s.params);
-      if (s.excludeTrashSpam) parts.push(`NOT ${roleMember("trash")} AND NOT ${roleMember("spam")}`);
+      excludedTrashSpam = s.excludeTrashSpam;
+      if (s.excludeTrashSpam && !opts.keepTrashSpam) parts.push(`NOT ${roleMember("trash")} AND NOT ${roleMember("spam")}`);
     }
     if (query.accountId) { parts.push("m.account_id = ?"); params.push(query.accountId); }
     else if (query.view !== "folder" && query.view !== "blocked") parts.push(inUnified("m.account_id"));
     const cat = categoryClause(query);
     if (cat) { parts.push("t.category = ?"); params.push(cat.category); }
-    return { sql: parts.map((p) => `(${p})`).join(" AND "), params };
+    return { sql: parts.map((p) => `(${p})`).join(" AND "), params, excludedTrashSpam };
   }
 
   #pageRows(where: Where, query: ThreadQuery, limit: number): { id: number; k: number }[] {

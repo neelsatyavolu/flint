@@ -150,6 +150,8 @@ export type ThreadPage = {
   nextCursor: string | null;
   /** On the last page only: the server holds older mail for this list that is not on this computer yet. */
   olderOnServer?: boolean;
+  /** On the last page of a search that leaves out Trash and Spam: which of them hold matches, so the list can offer to show them. */
+  hiddenIn?: ("trash" | "spam")[];
 };
 
 /** Result of FlintApi.loadOlder: how many messages arrived and whether the server still has older ones. */

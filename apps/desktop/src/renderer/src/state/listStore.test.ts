@@ -17,6 +17,19 @@ function api() {
 }
 
 describe("list store", () => {
+  it("keeps which of Trash and Spam hold hidden search matches, and drops it on the next query", async () => {
+    const listThreads = vi.fn(async (q: ThreadQuery): Promise<ThreadPage> => (
+      q.view === "search" ? { items: [item(1)], bundles: [], nextCursor: null, hiddenIn: ["trash"] } : { items: [], bundles: [], nextCursor: null }
+    ));
+    const s = createListStore({ listThreads });
+    s.getState().setQuery({ view: "search", search: "golf" });
+    await vi.waitFor(() => expect(s.getState().hiddenIn).toEqual(["trash"]));
+    await s.getState().refresh();
+    expect(s.getState().hiddenIn).toEqual(["trash"]);
+    s.getState().setQuery({ view: "inbox" });
+    expect(s.getState().hiddenIn).toEqual([]);
+  });
+
   it("loads the first page and paginates", async () => {
     const a = api();
     const s = createListStore(a);

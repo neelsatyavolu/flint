@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { listStore } from "../../state/listStore";
+import { navStore } from "../../state/nav";
 import { ListFooter } from "./ListFooter";
 
 const set = (patch: Partial<ReturnType<typeof listStore.getState>>) => act(() => listStore.setState(patch));
-afterEach(() => set({ nextCursor: null, olderOnServer: false, loadingOlder: false, olderError: null, serverSearch: "idle", query: null, loadingMore: false, pageError: null }));
+afterEach(() => set({ nextCursor: null, olderOnServer: false, loadingOlder: false, olderError: null, serverSearch: "idle", query: null, loadingMore: false, pageError: null, hiddenIn: [] }));
 
 describe("ListFooter", () => {
   it("is empty when the whole list is local", () => {
@@ -57,5 +58,24 @@ describe("ListFooter", () => {
     expect(screen.getByText("Couldn't load more.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(loadMore).toHaveBeenCalled();
+  });
+
+  it("says when matches are in Trash and shows them on click", () => {
+    act(() => navStore.setState({ search: "golf club ", searchOpen: true }));
+    set({ query: { view: "search", search: "golf club" }, hiddenIn: ["trash"] });
+    render(<ListFooter />);
+    expect(screen.getByText("Some matches are in Trash")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Search the server" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show them" }));
+    expect(navStore.getState().search).toBe("golf club in:trash");
+  });
+
+  it("offers each folder when matches are in both Trash and Spam, even with no other results", () => {
+    act(() => navStore.setState({ search: "tacos", searchOpen: true }));
+    set({ query: { view: "search", search: "tacos" }, hiddenIn: ["trash", "spam"] });
+    render(<ListFooter empty />);
+    expect(screen.getByText("Some matches are in Trash and Spam")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show Spam" }));
+    expect(navStore.getState().search).toBe("tacos in:spam");
   });
 });

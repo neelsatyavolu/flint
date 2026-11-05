@@ -252,6 +252,17 @@ describe("listThreads: search view", () => {
     expect(run(store, "from:zelda -has:attachment")).toEqual([]);
   });
 
+  it("names Trash and Spam when they hold matches the results leave out", () => {
+    const { store, s } = seed();
+    store.ingestMessages(s.account.id, s.spam.id, [msg({ uid: 1, subject: "Cheap tacos", from: [person("Spammy")], textBody: "tacos" })]);
+    const hiddenIn = (search: string) => store.listThreads({ view: "search", search }).hiddenIn;
+    expect(hiddenIn("budget")).toEqual(["trash"]);
+    expect(hiddenIn("tacos")).toEqual(["spam"]);
+    expect(hiddenIn("zelda")).toBeUndefined();
+    expect(hiddenIn("in:trash budget")).toBeUndefined();
+    expect(store.listThreads({ view: "search", search: "budget", limit: 1 }).hiddenIn).toEqual(["trash"]);
+  });
+
   it("supports is:pinned, is:snoozed and in:<folder name>", () => {
     const { store, s } = seed();
     store.setPinned([store.listThreads({ view: "search", search: "lunch" }).items[0]!.id], true);

@@ -1,5 +1,5 @@
 import { createStore, useStore, type StoreApi } from "zustand";
-import type { Bundle, FlintApi, ThreadId, ThreadListItem, ThreadQuery } from "@flint/core";
+import type { Bundle, FlintApi, ThreadId, ThreadListItem, ThreadPage, ThreadQuery } from "@flint/core";
 import { flint } from "../lib/api";
 import { buildEntries, type ListEntry } from "./grouping";
 
@@ -15,6 +15,8 @@ export type ListStatus = "idle" | "loading" | "ready" | "error";
 export type ServerSearchStatus = "idle" | "searching" | "done" | "error";
 /** Where the user was in a list: restored when they come back to it. */
 export type ListPlace = { scrollTop: number; cursorKey: string | null };
+export type HiddenIn = NonNullable<ThreadPage["hiddenIn"]>;
+const NONE_HIDDEN: HiddenIn = [];
 
 export type ListState = {
   query: ThreadQuery | null;
@@ -30,6 +32,8 @@ export type ListState = {
   loadingMore: boolean;
   /** The server holds older mail for this list that is not on this computer (known once the local list ends). */
   olderOnServer: boolean;
+  /** On a search: Trash and/or Spam hold matches the results leave out (known once the local list ends). */
+  hiddenIn: HiddenIn;
   loadingOlder: boolean;
   olderError: string | null;
   serverSearch: ServerSearchStatus;
@@ -128,6 +132,7 @@ export function createListStore(api: ListApi, now: () => number = Date.now): Lis
       status: "idle",
       loadingMore: false,
       olderOnServer: false,
+      hiddenIn: NONE_HIDDEN,
       loadingOlder: false,
       olderError: null,
       serverSearch: "idle",
@@ -151,7 +156,7 @@ export function createListStore(api: ListApi, now: () => number = Date.now): Lis
         place = snap?.place ?? { scrollTop: 0, cursorKey: null };
         if (snap) {
           set({
-            query, queryKey: key, nextCursor: snap.nextCursor, hidden: [], loadingMore: false, error: null, pageError: null, olderOnServer: snap.olderOnServer,
+            query, queryKey: key, nextCursor: snap.nextCursor, hidden: [], loadingMore: false, error: null, pageError: null, olderOnServer: snap.olderOnServer, hiddenIn: NONE_HIDDEN,
             loadingOlder: false, olderError: null, serverSearch: "idle", status: "ready", stale: false, restored: snap.place,
           });
           apply(snap.items, snap.bundles, []);
@@ -164,12 +169,12 @@ export function createListStore(api: ListApi, now: () => number = Date.now): Lis
         const carry = !typing && query !== null && query.view !== "search" && left.status === "ready" && left.raw.length > 0;
         set({
           query, queryKey: key, ...(typing || carry ? {} : { raw: [], items: [], bundles: [], entries: [], nextCursor: null }), hidden: [], loadingMore: false, error: null,
-          pageError: null, restored: null, olderOnServer: false, loadingOlder: false, olderError: null, serverSearch: "idle", status: query ? "loading" : "idle", stale: carry,
+          pageError: null, restored: null, olderOnServer: false, hiddenIn: NONE_HIDDEN, loadingOlder: false, olderError: null, serverSearch: "idle", status: query ? "loading" : "idle", stale: carry,
         });
         if (!query) return;
         api.listThreads({ ...query, limit: PAGE_SIZE }).then((page) => {
           if (id !== seq) return;
-          set({ nextCursor: page.nextCursor, olderOnServer: page.olderOnServer === true, status: "ready", stale: false });
+          set({ nextCursor: page.nextCursor, olderOnServer: page.olderOnServer === true, hiddenIn: page.hiddenIn ?? NONE_HIDDEN, status: "ready", stale: false });
           apply(page.items, page.bundles, []);
         }, (err: unknown) => fail(id, err));
       },
@@ -186,6 +191,7 @@ export function createListStore(api: ListApi, now: () => number = Date.now): Lis
           let cursor: string | undefined;
           let nextCursor: string | null = null;
           let olderOnServer = false;
+          let hiddenIn = NONE_HIDDEN;
           do {
             const page = await api.listThreads({ ...query, limit: Math.min(MAX_PAGE, want - items.length), ...(cursor ? { cursor } : {}) });
             if (id !== seq) return;
@@ -193,9 +199,10 @@ export function createListStore(api: ListApi, now: () => number = Date.now): Lis
             if (!cursor) bundles = page.bundles;
             nextCursor = page.nextCursor;
             olderOnServer = page.olderOnServer === true;
+            hiddenIn = page.hiddenIn ?? NONE_HIDDEN;
             cursor = page.nextCursor ?? undefined;
           } while (cursor && items.length < want);
-          set({ nextCursor, olderOnServer: nextCursor === null && olderOnServer, status: "ready", error: null, pageError: null, stale: false });
+          set({ nextCursor, olderOnServer: nextCursor === null && olderOnServer, hiddenIn: nextCursor === null ? hiddenIn : NONE_HIDDEN, status: "ready", error: null, pageError: null, stale: false });
           apply(reuse(get().raw, items), bundles);
         } catch (err) {
           fail(id, err);
@@ -211,7 +218,7 @@ export function createListStore(api: ListApi, now: () => number = Date.now): Lis
           const page = await api.listThreads({ ...query, limit: PAGE_SIZE, cursor: nextCursor });
           if (id !== seq) return;
           const have = new Set(get().raw.map((i) => i.id));
-          set({ nextCursor: page.nextCursor, olderOnServer: page.olderOnServer === true, loadingMore: false });
+          set({ nextCursor: page.nextCursor, olderOnServer: page.olderOnServer === true, hiddenIn: page.hiddenIn ?? NONE_HIDDEN, loadingMore: false });
           apply([...get().raw, ...page.items.filter((i) => !have.has(i.id))], get().bundles);
         } catch (err) {
           fail(id, err);
