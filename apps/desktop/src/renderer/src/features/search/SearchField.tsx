@@ -13,6 +13,12 @@ const MAX_HINTS = 7;
 export function SearchField() {
   const stored = useNav((s) => s.search);
   const [text, setText] = useState(stored);
+  // A search set elsewhere (a "Show them" link, a person card) replaces the typed text, or the debounce below would write the old text back.
+  const [seen, setSeen] = useState(stored);
+  if (stored !== seen) {
+    setSeen(stored);
+    setText(stored);
+  }
   const [focused, setFocused] = useState(true);
   const [active, setActive] = useState(0);
   const ref = useRef<HTMLInputElement>(null);

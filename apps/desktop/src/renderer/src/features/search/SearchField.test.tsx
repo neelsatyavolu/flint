@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { SearchField } from "./SearchField";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { navStore } from "../../state/nav";
+import { SEARCH_DEBOUNCE_MS, SearchField } from "./SearchField";
 
 describe("SearchField operator hints", () => {
   it("is a combobox that points at the active hint while hints show", () => {
@@ -34,5 +35,16 @@ describe("SearchField operator hints", () => {
     const field = screen.getByRole("textbox", { name: "Search mail" });
     expect(field.getAttribute("aria-activedescendant")).toBeNull();
     expect(screen.queryByRole("listbox")).toBeNull();
+  });
+});
+
+describe("SearchField and the stored search", () => {
+  it("takes a search set elsewhere and does not write the old text back", async () => {
+    navStore.getState().setSearch("receipts");
+    render(<SearchField />);
+    act(() => navStore.getState().setSearch("receipts in:trash"));
+    expect((screen.getByRole("textbox", { name: "Search mail" }) as HTMLInputElement).value).toBe("receipts in:trash");
+    await act(() => new Promise((r) => setTimeout(r, SEARCH_DEBOUNCE_MS * 2)));
+    expect(navStore.getState().search).toBe("receipts in:trash");
   });
 });
