@@ -54,7 +54,7 @@ export function DateTimePanel({ title, onPick, now = Date.now() }: PanelProps) {
           }}
         >
           <Input type="datetime-local" aria-label="Date and time" value={value} min={toLocalInput(now)} onChange={(e) => setValue(e.target.value)} autoFocus />
-          <Button type="submit" variant="primary" size="sm" disabled={at === null || at <= now}>Set</Button>
+          <Button type="submit" variant="accent" size="sm" disabled={at === null || at <= now}>Set</Button>
         </form>
       ) : null}
     </div>

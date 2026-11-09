@@ -52,7 +52,7 @@ export function ReminderPanel({ value, onPick, now }: { value: number | null; on
       {custom ? (
         <form className={panel.custom} onSubmit={(e) => { e.preventDefault(); if (at !== null && at > now) onPick(at); }}>
           <Input type="datetime-local" aria-label="Reminder time" value={input} min={toLocalInput(now)} onChange={(e) => setInput(e.target.value)} autoFocus />
-          <Button type="submit" variant="primary" size="sm" disabled={at === null || at <= now}>Set</Button>
+          <Button type="submit" variant="accent" size="sm" disabled={at === null || at <= now}>Set</Button>
         </form>
       ) : null}
     </div>

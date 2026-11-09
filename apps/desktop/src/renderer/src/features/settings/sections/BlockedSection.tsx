@@ -22,7 +22,7 @@ export function BlockedSection() {
   return (
     <SectionPage title="Blocked" description="Mail from these senders goes to Blocked and never reaches the inbox.">
       {!blocked.loading && items.length === 0 ? (
-        <p className={styles.muted} style={{ padding: "var(--s-5) 0" }}>No blocked senders. Block a sender from the message menu.</p>
+        <p className={styles.empty}>No blocked senders. Block a sender from the message menu.</p>
       ) : (
         items.map((b) => (
           <div key={b.pattern} className={styles.row}>

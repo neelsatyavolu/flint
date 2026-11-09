@@ -1,4 +1,4 @@
-.summary { position: relative; margin: var(--s-4) var(--s-6); padding: 2px 0 2px var(--s-4); border-left: 2px solid var(--accent); }
+.summary { position: relative; margin: var(--s-4) var(--s-6); padding: 2px 0 2px var(--s-4); border-left: 1px solid var(--accent); }
 .head { display: flex; align-items: center; gap: var(--s-2); min-height: 24px; }
 .head button { all: unset; display: inline-flex; align-items: center; gap: 6px; cursor: default; color: var(--fg-3); border-radius: var(--r-control); }
 .head button:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
@@ -12,6 +12,6 @@
 .error { margin-top: 4px; color: var(--fg-3); display: flex; align-items: center; gap: var(--s-2); }
 .lines { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
 /* A summary written while the thread is open fades in instead of popping over the placeholder. */
-.arrive { animation: arrive 180ms var(--ease, ease) both; }
+.arrive { animation: arrive var(--dur-panel) var(--ease) both; }
 @keyframes arrive { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .arrive { animation: none; } }

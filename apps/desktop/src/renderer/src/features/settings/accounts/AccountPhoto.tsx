@@ -51,7 +51,7 @@ export function AccountPhoto({ account, onChanged }: AccountPhotoProps) {
   return (
     <SettingsRow title="Photo" description={error ? <span role="alert">{error}</span> : hint}>
       <Avatar address={account.email} name={account.name} accountId={account.id} size={32} />
-      <Button variant="secondary" disabled={busy} onClick={() => input.current?.click()}>
+      <Button variant="ghost" disabled={busy} onClick={() => input.current?.click()}>
         {account.avatarSource === "custom" ? "Change photo" : "Choose photo"}
       </Button>
       {account.avatarSource === "custom" ? (

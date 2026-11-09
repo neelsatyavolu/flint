@@ -214,7 +214,7 @@ function Dock({ request, onClose }: InlineReplyDockProps): JSX.Element {
               ) : (
                 <Button variant="ghost" onClick={flow.dismissConfirm}>Cancel</Button>
               )}
-              <Button variant="primary" onClick={flow.confirmSend}>Send anyway</Button>
+              <Button variant="accent" onClick={flow.confirmSend}>Send anyway</Button>
             </>
           }
         >

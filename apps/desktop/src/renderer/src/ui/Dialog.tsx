@@ -32,7 +32,7 @@ function Layer({ variant, width, open, onClose, title, hideTitle, children, foot
             {...getFloatingProps()}
           >
             <header className={styles.header}>
-              <h2 className={clsx("t-title", hideTitle && "sr-only")}>{title}</h2>
+              <h2 className={clsx("t-headline-sm", hideTitle && "sr-only")}>{title}</h2>
               <IconButton label="Close" shortcut="Escape" onClick={onClose} className={styles.close}><X size={16} strokeWidth={1.5} /></IconButton>
             </header>
             <div className={styles.body}>{children}</div>

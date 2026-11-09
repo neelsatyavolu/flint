@@ -17,6 +17,6 @@
 .chip:active { background: var(--active); }
 .chip:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 /* Options written while the thread is open fade in over their placeholders. */
-.arrive { animation: arrive 180ms var(--ease, ease) both; }
+.arrive { animation: arrive var(--dur-panel) var(--ease) both; }
 @keyframes arrive { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .arrive { animation: none; } }

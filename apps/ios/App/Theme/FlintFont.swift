@@ -19,10 +19,9 @@ enum FlintFontRole: CaseIterable, Sendable {
         switch self {
         case .body, .message: .geistRegular
         case .bodyMedium: .geistMedium
-        case .bodyStrong, .title, .subject, .compose, .settingTitle: .geistSemiBold
-        case .data: .monoRegular
-        case .label: .monoMedium
-        case .prose: .newsreader
+        case .bodyStrong, .title, .settingTitle: .geistSemiBold
+        case .data, .label: .monoRegular
+        case .subject, .compose, .prose: .newsreader
         }
     }
 
@@ -30,11 +29,9 @@ enum FlintFontRole: CaseIterable, Sendable {
         switch self {
         case .body, .bodyMedium, .bodyStrong: 13.5
         case .title: 15
-        case .subject: 21
-        case .compose: 24
-        case .data: 11.5
-        case .label: 11
-        case .prose: 16.5
+        case .subject, .compose: 24
+        case .data, .label: 12
+        case .prose: 17
         case .message, .settingTitle: 14.5
         }
     }
@@ -44,8 +41,7 @@ enum FlintFontRole: CaseIterable, Sendable {
         switch self {
         case .body, .bodyMedium, .bodyStrong: 20
         case .title, .message, .settingTitle: 22
-        case .subject: 28
-        case .compose: 32
+        case .subject, .compose: 30
         case .data, .label: 16
         case .prose: 26
         }
@@ -61,9 +57,6 @@ enum FlintFontRole: CaseIterable, Sendable {
         }
     }
 
-    var isUppercase: Bool { self == .label }
-    /// `0.08em` on labels.
-    var tracking: CGFloat { self == .label ? 0.08 * size : 0 }
     /// Times, counts and the numerals of UI text line up in columns.
     var usesTabularDigits: Bool { true }
 
@@ -77,7 +70,7 @@ enum FlintFontRole: CaseIterable, Sendable {
 }
 
 extension View {
-    /// Font, line height, tracking and case for a role. Color is separate: pass one, or inherit.
+    /// Font and line height for a role. Labels are sentence case and untracked (DESIGN.md section 3). Color is separate: pass one, or inherit.
     func flintText(_ role: FlintFontRole, color: Color? = nil) -> some View {
         modifier(FlintTextModifier(role: role, color: color))
     }
@@ -99,8 +92,6 @@ private struct FlintTextModifier: ViewModifier {
             .font(role.font)
             .monospacedDigit()
             .lineSpacing(lineSpacing)
-            .tracking(role.tracking)
-            .textCase(role.isUppercase ? .uppercase : nil)
             .foregroundStyle(color ?? (role == .label ? FlintColor.fg3 : FlintColor.fg))
     }
 }

@@ -1,9 +1,9 @@
-/* One rounded card per message (DESIGN.md, Reader). */
+/* One card per message (DESIGN.md, Reader): plane-3 fill, 1px line, 6px radius, no shadow. */
 .card { background: var(--plane-3); border: 1px solid var(--line); border-radius: var(--r-card); }
 .message { padding: 16px 20px 12px; }
 .head { display: flex; align-items: center; gap: 12px; }
 .headAvatar { flex: none; }
-.headText { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; }
+.headText { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
 .fromName { flex: none; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; border: 0; background: transparent; color: var(--fg); text-align: left; }
 .fromName:hover { text-decoration: underline; }
 .toWord, .toPlain { color: var(--fg-3); white-space: nowrap; }
@@ -17,11 +17,11 @@
 
 .recipPopover { min-width: 260px; max-width: 360px; padding: 8px; }
 .recipGroup { padding: 4px 0; }
-.recipTitle { padding: 0 4px; color: var(--fg-3); margin-bottom: 2px; }
-.recipRow { display: flex; flex-wrap: wrap; gap: 0 6px; width: 100%; padding: 2px 4px; border: 0; border-radius: var(--r-control); background: transparent; text-align: left; }
+.recipTitle { padding: 0 4px; color: var(--fg-3); margin-bottom: 4px; }
+.recipRow { display: flex; flex-wrap: wrap; gap: 0 8px; width: 100%; padding: 4px; border: 0; border-radius: var(--r-control); background: transparent; text-align: left; }
 .recipRow:hover { background: var(--hover); }
 .recipName { color: var(--fg); }
-.recipAddr { color: var(--fg-3); overflow-wrap: anywhere; }
+.recipAddr { color: var(--fg-3); overflow-wrap: anywhere; font-family: var(--font-mono); font-size: var(--text-data); }
 
 /* Person card: who someone is, then menu-style actions. */
 .personPopover { width: 280px; padding: 4px; }
@@ -40,32 +40,39 @@
 .personDanger, .personDanger .personIcon { color: var(--danger); }
 
 .draft { padding: 12px 20px 16px; }
-.draftHead { display: flex; align-items: center; gap: 10px; }
-.draftTag { flex: none; padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: var(--r-control); color: var(--fg-2); }
+.draftHead { display: flex; align-items: center; gap: 12px; }
+/* "Draft" pill: Label, --line-strong border, full radius. */
+.draftTag { flex: none; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: var(--r-round); color: var(--fg-2); }
 .draftTo { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .draftActions { display: flex; align-items: center; gap: 4px; flex: none; }
 .draftDivider { width: 1px; height: 16px; margin: 0 4px; background: var(--line-strong); }
-.draftDelete:hover:not(:disabled) { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.draftDelete:hover:not(:disabled) { color: var(--danger); background: var(--hover); }
 .draftText { margin-top: 12px; max-height: 14em; overflow: hidden; color: var(--fg-2); }
 /* A reply on its way: the card a sent message will replace, quieter than a draft. */
 .outgoing { border-style: dashed; }
 .outgoingStatus { flex: none; color: var(--fg-3); font-variant-numeric: tabular-nums; }
 
 .collapsed { display: flex; align-items: center; gap: 12px; width: 100%; height: 48px; padding: 0 20px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--plane-3); text-align: left; color: var(--fg-2); transition: background-color var(--dur-fast) var(--ease); }
-/* The tint layers over the card fill, so a translucent --hover never shows the plane behind the card. */
-.collapsed:hover { background: linear-gradient(var(--hover), var(--hover)), var(--plane-3); }
-.collapsed:active { background: linear-gradient(var(--active), var(--active)), var(--plane-3); }
+.collapsed:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+/* The tint is mixed into the card fill (same weights as --hover / --active), so it never shows the plane behind the card. */
+.collapsed:hover { background: color-mix(in srgb, var(--fg) 4.5%, var(--plane-3)); }
+.collapsed:active { background: color-mix(in srgb, var(--fg) 8%, var(--plane-3)); }
 .cName { flex: none; width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); font-weight: 500; }
 .unread .cName { font-weight: 600; }
 .cSnippet { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-3); }
 
 .bodyWrap { margin-top: 12px; }
-.sheet { overflow: hidden; }
+/* A light sheet inside a card gets a 4px-radius inset (DESIGN.md, Reader). */
+.sheet { overflow: hidden; border-radius: var(--r-control); }
 .sheet + .quotePill { margin-top: 4px; }
 .quotedFrame { margin-top: 8px; }
 .notice { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; color: var(--fg-3); }
+/* "Load images" and "Always for this sender": accent text buttons on the Label line. */
+.noticeAction { padding: 0; border: 0; border-radius: var(--r-control); background: transparent; color: var(--accent); font: inherit; }
+.noticeAction:hover { color: var(--accent-hover); text-decoration: underline; }
+.noticeAction:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .trackers { margin: 0 0 8px; color: var(--fg-3); }
-.skeleton { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.skeleton { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
 .messageText { font: 400 var(--text-message, 14.5px) / var(--lh-message, 22px) var(--font-ui); max-width: none; }
 .prose { color: var(--fg); }
 .pre { white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -74,8 +81,8 @@
 .quotePill:hover { background: var(--line-strong); color: var(--fg); }
 
 .receipt { margin-top: 16px; padding: 12px 0 0; border-top: 1px solid var(--line); }
-.receiptHead { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-.receiptFoot { display: flex; gap: 16px; margin-top: 10px; }
+.receiptHead { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.receiptFoot { display: flex; gap: 16px; margin-top: 12px; }
 .disclosure { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: transparent; color: var(--fg-3); }
 .disclosure:hover { color: var(--fg); }
 .turned { transform: rotate(90deg); }
@@ -85,4 +92,4 @@
 .dim { color: var(--fg-3); }
 
 /* Read-receipt check before the date on your own tracked messages. */
-.headCheck { margin-right: 6px; }
+.headCheck { margin-right: 4px; }

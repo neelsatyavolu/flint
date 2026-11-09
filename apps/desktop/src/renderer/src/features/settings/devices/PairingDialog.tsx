@@ -77,7 +77,7 @@ function Body({ view, now, include, setInclude, approve, cancel, restart, close 
           <p className={styles.muted}>Google accounts are never sent. You sign in to them on the iPhone.</p>
           <div className={styles.actions}>
             <Button variant="ghost" onClick={cancel}>Cancel</Button>
-            <Button variant="primary" onClick={approve}>Approve</Button>
+            <Button variant="accent" onClick={approve}>Approve</Button>
           </div>
         </>
       );
@@ -88,7 +88,7 @@ function Body({ view, now, include, setInclude, approve, cancel, restart, close 
         <>
           <p className={styles.doneLine}><Check size={16} strokeWidth={1.5} aria-hidden /> Set up {view.deviceName}</p>
           <p>{countsSentence(view.counts)}</p>
-          <div className={styles.actions}><Button variant="primary" onClick={close}>Done</Button></div>
+          <div className={styles.actions}><Button variant="accent" onClick={close}>Done</Button></div>
         </>
       );
     case "ended":
@@ -97,7 +97,7 @@ function Body({ view, now, include, setInclude, approve, cancel, restart, close 
           <p role="status">{view.message}</p>
           <div className={styles.actions}>
             <Button variant="ghost" onClick={close}>Close</Button>
-            {view.retry ? <Button variant="primary" onClick={restart}>Show new code</Button> : null}
+            {view.retry ? <Button variant="accent" onClick={restart}>Show new code</Button> : null}
           </div>
         </>
       );

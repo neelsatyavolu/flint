@@ -150,7 +150,7 @@ export function ImapStep({ preset, onDone, reauth }: Props) {
         <div role="alert" className={styles.problems}>{problems.map((p) => <span key={p} className={styles.err}>{p}</span>)}</div>
       ) : null}
       <div className={styles.actions}>
-        <Button type="submit" variant="primary" disabled={busy !== null}>
+        <Button type="submit" variant="accent" disabled={busy !== null}>
           {busy === "testing" ? "Checking the servers…" : busy === "adding" ? "Adding…" : "Connect"}
         </Button>
       </div>

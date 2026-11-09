@@ -32,9 +32,9 @@ enum AvatarTint {
         return (first + second).uppercased()
     }
 
-    /// Lightness and chroma per theme: `oklch(0.58 0.09 h)` dark, `oklch(0.68 0.08 h)` light.
+    /// Lightness and chroma per theme (`--avatar-l`, `--avatar-c`): `oklch(0.50 0.05 h)` dark, `oklch(0.62 0.05 h)` light.
     static func lightnessChroma(dark: Bool) -> (l: Double, c: Double) {
-        dark ? (0.58, 0.09) : (0.68, 0.08)
+        dark ? (0.50, 0.05) : (0.62, 0.05)
     }
 
     /// OKLCH to gamma-encoded sRGB in 0...1, clamped.

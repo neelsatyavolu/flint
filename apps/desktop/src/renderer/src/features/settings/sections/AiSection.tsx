@@ -77,7 +77,7 @@ function AiHome({ onOpen }: { onOpen: (p: AiPage) => void }) {
           </SettingsRow>
         ) : (
           <div className="t-body" style={{ paddingTop: "var(--s-2)" }}>
-            <div style={{ font: "600 var(--text-setting) / 20px var(--font-ui)" }}>Not connected</div>
+            <div style={{ font: "500 var(--text-setting) / 20px var(--font-ui)" }}>Not connected</div>
             <div className={styles.muted}>Sign in with the subscription you already have. Flint never sees your password.</div>
             <AiConnectPanel connect={connect} />
           </div>

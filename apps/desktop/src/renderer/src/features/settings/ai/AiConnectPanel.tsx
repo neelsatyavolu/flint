@@ -13,7 +13,7 @@ export function AiConnectPanel({ connect }: { connect: AiConnect }) {
   if (state.kind === "idle") {
     return (
       <div className={styles.inline} style={{ paddingTop: "var(--s-3)" }}>
-        <Button variant="primary" onClick={() => void connect.start("codex")}>Connect ChatGPT</Button>
+        <Button variant="accent" onClick={() => void connect.start("codex")}>Connect ChatGPT</Button>
         <Button variant="ghost" onClick={() => void connect.start("grok")}>Connect Grok</Button>
       </div>
     );
@@ -57,7 +57,7 @@ export function AiConnectPanel({ connect }: { connect: AiConnect }) {
         />
         {state.error ? <p className={styles.err} role="alert">{state.error}</p> : null}
         <div className={styles.inline}>
-          <Button variant="primary" disabled={state.busy || pasted.trim() === ""} onClick={() => void connect.submit(pasted)}>
+          <Button variant="accent" disabled={state.busy || pasted.trim() === ""} onClick={() => void connect.submit(pasted)}>
             {state.busy ? "Connecting…" : "Connect"}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => openExternal(state.url)}>Open the page again</Button>
@@ -71,7 +71,7 @@ export function AiConnectPanel({ connect }: { connect: AiConnect }) {
     <div className={styles.stack} style={{ paddingTop: "var(--s-3)" }}>
       <p className={styles.err} role="alert">{state.message}</p>
       <div className={styles.inline}>
-        <Button variant="primary" onClick={() => void connect.start(state.provider)}>Try again</Button>
+        <Button variant="accent" onClick={() => void connect.start(state.provider)}>Try again</Button>
         <Button variant="ghost" onClick={connect.cancel}>Cancel</Button>
       </div>
     </div>

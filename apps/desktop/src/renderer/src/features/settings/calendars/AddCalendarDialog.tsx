@@ -135,7 +135,7 @@ function AddForm({ kind, address, onClose, onAdded }: Omit<Props, "kind"> & { ki
       {failure ? <p role="alert" className={styles.err}>{failure}</p> : null}
       <div className={styles.inline} style={{ justifyContent: "flex-end" }}>
         <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button variant="primary" disabled={busy} onClick={() => void submit()}>
+        <Button variant="accent" disabled={busy} onClick={() => void submit()}>
           {kind === "google" ? (busy ? "Waiting for Google" : "Continue with Google") : busy ? "Connecting" : "Add calendar"}
         </Button>
       </div>

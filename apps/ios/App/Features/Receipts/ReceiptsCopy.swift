@@ -25,6 +25,6 @@ struct ReceiptsHowItWorks: View {
     }
 
     private func heading(_ key: LocalizedStringKey) -> some View {
-        Text(key, tableName: "Receipts").flintText(.label, color: FlintColor.fg2).textCase(.uppercase).padding(.top, FlintMetrics.Space.s1)
+        Text(key, tableName: "Receipts").flintText(.label, color: FlintColor.fg2).padding(.top, FlintMetrics.Space.s1)
     }
 }

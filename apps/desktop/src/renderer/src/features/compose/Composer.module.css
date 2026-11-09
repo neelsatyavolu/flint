@@ -5,23 +5,23 @@
 .sep { width: 1px; height: 18px; margin: 0 var(--s-2); background: var(--line-strong); }
 .scroll { flex: 1; min-height: 0; overflow-y: auto; }
 .page { width: 100%; max-width: 808px; margin-inline: auto; padding: var(--s-5) var(--s-6) var(--s-12); box-sizing: border-box; }
-.note { display: flex; align-items: center; gap: 6px; margin: 6px 0 0 40px; color: var(--fg-3); }
-.subject { display: block; width: 100%; padding: 0; margin: 0 0 var(--s-2); border: 0; outline: none; background: transparent; color: var(--fg); caret-color: var(--accent); font: 600 var(--text-compose) / var(--lh-compose) var(--font-ui); -webkit-user-select: text; user-select: text; }
+.note { display: flex; align-items: center; gap: var(--s-2); margin: var(--s-2) 0 0 40px; color: var(--fg-3); }
+.subject { display: block; width: 100%; padding: 0; margin: 0 0 var(--s-2); border: 0; outline: none; background: transparent; color: var(--fg); caret-color: var(--accent); -webkit-user-select: text; user-select: text; }
 .subject::placeholder { color: var(--fg-3); }
-.reveal { all: unset; color: var(--fg-3); padding: 2px 6px; border-radius: var(--r-control); font: 400 var(--text-data) / var(--lh-data) var(--font-ui); }
+.reveal { all: unset; color: var(--fg-3); padding: var(--s-1) var(--s-2); border-radius: var(--r-control); font: 400 var(--text-label) / var(--lh-label) var(--font-mono); }
 .reveal:hover { background: var(--hover); color: var(--fg-2); }
 .reveal:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-.error { margin: 4px 0 0 40px; color: var(--danger); }
+.error { margin: var(--s-1) 0 0 40px; color: var(--danger); }
 .body { margin-top: var(--s-4); }
 .quoteWrap { margin-top: var(--s-3); }
 .pill { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 18px; padding: 0; border: 0; border-radius: var(--r-round); background: var(--active); color: var(--fg-2); font: 500 13px / 1 var(--font-ui); }
 .pill:hover { background: var(--line-strong); color: var(--fg); }
 .pill:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-.quote { margin-top: var(--s-2); padding-left: var(--s-3); border-left: 2px solid var(--line-strong); }
-.drop { position: absolute; inset: var(--titlebar-h) 0 0 0; display: grid; place-items: center; background: var(--accent-soft); border: 2px dashed var(--accent); color: var(--accent); pointer-events: none; z-index: 5; }
+.quote { margin-top: var(--s-2); padding-left: var(--s-3); border-left: 1px solid var(--line-strong); }
+.drop { position: absolute; inset: var(--titlebar-h) 0 0 0; display: grid; place-items: center; background: var(--accent-soft); border: 1px dashed var(--accent); color: var(--accent); pointer-events: none; z-index: 5; }
 .loading { padding: var(--s-8); color: var(--fg-3); }
 .chip {
-  display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 4px 0 var(--s-3);
+  display: flex; align-items: center; gap: var(--s-1); height: 32px; padding: 0 var(--s-1) 0 var(--s-3);
   background: var(--plane-3); border: 1px solid var(--line-strong); border-radius: var(--r-control);
 }
 .chipOpen { all: unset; display: inline-flex; align-items: center; gap: var(--s-2); height: 100%; max-width: 220px; cursor: default; color: var(--fg); font: 400 var(--text-body) / 1 var(--font-ui); }
@@ -30,5 +30,6 @@
 .host { position: fixed; top: 0; right: 0; bottom: 0; left: var(--flint-sidebar-width, 232px); z-index: 40; pointer-events: none; }
 .panelSlot { position: absolute; inset: 0; pointer-events: auto; }
 .panelSlot[hidden] { display: none; }
-.chips { position: fixed; right: 16px; bottom: 16px; z-index: 45; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; pointer-events: auto; }
-.receiptsBlocked { opacity: 0.4; cursor: default; }
+.chips { position: fixed; right: var(--s-4); bottom: var(--s-4); z-index: 45; display: flex; flex-direction: column; align-items: flex-end; gap: var(--s-1); pointer-events: auto; }
+/* Disabled per spec: stone text, no opacity fade. */
+.receiptsBlocked[aria-disabled], .receiptsBlocked[aria-disabled]:hover, .receiptsBlocked[aria-disabled]:active { color: var(--fg-4); background: transparent; cursor: default; }

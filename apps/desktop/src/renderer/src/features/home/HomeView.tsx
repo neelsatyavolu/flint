@@ -5,7 +5,7 @@ import type { FlintApi, ThreadListItem, TrackedMessage } from "@flint/core";
 import { useFlintQuery } from "../../lib/hooks";
 import { formatListTime, formatParticipants } from "../../lib/format";
 import { useResolvedTheme } from "../../lib/theme";
-import { Avatar, Button, EmptyState, Skeleton } from "../../ui";
+import { Avatar, Button, Skeleton } from "../../ui";
 import { PaneHeader } from "../../shell/PaneHeader";
 import { useApp } from "../../state/AppContext";
 import { navStore } from "../../state/nav";
@@ -135,13 +135,11 @@ export function HomeView() {
           ) : null}
 
           {error && !data ? (
-            <EmptyState
-              className={styles.failed}
-              markSize={48}
-              title="Couldn't load Home"
-              description="Flint couldn't read your mail just now."
-              action={<Button size="sm" variant="ghost" onClick={refetch}>Try again</Button>}
-            />
+            <div className={styles.failed}>
+              <h2 className={clsx("t-headline-sm", styles.failedTitle)}>Couldn't load Home</h2>
+              <p className={clsx("t-body", styles.failedBody)}>Flint couldn't read your mail just now.</p>
+              <Button size="sm" variant="ghost" onClick={refetch}>Try again</Button>
+            </div>
           ) : null}
 
           {data ? (
@@ -164,7 +162,7 @@ export function HomeView() {
               </Block>
               <RecentDrafts all={drafts.data ?? []} now={now} />
               {nothing ? (
-                <p className={clsx("t-body", styles.quiet)} role="status">{firstSync ? "Getting your mail…" : "Nothing needs you right now."}</p>
+                <p className={clsx("t-headline-sm", styles.quiet)} role="status">{firstSync ? "Getting your mail…" : "Nothing needs you right now."}</p>
               ) : null}
               <QuickActions />
             </>

@@ -4,9 +4,10 @@
  * --scene-scrim's alpha is the theme floor; a photo with a brighter top band raises it through --photo-scrim.
  */
 .home {
-  --on-scene: #fcfdff;
+  /* Scene-only tokens: paper ink on the photo, and a warm off-black scrim (the --scrim base, #090908). */
+  --on-scene: #f7f5ef;
   --scene-scrim-alpha: 0.3;
-  --scene-scrim: rgba(0, 0, 0, max(var(--scene-scrim-alpha), var(--photo-scrim, 0)));
+  --scene-scrim: rgba(9, 9, 8, max(var(--scene-scrim-alpha), var(--photo-scrim, 0)));
   --band-fg: var(--fg);
   --band-fg-2: var(--fg-3);
   position: relative;
@@ -36,8 +37,9 @@
 .band { display: flex; flex-direction: column; max-width: 720px; margin-inline: auto; padding: 0 25px 16px; color: var(--band-fg); transition: color var(--dur-panel) var(--ease); }
 .photoOn .band { min-height: 144px; }
 .greeting { margin: 0 0 var(--s-2); color: inherit; }
-.date { margin-top: 4px; color: var(--band-fg-2); transition: color var(--dur-panel) var(--ease); }
-.credit { margin-top: auto; padding-top: 16px; color: var(--band-fg-2); }
+/* Date, time and credit are Label (mono, sentence case) in the band's ink; `.band` lifts them over .t-label's --fg-3. */
+.band .date { margin-top: 4px; color: var(--band-fg-2); font-variant-numeric: tabular-nums; transition: color var(--dur-panel) var(--ease); }
+.band .credit { margin-top: auto; padding-top: 16px; color: var(--band-fg-2); }
 
 .sheet { max-width: 720px; margin-inline: auto; padding: 16px 24px 24px; background: var(--plane-2); border: 1px solid transparent; border-radius: var(--r-card); }
 .scenic .sheet { border-color: var(--line); }
@@ -50,21 +52,26 @@
 }
 
 .glance { display: flex; flex-wrap: wrap; gap: 4px 20px; }
-.stat { display: inline-flex; align-items: baseline; gap: 6px; height: 28px; padding: 0 8px; margin: 0 -8px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--fg-2); transition: background-color var(--dur-fast) var(--ease); }
+.stat { display: inline-flex; align-items: baseline; gap: 8px; height: 28px; padding: 0 8px; margin: 0 -8px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--fg-2); transition: background-color var(--dur-fast) var(--ease); }
 .stat:hover { background: var(--hover); color: var(--fg); }
-.failed { min-height: 240px; }
+.failed { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin-top: 32px; }
+.failedTitle { margin: 0; color: var(--fg-2); }
+.failedBody { margin: 0; color: var(--fg-3); }
 
-.skeletons { display: flex; flex-direction: column; gap: 14px; margin-top: 32px; }
+.skeletons { display: flex; flex-direction: column; gap: 12px; margin-top: 32px; }
 .block { margin-top: 32px; }
-.blockHead { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
-.blockLabel { padding: 0; margin: 0; }
-.tag { color: var(--accent); }
+/* Section rule: a --line-strong top rule, the label under it in --fg, meta at right in --fg-3. */
+.blockHead { display: flex; align-items: baseline; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--line-strong); }
+.blockLabel { padding: 0; margin: 0; color: var(--fg); }
+.tag { color: var(--fg-3); }
+/* Hairline rows: a 1px --line between rows, rules on the column edge. */
+.block li + li { border-top: 1px solid var(--line); }
 .aiAsk { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); min-height: 48px; }
 .aiHint { margin: 0; color: var(--fg-3); }
 .aiLines { display: flex; flex-direction: column; gap: 8px; padding-top: var(--s-3); }
 .aiNote { color: var(--fg-3); }
 .aiFoot { margin-top: var(--s-3); }
-.row { display: flex; align-items: center; gap: 12px; width: 100%; height: 40px; padding: 0 8px; margin: 0 -8px; width: calc(100% + 16px); border: 0; border-radius: var(--r-control); background: transparent; text-align: left; color: var(--fg-2); transition: background-color var(--dur-fast) var(--ease); }
+.row { display: flex; align-items: center; gap: 12px; width: 100%; height: 40px; padding: 0 8px; margin: 0 -8px; width: calc(100% + 16px); border: 0; border-radius: 0; background: transparent; text-align: left; color: var(--fg-2); transition: background-color var(--dur-fast) var(--ease); }
 .row:hover { background: var(--hover); }
 .item { display: flex; align-items: center; gap: 8px; min-height: 40px; }
 .who { flex: none; width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); font-weight: 500; }
@@ -79,7 +86,7 @@
 .ago { flex: none; text-align: right; color: var(--fg-3); }
 .when { flex: none; width: 64px; color: var(--fg); }
 .kind { flex: none; width: 44px; color: var(--fg-3); }
-.quiet { margin-top: 32px; color: var(--fg-3); }
+.quiet { margin-top: 32px; color: var(--fg-2); }
 .link { padding: 0; border: 0; background: transparent; color: var(--fg-2); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
 .link:hover { color: var(--fg); }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 32px; }

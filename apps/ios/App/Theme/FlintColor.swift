@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Named colors from `Colors.xcassets`, which mirrors `apps/desktop/src/renderer/src/styles/tokens.css`
-/// (DESIGN.md section 2). Dark is Graphite, light is Paper. Views never use raw hex or system colors.
+/// (DESIGN.md section 2). Dark is warm off-black, light is Paper. Views never use raw hex or system colors.
 /// `TokenParityTests` fails if the catalog drifts from tokens.css.
 enum FlintColor {
     static let plane0 = Color("Plane0")
@@ -29,11 +29,11 @@ enum FlintColor {
     static let warn = Color("Warn")
 
     /// Text on avatar tints (`--avatar-fg`).
-    static let avatarFg = Color(red: 0xF4 / 255, green: 0xF2 / 255, blue: 0xEC / 255)
+    static let avatarFg = Color("AvatarFg")
 
     /// Every catalog name, for tests and the gallery.
     static let catalogNames = [
         "Plane0", "Plane1", "Plane2", "Plane3", "Fg", "Fg2", "Fg3", "Fg4", "Hover", "Active", "Line",
-        "LineStrong", "Accent", "AccentFg", "AccentSoft", "AccentRing", "Danger", "Ok", "Warn",
+        "LineStrong", "Accent", "AccentFg", "AccentSoft", "AccentRing", "Danger", "Ok", "Warn", "AvatarFg",
     ]
 }

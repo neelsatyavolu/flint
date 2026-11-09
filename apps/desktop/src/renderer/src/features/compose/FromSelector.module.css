@@ -1,10 +1,10 @@
 .from {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--s-2);
   max-width: 240px;
-  height: 36px;
-  padding: 0 8px;
+  height: var(--h-control);
+  padding: 0 var(--s-2);
   background: transparent;
   border: 0;
   border-radius: var(--r-control);

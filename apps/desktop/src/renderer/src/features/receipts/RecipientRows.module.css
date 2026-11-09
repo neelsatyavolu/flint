@@ -1,7 +1,7 @@
-.list { display: flex; flex-direction: column; gap: 6px; }
+.list { display: flex; flex-direction: column; gap: 4px; }
 .row { display: flex; align-items: center; gap: 8px; min-height: 20px; }
 .name { flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.status { display: inline-flex; align-items: center; gap: 6px; min-width: 0; margin-left: auto; }
+.status { display: inline-flex; align-items: center; gap: 8px; min-width: 0; margin-left: auto; }
 .text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
 .status { color: var(--fg-2); }

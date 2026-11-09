@@ -100,7 +100,7 @@ export function ComposerTools(p: ToolsProps): JSX.Element {
   const remindLabel = fields.remindAt ? `Reminder: ${formatPresetTime(fields.remindAt, now)}` : "Remind me if no reply";
   return (
     <>
-        <IconButton label="+AI" tone="accent" pressed={p.aiOpen} onClick={p.onToggleAi}><Sparkles size={18} strokeWidth={1.5} /></IconButton>
+        <IconButton label="+AI" pressed={p.aiOpen} onClick={p.onToggleAi}><Sparkles size={18} strokeWidth={1.5} /></IconButton>
         <IconButton label="Attach files" onClick={p.onAttach}><Paperclip size={18} strokeWidth={1.5} /></IconButton>
         <Menu items={templateItems} placement={p.placement === "top-start" ? "top-start" : "bottom-end"} trigger={<IconButton label="Templates"><FileText size={18} strokeWidth={1.5} /></IconButton>} />
         <ReminderPicker

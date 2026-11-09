@@ -136,7 +136,7 @@ describe("SettingsView", () => {
 
   it("renders every section without errors", async () => {
     mount({});
-    for (const name of ["General", "Accounts", "Appearance", "Inbox", "Signatures", "Templates", "Rules", "Read Receipts", "Notifications", "+AI", "Agents", "Shortcuts", "Blocked", "About"]) {
+    for (const name of ["General", "Accounts", "Appearance", "Inbox", "Signatures", "Templates", "Rules", "Read receipts", "Notifications", "+AI", "Agents", "Shortcuts", "Blocked", "About"]) {
       fireEvent.click(screen.getByRole("button", { name }));
       expect(await screen.findByRole("region", { name })).toBeTruthy();
     }

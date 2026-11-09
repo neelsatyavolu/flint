@@ -64,7 +64,7 @@ export function TemplateEditor({ initial, onSave, onDelete }: { initial: Draft; 
       </label>
       <RichEditor label="Template body" initial={initial.html} images={false} onChange={(html) => setDraft((d) => ({ ...d, html }))} />
       <div className={styles.inline}>
-        <Button variant="primary" disabled={!canSave || busy} onClick={() => { setBusy(true); void onSave(draft).finally(() => setBusy(false)); }}>Save</Button>
+        <Button variant="accent" disabled={!canSave || busy} onClick={() => { setBusy(true); void onSave(draft).finally(() => setBusy(false)); }}>Save</Button>
         {draft.id !== undefined ? <Button variant="danger" onClick={() => void onDelete(draft.id!)}>Delete</Button> : null}
       </div>
     </div>

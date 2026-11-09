@@ -1,0 +1,3 @@
+.rule { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); padding-top: var(--s-2); border-top: 1px solid var(--line-strong); }
+.label { color: var(--fg); }
+.meta { flex: none; font-variant-numeric: tabular-nums; }

@@ -43,7 +43,7 @@ export function ReceiptsSection() {
   };
 
   return (
-    <SectionPage title="Read Receipts" description="Know when a message you sent was opened, without false opens.">
+    <SectionPage title="Read receipts" description="Know when a message you sent was opened, without false opens.">
       <ToggleRow icon={<Eye size={18} strokeWidth={1.5} />} title="Enable read receipts" checked={r.enabled} onChange={(v) => void save({ receipts: { enabled: v } })} />
       <ToggleRow icon={<EyeOff size={18} strokeWidth={1.5} />} title="Track new mail by default" description="You can turn it off for a single message in the composer." checked={r.defaultOn} disabled={!r.enabled} onChange={(v) => void save({ receipts: { defaultOn: v } })} />
       <ToggleRow icon={<BellRing size={18} strokeWidth={1.5} />} title="Notify when opened" checked={r.notifyOnOpen} disabled={!r.enabled} onChange={(v) => void save({ receipts: { notifyOnOpen: v } })} />
@@ -53,7 +53,7 @@ export function ReceiptsSection() {
           <Button variant="ghost" onClick={() => void test()} disabled={status.kind === "checking"}>Test</Button>
         </div>
       </SettingsRow>
-      <div aria-live="polite" style={{ minHeight: 22, paddingTop: 6 }}>
+      <div aria-live="polite" style={{ minHeight: 28, paddingTop: "var(--s-2)" }}>
         {draftError ? <span className={styles.err}>{draftError}</span> : null}
         {!draftError && status.kind === "ok" ? <span className={styles.ok}>{status.text}</span> : null}
         {!draftError && status.kind === "error" ? <span className={styles.err}>{status.text}</span> : null}

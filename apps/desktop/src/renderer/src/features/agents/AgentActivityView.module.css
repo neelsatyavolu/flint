@@ -1,10 +1,12 @@
 .view { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--plane-2); }
-.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 80px; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 48px; }
 .column { max-width: 760px; }
-.group { margin-top: 20px; }
-.groupLabel { padding-bottom: 8px; border-bottom: 1px solid var(--line); }
-.attention { color: var(--warn); }
-.row { display: flex; align-items: center; gap: 16px; min-height: 52px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+/* Groups open with a section rule (SectionLabel rule), 32px apart. */
+.group { margin-top: 32px; }
+.group:first-child { margin-top: 24px; }
+.groupLabel { padding-bottom: 8px; }
+.attention, .attention > :first-child { color: var(--warn); }
+.row { display: flex; align-items: center; gap: 16px; min-height: 52px; padding: 12px 0 11px; border-bottom: 1px solid var(--line); }
 .time { flex: none; width: 64px; color: var(--fg-3); }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .summary { overflow-wrap: anywhere; }

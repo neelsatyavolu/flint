@@ -1,7 +1,7 @@
 import { useState, type JSX } from "react";
 import { ArrowLeft } from "lucide-react";
 import type { Account } from "@flint/core";
-import { Button, FlintMark } from "../../ui";
+import { Button } from "../../ui";
 import { GoogleStep } from "./GoogleStep";
 import { ImapStep } from "./ImapStep";
 import { ProviderMark } from "./ProviderMark";
@@ -49,7 +49,6 @@ export function AddAccount({ onDone, onCancel, welcome, reauth }: Props): JSX.El
     <div className={styles.welcome}>
       <div className={styles.welcomeInner}>
         <header className={styles.hero}>
-          <FlintMark size={56} spark className={styles.mark} />
           <h1 className="t-display">{heading}</h1>
           {choice === "choose" ? <p className={styles.lede}>Flint is a free mail client. Your mail stays on this computer, and nothing is sent to us.</p> : null}
         </header>

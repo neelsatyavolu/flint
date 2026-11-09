@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { MoreHorizontal } from "lucide-react";
 import type { MessageView } from "@flint/core";
 import { flint } from "../../lib/api";
-import { Button, MailFrame, Skeleton, useToast } from "../../ui";
+import { MailFrame, Skeleton, useToast } from "../../ui";
 import { useResolvedTheme } from "../../lib/theme";
 import { useFrameGate } from "./frameGate";
 import { useMailAppearance } from "./mailAppearance";
@@ -91,13 +91,13 @@ export function MessageBody({ message, onUpdated }: { message: MessageView; onUp
   return (
     <div className={styles.bodyWrap}>
       {blockedNotice ? (
-        <div className={clsx("t-body", styles.notice)}>
+        <div className={clsx("t-label", styles.notice)}>
           <span>{blockedText(message)}</span>
-          <Button size="sm" variant="ghost" onClick={() => load(false)}>{message.safeImages ? "Load all images" : "Load images"}</Button>
-          <Button size="sm" variant="ghost" onClick={() => load(true)}>Always for this sender</Button>
+          <button type="button" className={styles.noticeAction} onClick={() => load(false)}>{message.safeImages ? "Load all images" : "Load images"}</button>
+          <button type="button" className={styles.noticeAction} onClick={() => load(true)}>Always for this sender</button>
         </div>
       ) : null}
-      {message.hasTrackers && !blockedNotice ? <p className={clsx("t-body", styles.trackers)}>Flint removed tracking pixels from this message.</p> : null}
+      {message.hasTrackers && !blockedNotice ? <p className={clsx("t-label", styles.trackers)}>Flint removed tracking pixels from this message.</p> : null}
       {message.html !== null && appearance.html !== null ? (
         <HtmlBody html={appearance.html} subject={message.subject} allowed={allowed} sheet={appearance.sheet} title={`Message from ${message.from[0]?.name || message.from[0]?.address || "sender"}`} />
       ) : (

@@ -59,7 +59,7 @@ export function ReplyToolbar(p: Props): JSX.Element {
       </div>
       <div className={styles.send}>
         <FromSelector value={p.fields.from} options={p.fromOptions} accountId={p.fields.accountId} onChange={p.onFrom} />
-        <Button variant="primary" size="sm" icon={<SendHorizontal size={16} strokeWidth={1.5} />} disabled={p.sending} onClick={p.onSend}>Send</Button>
+        <Button variant="accent" size="sm" icon={<SendHorizontal size={16} strokeWidth={1.5} />} disabled={p.sending} onClick={p.onSend}>Send</Button>
       </div>
     </div>
   );

@@ -1,9 +1,9 @@
 .field {
   width: 100%;
   height: var(--h-control);
-  padding: 0 10px;
-  background: transparent;
-  border: 1px solid var(--line-strong);
+  padding: 0 var(--s-3);
+  background: var(--plane-3);
+  border: 1px solid var(--field);
   border-radius: var(--r-control);
   color: var(--fg);
   font: 400 var(--text-body) / var(--lh-body) var(--font-ui);
@@ -11,14 +11,14 @@
   transition: border-color var(--dur-fast) var(--ease);
 }
 .field::placeholder { color: var(--fg-3); }
-.field:hover { border-color: color-mix(in srgb, var(--line-strong) 60%, var(--fg-3)); }
+.field:hover { border-color: var(--fg-3); }
 .field:focus, .field:focus-visible { border-color: var(--accent); outline: none; }
-.field:disabled { opacity: 0.45; }
+.field:disabled { color: var(--fg-4); border-color: var(--line); }
 .invalid, .invalid:focus { border-color: var(--danger); }
-textarea.field { height: auto; min-height: 80px; padding: 8px 10px; resize: vertical; }
+textarea.field { height: auto; min-height: 80px; padding: var(--s-2) var(--s-3); resize: vertical; }
 
 .selectWrap { position: relative; display: inline-flex; align-items: center; min-width: 140px; }
-.select { appearance: none; -webkit-appearance: none; padding-right: 30px; cursor: default; }
+.select { appearance: none; -webkit-appearance: none; padding-right: var(--s-8); background: transparent; cursor: default; }
 .select option { background: var(--plane-3); color: var(--fg); }
 .chevron { position: absolute; right: 8px; pointer-events: none; color: var(--fg-3); display: inline-flex; }
 
@@ -29,7 +29,7 @@ textarea.field { height: auto; min-height: 80px; padding: 8px 10px; resize: vert
   height: 18px;
   padding: 0;
   /* The off track's edge must reach 3:1 against the plane; the tint alone doesn't. */
-  border: 1px solid var(--fg-3);
+  border: 1px solid var(--field);
   border-radius: var(--r-round);
   background: var(--active);
   transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
@@ -47,7 +47,8 @@ textarea.field { height: auto; min-height: 80px; padding: 8px 10px; resize: vert
 }
 .toggle[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
 .toggle[aria-checked="true"]::after { transform: translateX(14px); background: var(--accent-fg); }
-.toggle:disabled { opacity: 0.4; }
+.toggle:disabled { border-color: var(--line); }
+.toggle:disabled::after { background: var(--fg-4); }
 
 .check { display: inline-flex; align-items: center; gap: var(--s-2); }
 .checkInput { position: absolute; opacity: 0; width: 16px; height: 16px; margin: 0; }
@@ -58,13 +59,14 @@ textarea.field { height: auto; min-height: 80px; padding: 8px 10px; resize: vert
   flex: none;
   width: 16px;
   height: 16px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--field);
   border-radius: var(--r-control);
   color: var(--accent-fg);
   transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
 }
 .checkInput:checked + .box, .checkInput:indeterminate + .box { background: var(--accent); border-color: var(--accent); }
 .checkInput:focus-visible + .box { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-.checkInput:disabled + .box { opacity: 0.4; }
+.checkInput:disabled + .box { border-color: var(--line); }
+.check:has(.checkInput:disabled) { color: var(--fg-4); }
 .box svg { opacity: 0; }
 .checkInput:checked + .box svg, .checkInput:indeterminate + .box svg { opacity: 1; }

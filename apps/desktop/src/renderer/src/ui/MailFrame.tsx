@@ -114,7 +114,7 @@ export function MailFrame({ html, allowRemoteImages, colors, sheet, padding, tit
         height,
         border: 0,
         background: frameColors?.bg ?? LIGHT.bg,
-        borderRadius: sheet === "light-sheet" ? "var(--r-card, 8px)" : undefined,
+        borderRadius: sheet === "light-sheet" ? "var(--r-control)" : undefined,
         colorScheme: scheme,
       }}
       scrolling="no"

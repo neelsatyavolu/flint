@@ -17,7 +17,7 @@ enum FlintMetrics {
     /// Planes, rows and panes are square (0).
     enum Radius {
         static let control: CGFloat = 4
-        static let card: CGFloat = 12
+        static let card: CGFloat = 6
     }
 
     enum Size {
@@ -29,10 +29,10 @@ enum FlintMetrics {
         static let hairline: CGFloat = 1
     }
 
-    /// 120 ms for hover, press and focus, 180 ms for panels. Zero under Reduce Motion.
+    /// 150 ms for hover, press and focus, 200 ms for panels. Zero under Reduce Motion.
     enum Motion {
-        static let fast = 0.12
-        static let panel = 0.18
+        static let fast = 0.15
+        static let panel = 0.2
         static let collapse = 0.16
     }
 }

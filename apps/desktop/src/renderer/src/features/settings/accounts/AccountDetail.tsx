@@ -66,7 +66,7 @@ export function AccountDetail({ account, sync, onPatch, onRemove, onSignIn, onCh
             ? "Connected. Answering an invitation updates your calendar, and Flint shows conflicts."
             : "Connect to answer invitations from Flint and see conflicts with your calendar."}
         >
-          {account.calendarScope ? <span className={`${styles.mono} ${styles.muted}`}>Connected</span> : <Button disabled={busy} onClick={connectCalendar}>Connect Google Calendar</Button>}
+          {account.calendarScope ? <span className={`${styles.mono} ${styles.muted}`}>Connected</span> : <Button variant="ghost" disabled={busy} onClick={connectCalendar}>Connect Google Calendar</Button>}
         </SettingsRow>
       ) : null}
       <div className={styles.field}>
@@ -89,7 +89,7 @@ export function AccountDetail({ account, sync, onPatch, onRemove, onSignIn, onCh
       )}
       <div className={styles.inline}>
         {status.needsSignIn ? (
-          <Button variant="primary" disabled={busy} onClick={() => run(onSignIn)}>Sign in again</Button>
+          <Button variant="accent" disabled={busy} onClick={() => run(onSignIn)}>Sign in again</Button>
         ) : null}
         <Button variant="danger" onClick={() => setConfirm(true)}>Remove account</Button>
       </div>

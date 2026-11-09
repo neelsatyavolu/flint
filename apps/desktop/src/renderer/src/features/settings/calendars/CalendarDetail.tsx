@@ -67,7 +67,7 @@ export function CalendarDetail({ calendar, onRename, onAddresses, onRemove, onSi
           {error ? <p role="alert" className={styles.err}>{error}</p> : null}
           {calendar.statusMessage && calendar.status !== "ok" ? <p className={`t-data ${styles.err}`}>{calendar.statusMessage}</p> : null}
           <div className={styles.inline}>
-            {calendar.status === "needs-signin" && onSignIn ? <Button variant="primary" disabled={busy} onClick={() => void run(onSignIn)}>Sign in again</Button> : null}
+            {calendar.status === "needs-signin" && onSignIn ? <Button variant="accent" disabled={busy} onClick={() => void run(onSignIn)}>Sign in again</Button> : null}
             <Button variant="danger" onClick={() => setConfirm(true)}>Remove calendar</Button>
           </div>
           <Dialog open={confirm} onClose={() => setConfirm(false)} title="Remove this calendar?"

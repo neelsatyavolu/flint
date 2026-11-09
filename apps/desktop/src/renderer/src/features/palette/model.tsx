@@ -68,7 +68,7 @@ export const PAGE_TITLES: Record<PageId, string> = {
 const VIEWS: { label: string; target: NavTarget; icon: ReactNode; shortcut?: string; keywords?: string }[] = [
   { label: "Home", target: { view: "home" }, icon: <Home {...I} />, shortcut: "g h" },
   { label: "Inbox", target: { view: "inbox" }, icon: <Inbox {...I} />, shortcut: "g i", keywords: "all mail unified" },
-  { label: "Agent Activity", target: { view: "agent_activity" }, icon: <Activity {...I} />, keywords: "ai log" },
+  { label: "Agent activity", target: { view: "agent_activity" }, icon: <Activity {...I} />, keywords: "ai log" },
   { label: "Pins", target: { view: "pinned" }, icon: <Pin {...I} />, shortcut: "g p", keywords: "pinned starred" },
   { label: "Drafts", target: { view: "drafts" }, icon: <FileText {...I} />, shortcut: "g d" },
   { label: "Sent", target: { view: "sent" }, icon: <Send {...I} />, shortcut: "g s" },
@@ -77,13 +77,13 @@ const VIEWS: { label: string; target: NavTarget; icon: ReactNode; shortcut?: str
   { label: "Trash", target: { view: "trash" }, icon: <Trash2 {...I} />, keywords: "deleted bin" },
   { label: "Archive", target: { view: "archive" }, icon: <Archive {...I} />, keywords: "done" },
   { label: "Blocked", target: { view: "blocked" }, icon: <Ban {...I} /> },
-  { label: "Read Receipts", target: { view: "receipts" }, icon: <Eye {...I} />, keywords: "receipts opened tracking" },
+  { label: "Read receipts", target: { view: "receipts" }, icon: <Eye {...I} />, keywords: "receipts opened tracking" },
 ];
 
 const SETTINGS_SECTIONS: { id: string; label: string; keywords?: string }[] = [
   { id: "general", label: "General" }, { id: "accounts", label: "Accounts", keywords: "email add" }, { id: "appearance", label: "Appearance", keywords: "theme layout density avatars" },
   { id: "inbox", label: "Inbox", keywords: "focused sort archive" }, { id: "signatures", label: "Signatures" }, { id: "templates", label: "Templates", keywords: "snippets" },
-  { id: "rules", label: "Rules", keywords: "filters" }, { id: "receipts", label: "Read Receipts", keywords: "tracking" }, { id: "notifications", label: "Notifications", keywords: "alerts sound badge" },
+  { id: "rules", label: "Rules", keywords: "filters" }, { id: "receipts", label: "Read receipts", keywords: "tracking" }, { id: "notifications", label: "Notifications", keywords: "alerts sound badge" },
   { id: "ai", label: "+AI", keywords: "assistant model chatgpt grok" }, { id: "agents", label: "Agents", keywords: "cli claude codex" }, { id: "shortcuts", label: "Shortcuts", keywords: "keys" },
   { id: "blocked", label: "Blocked", keywords: "senders" }, { id: "about", label: "About", keywords: "version update" },
 ];

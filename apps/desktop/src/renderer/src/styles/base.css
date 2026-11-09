@@ -1,15 +1,9 @@
 @import "@fontsource-variable/geist/index.css";
 @import "@fontsource-variable/geist-mono/index.css";
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/newsreader/opsz-italic.css";
 @import "./tokens.css";
 
-/* Display serif (DESIGN.md §3): vendored from the geist package (OFL, see assets/fonts), never fetched. */
-@font-face {
-  font-family: "Geist Serif";
-  src: url("../assets/fonts/GeistSerifVF.woff2") format("woff2");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
 
 *,
 *::before,
@@ -67,6 +61,7 @@ a {
 
 a:hover {
   text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 input,
@@ -84,7 +79,7 @@ textarea {
 }
 
 ::selection {
-  background: var(--accent-soft);
+  background: var(--selection);
   color: var(--fg);
 }
 

@@ -67,7 +67,7 @@ export function AccountsSection({ page }: { page?: string }) {
   return (
     <SectionPage title="Accounts" description="Mail accounts Flint syncs. Changes apply at once.">
       <div className={styles.listActions}>
-        <Button variant="primary" icon={<Plus size={14} strokeWidth={1.5} />} onClick={() => setAdding(true)}>Add account</Button>
+        <Button variant="accent" icon={<Plus size={14} strokeWidth={1.5} />} onClick={() => setAdding(true)}>Add account</Button>
       </div>
       <div className={styles.listTop}>
         {list.map((a) => {

@@ -1,7 +1,7 @@
 .launcher {
   position: fixed; right: 16px; z-index: 50; width: 320px; height: 40px;
   display: flex; align-items: center; gap: var(--s-2); padding: 0 var(--s-3);
-  background: var(--plane-3); border: 1px solid var(--line-strong); border-radius: var(--r-control);
+  background: var(--plane-3); border: 1px solid var(--line-strong); border-radius: var(--r-card);
   color: var(--accent);
 }
 .launcher:focus-within { border-color: var(--accent); }
@@ -9,12 +9,12 @@
 .field::placeholder { color: var(--fg-3); }
 .panel {
   /* Floats where the Ask field sits and grows with the conversation, up to most of the window. */
-  position: fixed; right: 16px; z-index: 60; width: min(420px, calc(100vw - 32px));
+  position: fixed; right: 16px; z-index: 60; width: min(380px, calc(100vw - 32px));
   max-height: min(620px, calc(100vh - var(--titlebar-h) - 32px));
-  display: flex; flex-direction: column; background: var(--plane-3); border: 1px solid var(--line-strong); border-radius: var(--r-control);
+  display: flex; flex-direction: column; background: var(--plane-3); border: 1px solid var(--line-strong); border-radius: var(--r-card);
   transform-origin: bottom right; animation: in var(--dur-panel) var(--ease);
 }
-@keyframes in { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
+@keyframes in { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .panel { animation: none; } }
 .head { display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 0 var(--s-2) 0 var(--s-4); flex: none; border-bottom: 1px solid var(--line); }
 .title { display: inline-flex; align-items: center; gap: var(--s-2); }
@@ -34,6 +34,6 @@
 .cite span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cite svg { flex: none; color: var(--fg-3); }
 .foot { flex: none; padding: var(--s-2) var(--s-2) var(--s-2) var(--s-3); border-top: 1px solid var(--line); display: flex; gap: var(--s-2); align-items: center; }
-.foot .field { height: 32px; padding: 0 var(--s-3); border: 1px solid var(--line-strong); border-radius: var(--r-control); }
+.foot .field { height: var(--h-control); padding: 0 var(--s-3); border: 1px solid var(--field); border-radius: var(--r-control); }
 .foot .field:focus { border-color: var(--accent); }
 .empty { margin: 0 0 var(--s-2); color: var(--fg-3); }

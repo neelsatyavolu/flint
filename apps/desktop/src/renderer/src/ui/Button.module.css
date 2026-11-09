@@ -8,29 +8,30 @@
   border: 1px solid transparent;
   border-radius: var(--r-control);
   background: transparent;
-  font: 600 var(--text-body) / 1 var(--font-ui);
+  font: 500 var(--text-body) / 1 var(--font-ui);
   white-space: nowrap;
   transition: background-color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
-.button:disabled { opacity: 0.4; pointer-events: none; }
-.sm { height: var(--h-icon); padding: 0 10px; }
+/* Disabled: stone text and a hairline border, fill unchanged. No opacity fades. */
+.button:disabled { color: var(--fg-4); border-color: var(--line); pointer-events: none; }
+.sm { height: var(--h-icon); padding: 0 var(--s-2); }
 .lead { display: inline-flex; margin-left: -2px; }
 
-.primary { background: var(--accent); color: var(--accent-fg); }
-.primary:hover { background: color-mix(in srgb, var(--accent) 88%, var(--fg)); }
-.primary:active { background: color-mix(in srgb, var(--accent) 78%, var(--fg)); }
+/* The single most important action in view (Send, Connect, Add account). */
+.accent { background: var(--accent); color: var(--accent-fg); }
+.accent:hover { background: var(--accent-hover); }
 
-.secondary { background: var(--fg); color: var(--plane-1); }
-.secondary:hover { background: color-mix(in srgb, var(--fg) 88%, var(--plane-1)); }
-.secondary:active { background: color-mix(in srgb, var(--fg) 78%, var(--plane-1)); }
+/* Ink button. Never in the same view as an accent button. `secondary` is the older name for it. */
+.primary, .secondary { background: var(--primary); color: var(--primary-fg); }
+.primary:hover, .secondary:hover { background: var(--primary-hover); }
 
-.ghost { border-color: var(--line-strong); color: var(--fg); font-weight: 500; }
+.ghost { border-color: var(--line-strong); color: var(--fg); }
 .ghost:hover { background: var(--hover); }
 .ghost:active { background: var(--active); }
 
-.danger { border-color: var(--line-strong); color: var(--danger); font-weight: 500; }
-.danger:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); border-color: var(--danger); }
-.danger:active { background: color-mix(in srgb, var(--danger) 20%, transparent); }
+.danger { border-color: var(--line-strong); color: var(--danger); }
+.danger:hover { background: var(--hover); border-color: var(--danger); }
+.danger:active { background: var(--active); }
 
 button.icon { width: var(--h-icon); height: var(--h-icon); padding: 0; color: var(--fg-2); }
 button.icon:hover { background: var(--hover); color: var(--fg); }

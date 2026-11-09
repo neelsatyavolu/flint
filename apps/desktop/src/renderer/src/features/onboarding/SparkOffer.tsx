@@ -35,7 +35,7 @@ export function SparkOffer({ onDone }: { onDone: () => void }): JSX.Element | nu
       {sheet ? null : (
         <div className={styles.offer} role="region" aria-label="Spark signatures">
           <span>Bring your signatures from Spark?</span>
-          <Button variant="primary" size="sm" onClick={() => setSheet(true)}>Import</Button>
+          <Button variant="accent" size="sm" onClick={() => setSheet(true)}>Import</Button>
           <Button variant="ghost" size="sm" onClick={onDone}>Skip</Button>
         </div>
       )}

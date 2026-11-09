@@ -142,7 +142,7 @@ export function RecipientField({ label, value, onChange, placeholder, autoFocus,
 
   return (
     <div className={clsx(styles.row, compact && styles.compact, (invalid || bad) && styles.invalid)} onClick={() => inputRef.current?.focus()}>
-      <span className={clsx(styles.label, "t-data")}>{label}</span>
+      <span className={clsx(styles.label, "t-label")}>{label}</span>
       <div ref={layer.refs.setReference} className={styles.chips}>
         {value.map((a) => (
           <span key={a.address} className={styles.chip} title={a.address}>

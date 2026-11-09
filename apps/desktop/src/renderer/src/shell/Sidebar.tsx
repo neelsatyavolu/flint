@@ -131,7 +131,7 @@ export function Sidebar({ rail, onNavigated }: Props) {
             onDropThreads={dropAs({ type: "inbox" })}
           />
           {showInboxChildren ? accountChildren("inbox", true) : null}
-          {item("agent_activity", "Agent Activity", <Activity {...ICON} />, counts.awaitingApproval, { tone: "warn", countNoun: "awaiting approval" })}
+          {item("agent_activity", "Agent activity", <Activity {...ICON} />, counts.awaitingApproval, { tone: "warn", countNoun: "awaiting approval" })}
           {item("pinned", "Pins", <Pin {...ICON} />, undefined, { shortcut: "g p" })}
           {item("drafts", "Drafts", <FileText {...ICON} />, counts.drafts, { shortcut: "g d", countNoun: "" })}
           {item("sent", "Sent", <Send {...ICON} />, undefined, { shortcut: "g s" })}
@@ -156,7 +156,7 @@ export function Sidebar({ rail, onNavigated }: Props) {
         <Section title="Folders">
           {item("archive", "Archive", <Archive {...ICON} />, undefined, { onDropThreads: dropAs({ type: "archive" }) })}
           {item("blocked", "Blocked", <Ban {...ICON} />)}
-          {item("receipts", "Read Receipts", <Eye {...ICON} />)}
+          {item("receipts", "Read receipts", <Eye {...ICON} />)}
           <NavItem
             icon={<MoreHorizontal {...ICON} />}
             label="More"
