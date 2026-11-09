@@ -788,7 +788,8 @@ export type FlintEvent =
   | { type: "agent_activity"; activity: AgentActivity }
   | { type: "settings"; settings: Settings }
   | { type: "code"; code: VerificationCode } // a new verification code was detected (the UI shows it; never reaches the agent API stream)
-  | { type: "toast"; level: "info" | "error"; message: string; undoToken?: string };
+  | { type: "toast"; level: "info" | "error"; message: string; undoToken?: string }
+  | { type: "porchlight"; status: PorchlightStatus }; // paired or disconnected (Settings redraws)
 
 /** macOS system sounds offered for alerts. "default" lets the system pick. */
 export const NOTIFICATION_SOUNDS = ["default", "Basso", "Blow", "Bottle", "Frog", "Funk", "Glass", "Hero", "Morse", "Ping", "Pop", "Purr", "Sosumi", "Submarine", "Tink"] as const;
@@ -831,4 +832,26 @@ export type ConnectorPreview = {
   manifest: ConnectorManifest;
   count: number;
   subjects: string[];
+};
+
+/** The Porchlight delivery tracker (porchlight.xanom.co). The API token is stored only in Platform.secrets. */
+export type PorchlightStatus = {
+  /** null until paired. `signedOut`: Porchlight rejected the token (revoked there); pair again to resume. */
+  /** `account`: the masked Porchlight email ("n•••@xanom.co") when pairing came from a confirmed link, else null. */
+  connection: { label: string; account: string | null; pairedAt: number; signedOut: boolean } | null;
+  /** Messages whose package Porchlight is tracking, and messages still waiting to be checked or sent. */
+  imported: number;
+  pending: number;
+  lastImportAt: number | null;
+};
+/** A package Flint found in mail and imported into Porchlight. */
+export type PorchlightPackage = {
+  packageId: string;
+  /** https://porchlight.xanom.co/app/p/<packageId> */
+  url: string;
+  threadId: ThreadId;
+  /** Flint's carrier name ("UPS", "FedEx"), or null when Porchlight picked it from the number. */
+  carrier: string | null;
+  trackingNumber: string;
+  importedAt: number;
 };

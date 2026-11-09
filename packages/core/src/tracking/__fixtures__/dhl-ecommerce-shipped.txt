@@ -1,0 +1,19 @@
+Subject: Your order is on the way
+From: Allbirds <orders@allbirds.com>
+Note: synthetic. Written from public examples of merchant shipping mail; the number is jkeen/tracking_number_data's DHL eCommerce test number GM2951173225174494. Not real mail.
+
+Allbirds
+(https://www.allbirds.com/…)
+
+Good news! Your order #A1234567 is on its way.
+
+Carrier: DHL eCommerce
+Tracking number: GM2951173225174494
+Track your order
+(https://webtrack.dhlecs.com/…)
+
+Men's Tree Runners
+Size 10
+Qty 1
+
+Questions? Reply to this email.

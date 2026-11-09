@@ -401,4 +401,33 @@ export const MIGRATIONS: readonly string[] = [
   );
   CREATE INDEX connector_deliveries_due ON connector_deliveries (state, next_attempt);
   `,
+  /* 12: Porchlight (delivery tracker) pairing and import queue. The API token lives only in Platform.secrets
+     ("porchlight:token"). Rows hold what detection extracted (carrier, number) and the package id Porchlight returned,
+     never bodies. message_id is the dedupe key sent to Porchlight: the RFC Message-ID. */ `
+  CREATE TABLE porchlight_connection (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    token_id TEXT NOT NULL,
+    label TEXT NOT NULL,
+    paired_at INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active',
+    last_import_at INTEGER
+  );
+  CREATE TABLE porchlight_imports (
+    message_id TEXT PRIMARY KEY,
+    message_row_id INTEGER REFERENCES messages(id) ON DELETE SET NULL,
+    state TEXT NOT NULL DEFAULT 'pending',
+    carrier TEXT,
+    tracking_number TEXT,
+    package_id TEXT,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    next_attempt INTEGER NOT NULL,
+    imported_at INTEGER
+  );
+  CREATE INDEX porchlight_imports_due ON porchlight_imports (state, next_attempt);
+  CREATE INDEX porchlight_imports_row ON porchlight_imports (message_row_id);
+  `,
+  /* 13: the Porchlight account a pairing link was confirmed for, masked by Porchlight ("n•••@xanom.co"). Display only. */ `
+  ALTER TABLE porchlight_connection ADD COLUMN account TEXT;
+  `,
 ];

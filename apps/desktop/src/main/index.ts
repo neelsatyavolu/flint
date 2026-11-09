@@ -1,8 +1,9 @@
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createFlintService } from "@flint/core";
 import { refreshSkill } from "@flint/core/agent/skill";
+import { PORCHLIGHT_HOST } from "@flint/core/porchlight/config";
 import { initLog, logger } from "@flint/core/log";
 import type { FlintService } from "@flint/core/service/index";
 import type { Settings } from "@flint/core/types";
@@ -18,6 +19,7 @@ import { badgeCount, createBadgeUpdater } from "./badge";
 import { forwardEvents, registerIpc } from "./ipc";
 import { installMenu } from "./menu";
 import { parseMailto } from "./mailto";
+import { createPorchlightLinkHandler, FLINT_SCHEME, isFlintLink } from "./porchlight-link";
 import { createPlatform, resolveDataDir } from "./platform";
 import { createRequestFilter, receiptsHostFromEndpoint } from "./request-filter";
 import { secureSession } from "./security";
@@ -59,6 +61,10 @@ let autofill: AutofillManager | null = null;
 let rendererReady = false;
 let quitting = false;
 const pendingMenu: { action: string; arg?: string }[] = [];
+/** flint:// links that arrived before the service and the window were ready (a cold launch from a link). */
+const pendingLinks: string[] = [];
+/** Opens the window again if it was closed (macOS keeps running). Set once the service is up. */
+let ensureWindow: (() => void) | null = null;
 
 function sendToRenderer(channel: string, ...args: unknown[]): void {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, ...args);
@@ -105,12 +111,55 @@ function composeTo(url: string): void {
   }
 }
 
+function showToast(level: "info" | "error", message: string): void {
+  sendToRenderer(CHANNELS.event, { type: "toast", level, message });
+}
+
+/** The Connect / Cancel question for a Porchlight pairing link. Cancel is the default for Esc. */
+async function confirmPorchlight(account: string): Promise<boolean> {
+  const opts = {
+    type: "question" as const,
+    message: `Connect Flint to Porchlight (${account})?`,
+    detail: "Flint will send tracking numbers it finds in your mail: carrier, number, sender and subject.",
+    buttons: ["Connect", "Cancel"],
+    defaultId: 0,
+    cancelId: 1,
+  };
+  const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
+  return (await (win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts))).response === 0;
+}
+
+const handlePorchlightLink = createPorchlightLinkHandler({
+  allowedHost: PORCHLIGHT_HOST,
+  peek: (code) => service!.peekPorchlight(code),
+  pair: (code, opts) => service!.pairPorchlight(code, opts),
+  confirm: confirmPorchlight,
+  focus: () => focusWindow(mainWindow),
+  notify: showToast,
+});
+
+function openFlintLink(url: string): void {
+  if (!service || !rendererReady) {
+    pendingLinks.push(url);
+    ensureWindow?.();
+    return;
+  }
+  handlePorchlightLink(url).catch((err: unknown) => logger("main").warn("flint link failed", { message: String(err) }));
+}
+
+/** Registers flint:// with macOS. Packaged builds also declare it in Info.plist. A dev run only claims it with FLINT_DEV_LINKS=1, so it doesn't take links from the installed Flint. */
+function registerFlintScheme(): void {
+  if (app.isPackaged) app.setAsDefaultProtocolClient(FLINT_SCHEME);
+  else if (process.env.FLINT_DEV_LINKS === "1" && process.argv[1]) app.setAsDefaultProtocolClient(FLINT_SCHEME, process.execPath, [resolve(process.argv[1])]);
+}
+
 function openWindow(dataDir: string): void {
   rendererReady = false;
   mainWindow = createMainWindow({ appUrl, appOrigin, stateFile: join(dataDir, "window.json") });
   mainWindow.webContents.on("did-finish-load", () => {
     rendererReady = true;
     for (const m of pendingMenu.splice(0)) sendToRenderer(CHANNELS.menu, m.action, m.arg);
+    for (const url of pendingLinks.splice(0)) openFlintLink(url);
   });
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -220,6 +269,9 @@ async function main(): Promise<void> {
   forwardEvents(service, () => mainWindow);
   badge.request();
 
+  const launchLink = process.argv.find(isFlintLink);
+  if (launchLink) pendingLinks.push(launchLink);
+  ensureWindow = () => { if (!mainWindow) openWindow(dataDir); };
   openWindow(dataDir);
   updates?.start();
   // Connections die while the Mac sleeps; reconnect on wake instead of waiting out a backoff grown while offline.
@@ -233,14 +285,18 @@ async function main(): Promise<void> {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
+  registerFlintScheme();
   app.on("second-instance", (_e, argv) => {
     focusWindow(mainWindow);
     const mailto = argv.find((a) => a.toLowerCase().startsWith("mailto:"));
     if (mailto) composeTo(mailto);
+    const link = argv.find(isFlintLink);
+    if (link) openFlintLink(link);
   });
   app.on("open-url", (event, url) => {
     event.preventDefault();
-    composeTo(url);
+    if (isFlintLink(url)) openFlintLink(url);
+    else composeTo(url);
   });
   app.on("window-all-closed", () => {
     if (!isMac) app.quit();

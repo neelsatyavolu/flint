@@ -1,0 +1,17 @@
+Subject: Your OnTrac package is out for delivery
+From: OnTrac <notifications@ontrac.com>
+Note: synthetic. Written from public OnTrac notification examples; the number is jkeen/tracking_number_data's OnTrac test number D10011354453707. Not real mail.
+
+OnTrac
+(https://www.ontrac.com/…)
+
+Your package is out for delivery today.
+
+Tracking Number: D10011354453707
+Shipper: EXAMPLE HOME GOODS
+Expected delivery: Today by 9:00 PM
+
+Track your package
+(https://www.ontrac.com/…)
+
+Please do not reply to this message.

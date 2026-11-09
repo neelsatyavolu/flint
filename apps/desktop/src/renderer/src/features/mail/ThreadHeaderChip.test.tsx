@@ -10,7 +10,9 @@ import { flint } from "../../lib/api";
 
 const run = vi.fn();
 vi.mock("../../state/useActions", () => ({ useThreadActions: () => ({ run }) }));
-vi.mock("../../lib/api", () => ({ flint: { subscribe: vi.fn(() => () => {}), unsubscribe: vi.fn(), listThreads: vi.fn() } }));
+vi.mock("../../lib/api", () => ({ flint: { subscribe: vi.fn(() => () => {}), unsubscribe: vi.fn(), listThreads: vi.fn(), listPorchlightPackages: vi.fn(async () => []) } }));
+const openExternal = vi.fn();
+vi.mock("../../lib/host", () => ({ openExternal: (url: string) => openExternal(url) }));
 
 const app = { settings: defaultSettings(), updateSettings: async () => defaultSettings(), accounts: [], refreshAccounts: () => undefined, sidebar: undefined, narrow: false, selfAddresses: [] } as unknown as AppData;
 const thread = (category: ThreadDetail["category"]): ThreadDetail => ({ id: 9, accountId: "a1", subject: "Concierge request", category, pinned: false, muted: false, snoozedUntil: null, messages: [], draftIds: [] }) as unknown as ThreadDetail;
@@ -69,5 +71,27 @@ describe("unsubscribe in the thread header", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Also archive these" }));
     await waitFor(() => expect(run).toHaveBeenCalledWith({ type: "archive" }, [9, 12]));
     expect(flint.listThreads).toHaveBeenCalledWith({ view: "search", search: "from:news@weekly.test in:inbox", limit: 200 });
+  });
+});
+
+describe("Porchlight chip in the thread header", () => {
+  const pkg = { packageId: "00000000-0000-4000-8000-000000000001", url: "https://porchlight.xanom.co/app/p/00000000-0000-4000-8000-000000000001", threadId: 9, carrier: "UPS", trackingNumber: "1Z999AA10123456784", importedAt: 1 };
+
+  it("links a thread whose package was imported to the package in Porchlight", async () => {
+    navStore.setState({ view: "inbox" });
+    vi.mocked(flint.listPorchlightPackages).mockResolvedValue([pkg]);
+    show(thread("people"));
+    const chip = await screen.findByRole("button", { name: "Tracking in Porchlight: 1Z999AA10123456784. Open in Porchlight" });
+    expect(flint.listPorchlightPackages).toHaveBeenCalledWith({ threadId: 9, limit: 5 });
+    fireEvent.click(chip);
+    expect(openExternal).toHaveBeenCalledWith(pkg.url);
+  });
+
+  it("shows nothing when no package was imported or Porchlight isn't paired", async () => {
+    navStore.setState({ view: "inbox" });
+    vi.mocked(flint.listPorchlightPackages).mockResolvedValue([]);
+    show(thread("people"));
+    await waitFor(() => expect(flint.listPorchlightPackages).toHaveBeenCalled());
+    expect(screen.queryByText("Tracking in Porchlight")).toBeNull();
   });
 });

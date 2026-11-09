@@ -7,6 +7,7 @@ import { agentsApi } from "./agents";
 import { startAgentWiring, stopAgentWiring } from "./agents-wiring";
 import { aiApi } from "./ai";
 import { wireConnectors } from "./connectors";
+import { wirePorchlight } from "./porchlight";
 import { codesApi, wireCodes } from "./codes";
 import { autofillApi } from "./autofill";
 import { codesHelperApi } from "./codesHelper";
@@ -83,8 +84,10 @@ const INVITE_BACKFILL_DELAY_MS = 45_000;
 export async function createFlintService(platform: Platform, opts: ServiceOptions = {}): Promise<FlintService> {
   const ctx = createContext(platform, opts);
   const connectors = wireConnectors(ctx);
+  const porchlight = wirePorchlight(ctx);
   const api: FlintApi = {
     ...connectors.api,
+    ...porchlight.api,
     ...accountsApi(ctx),
     ...avatarsApi(ctx),
     ...notifyApi(ctx),
@@ -144,6 +147,7 @@ export async function createFlintService(platform: Platform, opts: ServiceOption
       unwire();
       ctx.scheduler.stop();
       await connectors.stop();
+      await porchlight.stop();
       await stopAgentWiring(ctx);
       await ctx.syncs.stopAll();
       ctx.ai.dispose();

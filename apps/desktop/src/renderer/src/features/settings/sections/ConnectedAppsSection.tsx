@@ -6,6 +6,7 @@ import { formatFullDate } from "../../../lib/format";
 import { Button, Input, Sheet, Skeleton } from "../../../ui";
 import { SectionPage } from "../fields";
 import { errorText } from "../useAccounts";
+import { PorchlightBlock } from "./PorchlightBlock";
 import styles from "../settings.module.css";
 
 const FIELD_LABELS: Record<ConnectorField, string> = {
@@ -59,6 +60,7 @@ export function ConnectedAppsSection() {
           </div>
         </div>
       ))}
+      <PorchlightBlock />
       {flow ? <ConnectorSheet connection={flow.connection} onClose={() => setFlow(null)} onDone={() => { setFlow(null); void refresh(); }} /> : null}
     </SectionPage>
   );

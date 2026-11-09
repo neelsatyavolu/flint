@@ -60,7 +60,7 @@ export interface Platform {
 }
 ```
 
-Secret keys: `account:<id>` → JSON `{ password }` or `{ accessToken, refreshToken, expiresAt }`; `ai:tokens` → shared-ai-auth `Tokens` JSON; `receipts:credentials` → `{ installId, secret }`. Desktop implements secrets with Electron `safeStorage` (encrypted file `<dataDir>/secrets.bin`).
+Secret keys: `account:<id>` → JSON `{ password }` or `{ accessToken, refreshToken, expiresAt }`; `ai:tokens` → shared-ai-auth `Tokens` JSON; `receipts:credentials` → `{ installId, secret }`; `porchlight:token` → `{ token, tokenId }` (§6c). Desktop implements secrets with Electron `safeStorage` (encrypted file `<dataDir>/secrets.bin`).
 
 ### Process model
 
@@ -148,6 +148,19 @@ Order of checks:
 ## 6b. Spark signature import
 
 `findSparkSignatures` locates Spark's local settings file (or a path the user picks) and lists its signatures; `importSparkSignatures` creates a Flint signature for each chosen one and can set it as the default for chosen accounts. The file is only read, on this computer. The HTML is kept as Spark wrote it (links, embedded images and its own `--` divider), minus anything unsafe. Each imported signature is remembered by its Spark id (kv `spark-signature:<id>`), so importing again does not duplicate it. If macOS blocks the read, the error tells the user which Privacy & Security permission to allow. Signature HTML carries the class `flint_signature`.
+
+## 6c. Porchlight (`src/porchlight`)
+
+Porchlight (porchlight.xanom.co) is the owner's delivery tracker. The returned `plt_` token is kept only in `secrets['porchlight:token']`; the `porchlight_connection` row holds the token id, label, status and the masked account the user confirmed.
+
+- **Pairing link.** Flint registers the `flint` URL scheme (electron-builder `protocols`; `app.setAsDefaultProtocolClient` in packaged builds, and in dev only with `FLINT_DEV_LINKS=1`). Porchlight's "Connect Flint" button, and Flint's own "Connect Porchlight" button (which opens `https://porchlight.xanom.co/app/connect/flint`), both end at `flint://porchlight/pair?code=<CODE>&host=porchlight.xanom.co`. Main handles it from `open-url` or `second-instance` argv (queued until the service and window are ready): links whose single `host` param isn't `PORCHLIGHT_HOST` (`porchlight/config.ts`) are dropped with an error toast; otherwise Flint calls `POST /v1/pairing/peek {code}` (doesn't use the code up; answers `{ account }`, a masked email), brings the window forward and asks "Connect Flint to Porchlight (<account>)?" in a native dialog. Only Connect claims. Any website can fire a flint:// link, so Flint never pairs without that answer. One link is handled at a time.
+- **Code.** Settings → Connected apps → Porchlight → "Use a code instead" takes the 8-character code from Porchlight's Settings → Connections → Flint and claims it (`POST /v1/pairing/claim`, label "Flint on <host name>"). Pairing and disconnecting emit `{ type: "porchlight", status }` so Settings redraws.
+
+- **Detection.** `tracking/detect.ts` finds the package (carrier and number). Mail is queued in `porchlight_imports` at ingest when it is 30 days old or newer and Porchlight is paired, and pairing queues the last 30 days. Spam, trash, sent, drafts, blocked senders and rule-trashed mail are skipped (the connector eligibility check). A body is downloaded only when the headers look like shipping mail (`mayCarryTracking`).
+- **Import.** `POST /v1/imports/flint` with exactly `{ trackingNumber, carrier?, merchant (sender name), subject, messageDate, dedupeKey (Message-ID) }`, up to 25 items a request. Never bodies. Flint carrier names map to Porchlight ids in `porchlight/carriers.ts` (LaserShip → `ontrac`); an unknown carrier is left out so Porchlight detects it. The Message-ID is the local dedupe key too.
+- **Retries.** Offline, timeouts, 5xx and 429 back off from 5 s to an hour (429 honours `Retry-After`) and give up a week after queueing. 401/403 marks the connection signed out until the user pairs again. 400 and rejected items are not retried.
+- **UI.** Threads with an imported package show a "Tracking in Porchlight" chip that opens `https://porchlight.xanom.co/app/p/<packageId>`. `listPorchlightPackages` (read tier) lists them for agents.
+- **Disconnect** deletes the token, the connection and the queue, then tries `DELETE /v1/tokens/:id`. Porchlight only accepts that from a signed-in session today, so the UI tells the user to remove the token in Porchlight Settings.
 
 ## 7. AI (`src/ai`)
 

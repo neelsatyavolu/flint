@@ -36,7 +36,7 @@ export const SECTIONS: { id: SectionId; label: string; keywords: string }[] = [
   { id: "notifications", label: "Notifications", keywords: "alerts sound dock badge" },
   { id: "codes", label: "Verification codes", keywords: "one-time code otp 2fa two-factor autofill browser extension copy" },
   { id: "devices", label: "Devices", keywords: "iphone phone ios pair set up qr code scan" },
-  { id: "connectors", label: "Connected apps", keywords: "connector connect pair manifest share mail permissions approval" },
+  { id: "connectors", label: "Connected apps", keywords: "connector connect pair manifest share mail permissions approval porchlight packages delivery tracking" },
   { id: "ai", label: "+AI", keywords: "ai assistant model chatgpt grok catch up smart replies summaries translation personalization categorization" },
   { id: "agents", label: "Agents", keywords: "cli command skill claude codex" },
   { id: "shortcuts", label: "Shortcuts", keywords: "keyboard keys" },

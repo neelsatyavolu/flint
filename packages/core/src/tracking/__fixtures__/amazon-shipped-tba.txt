@@ -1,0 +1,27 @@
+Subject: Shipped: "Anker USB C Cable, 6 ft..."
+From: Amazon.com <shipment-tracking@amazon.com>
+Note: synthetic. Written from public examples of Amazon shipment mail; the TBA number has the public TBA + 12 digit shape and is made up. Not real mail.
+
+   Your Orders
+(https://www.amazon.com/…)
+   Your Account
+(https://www.amazon.com/…)
+
+Hi Alex, your package has shipped!
+
+Arriving Monday
+Order # 112-0000000-0000000
+Track package
+(https://www.amazon.com/…)
+
+Anker USB C Cable, 6 ft
+Quantity: 2
+
+Shipped with Amazon
+Tracking ID: TBA312345678901
+
+Ship to
+Alex - SPRINGFIELD, CA
+
+We hope to see you again soon.
+Amazon.com
