@@ -95,7 +95,7 @@ export function AutofillBlock() {
       <SettingsRow icon={<ShieldCheck size={18} strokeWidth={1.5} />} title="Accessibility permission" description={permissionDescription()}>
         <div className={styles.inline}>
           <span className={`${styles.mono} ${styles[st.tone]}`} role="status">{st.text}</span>
-          {a?.supported && a.state === "needs_permission" ? <Button variant="primary" onClick={() => void enable()}>Enable</Button> : null}
+          {a?.supported && a.state === "needs_permission" ? <Button variant="accent" onClick={() => void enable()}>Enable</Button> : null}
         </div>
       </SettingsRow>
       <SettingsRow icon={<Keyboard size={18} strokeWidth={1.5} />} title="Fill shortcut" description="Types your newest code into the focused field, even when Flint didn't recognize it as a code field.">
@@ -113,7 +113,7 @@ export function AutofillBlock() {
       <SettingsRow title="Try it" description="Opens a small window with a sample field and a made-up code, so you can see the suggestion.">
         <Button variant="ghost" onClick={() => void tryIt()} disabled={!ready}>Try it</Button>
       </SettingsRow>
-      {msg ? <p role="status" className={msg.ok ? styles.muted : styles.err} style={{ paddingTop: 6 }}>{msg.text}</p> : null}
+      {msg ? <p role="status" className={msg.ok ? styles.muted : styles.err} style={{ paddingTop: "var(--s-2)" }}>{msg.text}</p> : null}
     </div>
   );
 }

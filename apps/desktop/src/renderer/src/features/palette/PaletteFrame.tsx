@@ -5,7 +5,7 @@ import styles from "./CommandPalette.module.css";
 
 type Props = { label: string; closing: boolean; initialFocus: RefObject<HTMLElement | null>; onDismiss: () => void; onKeyDown: (e: React.KeyboardEvent) => void; children: ReactNode };
 
-/** The palette's own dialog shell: 120 ms fade and slight scale in and out, Escape left to the palette so it can step back first. */
+/** The palette's own dialog shell: fade with a 6px rise in, fade out, Escape left to the palette so it can step back first. */
 export function PaletteFrame({ label, closing, initialFocus, onDismiss, onKeyDown, children }: Props): JSX.Element {
   const { refs, context } = useFloating({ open: true, onOpenChange: (o) => !o && onDismiss() });
   const { getFloatingProps } = useInteractions([useDismiss(context, { escapeKey: false, outsidePressEvent: "mousedown" }), useRole(context, { role: "dialog" })]);

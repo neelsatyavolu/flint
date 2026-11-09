@@ -15,8 +15,8 @@
 .s32 { width: 32px; height: 32px; }
 .btn:hover { background: var(--hover); color: var(--fg); }
 .btn:active, .pressed { background: var(--active); color: var(--fg); }
-.btn:disabled { opacity: 0.4; pointer-events: none; }
+.btn:disabled { color: var(--fg-4); pointer-events: none; }
 .accent { color: var(--accent); }
 .accent:hover { color: var(--accent); }
 .filled, .filled:hover, .filled:active { background: var(--accent); color: var(--accent-fg); }
-.filled:hover { background: color-mix(in srgb, var(--accent) 88%, var(--fg)); }
+.filled:hover { background: var(--accent-hover); }

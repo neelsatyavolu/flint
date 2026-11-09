@@ -46,7 +46,7 @@ export function ServerEditor({ account, onSave }: Props) {
       <ServerFields server={draft} onChange={setDraft} />
       {dirty ? (
         <div className={styles.inline}>
-          <Button variant="primary" disabled={busy || !isComplete(draft)} onClick={() => void save()}>
+          <Button variant="accent" disabled={busy || !isComplete(draft)} onClick={() => void save()}>
             {busy ? "Checking…" : "Save servers"}
           </Button>
           <Button variant="ghost" disabled={busy} onClick={() => setDraft(saved)}>Cancel</Button>

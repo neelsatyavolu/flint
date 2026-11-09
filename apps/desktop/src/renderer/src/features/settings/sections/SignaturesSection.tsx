@@ -212,7 +212,7 @@ export function SignatureEditor({ initial, accounts, onSave, onDelete }: { initi
         <div className={styles.preview}><MailFrame html={draft.html || "<p></p>"} allowRemoteImages title="Signature preview" padding={12} /></div>
       </div>
       <div className={styles.inline}>
-        <Button variant="primary" disabled={!canSave || busy} onClick={() => { setBusy(true); void onSave(draft).finally(() => setBusy(false)); }}>Save</Button>
+        <Button variant="accent" disabled={!canSave || busy} onClick={() => { setBusy(true); void onSave(draft).finally(() => setBusy(false)); }}>Save</Button>
         {draft.id !== undefined ? <Button variant="danger" onClick={() => void onDelete(draft.id!)}>Delete</Button> : null}
       </div>
     </div>

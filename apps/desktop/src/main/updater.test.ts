@@ -140,4 +140,47 @@ describe("createUpdateController", () => {
     c.check(false);
     expect(updater.checkForUpdates).toHaveBeenCalledTimes(2);
   });
+
+  it("restarts into the update without asking in restart mode", async () => {
+    const { updater, emit } = fakeUpdater();
+    const order: string[] = [];
+    updater.quitAndInstall.mockImplementation(() => { order.push("install"); });
+    const ask = vi.fn(async () => 1);
+    const restarting = vi.fn((v: string) => { order.push(`notice ${v}`); });
+    createUpdateController({ updater, ask, currentVersion: "0.1.0", getMode: () => "restart", restarting, beforeInstall: async () => { order.push("stop"); } });
+    emit("update-downloaded", { version: "0.2.0" });
+    await flush(); await flush();
+    expect(ask).not.toHaveBeenCalled();
+    expect(order).toEqual(["notice 0.2.0", "stop", "install"]);
+  });
+
+  it("restarts straight away when switched to restart mode with an update already downloaded", async () => {
+    const { updater, emit } = fakeUpdater();
+    let m: "ask" | "restart" = "ask";
+    const c = createUpdateController({ updater, ask: vi.fn(async () => 1), currentVersion: "0.1.0", getMode: () => m });
+    emit("update-downloaded", { version: "0.2.0" });
+    await flush();
+    expect(updater.quitAndInstall).not.toHaveBeenCalled();
+    m = "restart";
+    c.modeChanged();
+    await flush(); await flush();
+    expect(updater.quitAndInstall).toHaveBeenCalledOnce();
+  });
+
+  it("does nothing on a mode change when no update is waiting", async () => {
+    const { updater } = fakeUpdater();
+    const c = createUpdateController({ updater, ask: vi.fn(), currentVersion: "0.1.0", getMode: () => "restart" });
+    c.modeChanged();
+    await flush();
+    expect(updater.quitAndInstall).not.toHaveBeenCalled();
+  });
+
+  it("installs only once even if the download event repeats", async () => {
+    const { updater, emit } = fakeUpdater();
+    createUpdateController({ updater, ask: vi.fn(), currentVersion: "0.1.0", getMode: () => "restart" });
+    emit("update-downloaded", { version: "0.2.0" });
+    emit("update-downloaded", { version: "0.2.0" });
+    await flush(); await flush();
+    expect(updater.quitAndInstall).toHaveBeenCalledOnce();
+  });
 });

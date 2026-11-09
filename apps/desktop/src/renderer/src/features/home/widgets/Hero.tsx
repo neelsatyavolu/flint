@@ -11,12 +11,12 @@ export function Hero({ title, now, scene }: { title: string; now: number; scene:
   return (
     <div className={styles.band}>
       <h1 className={clsx("t-display", styles.greeting)}>{title}</h1>
-      <p className={clsx("t-data", styles.date)}>
+      <p className={clsx("t-label", styles.date)}>
         {format(now, "EEEE, MMMM d")}
         <span aria-hidden> · </span>
         <time dateTime={format(now, "HH:mm")}>{format(now, "h:mm a")}</time>
       </p>
-      {scene ? <p className={clsx("t-data", styles.credit)}>Photo: {scene.credit} · {scene.place}</p> : null}
+      {scene ? <p className={clsx("t-label", styles.credit)}>Photo: {scene.credit} · {scene.place}</p> : null}
     </div>
   );
 }

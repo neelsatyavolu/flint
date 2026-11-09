@@ -43,11 +43,11 @@ export function ConnectedAppsSection() {
 
   return (
     <SectionPage title="Connected apps" description="Send matching mail to apps you choose. Review what each app receives before connecting.">
-      <div className={styles.listActions}><Button variant="primary" size="sm" onClick={() => setFlow({})}>Add app</Button></div>
+      <div className={styles.listActions}><Button variant="ghost" size="sm" onClick={() => setFlow({})}>Add app</Button></div>
       {error ? <p role="alert" className={styles.err}>{error}</p> : null}
       {connections === null ? <Skeleton height={80} /> : connections.length === 0 ? <p className={styles.empty}>No apps connected yet.</p> : connections.map((connection) => (
         <div key={connection.id} className={styles.row}>
-          <Plug size={20} strokeWidth={1.5} color="var(--accent)" aria-hidden />
+          <Plug size={18} strokeWidth={1.5} color="var(--fg-2)" aria-hidden />
           <div className={styles.rowGrow}>
             <div className={styles.rowTitle}>{connection.manifest.name}</div>
             <div className={`${styles.rowSub} ${styles.mono}`}>{new URL(connection.manifestUrl).host}</div>
@@ -101,7 +101,7 @@ function ConnectorSheet({ connection, onClose, onDone }: { connection?: Connecto
           <form className={styles.stack} onSubmit={(event) => { event.preventDefault(); void run(async () => { setPreview(await flint.previewConnector(url.trim())); }); }}>
             <label className={styles.field}><span className={styles.fieldLabel}>App URL</span><Input autoFocus type="url" required placeholder="https://app.example" value={url} disabled={busy} spellCheck={false} onChange={(event) => setUrl(event.target.value)} /></label>
             <p className={styles.muted}>Paste the app’s website or connector manifest URL.</p>
-            <div className={styles.listActions}><Button variant="primary" type="submit" disabled={busy || !url.trim()}>{busy ? "Checking mail…" : "Review permissions"}</Button></div>
+            <div className={styles.listActions}><Button variant="accent" type="submit" disabled={busy || !url.trim()}>{busy ? "Checking mail…" : "Review permissions"}</Button></div>
           </form>
         ) : (
           <>
@@ -115,13 +115,13 @@ function ConnectorSheet({ connection, onClose, onDone }: { connection?: Connecto
             </div>
             <div><p>{preview.count} messages from the last {preview.manifest.historyDays} days would be sent.</p>{preview.subjects.length > 0 ? <ul className={`${styles.stack} ${styles.muted} ${styles.padTop}`} style={{ paddingLeft: "var(--s-4)", listStyle: "disc" }}>{preview.subjects.slice(0, 5).map((subject, index) => <li key={index}>{subject || "(No subject)"}</li>)}</ul> : null}</div>
             <p className={styles.muted}>Matching new mail will also be sent. Spam, trash, sent mail and drafts are excluded. Remove this connection at any time to stop sharing.</p>
-            {connection ? <div className={styles.listActions}><Button variant="primary" disabled={busy} onClick={finish}>{busy ? "Approving…" : "Approve and resume"}</Button></div> : !opened ? (
-              <div className={styles.listActions}><Button variant="primary" disabled={busy} icon={<ExternalLink size={16} strokeWidth={1.5} />} onClick={() => void run(async () => { await flint.openConnectorPairPage(preview.token); setOpened(true); })}>Open {preview.manifest.name} to get a code</Button></div>
+            {connection ? <div className={styles.listActions}><Button variant="accent" disabled={busy} onClick={finish}>{busy ? "Approving…" : "Approve and resume"}</Button></div> : !opened ? (
+              <div className={styles.listActions}><Button variant="accent" disabled={busy} icon={<ExternalLink size={16} strokeWidth={1.5} />} onClick={() => void run(async () => { await flint.openConnectorPairPage(preview.token); setOpened(true); })}>Open {preview.manifest.name} to get a code</Button></div>
             ) : (
               <form className={styles.stack} onSubmit={(event) => { event.preventDefault(); finish(); }}>
                 <label className={styles.field}><span className={styles.fieldLabel}>8-character code</span><Input autoFocus className={styles.mono} value={code} maxLength={12} minLength={8} required disabled={busy} autoComplete="one-time-code" spellCheck={false} onChange={(event) => setCode(event.target.value)} /></label>
                 <p className={styles.muted}>Enter the code shown in the app. Codes expire after 10 minutes.</p>
-                <div className={styles.listActions}><Button variant="ghost" disabled={busy} onClick={() => void run(() => flint.openConnectorPairPage(preview.token))}>Open app again</Button><Button variant="primary" type="submit" disabled={busy || code.replace(/[^a-z0-9]/gi, "").length !== 8}>{busy ? "Connecting…" : "Connect"}</Button></div>
+                <div className={styles.listActions}><Button variant="ghost" disabled={busy} onClick={() => void run(() => flint.openConnectorPairPage(preview.token))}>Open app again</Button><Button variant="accent" type="submit" disabled={busy || code.replace(/[^a-z0-9]/gi, "").length !== 8}>{busy ? "Connecting…" : "Connect"}</Button></div>
               </form>
             )}
           </>

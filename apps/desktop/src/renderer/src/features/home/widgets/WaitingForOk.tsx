@@ -21,7 +21,7 @@ export function WaitingForOk({ scheduled, onStale }: { scheduled: readonly Sched
       // Decided: the buttons stay off until the refreshed list drops the row.
       await flint.approveSend(s.id, approve);
     } catch (err) {
-      // Already decided elsewhere (Agent Activity, the CLI), so not a failure: refresh to drop the row.
+      // Already decided elsewhere (Agent activity, the CLI), so not a failure: refresh to drop the row.
       if (err instanceof FlintError && err.code === "conflict") return onStale();
       toast.show({ message: approve ? "Couldn't send it. Try again." : "Couldn't cancel the send. Try again.", level: "error" });
       setBusy((b) => {

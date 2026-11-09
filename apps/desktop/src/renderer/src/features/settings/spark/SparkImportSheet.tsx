@@ -81,7 +81,7 @@ export function SparkImportSheet({ open, onClose, onImported }: Props) {
       />
       <Button variant="ghost" className={styles.footerNote} onClick={() => picker.current?.click()}>Choose file…</Button>
       <Button variant="ghost" onClick={onClose}>Cancel</Button>
-      <Button variant="primary" disabled={count === 0 || busy} onClick={() => void doImport()}>
+      <Button variant="accent" disabled={count === 0 || busy} onClick={() => void doImport()}>
         {count === 0 ? "Import signatures" : `Import ${pluralize(count, "signature")}`}
       </Button>
     </>

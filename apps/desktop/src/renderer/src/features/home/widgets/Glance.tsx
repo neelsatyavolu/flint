@@ -16,7 +16,7 @@ export function glanceStats(counts: SidebarData["counts"]): Stat[] {
   return all.filter((s) => s.always || s.count > 0);
 }
 
-/** One line of counts under the hero ("INBOX 23 · SNOOZED 3"); each opens its view. */
+/** One line of counts under the hero ("Inbox 23 · Snoozed 3"); each opens its view. */
 export function Glance({ counts }: { counts: SidebarData["counts"] }): JSX.Element {
   return (
     <nav className={styles.glance} aria-label="At a glance">

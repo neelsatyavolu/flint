@@ -9,10 +9,10 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/geist@1.9.0/dist/fonts/geist-serif/GeistSerifVF.woff2" as="font" type="font/woff2" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
-  <script src="/theme.js"></script>
+  <script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+  <script src="/theme.js" defer></script>
 </head>
 <body>
   <header class="nav">
@@ -21,11 +21,9 @@
       <ul>
         <li><a href="https://github.com/neelsatyavolu/flint">GitHub</a></li>
         <li><a href="/privacy">Privacy</a></li>
+        <li><a href="/#download">Download</a></li>
       </ul>
-      <div class="right">
-        <button class="btn btn-ghost icon-btn" id="theme" type="button" aria-label="Change theme"></button>
-        <a class="btn btn-primary" href="/#download">Download</a>
-      </div>
+      <button class="btn btn-ghost icon-btn" id="theme" type="button" aria-label="Change theme"></button>
     </div>
   </header>
 
@@ -73,7 +71,7 @@
       <p>Flint can let programs on your computer, such as coding agents, use your mail through the <code>flint</code> command. This works only on your computer, through a private socket protected by a token file. You can turn it off, limit what agents may do, and require your approval before an agent sends mail. Every agent action is listed in Agent Activity.</p>
 
       <h2>Updates</h2>
-      <p>Flint checks for new versions on GitHub Releases (github.com, run by GitHub) when it starts and every few hours, and downloads them from there. Like any download, GitHub sees your IP address and that you requested the update file. Flint sends nothing else with these requests.</p>
+      <p>Flint checks for new versions on GitHub Releases (github.com, run by GitHub) when it starts, every hour and when your Mac wakes, and downloads them from there. Like any download, GitHub sees your IP address and that you requested the update file. Flint sends nothing else with these requests.</p>
 
       <h2>Children</h2>
       <p>Flint is not directed at children under 13.</p>

@@ -2,7 +2,8 @@ import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 import clsx from "clsx";
 import styles from "./Button.module.css";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "icon";
+/** accent: the one key action (accent fill). primary: ink button. secondary: older name for primary. ghost: most buttons. */
+export type ButtonVariant = "accent" | "primary" | "secondary" | "ghost" | "danger" | "icon";
 export type ButtonSize = "md" | "sm";
 
 export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type"> & {

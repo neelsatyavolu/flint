@@ -6,10 +6,10 @@
 .row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
 .col { display: flex; flex-direction: column; gap: var(--s-3); max-width: 360px; }
 .planes { display: grid; grid-template-columns: repeat(4, 1fr); height: 64px; border: 1px solid var(--line); }
-.plane { display: flex; align-items: flex-end; padding: 6px 8px; }
+.plane { display: flex; align-items: flex-end; padding: var(--s-2); }
 .swatches { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .swatch { width: 56px; height: 36px; border: 1px solid var(--line); display: flex; align-items: flex-end; padding: 2px 4px; font: 400 10px/1 var(--font-mono); }
-.mail { border-radius: var(--r-control); overflow: hidden; border: 1px solid var(--line); }
+.mail { border-radius: var(--r-card); overflow: hidden; border: 1px solid var(--line); }
 .resize { display: flex; height: 64px; border: 1px solid var(--line); }
 .resizePane { background: var(--plane-1); display: flex; align-items: center; justify-content: center; }
 .resizeRest { flex: 1; background: var(--plane-2); display: flex; align-items: center; justify-content: center; }

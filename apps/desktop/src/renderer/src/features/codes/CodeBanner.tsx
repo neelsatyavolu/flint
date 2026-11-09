@@ -30,7 +30,7 @@ export function CodeBanner({ badge }: { badge: CodeBadge | undefined }) {
       </div>
       <div className={styles.bannerSide}>
         <span className={clsx("t-data", styles.expiry)}>{b.used ? "Used · " : ""}Expires in {left} {left === 1 ? "minute" : "minutes"}</span>
-        <Button variant="primary" size="sm" icon={copied ? <Check size={14} strokeWidth={1.5} /> : <Copy size={14} strokeWidth={1.5} />} onClick={() => void copy()}>
+        <Button variant="accent" size="sm" icon={copied ? <Check size={14} strokeWidth={1.5} /> : <Copy size={14} strokeWidth={1.5} />} onClick={() => void copy()}>
           {copied ? "Copied" : "Copy"}
         </Button>
       </div>

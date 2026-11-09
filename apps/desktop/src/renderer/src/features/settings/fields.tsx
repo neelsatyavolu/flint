@@ -8,7 +8,7 @@ export function SectionPage({ title, description, children }: { title: string; d
   return (
     <section aria-label={title}>
       <header className={styles.pageHead}>
-        <h2 className="t-title">{title}</h2>
+        <h2 className="t-headline-sm">{title}</h2>
         {description ? <p className={styles.pageDesc}>{description}</p> : null}
       </header>
       {children}

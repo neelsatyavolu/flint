@@ -2,7 +2,7 @@ import { memo, type DragEvent, type MouseEvent } from "react";
 import { Archive, BellRing, Clock, Paperclip, Pin, PinOff, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import type { ThreadListItem } from "@flint/core";
-import { Avatar, Checkbox, CountChip, IconButton } from "../../ui";
+import { Avatar, Checkbox, IconButton } from "../../ui";
 import { receiptMarker } from "../../state/receiptText";
 import { ReceiptCheck } from "../receipts/ReceiptCheck";
 import { CodeChip } from "../codes/CodeChip";
@@ -90,7 +90,7 @@ function ThreadRowImpl({ item, compact, previewLines, avatars, accountColor, ope
           <span className={styles.tail}>
             <InviteChip invite={item.invite} now={now} />
             <CodeChip badge={item.verificationCode} />
-            {item.messageCount > 1 ? <CountChip count={item.messageCount} /> : null}
+            {item.messageCount > 1 ? <span className={clsx("t-data", styles.count)}>{item.messageCount > 999 ? "999+" : item.messageCount}</span> : null}
             {item.hasAttachments ? <Paperclip size={12} strokeWidth={1.5} role="img" aria-label="Has attachments" /> : null}
             {accountColor ? <span className={styles.acct} style={{ background: accountColor }} aria-hidden /> : null}
           </span>

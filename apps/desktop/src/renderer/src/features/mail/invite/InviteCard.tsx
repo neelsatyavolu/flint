@@ -187,7 +187,7 @@ export function InviteCard({ message, onUpdated }: Props) {
 
       {(i.conference && active) || openInGoogle ? (
         <div className={styles.actions}>
-          {i.conference && active ? <Button variant="primary" size="sm" icon={<Video size={14} strokeWidth={1.5} />} onClick={() => openExternal(i.conference!.url)}>Join {i.conference.label}</Button> : null}
+          {i.conference && active ? <Button variant="accent" size="sm" icon={<Video size={14} strokeWidth={1.5} />} onClick={() => openExternal(i.conference!.url)}>Join {i.conference.label}</Button> : null}
           {openInGoogle ? <Button variant="ghost" size="sm" icon={<ExternalLink size={14} strokeWidth={1.5} />} onClick={() => openExternal(i.googleEventUrl as string)}>Open in Google Calendar</Button> : null}
         </div>
       ) : null}

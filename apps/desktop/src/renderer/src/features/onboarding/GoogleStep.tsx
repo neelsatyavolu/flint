@@ -49,7 +49,7 @@ export function GoogleStep({ onDone, onSwitch }: Props) {
         <div className={styles.wait} role="status"><span className={styles.pulse} aria-hidden /><span>Waiting for Google…</span></div>
       ) : (
         <div className={styles.actions}>
-          <Button variant="primary" onClick={() => void signIn()}>Sign in with Google</Button>
+          <Button variant="accent" onClick={() => void signIn()}>Sign in with Google</Button>
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>{ownClient ? "Change Google client" : "Use my own Google client"}</Button>
         </div>
       )}

@@ -59,7 +59,7 @@ export function AgentActivityView() {
 
   return (
     <div className={styles.view}>
-      <PaneHeader title="Agent Activity" subtitle="Everything agents did in your mail">
+      <PaneHeader title="Agent activity" subtitle="Everything agents did in your mail">
         <Button size="sm" variant="ghost" onClick={() => navStore.getState().openSettings("agents")}>Agent settings</Button>
       </PaneHeader>
       <div className={styles.scroll}>
@@ -78,7 +78,7 @@ export function AgentActivityView() {
           <div className={styles.column}>
             {groups.map((g) => (
               <section key={g.label} className={styles.group}>
-                <SectionLabel className={clsx(styles.groupLabel, g.attention && styles.attention)}>{g.label}</SectionLabel>
+                <SectionLabel rule className={clsx(styles.groupLabel, g.attention && styles.attention)}>{g.label}</SectionLabel>
                 <ul>{g.items.map((i) => <Row key={i.id} item={i} draftId={draftOf(i)} onDecide={(it, ok) => void decide(it, ok)} />)}</ul>
               </section>
             ))}

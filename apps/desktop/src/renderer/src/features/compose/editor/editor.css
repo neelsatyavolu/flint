@@ -20,14 +20,14 @@
   pointer-events: none;
 }
 .flint-editor .flint-body a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
-.flint-editor .flint-body ul, .flint-editor .flint-body ol { margin: 0 0 8px; padding-left: 22px; }
+.flint-editor .flint-body ul, .flint-editor .flint-body ol { margin: 0 0 8px; padding-left: 24px; }
 .flint-editor .flint-body ul { list-style: disc; }
 .flint-editor .flint-body ol { list-style: decimal; }
-.flint-editor .flint-body blockquote { margin: 0 0 8px; padding-left: 12px; border-left: 2px solid var(--line-strong); color: var(--fg-2); }
-.flint-editor .flint-body code { font: 400 13px / 1 var(--font-mono); background: var(--active); padding: 1px 4px; border-radius: 4px; }
+.flint-editor .flint-body blockquote { margin: 0 0 8px; padding-left: 12px; border-left: 1px solid var(--line-strong); color: var(--fg-2); }
+.flint-editor .flint-body code { font: 400 13px / 1 var(--font-mono); background: var(--active); padding: 1px 4px; border-radius: var(--r-control); }
 .flint-editor .flint-body img { display: block; max-width: 100%; height: auto; margin: 8px 0; }
 .flint-editor .flint-body img.ProseMirror-selectednode { outline: 2px solid var(--accent-ring); outline-offset: 1px; }
-.flint-editor .flint-body ::selection { background: var(--accent-soft); }
+.flint-editor .flint-body ::selection { background: var(--selection); }
 
 .flint-editor .flint-signature { margin-top: 8px; color: var(--fg-2); }
 .flint-editor .flint-sig-body { outline: none; -webkit-user-select: text; user-select: text; caret-color: var(--accent); }

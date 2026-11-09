@@ -87,7 +87,7 @@ export function RuleEditor({ initial, accounts, onSave, onDelete, onCancel }: Pr
 
       {show && issues.general.map((g) => <p key={g} role="alert" className={styles.err}>{g}</p>)}
       <div className={styles.inline}>
-        <Button variant="primary" disabled={busy} onClick={save}>Save rule</Button>
+        <Button variant="accent" disabled={busy} onClick={save}>Save rule</Button>
         <Button variant="ghost" onClick={onCancel}>Cancel</Button>
         {onDelete ? <Button variant="danger" onClick={() => void onDelete()}>Delete</Button> : null}
       </div>

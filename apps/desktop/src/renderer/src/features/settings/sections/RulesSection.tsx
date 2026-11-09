@@ -83,7 +83,7 @@ export function RulesSection() {
     <SectionPage title="Rules" description="Sort incoming mail. Rules run top to bottom as mail arrives.">
       <div className={styles.listActions}>
         <Button variant="ghost" disabled={applying || list.length === 0} onClick={() => void applyAll()}>{applying ? "Applying…" : "Apply to existing mail"}</Button>
-        <Button variant="primary" icon={<Plus size={14} strokeWidth={1.5} />} onClick={() => setEditing(newRule(list.length === 0 ? 0 : Math.max(...list.map((r) => r.sortOrder)) + 1))}>New rule</Button>
+        <Button variant="accent" icon={<Plus size={14} strokeWidth={1.5} />} onClick={() => setEditing(newRule(list.length === 0 ? 0 : Math.max(...list.map((r) => r.sortOrder)) + 1))}>New rule</Button>
       </div>
       <div className={styles.listTop}>
         {list.map((r, i) => (

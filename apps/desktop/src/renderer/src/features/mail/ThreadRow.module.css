@@ -1,24 +1,24 @@
+/* Hairline rows on the list plane (DESIGN §5 List): no cards, no side bars. Vertical padding counts the 1px rule. */
 .row {
   --row-tint: transparent;
   position: relative;
   display: flex;
   gap: 12px;
   height: 100%;
-  padding: 10px 16px;
-  background: var(--plane-1);
+  padding: 12px 16px 11px;
+  background-color: var(--row-tint);
   border-bottom: 1px solid var(--line);
   cursor: default;
   outline: none;
+  transition: --row-tint var(--dur-fast) var(--ease);
 }
 .compact { padding-top: 0; padding-bottom: 0; align-items: center; }
 .row:hover { --row-tint: var(--hover); }
-.cursor { --row-tint: var(--active); box-shadow: inset 2px 0 var(--accent); }
+/* Keyboard cursor: the pressed tint. Selected (open or checked): the accent wash only. */
+.cursor { --row-tint: var(--active); }
 .selected, .selected:hover { --row-tint: var(--accent-soft); }
 /* Registered so the hover, cursor and selected tints fade instead of snapping. */
 @property --row-tint { syntax: "<color>"; inherits: true; initial-value: transparent; }
-.row { background-image: linear-gradient(var(--row-tint), var(--row-tint)); transition: --row-tint var(--dur-fast) var(--ease); }
-.selected::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); }
-.checked::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); }
 /*
  * The dot sits inside line 1 but is placed against the row: with no top set it keeps its static position, which a
  * centring flex line puts on the line's middle, so it lines up with the sender at every density.
@@ -34,29 +34,33 @@
 .row:hover .check, .row:focus-within .check, .cursor .check, .selecting .check { display: grid; }
 .row:hover .lead:has(.check) .avatar, .row:focus-within .lead:has(.check) .avatar, .cursor .lead:has(.check) .avatar, .selecting .lead:has(.check) .avatar { visibility: hidden; }
 .noAvatar { display: none; }
-.body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 1px; }
+.body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .line { display: flex; align-items: center; gap: 8px; min-width: 0; height: 18px; }
 .sender { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; color: var(--fg); }
 .unread .sender { font-weight: 600; }
 .draftTag { color: var(--accent); }
-.meta { display: flex; align-items: center; gap: 6px; flex: none; color: var(--fg-3); }
+.meta { display: flex; align-items: center; gap: 8px; flex: none; color: var(--fg-3); }
 .time { display: inline-flex; align-items: center; gap: 4px; color: var(--fg-3); white-space: nowrap; }
 .snoozed { flex: none; }
 .pin { color: var(--fg-3); flex: none; }
-.receipt { display: inline-flex; align-items: center; gap: 3px; color: var(--fg-3); }
+.receipt { display: inline-flex; align-items: center; gap: 4px; color: var(--fg-3); }
 .receiptOk { color: var(--ok); }
 .subject { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-2); }
 .unread .subject { color: var(--fg); font-weight: 600; }
-.tail { display: flex; align-items: center; gap: 6px; flex: none; color: var(--fg-3); }
+.tail { display: flex; align-items: center; gap: 8px; flex: none; color: var(--fg-3); }
+/* Thread count: Data, no chip fill. */
+.count { color: var(--fg-3); }
 .preview { color: var(--fg-3); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; line-height: 18px; max-height: 18px; }
 .preview2 { -webkit-line-clamp: 2; line-clamp: 2; max-height: 36px; }
-/* A thin account-colour edge on the right: cannot be mistaken for the unread dot. */
-.acct { position: absolute; right: 0; top: 10px; bottom: 10px; width: 2px; }
+/* Account chip in the subject line's tail: a small square, so it cannot be mistaken for the round unread dot. */
+.acct { flex: none; width: 6px; height: 6px; border-radius: 1px; }
+/* Hover actions on a --plane-1 backing, with the row's tint laid over it so the backing matches the row. */
 .actions {
-  position: absolute; right: 12px; top: 8px; display: flex; gap: 2px; padding: 0 0 0 4px;
-  background-color: var(--plane-1); background-image: linear-gradient(var(--row-tint), var(--row-tint));
+  position: absolute; right: 12px; top: 8px; display: flex; gap: 4px; padding: 0 0 0 4px; isolation: isolate;
+  background-color: var(--plane-1);
   opacity: 0; pointer-events: none; transition: opacity var(--dur-fast) var(--ease);
 }
+.actions::before { content: ""; position: absolute; inset: 0; z-index: -1; background-color: var(--row-tint); }
 .compact .actions { top: 16px; }
 .row:hover .actions, .row:focus-within .actions { opacity: 1; pointer-events: auto; }
 .row:hover .time, .row:hover .receipt, .row:hover .pin { visibility: hidden; }

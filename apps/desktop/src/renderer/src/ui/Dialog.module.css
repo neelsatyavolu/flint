@@ -2,12 +2,12 @@
   z-index: var(--z-dialog);
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--plane-0) 62%, transparent);
+  background: var(--scrim);
   animation: fade var(--dur-panel) var(--ease);
 }
 .sheetOverlay { display: flex; justify-content: flex-end; place-items: initial; }
 @keyframes fade { from { opacity: 0; } }
-@keyframes rise { from { opacity: 0; transform: translateY(4px); } }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
 @keyframes slide { from { opacity: 0; transform: translateX(8px); } }
 
 .panel {
@@ -18,7 +18,7 @@
   border: 1px solid var(--line-strong);
   outline: none;
 }
-.dialog { max-height: calc(100vh - 64px); border-radius: var(--r-control); animation: rise var(--dur-panel) var(--ease); }
+.dialog { max-height: calc(100vh - 64px); border-radius: var(--r-card); animation: rise var(--dur-panel) var(--ease); }
 .sheet { height: 100%; max-height: none; border-width: 0 0 0 1px; border-radius: 0; animation: slide var(--dur-panel) var(--ease); }
 
 .header { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); padding: var(--s-4) var(--s-4) var(--s-2) var(--s-5); }

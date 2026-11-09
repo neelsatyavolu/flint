@@ -80,7 +80,7 @@ export function DraftCard({ draftId, threadId, messageId, reloadKey, onChanged }
     <article className={clsx(styles.card, styles.draft)} aria-label="Draft reply">
       <header className={styles.draftHead}>
         <Avatar address={draft.from} accountId={draft.accountId} size={32} />
-        <span className={clsx("t-data", styles.draftTag)}>Draft</span>
+        <span className={clsx("t-label", styles.draftTag)}>Draft</span>
         {first ? (
           <span className={clsx("t-body", styles.draftTo)}>
             <span className={styles.toWord}>to</span> <span className={styles.toAccent}>{displayName(first)}{extra > 0 ? ` +${extra}` : ""}</span>

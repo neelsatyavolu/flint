@@ -54,7 +54,7 @@ export function useBundleTriage(): { triage: (category: BundleCategory, kind: Bu
       footer={
         <>
           <Button variant="ghost" onClick={() => setPending(null)}>Cancel</Button>
-          <Button variant="primary" onClick={() => { if (pending) apply(pending); setPending(null); }}>{verb} {pending?.ids.length}</Button>
+          <Button variant="accent" onClick={() => { if (pending) apply(pending); setPending(null); }}>{verb} {pending?.ids.length}</Button>
         </>
       }
     >
@@ -131,7 +131,7 @@ export function ListHeader() {
           {scoped ? (
             <div className={styles.scoped}>
               {heading}
-              <span className={clsx("t-body", styles.subtitle)}>{subtitle}</span>
+              <span className={clsx("t-label", styles.subtitle)}>{subtitle}</span>
             </div>
           ) : null}
         </>

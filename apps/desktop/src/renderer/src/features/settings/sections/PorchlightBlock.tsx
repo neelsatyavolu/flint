@@ -61,11 +61,11 @@ export function PorchlightBlock() {
 
   const connection = status?.connection ?? null;
   return (
-    <div className={styles.padTop}>
+    <div className={styles.group}>
       <h3 className={`t-label ${styles.groupLabel}`}>Porchlight</h3>
       {status === null ? <Skeleton height={80} /> : (
         <div className={styles.row}>
-          <Package size={20} strokeWidth={1.5} color="var(--accent)" aria-hidden />
+          <Package size={18} strokeWidth={1.5} color="var(--fg-2)" aria-hidden />
           <div className={styles.rowGrow}>
             <div className={styles.rowTitle}>Porchlight</div>
             {connection ? (
@@ -86,7 +86,7 @@ export function PorchlightBlock() {
           </div>
           <div className={styles.inline}>
             {connection ? <Button variant="ghost" size="sm" disabled={busy !== null} onClick={() => void disconnect()}>{busy === "disconnect" ? "Disconnecting…" : "Disconnect"}</Button> : null}
-            {!connection || connection.signedOut ? <Button variant="primary" size="sm" disabled={busy !== null} onClick={connect}>Connect Porchlight</Button> : null}
+            {!connection || connection.signedOut ? <Button variant="accent" size="sm" disabled={busy !== null} onClick={connect}>Connect Porchlight</Button> : null}
           </div>
         </div>
       )}

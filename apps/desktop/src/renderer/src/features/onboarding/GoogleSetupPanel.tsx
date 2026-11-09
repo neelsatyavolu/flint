@@ -60,7 +60,7 @@ export function GoogleSetupPanel({ initialId = "", initialSecret = "", onSaved, 
       </label>
       {errors.save ? <p role="alert" className={styles.err}>{errors.save}</p> : null}
       <div className={styles.actions}>
-        <Button variant="primary" disabled={busy} onClick={() => void save()}>Save and continue</Button>
+        <Button variant="accent" disabled={busy} onClick={() => void save()}>Save and continue</Button>
         {onCancel ? <Button variant="ghost" onClick={onCancel}>Cancel</Button> : null}
       </div>
     </div>

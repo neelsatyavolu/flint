@@ -1,7 +1,7 @@
 import { Bell, BellRing, Eye, Mail, Music, Users, Volume2 } from "lucide-react";
 import { NOTIFICATION_SOUNDS } from "@flint/core/types";
 import { flint } from "../../../lib/api";
-import { Button, SettingsRow, useToast } from "../../../ui";
+import { Button, SectionLabel, SettingsRow, useToast } from "../../../ui";
 import { SectionPage, SelectRow, ToggleRow } from "../fields";
 import { useSettingsStore } from "../settingsStore";
 import { errorText, useAccounts } from "../useAccounts";
@@ -41,8 +41,8 @@ export function NotificationsSection() {
         onChange={(v) => void save({ notifications: { scope: v } })}
       />
       {accounts && accounts.length > 1 ? (
-        <>
-          <div className={`t-label ${styles.muted}`} style={{ padding: "var(--s-5) 0 0" }}>Accounts</div>
+        <div className={styles.group}>
+          <SectionLabel className={styles.groupLabel}>Accounts</SectionLabel>
           {accounts.map((a) => (
             <ToggleRow
               key={a.id}
@@ -55,7 +55,7 @@ export function NotificationsSection() {
               onChange={(v) => setAccount(a.id, v)}
             />
           ))}
-        </>
+        </div>
       ) : null}
       <ToggleRow icon={<Volume2 size={18} strokeWidth={1.5} />} title="Sound" checked={n.sound} disabled={off} onChange={(v) => void save({ notifications: { sound: v } })} />
       <SelectRow

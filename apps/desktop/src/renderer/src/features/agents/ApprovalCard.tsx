@@ -39,7 +39,7 @@ function Preview({ draft }: { draft: Draft }): JSX.Element {
         <dt className="t-label">Subject</dt>
         <dd className={clsx(styles.value, styles.subject)}>{draft.subject || "(no subject)"}</dd>
       </div>
-      <div className={clsx("t-prose selectable", styles.body)}>{text ? (cut ? `${text.slice(0, PREVIEW_CHARS).trimEnd()}…` : text) : "The message has no text."}</div>
+      <div className={clsx("t-message selectable", styles.body)}>{text ? (cut ? `${text.slice(0, PREVIEW_CHARS).trimEnd()}…` : text) : "The message has no text."}</div>
       {draft.attachments.length > 0 ? (
         <ul className={styles.files} aria-label="Attachments">
           {draft.attachments.map((a) => (

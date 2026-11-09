@@ -192,7 +192,7 @@ export function CommandPalette({ cmds }: { cmds: AppCommands }): JSX.Element {
       <div ref={results} id={listId} role="listbox" aria-label="Results" className={styles.results} onMouseDown={(e) => e.preventDefault()}>
         {rows.length === 0 && sections.length === 0 ? (
           <div className={styles.empty}>
-            <div className={clsx("t-body", styles.emptyTitle)}>{empty.title}</div>
+            <div className={clsx("t-headline-sm", styles.emptyTitle)}>{empty.title}</div>
             <div className={clsx("t-body", styles.emptyBody)}>{empty.body}</div>
           </div>
         ) : (

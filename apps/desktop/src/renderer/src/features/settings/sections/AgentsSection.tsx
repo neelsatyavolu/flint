@@ -56,7 +56,7 @@ export function AgentsSection() {
   const d = info.data;
   const sk = skill.data;
   return (
-    <SectionPage title="Agents" description="Let local coding agents read and act on your mail through the flint command. Every call is logged in Agent Activity.">
+    <SectionPage title="Agents" description="Let local coding agents read and act on your mail through the flint command. Every call is logged in Agent activity.">
       <ToggleRow icon={<Bot size={18} strokeWidth={1.5} />} title="Allow local agents" description="Turns the command line tool and the local agent API on or off." checked={a.enabled} onChange={(v) => void save({ agents: { enabled: v } })} />
       <SelectRow
         icon={<Pencil size={18} strokeWidth={1.5} />}
@@ -70,18 +70,18 @@ export function AgentsSection() {
       <SelectRow
         icon={<Send size={18} strokeWidth={1.5} />}
         title="Sending mail"
-        description="Ask means the send waits in Agent Activity until you approve it."
+        description="Ask means the send waits in Agent activity until you approve it."
         value={a.send}
         disabled={!a.enabled}
         choices={[{ value: "allow", label: "Allow" }, { value: "ask", label: "Ask me first" }, { value: "deny", label: "Deny" }]}
         onChange={(v) => void save({ agents: { send: v } })}
       />
       <SettingsRow icon={<Terminal size={18} strokeWidth={1.5} />} title="flint command" description={d ? (d.cliInstalled ? `Installed${d.cliPath ? ` at ${d.cliPath}` : ""}.` : "Not installed. Installing links it into your path.") : "Checking…"}>
-        <Button variant={d?.cliInstalled ? "ghost" : "primary"} onClick={() => void install()} disabled={installing || !d}>
+        <Button variant={d?.cliInstalled ? "ghost" : "accent"} onClick={() => void install()} disabled={installing || !d}>
           {d?.cliInstalled ? "Reinstall" : "Install flint command"}
         </Button>
       </SettingsRow>
-      {installMsg ? <p role="status" className={installMsg.ok ? styles.ok : styles.err} style={{ paddingTop: 6 }}>{installMsg.text}</p> : null}
+      {installMsg ? <p role="status" className={installMsg.ok ? styles.ok : styles.err} style={{ paddingTop: "var(--s-2)" }}>{installMsg.text}</p> : null}
       <SettingsRow
         icon={<Sparkles size={18} strokeWidth={1.5} />}
         title="Skill for AI agents"
@@ -89,12 +89,12 @@ export function AgentsSection() {
       >
         <div className={styles.inline}>
           {sk?.installed ? <Button variant="ghost" onClick={() => void changeSkill("remove")} disabled={skillBusy}>Remove</Button> : null}
-          <Button variant={sk?.installed ? "ghost" : "primary"} onClick={() => void changeSkill("install")} disabled={skillBusy || !sk || !sk.targets.some((t) => t.present)}>
+          <Button variant={sk?.installed || !d?.cliInstalled ? "ghost" : "accent"} onClick={() => void changeSkill("install")} disabled={skillBusy || !sk || !sk.targets.some((t) => t.present)}>
             {sk?.installed ? "Update" : "Add to all agents"}
           </Button>
         </div>
       </SettingsRow>
-      {skillMsg ? <p role="status" className={skillMsg.ok ? styles.ok : styles.err} style={{ paddingTop: 6 }}>{skillMsg.text}</p> : null}
+      {skillMsg ? <p role="status" className={skillMsg.ok ? styles.ok : styles.err} style={{ paddingTop: "var(--s-2)" }}>{skillMsg.text}</p> : null}
       {sk ? (
         <div className={styles.stack} aria-label="Agents that get the skill">
           {sk.targets.map((t) => (
@@ -123,7 +123,7 @@ export function AgentsSection() {
           <SectionLabel>Quick start</SectionLabel>
           <CopyButton text={QUICK_START} />
         </div>
-        <code className={styles.code} style={{ marginTop: 6 }}>{QUICK_START}</code>
+        <code className={styles.code} style={{ marginTop: "var(--s-2)" }}>{QUICK_START}</code>
       </div>
     </SectionPage>
   );

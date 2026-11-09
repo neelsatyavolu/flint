@@ -27,8 +27,8 @@ export function ShortcutsSection() {
             <tbody>
               {g.entries.map((it) => (
                 <tr key={`${it.combo}-${it.label}`} className={styles.hair}>
-                  <td style={{ padding: "6px 0" }}>{it.label}</td>
-                  <td style={{ padding: "6px 0", textAlign: "right" }}><Kbd combo={it.combo} /></td>
+                  <td style={{ padding: "var(--s-2) 0" }}>{it.label}</td>
+                  <td style={{ padding: "var(--s-2) 0", textAlign: "right" }}><Kbd combo={it.combo} /></td>
                 </tr>
               ))}
             </tbody>

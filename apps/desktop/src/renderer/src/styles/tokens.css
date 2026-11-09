@@ -1,86 +1,107 @@
-/* Flint design tokens. Source of truth: DESIGN.md §2-§7. Components never use raw hex. tokens.test.ts checks the contrast floors. */
+/* Flint design tokens ("Ledger", from ~/DESIGN.md v3). Source of truth: DESIGN.md §2-§7. Components never use raw hex. tokens.test.ts checks the contrast floors. */
 
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --plane-0: #000000;
-  --plane-1: #06060a;
-  --plane-2: #0a0a0c;
-  --plane-3: #111114;
-  --fg: #fcfdff;
-  --fg-2: rgba(252, 253, 255, 0.7);
-  --fg-3: #a1a4a5;
-  --fg-4: #464a4d;
-  --hover: rgba(255, 255, 255, 0.04);
-  --active: rgba(255, 255, 255, 0.07);
-  --line: rgba(255, 255, 255, 0.06);
-  --line-strong: rgba(255, 255, 255, 0.14);
+  --plane-0: #0b0b0a;
+  --plane-1: #0e0e0d;
+  --plane-2: #0e0e0d;
+  --plane-3: #141413;
+  --deep: #090908;
+  --fg: #f2f0ea;
+  --fg-2: rgba(242, 240, 234, 0.86);
+  --fg-3: rgba(242, 240, 234, 0.55);
+  --fg-4: rgba(242, 240, 234, 0.28);
+  --hover: rgba(242, 240, 234, 0.045);
+  --active: rgba(242, 240, 234, 0.08);
+  --line: rgba(242, 240, 234, 0.08);
+  --line-strong: rgba(242, 240, 234, 0.18);
+  --field: rgba(242, 240, 234, 0.42);
+  --primary: #f2f0ea;
+  --primary-fg: #0e0e0d;
+  --primary-hover: #e4e1d9;
   --accent: #4c8dff;
-  --accent-fg: #000000;
-  --accent-soft: rgba(76, 141, 255, 0.12);
+  --accent-hover: #6fa3ff;
+  --accent-fg: #0e0e0d;
+  --accent-soft: rgba(76, 141, 255, 0.1);
   --accent-ring: rgba(76, 141, 255, 0.68);
-  --danger: #ff4d5e;
-  --ok: #3dd68c;
-  --warn: #ffc53d;
-  --avatar-l: 0.58;
-  --avatar-c: 0.09;
-  --avatar-fg: #fcfdff;
-  --scrollbar-thumb: rgba(255, 255, 255, 0.16);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.28);
+  --selection: rgba(76, 141, 255, 0.35);
+  --scrim: rgba(9, 9, 8, 0.7);
+  --danger: #ee5a4b;
+  --ok: #4fbf85;
+  --warn: #d9a23a;
+  --avatar-l: 0.5;
+  --avatar-c: 0.05;
+  --avatar-fg: #f2f0ea;
+  --scrollbar-thumb: rgba(242, 240, 234, 0.16);
+  --scrollbar-thumb-hover: rgba(242, 240, 234, 0.28);
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  --plane-0: #f4f5f7;
-  --plane-1: #fafafb;
-  --plane-2: #fcfcfd;
-  --plane-3: #ffffff;
-  --fg: #0a0a0c;
-  --fg-2: rgba(10, 10, 12, 0.66);
-  --fg-3: #5f6366;
-  --fg-4: #c4c7ca;
-  --hover: rgba(0, 0, 0, 0.04);
-  --active: rgba(0, 0, 0, 0.07);
-  --line: rgba(0, 0, 0, 0.06);
-  --line-strong: rgba(0, 0, 0, 0.12);
-  --accent: #2f6fe0;
+  --plane-0: #f1eee6;
+  --plane-1: #f7f5ef;
+  --plane-2: #f7f5ef;
+  --plane-3: #fbfaf6;
+  --deep: #141413;
+  --fg: #16161a;
+  --fg-2: rgba(22, 22, 26, 0.86);
+  --fg-3: rgba(22, 22, 26, 0.64);
+  --fg-4: rgba(22, 22, 26, 0.28);
+  --hover: rgba(22, 22, 26, 0.045);
+  --active: rgba(22, 22, 26, 0.08);
+  --line: rgba(22, 22, 26, 0.1);
+  --line-strong: rgba(22, 22, 26, 0.22);
+  --field: rgba(22, 22, 26, 0.5);
+  --primary: #16161a;
+  --primary-fg: #f7f5ef;
+  --primary-hover: #2a2a2f;
+  --accent: #2a63cc;
+  --accent-hover: #1f4fa8;
   --accent-fg: #ffffff;
-  --accent-soft: rgba(47, 111, 224, 0.08);
-  --accent-ring: rgba(47, 111, 224, 0.81);
-  --danger: #d92d3f;
-  --ok: #14915a;
-  --warn: #b7791f;
-  --avatar-l: 0.68;
-  --avatar-c: 0.08;
-  --scrollbar-thumb: rgba(0, 0, 0, 0.16);
-  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
+  --accent-soft: rgba(42, 99, 204, 0.09);
+  --accent-ring: rgba(42, 99, 204, 0.81);
+  --selection: rgba(42, 99, 204, 0.25);
+  --scrim: rgba(22, 22, 26, 0.4);
+  --danger: #bc2e23;
+  --ok: #1a7048;
+  --warn: #8a5e12;
+  --avatar-l: 0.62;
+  --avatar-c: 0.05;
+  --avatar-fg: #f7f5ef;
+  --scrollbar-thumb: rgba(22, 22, 26, 0.16);
+  --scrollbar-thumb-hover: rgba(22, 22, 26, 0.3);
 }
 
 :root {
   /* Type families */
+  /* Ink (what a person reads) is Newsreader; Instrument (what a person scans) is Geist, with Geist Mono for every
+     number, date, label and key. */
   --font-ui: "Geist Variable", "Geist", ui-sans-serif, sans-serif;
   --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, monospace;
-  /* AI prose shares the UI face: serif is for display sizes only (40px and up). */
-  --font-prose: var(--font-ui);
-  --font-display: "Geist Serif", Georgia, serif;
+  --font-serif: "Newsreader Variable", "Newsreader", Georgia, serif;
+  --font-prose: var(--font-serif);
+  --font-display: var(--font-serif);
 
   /* Type scale (size / line) */
   --text-body: 13.5px;
   --lh-body: 20px;
   --text-title: 15px;
   --lh-title: 22px;
-  --text-subject: 21px;
-  --lh-subject: 28px;
+  --text-subject: 24px;
+  --lh-subject: 30px;
   --text-compose: 24px;
-  --lh-compose: 32px;
+  --lh-compose: 30px;
+  --text-headline-sm: 18px;
+  --lh-headline-sm: 24px;
   --text-data: 12px;
   --lh-data: 16px;
   --text-label: 12px;
   --lh-label: 16px;
-  --text-prose: 15px;
-  --lh-prose: 24px;
-  --text-display: 48px;
-  --lh-display: 48px;
+  --text-prose: 17px;
+  --lh-prose: 26px;
+  --text-display: 40px;
+  --lh-display: 44px;
   --text-setting: 14.5px;
   /* Plain-text mail bodies and the compose editor, matching HTML mail. */
   --text-message: 14.5px;
@@ -98,9 +119,9 @@
 
   /* Radius */
   --r-0: 0;
-  --r-control: 6px;
-  /* Message cards, the draft card and the reply dock. */
-  --r-card: 12px;
+  --r-control: 4px;
+  /* Message cards, the draft card, the reply dock, panels and wells. Nothing is rounder (pills excepted). */
+  --r-card: 6px;
   --r-round: 999px;
 
   /* Control heights */
@@ -110,13 +131,13 @@
 
   /* Motion */
   --ease: cubic-bezier(0.2, 0, 0, 1);
-  --dur-fast: 120ms;
-  --dur-panel: 180ms;
+  --dur-fast: 150ms;
+  --dur-panel: 200ms;
   --dur-collapse: 160ms;
 
   /* Focus: the solid accent clears 3:1 on every plane in both themes. */
   --focus-ring: 2px solid var(--accent);
-  --focus-offset: 1px;
+  --focus-offset: 2px;
 
   /* Layout */
   --titlebar-h: 38px;
@@ -129,29 +150,38 @@
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {
     color-scheme: light;
-    --plane-0: #f4f5f7;
-    --plane-1: #fafafb;
-    --plane-2: #fcfcfd;
-    --plane-3: #ffffff;
-    --fg: #0a0a0c;
-    --fg-2: rgba(10, 10, 12, 0.66);
-    --fg-3: #5f6366;
-    --fg-4: #c4c7ca;
-    --hover: rgba(0, 0, 0, 0.04);
-    --active: rgba(0, 0, 0, 0.07);
-    --line: rgba(0, 0, 0, 0.06);
-    --line-strong: rgba(0, 0, 0, 0.12);
-    --accent: #2f6fe0;
+    --plane-0: #f1eee6;
+    --plane-1: #f7f5ef;
+    --plane-2: #f7f5ef;
+    --plane-3: #fbfaf6;
+    --deep: #141413;
+    --fg: #16161a;
+    --fg-2: rgba(22, 22, 26, 0.86);
+    --fg-3: rgba(22, 22, 26, 0.64);
+    --fg-4: rgba(22, 22, 26, 0.28);
+    --hover: rgba(22, 22, 26, 0.045);
+    --active: rgba(22, 22, 26, 0.08);
+    --line: rgba(22, 22, 26, 0.1);
+    --line-strong: rgba(22, 22, 26, 0.22);
+    --field: rgba(22, 22, 26, 0.5);
+    --primary: #16161a;
+    --primary-fg: #f7f5ef;
+    --primary-hover: #2a2a2f;
+    --accent: #2a63cc;
+    --accent-hover: #1f4fa8;
     --accent-fg: #ffffff;
-    --accent-soft: rgba(47, 111, 224, 0.08);
-    --accent-ring: rgba(47, 111, 224, 0.81);
-    --danger: #d92d3f;
-    --ok: #14915a;
-    --warn: #b7791f;
-    --avatar-l: 0.68;
-    --avatar-c: 0.08;
-    --scrollbar-thumb: rgba(0, 0, 0, 0.16);
-    --scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
+    --accent-soft: rgba(42, 99, 204, 0.09);
+    --accent-ring: rgba(42, 99, 204, 0.81);
+    --selection: rgba(42, 99, 204, 0.25);
+    --scrim: rgba(22, 22, 26, 0.4);
+    --danger: #bc2e23;
+    --ok: #1a7048;
+    --warn: #8a5e12;
+    --avatar-l: 0.62;
+    --avatar-c: 0.05;
+    --avatar-fg: #f7f5ef;
+    --scrollbar-thumb: rgba(22, 22, 26, 0.16);
+    --scrollbar-thumb-hover: rgba(22, 22, 26, 0.3);
   }
 }
 
@@ -159,17 +189,17 @@
 @media (prefers-contrast: more) {
   :root,
   [data-theme="dark"] {
-    --fg-2: rgba(252, 253, 255, 0.84);
-    --hover: rgba(255, 255, 255, 0.07);
-    --active: rgba(255, 255, 255, 0.12);
-    --line-strong: rgba(255, 255, 255, 0.42);
+    --fg-2: rgba(242, 240, 234, 0.92);
+    --hover: rgba(242, 240, 234, 0.07);
+    --active: rgba(242, 240, 234, 0.12);
+    --line-strong: rgba(242, 240, 234, 0.42);
   }
 
   [data-theme="light"] {
-    --fg-2: rgba(10, 10, 12, 0.8);
-    --hover: rgba(0, 0, 0, 0.06);
-    --active: rgba(0, 0, 0, 0.1);
-    --line-strong: rgba(0, 0, 0, 0.5);
+    --fg-2: rgba(22, 22, 26, 0.92);
+    --hover: rgba(22, 22, 26, 0.06);
+    --active: rgba(22, 22, 26, 0.1);
+    --line-strong: rgba(22, 22, 26, 0.5);
   }
 
   /* Hover and selection tints are too faint to rely on here, so they also get a 1px outline. */
@@ -184,10 +214,10 @@
 
 @media (prefers-contrast: more) and (prefers-color-scheme: light) {
   :root:not([data-theme]) {
-    --fg-2: rgba(10, 10, 12, 0.8);
-    --hover: rgba(0, 0, 0, 0.06);
-    --active: rgba(0, 0, 0, 0.1);
-    --line-strong: rgba(0, 0, 0, 0.5);
+    --fg-2: rgba(22, 22, 26, 0.92);
+    --hover: rgba(22, 22, 26, 0.06);
+    --active: rgba(22, 22, 26, 0.1);
+    --line-strong: rgba(22, 22, 26, 0.5);
   }
 }
 
@@ -203,10 +233,13 @@
 .t-body { font: 400 var(--text-body) / var(--lh-body) var(--font-ui); }
 .t-strong { font: 600 var(--text-body) / var(--lh-body) var(--font-ui); }
 .t-title { font: 600 var(--text-title) / var(--lh-title) var(--font-ui); }
-.t-subject { font: 600 var(--text-subject) / var(--lh-subject) var(--font-ui); text-wrap: balance; }
-.t-compose { font: 600 var(--text-compose) / var(--lh-compose) var(--font-ui); }
-.t-data { font: 400 var(--text-data) / var(--lh-data) var(--font-ui); font-variant-numeric: tabular-nums; }
-.t-label { font: 500 var(--text-label) / var(--lh-label) var(--font-ui); color: var(--fg-3); }
+.t-subject { font: 400 var(--text-subject) / var(--lh-subject) var(--font-serif); letter-spacing: -0.005em; text-wrap: balance; }
+.t-compose { font: 400 var(--text-compose) / var(--lh-compose) var(--font-serif); }
+.t-headline-sm { font: 400 var(--text-headline-sm) / var(--lh-headline-sm) var(--font-serif); }
+/* Numbers, dates, counts, sizes, IDs: always mono and tabular. */
+.t-data { font: 400 var(--text-data) / var(--lh-data) var(--font-mono); font-variant-numeric: tabular-nums; }
+/* Labels are mono in sentence case. Never uppercase, never tracked. */
+.t-label { font: 400 var(--text-label) / var(--lh-label) var(--font-mono); color: var(--fg-3); }
 .t-message { font: 400 var(--text-message) / var(--lh-message) var(--font-ui); }
 .t-prose { font: 400 var(--text-prose) / var(--lh-prose) var(--font-prose); max-width: 65ch; }
-.t-display { font: 400 var(--text-display) / var(--lh-display) var(--font-display); letter-spacing: -0.02em; text-wrap: balance; }
+.t-display { font: 400 var(--text-display) / var(--lh-display) var(--font-display); letter-spacing: -0.01em; text-wrap: balance; }

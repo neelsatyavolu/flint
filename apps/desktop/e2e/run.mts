@@ -179,7 +179,7 @@ try {
     return `search found ${bobSees} thread(s) for the sent subject`;
   });
 
-  await step("Agent Activity via the real CLI", async () => {
+  await step("Agent activity via the real CLI", async () => {
     const cli = join(DESKTOP, "../cli/dist/flint.js");
     if (!existsSync(cli)) throw new Error("apps/cli/dist/flint.js is not built");
     const env = { ...process.env, FLINT_DATA_DIR: l.dataDir, FLINT_AGENT: "claude-code" };
@@ -190,7 +190,7 @@ try {
       execFileSync("node", [cli, "send", "--to", "bob@test.local", "--subject", "Agent test", "--body", "Sent by an agent", "--json"], { env, encoding: "utf8" });
     } catch { /* approval flow may reject; the activity row is what matters */ }
     await sleep(800);
-    await goTo(win, "Agent Activity");
+    await goTo(win, "Agent activity");
     await sleep(600);
     await sh.shot("22-agent-activity");
     return `list returned ${Array.isArray(parsed) ? parsed.length : (parsed.items?.length ?? "?")} items`;
@@ -200,7 +200,7 @@ try {
     trackedSendBecomesOpened(win, receipts, (n) => sh.shot(n), "carol@test.local"));
 
   await step("settings sections", async () => {
-    const labels = ["General", "Accounts", "Appearance", "Inbox", "Signatures", "Templates", "Rules", "Read Receipts", "Notifications", "+AI", "Agents", "Shortcuts", "Blocked", "About"];
+    const labels = ["General", "Accounts", "Appearance", "Inbox", "Signatures", "Templates", "Rules", "Read receipts", "Notifications", "+AI", "Agents", "Shortcuts", "Blocked", "About"];
     for (const [i, label] of labels.entries()) {
       await openSettingsSection(win, label);
       await sh.shot(`30-settings-${String(i).padStart(2, "0")}-${label.replace(/\W+/g, "").toLowerCase()}`);
@@ -248,7 +248,7 @@ try {
       await sh.shot("s-compose");
       await win.getByRole("button", { name: /Close and save draft/ }).click();
       await sleep(300);
-      for (const [i, label] of ["Home", "Agent Activity", "Read Receipts", "Pins", "Sent"].entries()) {
+      for (const [i, label] of ["Home", "Agent activity", "Read receipts", "Pins", "Sent"].entries()) {
         await goTo(win, label);
         await sleep(300);
         await sh.shot(`s-${i}-${label.replace(/\s+/g, "").toLowerCase()}`);

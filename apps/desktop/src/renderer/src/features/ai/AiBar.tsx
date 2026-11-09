@@ -118,7 +118,7 @@ export function AiBar({ body, threadId, draftId, to, subject, onClose }: Props):
               <Button size="sm" variant="ghost" onClick={cancel}>Stop</Button>
             ) : (
               <>
-                <Button size="sm" variant="secondary" onClick={() => { body.current?.insert(state.text); discard(); }}>Insert</Button>
+                <Button size="sm" variant="ghost" onClick={() => { body.current?.insert(state.text); discard(); }}>Insert</Button>
                 {canReplace ? (
                   <Button size="sm" variant="ghost" onClick={() => { if (snap) body.current?.replace(snap, state.text); discard(); }}>Replace</Button>
                 ) : null}

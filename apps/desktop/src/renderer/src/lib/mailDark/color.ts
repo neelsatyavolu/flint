@@ -12,10 +12,10 @@ export type Oklch = { l: number; c: number; h: number };
  * A test keeps them in sync with tokens.css.
  */
 export const DARK = {
-  bg: "#111114",
-  fg: "#fcfdff",
+  bg: "#141413",
+  fg: "#f2f0ea",
   accent: "#4c8dff",
-  line: "rgba(255, 255, 255, 0.14)",
+  line: "rgba(242, 240, 234, 0.18)",
 } as const;
 
 const NAMED: Record<string, string> = {

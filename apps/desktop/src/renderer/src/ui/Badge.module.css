@@ -3,15 +3,18 @@
   align-items: center;
   gap: 4px;
   height: 18px;
-  padding: 0 6px;
+  padding: 0 var(--s-2);
   border-radius: var(--r-control);
-  font: 400 var(--text-data) / 1 var(--font-ui);
+  border: 1px solid transparent;
+  font: 400 var(--text-data) / 1 var(--font-mono);
   font-variant-numeric: tabular-nums;
   background: var(--active);
   color: var(--fg-2);
   white-space: nowrap;
 }
 .accent { background: var(--accent-soft); color: var(--accent); }
-.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
-.warn { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
-.danger { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
+/* State colours are text only, never surfaces: a hairline chip with coloured text. */
+.ok, .warn, .danger { background: transparent; border-color: var(--line-strong); }
+.ok { color: var(--ok); }
+.warn { color: var(--warn); }
+.danger { color: var(--danger); }

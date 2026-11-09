@@ -1,3 +1,4 @@
-.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-3); height: 100%; min-height: 160px; padding: var(--s-6); text-align: center; }
-.mark { color: var(--fg-4); }
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-2); height: 100%; min-height: 160px; padding: var(--s-6); text-align: center; }
+.title { color: var(--fg-2); text-wrap: balance; }
 .desc { color: var(--fg-3); max-width: 36ch; }
+.action { margin-top: var(--s-2); }

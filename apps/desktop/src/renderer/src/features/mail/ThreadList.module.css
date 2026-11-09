@@ -1,7 +1,7 @@
 .scroll { position: relative; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; background: var(--plane-1); contain: strict; }
 /* The ring sits inside the pane: the scroller clips anything drawn outside it. */
 .scroll:focus-visible { outline-offset: -2px; }
-/* With an active row the row's own accent edge shows where focus is: no ring around the whole pane. */
+/* With an active row the row's own tint shows where focus is: no ring around the whole pane. */
 .scroll[aria-activedescendant]:focus-visible { outline: none; }
 /* The previous list, kept while the next one loads. */
 .stale { opacity: 0.5; transition: opacity var(--dur-fast) var(--ease); }
@@ -10,9 +10,15 @@
 .row, .label { position: absolute; top: 0; left: 0; width: 100%; }
 /* Rows slide into place when a neighbour is archived or moved; reduced motion zeroes the duration token. */
 .row { transition: transform var(--dur-fast) var(--ease); }
-/* In-flow and sticky labels share one band: same height, same hairline under the text. */
-.label { display: flex; align-items: center; padding: 0 16px; background: var(--plane-1); border-bottom: 1px solid var(--line); }
-.sticky { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; height: 28px; margin-bottom: -28px; padding: 0 16px; background: var(--plane-1); border-bottom: 1px solid var(--line); }
+/*
+ * Date groups (DESIGN §5 List): Label style in --fg with a --line rule above. In-flow and sticky labels share one band.
+ * Both sit 1px high so their rule lands on the previous row's hairline instead of doubling it.
+ */
+.label, .sticky { display: flex; align-items: center; padding: 0 16px; background: var(--plane-1); border-top: 1px solid var(--line); }
+/* Scoped under the scroller so it wins over .t-label's --fg-3 regardless of stylesheet order. */
+.scroll .label, .scroll .sticky { color: var(--fg); }
+.label { top: -1px; }
+.sticky { position: sticky; top: -1px; z-index: 3; height: 28px; margin-bottom: -28px; }
 .clearance { height: var(--ask-clearance, 0px); }
 .progress { width: 160px; height: 1px; background: var(--line-strong); }
 .progress span { display: block; height: 100%; background: var(--accent); transition: width var(--dur-fast) var(--ease); }

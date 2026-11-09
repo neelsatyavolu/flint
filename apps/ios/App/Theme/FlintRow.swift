@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Mail list row (DESIGN.md "List"): avatar, sender and time, subject with count and paperclip, one-line preview,
-/// a 6 pt accent dot in the left gutter when unread, a 2 pt accent bar and soft fill when selected.
+/// a 6 pt accent dot in the left gutter when unread, an `--accent-soft` fill (no side bar) when selected.
 /// It is display only: callers wrap it in a Button or NavigationLink and own swipe actions.
 struct FlintRow: View {
     enum Density: Sendable { case comfortable, compact }
@@ -35,9 +35,6 @@ struct FlintRow: View {
         .frame(maxWidth: .infinity, minHeight: density == .compact ? FlintMetrics.Size.rowCompact : FlintMetrics.Size.rowComfortable, alignment: .topLeading)
         .background(isSelected ? FlintColor.accentSoft : .clear)
         .overlay(alignment: .leading) {
-            if isSelected { FlintColor.accent.frame(width: 2) }
-        }
-        .overlay(alignment: .leading) {
             if isUnread {
                 Circle().fill(FlintColor.accent).frame(width: 6, height: 6)
                     .padding(.leading, 5)
@@ -68,10 +65,7 @@ struct FlintRow: View {
                 .lineLimit(1)
             Spacer(minLength: FlintMetrics.Space.s1)
             if messageCount > 1 {
-                Text("\(messageCount)")
-                    .flintText(.data, color: FlintColor.fg2)
-                    .padding(.horizontal, 6)
-                    .background(FlintColor.active, in: RoundedRectangle(cornerRadius: FlintMetrics.Radius.control))
+                Text("\(messageCount)").flintText(.data, color: FlintColor.fg3)
             }
             if hasAttachment { FlintIconView(icon: .paperclip, size: 12, color: FlintColor.fg3) }
         }
@@ -92,13 +86,15 @@ struct FlintRow: View {
 }
 
 /// Loading placeholder with the same geometry as `FlintRow`, so nothing shifts when data arrives.
-/// Static on purpose: no shimmer, no spinner over content.
+/// Flat `--hover` blocks breathing 1 to 0.55 over 1.6 s (still under Reduce Motion): no shimmer, no spinner over content.
 struct FlintSkeletonRow: View {
     var density: FlintRow.Density = .comfortable
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var dimmed = false
 
     var body: some View {
         HStack(alignment: .top, spacing: FlintMetrics.Space.s3) {
-            Circle().fill(FlintColor.active).frame(width: density == .compact ? 24 : 32, height: density == .compact ? 24 : 32)
+            Circle().fill(FlintColor.hover).frame(width: density == .compact ? 24 : 32, height: density == .compact ? 24 : 32)
             VStack(alignment: .leading, spacing: 6) {
                 bar(width: 120)
                 bar(width: 200)
@@ -106,14 +102,19 @@ struct FlintSkeletonRow: View {
             }
             .padding(.top, 4)
         }
+        .opacity(dimmed ? 0.55 : 1)
         .padding(.vertical, FlintMetrics.Space.s3)
         .padding(.horizontal, FlintMetrics.Space.s4)
         .frame(maxWidth: .infinity, minHeight: density == .compact ? FlintMetrics.Size.rowCompact : FlintMetrics.Size.rowComfortable, alignment: .topLeading)
         .overlay(alignment: .bottom) { FlintHairline() }
         .accessibilityHidden(true)
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) { dimmed = true }
+        }
     }
 
     private func bar(width: CGFloat) -> some View {
-        FlintColor.active.frame(width: width, height: 8)
+        FlintColor.hover.frame(width: width, height: 8)
     }
 }

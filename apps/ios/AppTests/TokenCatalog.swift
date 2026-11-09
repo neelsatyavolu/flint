@@ -24,7 +24,7 @@ enum TokenCatalog {
         "Fg": "--fg", "Fg2": "--fg-2", "Fg3": "--fg-3", "Fg4": "--fg-4",
         "Hover": "--hover", "Active": "--active", "Line": "--line", "LineStrong": "--line-strong",
         "Accent": "--accent", "AccentFg": "--accent-fg", "AccentSoft": "--accent-soft", "AccentRing": "--accent-ring",
-        "Danger": "--danger", "Ok": "--ok", "Warn": "--warn",
+        "Danger": "--danger", "Ok": "--ok", "Warn": "--warn", "AvatarFg": "--avatar-fg",
     ]
 
     /// Variant of a color: theme plus whether it is the Increase Contrast entry.

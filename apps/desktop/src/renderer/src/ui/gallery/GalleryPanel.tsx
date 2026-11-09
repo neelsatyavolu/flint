@@ -20,7 +20,7 @@ const TOKENS = ["--plane-0", "--plane-1", "--plane-2", "--plane-3", "--fg", "--a
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className={styles.section}>
-      <SectionLabel className={styles.head}>{title}</SectionLabel>
+      <SectionLabel rule className={styles.head}>{title}</SectionLabel>
       {children}
     </section>
   );
@@ -52,7 +52,7 @@ export function GalleryPanel({ theme, title }: { theme: "dark" | "light"; title:
   return (
     <div data-theme={theme} className={styles.panel}>
       <h1 className="t-subject">{title}</h1>
-      <p style={{ color: "var(--fg-3)", marginTop: 4 }}>Primitives for the Flint renderer. Geist for UI and prose, Geist Mono for code and keys, Geist Serif for display.</p>
+      <p style={{ color: "var(--fg-3)", marginTop: 4 }}>Primitives for the Flint renderer. Newsreader for what people read, Geist for controls, Geist Mono for numbers, labels and keys.</p>
 
       <Section title="Planes and tokens">
         <div className={styles.planes}>
@@ -67,7 +67,9 @@ export function GalleryPanel({ theme, title }: { theme: "dark" | "light"; title:
 
       <Section title="Type">
         <div className={styles.col} style={{ maxWidth: "none", gap: 6 }}>
+          <div className="t-display">Good morning</div>
           <div className="t-subject">Freelancing Cycle 3</div>
+          <div className="t-headline-sm">No conversation selected</div>
           <div className="t-title">Inbox</div>
           <div className="t-strong">Carla Mendes, Rodney Okafor</div>
           <div className="t-body">Countersigned copy is attached. Please file it and send the kickoff invite.</div>
@@ -79,11 +81,11 @@ export function GalleryPanel({ theme, title }: { theme: "dark" | "light"; title:
 
       <Section title="Buttons">
         <div className={styles.row}>
-          <Button variant="primary" icon={<Send size={14} strokeWidth={1.5} />}>Send</Button>
-          <Button variant="secondary">Archive</Button>
+          <Button variant="accent" icon={<Send size={14} strokeWidth={1.5} />}>Send</Button>
+          <Button variant="primary">Archive</Button>
           <Button variant="ghost">Cancel</Button>
           <Button variant="danger">Delete</Button>
-          <Button variant="primary" size="sm">Small</Button>
+          <Button variant="ghost" size="sm">Small</Button>
           <Button disabled>Disabled</Button>
         </div>
         <div className={styles.row} style={{ marginTop: 12 }}>
@@ -161,7 +163,7 @@ export function GalleryPanel({ theme, title }: { theme: "dark" | "light"; title:
         <Sheet open={sheet} onClose={() => setSheet(false)} title="Ask anything"><p>Side panel over the reader.</p></Sheet>
       </Section>
 
-      <Section title="Skeleton, empty state, mark">
+      <Section title="Skeleton, empty state and mark">
         <div className={styles.row} style={{ alignItems: "flex-start", gap: 24 }}>
           <div style={{ width: 320, border: "1px solid var(--line)", background: "var(--plane-1)" }}><SkeletonRows count={3} /></div>
           <div style={{ width: 220, border: "1px solid var(--line)" }}><EmptyState /></div>

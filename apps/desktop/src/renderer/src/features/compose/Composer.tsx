@@ -177,7 +177,7 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
       <div className={styles.scroll}>
         <div className={styles.page}>
           <input
-            className={styles.subject}
+            className={`t-compose ${styles.subject}`}
             value={fields.subject}
             placeholder="Subject"
             aria-label="Subject"
@@ -230,7 +230,7 @@ export function Composer({ entry, hidden }: Props): JSX.Element {
             ) : (
               <Button variant="ghost" onClick={flow.dismissConfirm}>Add a subject</Button>
             )}
-            <Button variant="primary" onClick={flow.confirmSend}>Send anyway</Button>
+            <Button variant="accent" onClick={flow.confirmSend}>Send anyway</Button>
           </>
         }
       >

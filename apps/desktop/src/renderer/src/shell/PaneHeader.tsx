@@ -13,7 +13,7 @@ export function PaneHeader({ title, subtitle, leading, children, className }: { 
       {title ? (
         <div className={styles.titles}>
           <h1 className="t-title">{title}</h1>
-          {subtitle ? <span className={clsx("t-body", styles.subtitle)}>{subtitle}</span> : null}
+          {subtitle ? <span className={clsx("t-label", styles.subtitle)}>{subtitle}</span> : null}
         </div>
       ) : null}
       <div className={clsx(styles.actions, "no-drag")}>{children}</div>

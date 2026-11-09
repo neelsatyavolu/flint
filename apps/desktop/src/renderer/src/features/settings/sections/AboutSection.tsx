@@ -5,6 +5,7 @@ import { useSettingsStore } from "../settingsStore";
 import styles from "../settings.module.css";
 
 const UPDATE_COPY = {
+  restart: "Flint checks every hour and on wake. When a new version finishes downloading, Flint saves your drafts, quits and reopens on the new version right away, even while you're using it.",
   auto: "Flint downloads new versions in the background and installs them the next time you quit. You get a quiet notice, no prompt.",
   ask: "Flint downloads new versions in the background, then asks before restarting. Choosing Later installs on the next quit.",
   manual: "Flint only looks for a new version when you choose Flint > Check for Updates.",
@@ -33,7 +34,8 @@ export function AboutSection() {
         description={UPDATE_COPY[mode]}
         value={mode}
         choices={[
-          { value: "auto", label: "Install automatically" },
+          { value: "restart", label: "Restart into new versions right away" },
+          { value: "auto", label: "Install when I quit" },
           { value: "ask", label: "Ask before restarting" },
           { value: "manual", label: "Only when I check" },
         ]}

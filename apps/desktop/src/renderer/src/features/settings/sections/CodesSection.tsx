@@ -59,7 +59,7 @@ export function CodesSection() {
 
       <details className={styles.group}>
         <summary className={styles.disclosure}>Advanced: browser extension (optional)</summary>
-        <p className={styles.muted} style={{ paddingTop: 6 }}>Autofill in any app already covers browsers. The extension is only for browsers where you prefer it, and needs a one-time setup per browser.</p>
+        <p className={styles.muted} style={{ paddingTop: "var(--s-2)" }}>Autofill in any app already covers browsers. The extension is only for browsers where you prefer it, and needs a one-time setup per browser.</p>
       <div className={styles.group}>
         <SectionLabel className={styles.groupLabel}>Browser extension</SectionLabel>
         <SettingsRow
@@ -68,12 +68,12 @@ export function CodesSection() {
         >
           <div className={styles.inline}>
             {anyInstalled ? <Button variant="ghost" onClick={() => void change("remove")} disabled={busy}>Remove helper</Button> : null}
-            <Button variant={anyInstalled ? "ghost" : "primary"} onClick={() => void change("install")} disabled={busy || !h || !h.cliAvailable || !c.enabled}>
+            <Button variant={anyInstalled ? "ghost" : "accent"} onClick={() => void change("install")} disabled={busy || !h || !h.cliAvailable || !c.enabled}>
               {anyInstalled ? "Reinstall helper" : "Install helper"}
             </Button>
           </div>
         </SettingsRow>
-        {msg ? <p role="status" className={msg.ok ? styles.ok : styles.err} style={{ paddingTop: 6 }}>{msg.text}</p> : null}
+        {msg ? <p role="status" className={msg.ok ? styles.ok : styles.err} style={{ paddingTop: "var(--s-2)" }}>{msg.text}</p> : null}
         {h ? (
           <div className={styles.stack} aria-label="Browsers">
             {h.browsers.map((b) => {
@@ -142,7 +142,7 @@ function ExtensionSteps({ status }: { status: BrowserHelperStatus }) {
           <FolderLine path={`${status.extensionDir}/firefox`} onShow={() => void reveal("firefox")} />
         </div>
       </div>
-      {error ? <p role="status" className={styles.err} style={{ paddingTop: 6 }}>{error}</p> : null}
+      {error ? <p role="status" className={styles.err} style={{ paddingTop: "var(--s-2)" }}>{error}</p> : null}
     </div>
   );
 }

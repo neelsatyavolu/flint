@@ -17,11 +17,13 @@ export type UpdateController = {
   start(): void;
   /** Checks now. A user-initiated check reports every outcome; a background one speaks only when an update is ready. */
   check(userInitiated: boolean): void;
+  /** Call after settings.updates.mode changes: switching to "restart" with an update already downloaded restarts now. */
+  modeChanged(): void;
   stop(): void;
 };
 
 const FIRST_CHECK_MS = 15_000;
-const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
+const CHECK_EVERY_MS = 60 * 60 * 1000;
 
 const describe = (err: unknown): string => {
   const raw = err instanceof Error ? err.message : String(err);
@@ -29,12 +31,14 @@ const describe = (err: unknown): string => {
   return raw.split("\n")[0]!.slice(0, 200);
 };
 
-export type UpdateMode = "auto" | "ask" | "manual";
+export type UpdateMode = "restart" | "auto" | "ask" | "manual";
 
 /**
  * Sparkle-style updates from GitHub Releases. Background checks run on launch and every few hours unless the mode is
  * "manual". A download then either offers a restart ("ask"; "Later" installs on the next quit) or, in "auto", installs
- * on the next quit without asking and only announces it. A check the user starts from the menu always offers a restart.
+ * on the next quit without asking and only announces it. In "restart", a downloaded update quits and relaunches Flint
+ * straight away, even mid-session (drafts are flushed first). Outside "restart", a check the user starts from the menu
+ * always offers a restart.
  */
 export function createUpdateController(deps: {
   updater: UpdaterLike;
@@ -46,8 +50,10 @@ export function createUpdateController(deps: {
   getMode?: () => UpdateMode;
   /** A quiet notice for "auto" mode that the update installs on the next quit. */
   announce?: (version: string) => void;
+  /** A notice for "restart" mode, shown just before Flint quits to install. */
+  restarting?: (version: string) => void;
 }): UpdateController {
-  const { updater, ask, currentVersion, beforeInstall, announce } = deps;
+  const { updater, ask, currentVersion, beforeInstall, announce, restarting } = deps;
   const mode = (): UpdateMode => deps.getMode?.() ?? "ask";
   const log = logger("updates");
   let reportNext = false;
@@ -55,6 +61,7 @@ export function createUpdateController(deps: {
   let userCycle = false;
   let checking = false;
   let readyVersion: string | null = null;
+  let installing = false;
   let timers: ReturnType<typeof setTimeout>[] = [];
 
   updater.autoDownload = true;
@@ -67,12 +74,25 @@ export function createUpdateController(deps: {
       buttons: ["Restart Now", "Later"],
     });
     if (choice !== 0) return;
+    await install();
+  };
+
+  const install = async (): Promise<void> => {
+    if (installing) return;
+    installing = true;
     try {
       await beforeInstall?.();
     } catch (err) {
       log.warn("preparing to install failed", { message: describe(err) });
     }
     updater.quitAndInstall();
+  };
+
+  const restartNow = async (version: string): Promise<void> => {
+    if (installing) return;
+    log.info("restarting to install", { version });
+    restarting?.(version);
+    await install();
   };
 
   updater.on("update-available", ((info: { version: string }) => {
@@ -94,7 +114,8 @@ export function createUpdateController(deps: {
     reportNext = false;
     const asked = userCycle;
     userCycle = false;
-    if (mode() === "auto" && !asked) announce?.(info.version);
+    if (mode() === "restart") void restartNow(info.version);
+    else if (mode() === "auto" && !asked) announce?.(info.version);
     else void offerRestart(info.version);
   }) as (arg: never) => void);
 
@@ -107,7 +128,8 @@ export function createUpdateController(deps: {
 
   const check = (userInitiated: boolean): void => {
     if (userInitiated && readyVersion) {
-      void offerRestart(readyVersion);
+      if (mode() === "restart") void restartNow(readyVersion);
+      else void offerRestart(readyVersion);
       return;
     }
     if (userInitiated) {
@@ -132,6 +154,9 @@ export function createUpdateController(deps: {
       timers = [setTimeout(() => check(false), FIRST_CHECK_MS), setInterval(() => check(false), CHECK_EVERY_MS)];
     },
     check,
+    modeChanged() {
+      if (mode() === "restart" && readyVersion) void restartNow(readyVersion);
+    },
     stop() {
       for (const t of timers) clearTimeout(t);
       timers = [];

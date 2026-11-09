@@ -7,7 +7,7 @@
 .settings { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--plane-2); }
 .settings > :not(.dragStrip) { flex: 1; min-height: 0; }
 .dragStrip { position: absolute; top: 0; left: 0; right: 0; height: 14px; z-index: 1; }
-.backdrop { position: absolute; inset: 0; z-index: 40; background: color-mix(in srgb, var(--plane-0) 55%, transparent); }
+.backdrop { position: absolute; inset: 0; z-index: 40; background: var(--scrim); }
 .overlay { position: absolute; top: 0; bottom: 0; left: 0; z-index: 41; background: var(--plane-0); border-right: 1px solid var(--line-strong); animation: slide var(--dur-panel) var(--ease); }
 @keyframes slide { from { opacity: 0; transform: translateX(-8px); } }
 
@@ -17,5 +17,6 @@
 .authIcon { flex: none; color: var(--warn); }
 .authText { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .authDot { flex: none; color: var(--fg-3); }
-.authAction { flex: none; height: 24px; padding: 0 4px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--accent); font: 600 var(--text-body) / 1 var(--font-ui); }
-.authAction:hover { background: var(--hover); }
+.authAction { flex: none; height: 24px; padding: 0 4px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--accent); font: 500 var(--text-body) / 1 var(--font-ui); }
+.authAction:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.authAction:hover { background: var(--hover); color: var(--accent-hover); }

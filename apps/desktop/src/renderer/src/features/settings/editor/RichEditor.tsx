@@ -99,14 +99,14 @@ export function RichEditor({ initial, onChange, label, images = true }: Props) {
       {linkOpen && !source ? (
         <div className={styles.editorBar}>
           <Input aria-label="Link address" autoFocus value={linkValue} placeholder="https://example.com" onChange={(e) => setLinkValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); applyLink(); } }} />
-          <Button variant="primary" size="sm" onClick={applyLink}>Apply</Button>
+          <Button variant="accent" size="sm" onClick={applyLink}>Apply</Button>
           <Button variant="ghost" size="sm" onClick={() => { editor?.chain().focus().unsetLink().run(); setLinkOpen(false); }}>Remove link</Button>
         </div>
       ) : null}
       {source ? (
         <div style={{ padding: "var(--s-3)" }}>
           <TextArea className={styles.source} aria-label={`${label} HTML source`} value={html} spellCheck={false} onChange={(e) => emit(e.target.value)} />
-          <p className={styles.muted} style={{ marginTop: 6 }}>Paste a signature from another app here. Going back to the visual editor removes markup it can't show, such as tables.</p>
+          <p className={styles.muted} style={{ marginTop: "var(--s-2)" }}>Paste a signature from another app here. Going back to the visual editor removes markup it can't show, such as tables.</p>
         </div>
       ) : (
         <div className={styles.editorBody}><EditorContent editor={editor} /></div>

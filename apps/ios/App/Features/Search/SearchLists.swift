@@ -7,7 +7,7 @@ struct SearchSectionHeader<Trailing: View>: View {
 
     var body: some View {
         HStack {
-            Text(title.uppercased()).flintText(.label, color: FlintColor.fg3)
+            Text(title).flintText(.label, color: FlintColor.fg3)
                 .accessibilityAddTraits(.isHeader)
             Spacer()
             trailing

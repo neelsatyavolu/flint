@@ -6,7 +6,7 @@ import type { PorchlightPackage } from "@flint/core/types";
 import { openExternal } from "../../lib/host";
 import { flint } from "../../lib/api";
 import { formatPresetTime } from "../../lib/time";
-import { Badge, Button, Dialog, EmptyState, Menu, Skeleton, useToast } from "../../ui";
+import { Badge, Button, Dialog, Menu, Skeleton, useToast } from "../../ui";
 import { displayName } from "../../lib/format";
 import { useApp } from "../../state/AppContext";
 import { replyTarget } from "../../state/compose";
@@ -157,7 +157,7 @@ function UnsubscribeDialog({ message, open, onClose }: { message: MessageView; o
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={() => void confirm()}>Unsubscribe</Button>
+          <Button variant="accent" onClick={() => void confirm()}>Unsubscribe</Button>
         </>
       }
     >
@@ -564,9 +564,13 @@ export function Reader() {
       <ReaderToolbar thread={thread} />
       <div className={styles.scroll} data-reader-scroll>
         {openId === null ? (
-          <EmptyState />
+          <div className={styles.empty}><h2 className={clsx("t-headline-sm", styles.emptyTitle)}>No conversation selected</h2></div>
         ) : error && !thread ? (
-          <EmptyState title="Couldn't open this conversation" description="It may have moved or been deleted." action={<Button variant="ghost" onClick={refetch}>Try again</Button>} markSize={48} />
+          <div className={styles.empty}>
+            <h2 className={clsx("t-headline-sm", styles.emptyTitle)}>Couldn't open this conversation</h2>
+            <p className={clsx("t-body", styles.emptyDesc)}>It may have moved or been deleted.</p>
+            <Button variant="ghost" onClick={refetch}>Try again</Button>
+          </div>
         ) : (
           bodies
         )}

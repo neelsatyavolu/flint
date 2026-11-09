@@ -161,14 +161,14 @@ describe("Sidebar", () => {
       </ToastProvider>,
     );
     const labels = screen.getAllByRole("button").map((b) => b.textContent ?? "");
-    const order = ["Home", "Inbox", "Agent Activity", "Pins", "Drafts", "Sent", "Scheduled", "Snoozed", "Trash", "Spam", "Archive", "Blocked", "Read Receipts", "More", "Agents & CLI", "Settings"];
+    const order = ["Home", "Inbox", "Agent activity", "Pins", "Drafts", "Sent", "Scheduled", "Snoozed", "Trash", "Spam", "Archive", "Blocked", "Read receipts", "More", "Agents & CLI", "Settings"];
     let at = -1;
     for (const name of order) {
       const idx = labels.findIndex((l, i) => i > at && l.startsWith(name));
       expect(idx, name).toBeGreaterThan(at);
       at = idx;
     }
-    expect(screen.getByRole("button", { name: /^Agent Activity/ }).textContent).toContain(String(sidebar.counts.awaitingApproval));
+    expect(screen.getByRole("button", { name: /^Agent activity/ }).textContent).toContain(String(sidebar.counts.awaitingApproval));
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Sent" })); });
     expect(navStore.getState().view).toBe("sent");
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Settings" })); });

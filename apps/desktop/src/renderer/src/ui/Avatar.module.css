@@ -18,4 +18,3 @@
 .s32 { width: 32px; height: 32px; font-size: 12px; }
 .img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--plane-3); opacity: 0; transition: opacity var(--dur-fast) var(--ease); }
 .loaded { opacity: 1; }
-.initials { letter-spacing: 0.02em; }

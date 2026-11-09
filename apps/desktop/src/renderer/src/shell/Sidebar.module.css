@@ -1,21 +1,21 @@
 .sidebar { display: flex; flex-direction: column; width: 100%; height: 100%; background: var(--plane-0); min-width: 0; }
-.header { display: flex; align-items: center; gap: 2px; height: var(--titlebar-h); flex: none; padding: 0 8px; }
+.header { display: flex; align-items: center; gap: 4px; height: var(--titlebar-h); flex: none; padding: 0 8px; }
 .macInset { padding-left: 78px; }
 .rail .header { justify-content: center; padding: 0; }
 .grow { flex: 1; }
 .scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 8px 8px; }
 .group { display: flex; flex-direction: column; gap: 1px; }
-.section { margin-top: 16px; display: flex; flex-direction: column; gap: 1px; }
-.sectionHead { display: flex; align-items: center; justify-content: space-between; height: 24px; padding: 0 8px; }
-.clear { border: 0; background: transparent; color: var(--fg-3); padding: 0 4px; height: 20px; border-radius: var(--r-control); text-transform: none; letter-spacing: 0; }
+.section { margin-top: 16px; padding-top: 4px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 1px; }
+.sectionHead { display: flex; align-items: center; justify-content: space-between; height: 28px; padding: 0 8px; }
+.clear { border: 0; background: transparent; color: var(--fg-3); padding: 0 4px; height: 20px; border-radius: var(--r-control); }
 .clear:hover { color: var(--fg); background: var(--hover); }
-.acctLabel { padding: 6px 8px 2px 30px; color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acctLabel { padding: 8px 8px 4px 32px; color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .footer { flex: none; display: flex; flex-direction: column; gap: 1px; padding: 8px; border-top: 1px solid var(--line); }
 
 .item { position: relative; display: flex; align-items: center; height: 30px; border-radius: var(--r-control); transition: background-color var(--dur-fast) var(--ease); }
 .item:hover { background: var(--hover); }
 .item.active { background: var(--accent-soft); }
-.itemMain { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 10px; padding: 0 8px 0 22px; border: 0; background: transparent; color: var(--fg-2); text-align: left; border-radius: var(--r-control); }
+.itemMain { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 22px; border: 0; background: transparent; color: var(--fg-2); text-align: left; border-radius: var(--r-control); }
 .child .itemMain { padding-left: 34px; }
 .icon { display: inline-flex; flex: none; color: var(--fg-2); }
 .icon svg { display: block; }
@@ -25,7 +25,7 @@
 .labelTail { flex: none; white-space: nowrap; }
 .itemMain:focus-visible, .railItem:focus-visible { outline: 1px solid var(--accent-ring); outline-offset: -1px; }
 .active .itemMain:focus-visible, .railItem.active:focus-visible { outline-color: color-mix(in srgb, var(--accent) 30%, transparent); }
-.active .itemMain { color: var(--fg); font-weight: 600; }
+.active .itemMain { color: var(--fg); }
 .active .icon { color: var(--accent); }
 .count { color: var(--fg-3); flex: none; }
 .countWarn { color: var(--warn); }
@@ -36,24 +36,25 @@
 /* Account chips are 16px avatars; one step up from the avatar's 8px keeps two initials legible. */
 .item .chip { font-size: 10px; }
 /* Conversations dragged from the list: an accent hairline marks the row they will land on. */
-.dropOver { box-shadow: inset 0 0 0 1px var(--accent); }
+.dropOver { outline: 1px solid var(--accent); outline-offset: -1px; }
 
 .rail .scroll { padding: 4px 0; display: flex; flex-direction: column; align-items: center; }
-.rail .group, .rail .section { align-items: center; margin-top: 0; }
+.rail .group, .rail .section { align-items: center; margin-top: 0; padding-top: 0; border-top: 0; }
 .rail .footer { align-items: center; padding: 8px 0; }
 .railRule { width: 24px; height: 1px; background: var(--line); margin: 8px auto; }
 .railItem { position: relative; display: grid; place-items: center; width: 40px; height: 30px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--fg-2); }
 .railItem:hover { background: var(--hover); }
 .railItem.active { background: var(--accent-soft); color: var(--accent); }
-.railDot { position: absolute; top: 6px; right: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.railDot { position: absolute; top: 6px; right: 9px; width: 6px; height: 6px; border-radius: var(--r-round); background: var(--accent); }
 .railWarn { background: var(--warn); }
 
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .problems { width: 300px; padding: 4px; display: flex; flex-direction: column; }
+.problem + .problem { border-top: 1px solid var(--line); }
 .problem { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px; }
 .problemText { display: flex; flex-direction: column; min-width: 0; }
 .problemText .t-strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .problemMsg { color: var(--fg-3); }
-.railTools { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-bottom: 8px; }
+.railTools { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 8px; }

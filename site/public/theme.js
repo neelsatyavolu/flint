@@ -1,4 +1,5 @@
-// Theme: system → light → dark, remembered per browser. Loaded in <head> so the saved theme applies before first paint.
+// Theme: system → light → dark, remembered per browser. An inline script in <head> sets
+// data-theme before first paint; this deferred file wires the toggle and the light screenshots.
 (function () {
   var root = document.documentElement;
   var order = ["system", "light", "dark"];

@@ -1,11 +1,11 @@
-.list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.list { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: var(--s-2) 0 0; padding: 0; list-style: none; }
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--s-2);
   max-width: 280px;
   height: 28px;
-  padding: 0 4px 0 8px;
+  padding: 0 var(--s-1) 0 var(--s-2);
   background: var(--active);
   border-radius: var(--r-control);
   color: var(--fg);

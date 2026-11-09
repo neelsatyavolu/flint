@@ -73,7 +73,7 @@ function useViewAnnouncement(): string {
   return said;
 }
 
-/** "Ask anything" belongs on mail and Home. Settings, Read Receipts, Agent Activity and Scheduled have their own content to read. */
+/** "Ask anything" belongs on mail and Home. Settings, Read receipts, Agent activity and Scheduled have their own content to read. */
 const NO_ASK_VIEWS = new Set(["receipts", "agent_activity", "scheduled"]);
 
 export function AppShell() {
