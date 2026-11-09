@@ -192,6 +192,8 @@ export type MessageView = {
   text: string | null;
   bodyLoaded: boolean;
   remoteImages: "allowed" | "blocked";
+  /** Under the "safe" setting: images that look the same for every recipient were loaded; the rest are held back. */
+  safeImages?: boolean;
   hasTrackers: boolean; // known third-party tracking pixels were removed
   attachments: AttachmentInfo[];
   unsubscribe: { url?: string; mailto?: string; oneClick: boolean } | null;
@@ -715,7 +717,7 @@ export type Settings = {
     markReadOnOpen: "instant" | "delay" | "never";
     afterArchive: "next" | "previous" | "list";
     blockTrackers: boolean;       // strip known tracking pixels from incoming mail
-    remoteImages: "always" | "known_senders" | "never";
+    remoteImages: "always" | "safe" | "known_senders" | "never";
   };
   compose: {
     undoSendSeconds: 0 | 5 | 10 | 20 | 30;

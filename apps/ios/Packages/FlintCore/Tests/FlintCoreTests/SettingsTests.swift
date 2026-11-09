@@ -7,7 +7,7 @@ struct SettingsTests {
     /// DEFAULT_SETTINGS from packages/core/src/store/settings.ts, minus the `null` provider/model keys Swift omits.
     static let desktopDefaults = #"""
     {"appearance":{"layout":"split","theme":"system","avatars":"everywhere","senderLogos":true,"senderPhotos":false,"emailAppearance":"match","previewLines":1,"density":"comfortable","accountColors":true},
-     "inbox":{"focused":true,"sort":"newest","markReadOnOpen":"instant","afterArchive":"next","blockTrackers":true,"remoteImages":"known_senders"},
+     "inbox":{"focused":true,"sort":"newest","markReadOnOpen":"instant","afterArchive":"next","blockTrackers":true,"remoteImages":"safe"},
      "compose":{"undoSendSeconds":10,"defaultSignatureByAccount":{},"defaultReplySignatureByAccount":{},"plainTextOnly":false},
      "receipts":{"enabled":true,"defaultOn":true,"endpoint":"","notifyOnOpen":true},
      "notifications":{"enabled":true,"scope":"people","sound":true,"soundName":"default","preview":"sender_subject","badge":"unified_unread","disabledAccounts":[]},

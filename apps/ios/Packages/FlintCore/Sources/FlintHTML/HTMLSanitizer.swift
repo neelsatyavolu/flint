@@ -13,14 +13,19 @@ public struct SanitizeOptions: Sendable {
     public var cidResolver: (@Sendable (String) -> String?)?
     /// Remove known tracking pixels. Default true.
     public var blockTrackers: Bool
+    /// While allowRemoteImages is false, still load <img> images whose URL looks the same for every recipient.
+    /// These are the reader's addresses, which a personalized URL often embeds. Nil turns it off.
+    public var safeImageRecipients: [String]?
 
     public init(
-        allowRemoteImages: Bool, receiptsHost: String? = nil, cidResolver: (@Sendable (String) -> String?)? = nil, blockTrackers: Bool = true
+        allowRemoteImages: Bool, receiptsHost: String? = nil, cidResolver: (@Sendable (String) -> String?)? = nil, blockTrackers: Bool = true,
+        safeImageRecipients: [String]? = nil
     ) {
         self.allowRemoteImages = allowRemoteImages
         self.receiptsHost = receiptsHost
         self.cidResolver = cidResolver
         self.blockTrackers = blockTrackers
+        self.safeImageRecipients = safeImageRecipients
     }
 }
 
@@ -32,12 +37,15 @@ public struct SanitizeResult: Sendable, Equatable {
     public var hasRemoteImages: Bool
     /// Number of tracking pixels removed (for the "N trackers blocked" label).
     public var trackerCount: Int
+    /// At least one remote image was held back (placeholder or removed background).
+    public var blockedImages: Bool
 
-    public init(html: String, hasTrackers: Bool, hasRemoteImages: Bool, trackerCount: Int) {
+    public init(html: String, hasTrackers: Bool, hasRemoteImages: Bool, trackerCount: Int, blockedImages: Bool = false) {
         self.html = html
         self.hasTrackers = hasTrackers
         self.hasRemoteImages = hasRemoteImages
         self.trackerCount = trackerCount
+        self.blockedImages = blockedImages
     }
 }
 
@@ -61,7 +69,7 @@ public enum HTMLSanitizer {
         }
         var run = SanitizeRun(options: options, bodyInSource: hasBodyTag(input))
         run.walk(doc)
-        return SanitizeResult(html: run.out, hasTrackers: run.trackerCount > 0, hasRemoteImages: run.hasRemoteImages, trackerCount: run.trackerCount)
+        return SanitizeResult(html: run.out, hasTrackers: run.trackerCount > 0, hasRemoteImages: run.hasRemoteImages, trackerCount: run.trackerCount, blockedImages: run.blockedImages)
     }
 
     private static func hasBodyTag(_ html: String) -> Bool {
@@ -181,6 +189,7 @@ private struct SanitizeRun {
     var out = ""
     var trackerCount = 0
     var hasRemoteImages = false
+    var blockedImages = false
 
     init(options: SanitizeOptions, bodyInSource: Bool) {
         self.options = options
@@ -272,7 +281,10 @@ private struct SanitizeRun {
 
     private mutating func cssFor(_ css: String) -> String {
         let result = CSSCleaner.clean(css, allowRemote: options.allowRemoteImages)
-        if !result.remoteUrls.isEmpty { hasRemoteImages = true }
+        if !result.remoteUrls.isEmpty {
+            hasRemoteImages = true
+            if !options.allowRemoteImages { blockedImages = true }
+        }
         return result.css
     }
 
@@ -299,6 +311,7 @@ private struct SanitizeRun {
             let bg = background.trimmingCharacters(in: .whitespacesAndNewlines)
             if matches(Policy.remoteSrc, bg) {
                 hasRemoteImages = true
+                if !options.allowRemoteImages { blockedImages = true }
                 let blocked = !options.allowRemoteImages
                     || TrackerRules.isReceiptsURL(bg, receiptsHost: options.receiptsHost)
                     || (options.blockTrackers && TrackerRules.matches(bg))
@@ -352,7 +365,11 @@ private struct SanitizeRun {
         if TrackerRules.hostOf(full) == nil { return nil }
         hasRemoteImages = true
         attrs = setting(attrs, "src", full)
-        if !options.allowRemoteImages { return setting(attrs, "src", placeholderGIF) }
+        let safe = options.safeImageRecipients.map { !isTinyOrHidden(attrs) && SafeImage.isSafe(full, recipients: $0) } ?? false
+        if !options.allowRemoteImages && !safe {
+            blockedImages = true
+            return setting(attrs, "src", placeholderGIF)
+        }
         return attrs
     }
 

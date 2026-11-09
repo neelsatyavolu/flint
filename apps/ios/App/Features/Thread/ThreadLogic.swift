@@ -61,8 +61,9 @@ enum ThreadLogic {
 
     /// The "Remote images are blocked" notice shows only when the message has remote images to load. The web view's rule list
     /// blocks images for every message that is not allowed, with or without the notice.
+    /// Under "safe", it shows only when some image was held back.
     static func showsImageNotice(_ message: MessageView) -> Bool {
-        message.remoteImages == .blocked && message.hasRemoteImages
+        message.remoteImages == .blocked && message.hasRemoteImages && (!message.safeImages || message.heldBackImages)
     }
 
     /// What Unsubscribe will do, in the order the service tries the methods.

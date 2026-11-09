@@ -1,10 +1,12 @@
 import sanitizeHtml from "sanitize-html";
 import { cleanCss } from "./css";
 import { htmlToText, snippetFrom } from "./htmlToText";
+import { isSafeImageUrl } from "./safeImage";
 import { hostOf, isReceiptsUrl, looksLikePixelUrl, matchesTrackerRule } from "./trackers";
 
 export { htmlToText, snippetFrom };
 export { TRACKER_RULES, matchesTrackerRule, isReceiptsUrl } from "./trackers";
+export { isSafeImageUrl } from "./safeImage";
 
 /** 1x1 transparent GIF that stands in for blocked remote images. */
 export const PLACEHOLDER_GIF = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
@@ -18,6 +20,11 @@ export type SanitizeOptions = {
   cidResolver?: (cid: string) => string | null;
   /** Remove known tracking pixels. Default true. */
   blockTrackers?: boolean;
+  /**
+   * While allowRemoteImages is false, still load <img> images whose URL looks the same for every recipient.
+   * `recipients` are the reader's addresses, which a personalized URL often embeds.
+   */
+  safeImages?: { recipients: string[] };
 };
 
 export type SanitizeResult = {
@@ -26,6 +33,8 @@ export type SanitizeResult = {
   hasTrackers: boolean;
   /** The message has remote images that are blocked (or were loaded) that are not trackers. */
   hasRemoteImages: boolean;
+  /** At least one remote image was held back (placeholder or removed background). */
+  blockedImages: boolean;
 };
 
 const ALLOWED_TAGS = [
@@ -84,15 +93,19 @@ export function sanitizeForDisplay(html: string, opts: SanitizeOptions): Sanitiz
   if (html.length > MAX_HTML_LENGTH) {
     // Oversized markup is shown as escaped plain text rather than parsed on the main thread.
     const text = htmlToText(html.slice(0, MAX_HTML_LENGTH));
-    return { html: `<pre style="white-space:pre-wrap">${sanitizeHtml(text, { allowedTags: [], allowedAttributes: {} })}</pre>`, hasTrackers: false, hasRemoteImages: false };
+    return { html: `<pre style="white-space:pre-wrap">${sanitizeHtml(text, { allowedTags: [], allowedAttributes: {} })}</pre>`, hasTrackers: false, hasRemoteImages: false, blockedImages: false };
   }
   let hasTrackers = false;
   let hasRemoteImages = false;
+  let blockedImages = false;
   const blockTrackers = opts.blockTrackers !== false;
 
   const cssFor = (css: string): string => {
     const r = cleanCss(css, { allowRemote: opts.allowRemoteImages });
-    if (r.remoteUrls.length) hasRemoteImages = true;
+    if (r.remoteUrls.length) {
+      hasRemoteImages = true;
+      if (!opts.allowRemoteImages) blockedImages = true;
+    }
     return r.css;
   };
 
@@ -119,7 +132,11 @@ export function sanitizeForDisplay(html: string, opts: SanitizeOptions): Sanitiz
     }
     if (!hostOf(full)) return drop();
     hasRemoteImages = true;
-    if (!opts.allowRemoteImages) return placeholder();
+    const safe = opts.safeImages && !isTinyOrHidden(out) && isSafeImageUrl(full, opts.safeImages.recipients);
+    if (!opts.allowRemoteImages && !safe) {
+      blockedImages = true;
+      return placeholder();
+    }
     return { tagName, attribs: { ...out, src: full } };
   };
 
@@ -130,6 +147,7 @@ export function sanitizeForDisplay(html: string, opts: SanitizeOptions): Sanitiz
       const bg = out["background"].trim();
       if (isRemote(bg)) {
         hasRemoteImages = true;
+        if (!opts.allowRemoteImages) blockedImages = true;
         if (!opts.allowRemoteImages || isReceiptsUrl(bg, opts.receiptsHost) || (blockTrackers && matchesTrackerRule(bg))) delete out["background"];
         else out["background"] = toHttps(bg);
       } else delete out["background"];
@@ -179,5 +197,5 @@ export function sanitizeForDisplay(html: string, opts: SanitizeOptions): Sanitiz
   // sanitize-html passes <style> text through untouched, so the blocks are cleaned here. The input is already
   // sanitized markup, where a style block ends at the first closing tag, so the match cannot span other elements.
   const withCleanStyles = clean.replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (_m, open: string, css: string, close: string) => `${open}${cssFor(css)}${close}`);
-  return { html: withCleanStyles, hasTrackers, hasRemoteImages };
+  return { html: withCleanStyles, hasTrackers, hasRemoteImages, blockedImages };
 }

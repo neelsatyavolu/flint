@@ -146,15 +146,24 @@ describe.skipIf(!gm)("FlintService backbone against GreenMail", { timeout: 60_00
     expect(types.has("mail_changed")).toBe(true);
   });
 
-  it("loads missing bodies and sanitizes: remote images blocked, trackers stripped", async () => {
+  it("loads missing bodies and sanitizes: safe images load, trackers stripped", async () => {
     const id = find(await inbox(), "Photos and tracking").id;
-    const thread = await rig.service.getThread(id);
-    const m = thread.messages[0]!;
+    const m = (await rig.service.getThread(id)).messages[0]!;
     expect(m.bodyLoaded).toBe(true);
     expect(m.html).toContain("there");
-    expect(m.html).not.toContain(HERO);
+    expect(m.html).toContain(HERO);
     expect(m.html).not.toContain("mailtrack.io");
     expect(m.hasTrackers).toBe(true);
+    expect(m.remoteImages).toBe("allowed");
+    expect(m.safeImages).toBe(true);
+  });
+
+  it("blocks remote images under known senders until allowed", async () => {
+    await rig.service.updateSettings({ inbox: { remoteImages: "known_senders" } });
+    const id = find(await inbox(), "Photos and tracking").id;
+    const m = (await rig.service.getThread(id)).messages[0]!;
+    expect(m.html).not.toContain(HERO);
+    expect(m.html).not.toContain("mailtrack.io");
     expect(m.remoteImages).toBe("blocked");
 
     const allowed = await rig.service.allowRemoteImages(m.id, false);
@@ -162,18 +171,20 @@ describe.skipIf(!gm)("FlintService backbone against GreenMail", { timeout: 60_00
     expect(allowed.html).toContain(HERO);
     expect(allowed.html).not.toContain("mailtrack.io");
     expect((await rig.service.getMessage(m.id)).remoteImages).toBe("allowed");
+    await rig.service.updateSettings({ inbox: { remoteImages: "safe" } });
   });
 
   it("remembers a sender when asked to always allow", async () => {
     const lunch = (await rig.service.getThread(find(await inbox(), "Lunch on Friday").id)).messages[0]!;
     await rig.service.allowRemoteImages(lunch.id, true);
     const settings = await rig.service.getSettings();
-    expect(settings.inbox.remoteImages).toBe("known_senders");
-    await gm!.deliver({ to: `svc@${TEST_DOMAIN}`, from: "Maria <maria@remote.example>", subject: "Lunch photos", html: `<img src="${HERO}" width="50" height="50">` });
+    expect(settings.inbox.remoteImages).toBe("safe");
+    await gm!.deliver({ to: `svc@${TEST_DOMAIN}`, from: "Maria <maria@remote.example>", subject: "Lunch photos", html: `<img src="${HERO}?uid=7" width="50" height="50">` });
     const next = await waitFor(async () => (await inbox()).find((t) => t.subject === "Lunch photos"), "second mail from Maria");
     const msg = (await rig.service.getThread(next.id)).messages[0]!;
+    // A personal image (uid) would be held back under "safe"; the remembered sender gets it anyway.
     expect(msg.remoteImages).toBe("allowed");
-    expect(msg.html).toContain(HERO);
+    expect(msg.html).toContain(`${HERO}?uid=7`);
   });
 
   it("saves attachments with unique names and opens them", async () => {

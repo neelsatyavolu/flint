@@ -16,7 +16,7 @@ export function makeAccounts(now: number): Account[] {
 
 export const defaultSettings = (): Settings => ({
   appearance: { layout: "split", theme: "system", avatars: "everywhere", senderLogos: false, senderPhotos: false, emailAppearance: "match", previewLines: 1, density: "comfortable", accountColors: true },
-  inbox: { focused: true, sort: "newest", markReadOnOpen: "instant", afterArchive: "next", blockTrackers: true, remoteImages: "known_senders" },
+  inbox: { focused: true, sort: "newest", markReadOnOpen: "instant", afterArchive: "next", blockTrackers: true, remoteImages: "safe" },
   compose: { undoSendSeconds: 10, defaultSignatureByAccount: { [ACCOUNT_IDS.northwind]: 2, [ACCOUNT_IDS.orbit]: 3, [ACCOUNT_IDS.gmail]: 1 }, defaultReplySignatureByAccount: { [ACCOUNT_IDS.northwind]: null, [ACCOUNT_IDS.orbit]: 3, [ACCOUNT_IDS.gmail]: 1 }, plainTextOnly: false },
   receipts: { enabled: true, defaultOn: true, endpoint: "https://receipts.flint.example", notifyOnOpen: true },
   notifications: { enabled: true, scope: "people", sound: false, soundName: "default", preview: "sender_subject", badge: "unified_unread", disabledAccounts: [] },

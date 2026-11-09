@@ -7,7 +7,7 @@ const log = logger("store.settings");
 
 export const DEFAULT_SETTINGS: Settings = {
   appearance: { layout: "split", theme: "system", avatars: "everywhere", senderLogos: true, senderPhotos: false, emailAppearance: "match", previewLines: 1, density: "comfortable", accountColors: true },
-  inbox: { focused: true, sort: "newest", markReadOnOpen: "instant", afterArchive: "next", blockTrackers: true, remoteImages: "known_senders" },
+  inbox: { focused: true, sort: "newest", markReadOnOpen: "instant", afterArchive: "next", blockTrackers: true, remoteImages: "safe" },
   compose: { undoSendSeconds: 10, defaultSignatureByAccount: {}, defaultReplySignatureByAccount: {}, plainTextOnly: false },
   receipts: { enabled: true, defaultOn: true, endpoint: "", notifyOnOpen: true },
   notifications: { enabled: true, scope: "people", sound: true, soundName: "default", preview: "sender_subject", badge: "unified_unread", disabledAccounts: [] },
@@ -26,7 +26,7 @@ const sections = {
   }),
   inbox: z.object({
     focused: z.boolean(), sort: z.enum(["newest", "oldest"]), markReadOnOpen: z.enum(["instant", "delay", "never"]),
-    afterArchive: z.enum(["next", "previous", "list"]), blockTrackers: z.boolean(), remoteImages: z.enum(["always", "known_senders", "never"]),
+    afterArchive: z.enum(["next", "previous", "list"]), blockTrackers: z.boolean(), remoteImages: z.enum(["always", "safe", "known_senders", "never"]),
   }),
   compose: z.object({
     undoSendSeconds: z.union([z.literal(0), z.literal(5), z.literal(10), z.literal(20), z.literal(30)]),

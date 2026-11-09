@@ -14,6 +14,9 @@ struct SenderTrust: Sendable {
 
 enum AuthOutcome: Sendable { case pass, fail, unknown }
 
+/// Which remote images load: all of them, only those that look the same for every recipient, or none.
+enum ImageLevel: Sendable { case all, safe, none }
+
 struct ImagePolicy: Sendable {
     static let sendersKey = "images:senders"
     static func messageKey(_ id: MessageRowID) -> String { "images:message:\(id)" }
@@ -33,20 +36,26 @@ struct ImagePolicy: Sendable {
     }
 
     func allowed(messageId: MessageRowID, from: [Address], trust: SenderTrust) -> Bool {
-        if messagesAllowed.contains(messageId) { return true }
+        level(messageId: messageId, from: from, trust: trust) == .all
+    }
+
+    /// Like `allowed`, but under the "safe" setting an untrusted, authenticated sender still gets its safe images.
+    func level(messageId: MessageRowID, from: [Address], trust: SenderTrust) -> ImageLevel {
+        if messagesAllowed.contains(messageId) { return .all }
         switch mode {
-        case .always: return true
-        case .never: return false
-        case .knownSenders: break
+        case .always: return .all
+        case .never: return .none
+        case .knownSenders, .safe: break
         }
-        guard let address = from.first?.address.lowercased() else { return false }
+        guard let address = from.first?.address.lowercased() else { return .none }
         // A From header alone proves nothing: phishing forges the reader's own address and their contacts'.
         let auth = Self.authOutcome(trust.headers)
-        if auth == .fail { return false }
-        if trust.isFromMe && !trust.inSent && auth != .pass { return false }
+        if auth == .fail { return .none }
+        if trust.isFromMe && !trust.inSent && auth != .pass { return .none }
         // A server that recorded Authentication-Results but no pass vouches for nothing.
-        if !(trust.isFromMe && trust.inSent), trust.headers["authentication-results"] != nil, auth != .pass { return false }
-        return trust.isFromMe || senders.contains(address) || sentTo.contains(address)
+        if !(trust.isFromMe && trust.inSent), trust.headers["authentication-results"] != nil, auth != .pass { return .none }
+        if trust.isFromMe || senders.contains(address) || sentTo.contains(address) { return .all }
+        return mode == .safe ? .safe : .none
     }
 }
 

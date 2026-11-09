@@ -209,6 +209,15 @@ struct ServiceImagePolicyTests {
         #expect(policy(.never, allowed: [1]).allowed(messageId: 1, from: ann, trust: plain))
     }
 
+    @Test func safeGivesAnUnknownAuthenticatedSenderItsSafeImages() {
+        #expect(policy(.safe, senders: ["ann@example.com"]).level(messageId: 1, from: ann, trust: plain) == .all)
+        #expect(policy(.safe).level(messageId: 1, from: ann, trust: plain) == .safe)
+        #expect(!policy(.safe).allowed(messageId: 1, from: ann, trust: plain))
+        let failed = SenderTrust(isFromMe: false, inSent: false, headers: ["authentication-results": "mx; dkim=fail"])
+        #expect(policy(.safe).level(messageId: 1, from: ann, trust: failed) == .none)
+        #expect(policy(.knownSenders).level(messageId: 1, from: ann, trust: plain) == .none)
+    }
+
     @Test func knownSendersNeedASenderYouTrust() {
         #expect(!policy(.knownSenders).allowed(messageId: 1, from: ann, trust: plain))
         #expect(policy(.knownSenders, senders: ["ann@example.com"]).allowed(messageId: 1, from: ann, trust: plain))

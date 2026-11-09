@@ -19,12 +19,12 @@ struct PrivacyPage: View {
 
     var body: some View {
         SettingsPage(title: sl("Privacy"), identifier: "privacy") {
-            SettingsGroup(title: sl("Images"), note: sl("Images in mail load from the sender's server, which tells them you opened it.")) {
+            SettingsGroup(title: sl("Images"), note: sl("Images in mail load from the sender's server, which tells them you opened it. Safe images loads images that look the same for every recipient, so they can't tell it was you; a careful sender can still disguise one.")) {
                 SettingsChoiceRow(
                     icon: .image, title: sl("Remote images"), selection: model.choiceSetting({ $0.inbox.remoteImages }, section: "inbox", key: "remoteImages"),
                     choices: [
                         (value: Settings.Inbox.RemoteImages.never, label: sl("Never load")), (value: .knownSenders, label: sl("Known senders")),
-                        (value: .always, label: sl("Always load")),
+                        (value: .safe, label: sl("Safe images")), (value: .always, label: sl("Always load")),
                     ], identifier: "settings.privacy.remoteImages")
                 SettingsToggleRow(
                     icon: .shield, title: sl("Block trackers"), detail: sl("Remove known tracking pixels from incoming mail before it is shown."),

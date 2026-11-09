@@ -5,9 +5,9 @@ import { PLACEHOLDER_GIF, sanitizeForDisplay, type SanitizeOptions } from "./ind
 type Rx = { p: string; f: string };
 type Expect = {
   inert?: boolean; contains?: string[]; notContains?: string[]; matches?: Rx[]; notMatches?: Rx[];
-  hasRemoteImages?: boolean; hasTrackers?: boolean; startsWith?: string; idempotent?: boolean; maxMs?: number;
+  hasRemoteImages?: boolean; blockedImages?: boolean; hasTrackers?: boolean; startsWith?: string; idempotent?: boolean; maxMs?: number;
 };
-type Opts = { allowRemoteImages: boolean; receiptsHost?: string; blockTrackers?: boolean; cids?: Record<string, string> };
+type Opts = { allowRemoteImages: boolean; receiptsHost?: string; blockTrackers?: boolean; cids?: Record<string, string>; safeImages?: { recipients: string[] } };
 type Input = {
   fn: string; html?: string; htmlRepeat?: { before: string; unit: string; count: number; after: string };
   options: Opts; runs?: Opts[];
@@ -48,6 +48,7 @@ describe("sanitize fixtures", () => {
       for (const m of want.matches ?? []) expect(new RegExp(m.p, m.f).test(r.html)).toBe(true);
       for (const m of want.notMatches ?? []) expect(new RegExp(m.p, m.f).test(r.html)).toBe(false);
       if (want.hasRemoteImages !== undefined) expect(r.hasRemoteImages).toBe(want.hasRemoteImages);
+      if (want.blockedImages !== undefined) expect(r.blockedImages).toBe(want.blockedImages);
       if (want.hasTrackers !== undefined) expect(r.hasTrackers).toBe(want.hasTrackers);
       if (want.startsWith) expect(r.html.startsWith(want.startsWith)).toBe(true);
       if (want.idempotent) expect(clean(r.html, opts).html).toBe(r.html);

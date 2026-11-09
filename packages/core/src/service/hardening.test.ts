@@ -93,6 +93,20 @@ describe("remote images and a forged From", () => {
     // Mail synced before the header was fetched, or from a server that records none, keeps the old behaviour.
     expect(fresh.allowed(3, pal, { isFromMe: false, inSent: false })).toBe(true);
   });
+  it("gives an unknown sender only its safe images under the safe setting", () => {
+    const { store } = setup();
+    store.kvSet("images:senders", JSON.stringify(["pal@example.org"]));
+    const policy = imagePolicy(store, { ...DEFAULT_SETTINGS, inbox: { ...DEFAULT_SETTINGS.inbox, remoteImages: "safe" } });
+    const pal = [{ name: "Pal", address: "pal@example.org" }];
+    const shop = [{ name: "Shop", address: "news@shop.example" }];
+    const plain = { isFromMe: false, inSent: false };
+    expect(policy.level(4, pal, plain)).toBe("all");
+    expect(policy.level(4, shop, plain)).toBe("safe");
+    expect(policy.allowed(4, shop, plain)).toBe(false);
+    expect(policy.level(4, shop, { ...plain, headers: { "authentication-results": "mx; dkim=fail" } })).toBe("none");
+    expect(policy.level(4, shop, { ...plain, headers: { "authentication-results": "mx; dkim=none" } })).toBe("none");
+    expect(setup().policy.level(4, shop, plain)).toBe("none");
+  });
   it("reads Authentication-Results", () => {
     expect(authOutcome(undefined)).toBe("unknown");
     expect(authOutcome({ "authentication-results": "mx; spf=softfail" })).toBe("fail");

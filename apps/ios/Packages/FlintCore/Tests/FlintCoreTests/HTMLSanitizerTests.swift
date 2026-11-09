@@ -13,7 +13,8 @@ private func options(from json: FX) -> SanitizeOptions {
         allowRemoteImages: json["allowRemoteImages"]?.fxBool ?? false,
         receiptsHost: json["receiptsHost"]?.fxString ?? receiptsHost,
         cidResolver: resolver,
-        blockTrackers: json["blockTrackers"]?.fxBool ?? true
+        blockTrackers: json["blockTrackers"]?.fxBool ?? true,
+        safeImageRecipients: json["safeImages"]?["recipients"]?.fxStrings
     )
 }
 
@@ -64,6 +65,7 @@ struct HTMLSanitizerFixtureTests {
                 #expect(!regexMatches(fixtureRegex(m["p"]?.fxString ?? "", flags: m["f"]?.fxString ?? ""), result.html))
             }
             if let v = want["hasRemoteImages"]?.fxBool { #expect(result.hasRemoteImages == v) }
+            if let v = want["blockedImages"]?.fxBool { #expect(result.blockedImages == v) }
             if let v = want["hasTrackers"]?.fxBool { #expect(result.hasTrackers == v) }
             if let prefix = want["startsWith"]?.fxString { #expect(result.html.hasPrefix(prefix)) }
             if want["idempotent"]?.fxBool == true { #expect(HTMLSanitizer.sanitize(result.html, opts).html == result.html) }

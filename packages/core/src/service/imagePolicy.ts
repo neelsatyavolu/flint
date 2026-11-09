@@ -23,10 +23,15 @@ export function authOutcome(headers: Record<string, string> | undefined): "pass"
   return /\b(dkim|dmarc)=pass\b/.test(value) || /\bspf=pass\b/.test(value) ? "pass" : "unknown";
 }
 
+/** Which remote images load: all of them, only those that look the same for every recipient, or none. */
+export type ImageLevel = "all" | "safe" | "none";
+
 /** Per-message and per-sender remote image permissions, kept in kv. */
 export type ImagePolicy = {
-  /** True when remote images should load for this message under the user's setting and allowances. */
+  /** True when every remote image should load for this message under the user's setting and allowances. */
   allowed(messageId: MessageRowId, from: Address[], trust: SenderTrust): boolean;
+  /** Like `allowed`, but under the "safe" setting an untrusted, authenticated sender still gets its safe images. */
+  level(messageId: MessageRowId, from: Address[], trust: SenderTrust): ImageLevel;
 };
 
 function readSenders(store: Store): string[] {
@@ -43,22 +48,22 @@ function readSenders(store: Store): string[] {
 export function imagePolicy(store: Store, settings: Settings): ImagePolicy {
   const mode = settings.inbox.remoteImages;
   const senders = new Set(readSenders(store));
-  return {
-    allowed(messageId, from, trust) {
-      if (store.kvGet(messageKey(messageId)) !== null) return true;
-      if (mode === "always") return true;
-      if (mode === "never") return false;
-      const address = from[0]?.address.toLowerCase();
-      if (!address) return false;
-      // A From header alone proves nothing: phishing forges the reader's own address and their contacts'.
-      const auth = authOutcome(trust.headers);
-      if (auth === "fail") return false;
-      if (trust.isFromMe && !trust.inSent && auth !== "pass") return false;
-      // A server that recorded Authentication-Results but did not record a DKIM, SPF or DMARC pass vouches for nothing.
-      if (!(trust.isFromMe && trust.inSent) && trust.headers?.["authentication-results"] && auth !== "pass") return false;
-      return trust.isFromMe || senders.has(address) || store.hasSentTo(address);
-    },
+  const level = (messageId: MessageRowId, from: Address[], trust: SenderTrust): ImageLevel => {
+    if (store.kvGet(messageKey(messageId)) !== null) return "all";
+    if (mode === "always") return "all";
+    if (mode === "never") return "none";
+    const address = from[0]?.address.toLowerCase();
+    if (!address) return "none";
+    // A From header alone proves nothing: phishing forges the reader's own address and their contacts'.
+    const auth = authOutcome(trust.headers);
+    if (auth === "fail") return "none";
+    if (trust.isFromMe && !trust.inSent && auth !== "pass") return "none";
+    // A server that recorded Authentication-Results but did not record a DKIM, SPF or DMARC pass vouches for nothing.
+    if (!(trust.isFromMe && trust.inSent) && trust.headers?.["authentication-results"] && auth !== "pass") return "none";
+    if (trust.isFromMe || senders.has(address) || store.hasSentTo(address)) return "all";
+    return mode === "safe" ? "safe" : "none";
   };
+  return { level, allowed: (messageId, from, trust) => level(messageId, from, trust) === "all" };
 }
 
 /** Allows remote images for this message, and for the sender in future when `always`. */

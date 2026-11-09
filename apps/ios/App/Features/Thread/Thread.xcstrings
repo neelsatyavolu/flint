@@ -107,6 +107,9 @@
     "Hide quoted text" : {
 
     },
+    "Load all images" : {
+
+    },
     "Load images" : {
 
     },
@@ -193,6 +196,12 @@
 
     },
     "Remote images are blocked and tracking pixels removed." : {
+
+    },
+    "Some images were held back because they could identify you." : {
+
+    },
+    "Some images were held back because they could identify you, and tracking pixels were removed." : {
 
     },
     "Remote images are blocked." : {

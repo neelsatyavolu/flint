@@ -2,7 +2,7 @@ import type { Settings } from "@flint/core/types";
 
 export const MOCK_DEFAULT_SETTINGS: Settings = {
   appearance: { layout: "split", theme: "system", avatars: "everywhere", senderLogos: false, senderPhotos: false, emailAppearance: "match", previewLines: 1, density: "comfortable", accountColors: true },
-  inbox: { focused: true, sort: "newest", markReadOnOpen: "instant", afterArchive: "next", blockTrackers: true, remoteImages: "known_senders" },
+  inbox: { focused: true, sort: "newest", markReadOnOpen: "instant", afterArchive: "next", blockTrackers: true, remoteImages: "safe" },
   compose: { undoSendSeconds: 10, defaultSignatureByAccount: {}, defaultReplySignatureByAccount: {}, plainTextOnly: false },
   receipts: { enabled: true, defaultOn: false, endpoint: "", notifyOnOpen: true },
   notifications: { enabled: true, scope: "people", sound: true, soundName: "default", preview: "sender_subject", badge: "unified_unread", disabledAccounts: [] },

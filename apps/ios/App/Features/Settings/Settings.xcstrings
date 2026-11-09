@@ -947,13 +947,13 @@
         }
       }
     },
-    "Images in mail load from the sender's server, which tells them you opened it.": {
+    "Images in mail load from the sender's server, which tells them you opened it. Safe images loads images that look the same for every recipient, so they can't tell it was you; a careful sender can still disguise one.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Images in mail load from the sender's server, which tells them you opened it."
+            "value": "Images in mail load from the sender's server, which tells them you opened it. Safe images loads images that look the same for every recipient, so they can't tell it was you; a careful sender can still disguise one."
           }
         }
       }
@@ -1911,6 +1911,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rules sort new mail as it arrives, in the order shown."
+          }
+        }
+      }
+    },
+    "Safe images": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Safe images"
           }
         }
       }

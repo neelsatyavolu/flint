@@ -16,9 +16,9 @@ export function InboxSection() {
       <SelectRow
         icon={<Image size={18} strokeWidth={1.5} />}
         title="Remote images"
-        description="Images in mail are loaded from the sender's server, which tells them you opened it."
+        description="Images in mail are loaded from the sender's server, which tells them you opened it. Safe images loads images that look the same for every recipient, so they can't tell it was you; a careful sender can still disguise one."
         value={s.inbox.remoteImages}
-        choices={[{ value: "never", label: "Never load" }, { value: "known_senders", label: "Known senders" }, { value: "always", label: "Always load" }]}
+        choices={[{ value: "never", label: "Never load" }, { value: "known_senders", label: "Known senders" }, { value: "safe", label: "Safe images" }, { value: "always", label: "Always load" }]}
         onChange={(v) => void save({ inbox: { remoteImages: v } })}
       />
       <ToggleRow

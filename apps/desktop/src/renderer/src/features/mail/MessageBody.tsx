@@ -57,11 +57,17 @@ function HtmlBody({ html, subject, allowed, title, sheet }: { html: string; subj
   );
 }
 
+function blockedText(message: MessageView): string {
+  if (message.safeImages) return message.hasTrackers ? "Some images were held back because they could identify you, and tracking pixels were removed." : "Some images were held back because they could identify you.";
+  return message.hasTrackers ? "Remote images are blocked and tracking pixels removed." : "Remote images are blocked.";
+}
+
 export function MessageBody({ message, onUpdated }: { message: MessageView; onUpdated: () => void }) {
   const toast = useToast();
   const appearance = useMailAppearance(message);
   const [loaded, setLoaded] = useState(false);
-  const allowed = message.remoteImages === "allowed" || loaded;
+  // Under "safe", core already replaced every image it held back, so the frame may load the ones left.
+  const allowed = message.remoteImages === "allowed" || message.safeImages === true || loaded;
   // core strips blocked images from the html, so its remoteImages flag is the only reliable signal.
   const blockedNotice = message.remoteImages === "blocked" && !loaded;
 
@@ -86,8 +92,8 @@ export function MessageBody({ message, onUpdated }: { message: MessageView; onUp
     <div className={styles.bodyWrap}>
       {blockedNotice ? (
         <div className={clsx("t-body", styles.notice)}>
-          <span>{message.hasTrackers ? "Remote images are blocked and tracking pixels removed." : "Remote images are blocked."}</span>
-          <Button size="sm" variant="ghost" onClick={() => load(false)}>Load images</Button>
+          <span>{blockedText(message)}</span>
+          <Button size="sm" variant="ghost" onClick={() => load(false)}>{message.safeImages ? "Load all images" : "Load images"}</Button>
           <Button size="sm" variant="ghost" onClick={() => load(true)}>Always for this sender</Button>
         </div>
       ) : null}

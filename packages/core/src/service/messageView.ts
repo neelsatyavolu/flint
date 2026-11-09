@@ -29,12 +29,15 @@ const stripCid = (cid: string): string => cid.replace(/^<|>$/g, "").toLowerCase(
 
 /** Builds the renderer's MessageView: sanitized HTML with the image policy applied, trackers removed, receipt attached. */
 export function toMessageView(env: ViewEnv, m: StoredThreadMessage, pinned = m.flagged): MessageView {
-  const allow = env.policy.allowed(m.id, m.from, { isFromMe: m.isFromMe, inSent: m.inSent, headers: m.headers });
+  const level = env.policy.level(m.id, m.from, { isFromMe: m.isFromMe, inSent: m.inSent, headers: m.headers });
+  const allow = level === "all";
+  const recipients = [...m.to, ...m.cc, ...m.bcc].map((a) => a.address);
   const cids = new Map(m.attachments.filter((a) => a.contentId).map((a) => [stripCid(a.contentId!), a.id]));
   const clean = m.rawHtml
     ? sanitizeForDisplay(m.rawHtml, {
       allowRemoteImages: allow,
       blockTrackers: env.settings.inbox.blockTrackers,
+      ...(level === "safe" ? { safeImages: { recipients } } : {}),
       ...(env.receiptsHost ? { receiptsHost: env.receiptsHost } : {}),
       cidResolver: (cid) => {
         const id = cids.get(stripCid(cid));
@@ -57,7 +60,8 @@ export function toMessageView(env: ViewEnv, m: StoredThreadMessage, pinned = m.f
     html: clean?.html ?? null,
     text: m.text,
     bodyLoaded: m.bodyLoaded,
-    remoteImages: allow || !clean?.hasRemoteImages ? "allowed" : "blocked",
+    remoteImages: clean?.blockedImages ? "blocked" : "allowed",
+    ...(level === "safe" && clean?.hasRemoteImages ? { safeImages: true } : {}),
     hasTrackers: clean?.hasTrackers ?? false,
     attachments: m.attachments,
     unsubscribe: m.unsubscribe,

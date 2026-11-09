@@ -34,7 +34,8 @@ struct MessageBodyView: View {
 
     private var hasBody: Bool { message.bodyLoaded || message.html != nil || message.text != nil }
     private var blocked: Bool { ThreadLogic.showsImageNotice(message) }
-    private var allowImages: Bool { message.remoteImages == .allowed }
+    // Under "safe", the sanitizer already replaced every image it held back, so the frame may load the ones left.
+    private var allowImages: Bool { message.remoteImages == .allowed || message.safeImages }
 
     private var appearance: MailAppearance {
         vm.appearance(for: message, dark: scheme == .dark, matchTheme: app.settings?.appearance.emailAppearance != .light)
@@ -72,14 +73,25 @@ struct MessageBodyView: View {
 
     // MARK: Notices
 
+    private var noticeText: String {
+        if message.safeImages {
+            return message.hasTrackers
+                ? String(localized: "Some images were held back because they could identify you, and tracking pixels were removed.", table: "Thread")
+                : String(localized: "Some images were held back because they could identify you.", table: "Thread")
+        }
+        return message.hasTrackers
+            ? String(localized: "Remote images are blocked and tracking pixels removed.", table: "Thread")
+            : String(localized: "Remote images are blocked.", table: "Thread")
+    }
+
     private var imageNotice: some View {
         VStack(alignment: .leading, spacing: FlintMetrics.Space.s2) {
-            Text(message.hasTrackers
-                ? String(localized: "Remote images are blocked and tracking pixels removed.", table: "Thread")
-                : String(localized: "Remote images are blocked.", table: "Thread"))
+            Text(noticeText)
                 .flintText(.body, color: FlintColor.fg2)
             HStack(spacing: FlintMetrics.Space.s2) {
-                Button(String(localized: "Load images", table: "Thread")) { Task { await load(always: false) } }
+                Button(message.safeImages ? String(localized: "Load all images", table: "Thread") : String(localized: "Load images", table: "Thread")) {
+                    Task { await load(always: false) }
+                }
                     .accessibilityIdentifier("thread.loadImages.\(message.id)")
                 Button(String(localized: "Always for this sender", table: "Thread")) { Task { await load(always: true) } }
                     .accessibilityIdentifier("thread.alwaysLoadImages.\(message.id)")

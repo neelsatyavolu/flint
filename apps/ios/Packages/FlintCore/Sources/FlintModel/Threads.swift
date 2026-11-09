@@ -243,6 +243,10 @@ public struct MessageView: Hashable, Sendable, Identifiable {
     public var remoteImages: RemoteImagePolicy
     /// The sanitizer found remote images (or remote CSS images) in the HTML, whether or not they are loaded.
     public var hasRemoteImages: Bool
+    /// Under the "safe" setting: images that look the same for every recipient were loaded; the rest are held back.
+    public var safeImages: Bool
+    /// The sanitizer replaced at least one remote image with a placeholder (what "Load images" would bring back).
+    public var heldBackImages: Bool
     /// Known third-party tracking pixels were removed.
     public var hasTrackers: Bool
     public var attachments: [AttachmentInfo]
@@ -254,7 +258,8 @@ public struct MessageView: Hashable, Sendable, Identifiable {
         id: MessageRowID, accountId: AccountID, threadId: ThreadID, messageId: String? = nil, from: [Address], to: [Address] = [],
         cc: [Address] = [], bcc: [Address] = [], replyTo: [Address] = [], subject: String, date: EpochMs, seen: Bool, pinned: Bool = false,
         isFromMe: Bool = false, snippet: String = "", html: String? = nil, text: String? = nil, bodyLoaded: Bool = false,
-        remoteImages: RemoteImagePolicy = .blocked, hasRemoteImages: Bool = false, hasTrackers: Bool = false,
+        remoteImages: RemoteImagePolicy = .blocked, hasRemoteImages: Bool = false, safeImages: Bool = false, heldBackImages: Bool = false,
+        hasTrackers: Bool = false,
         attachments: [AttachmentInfo] = [], unsubscribe: UnsubscribeInfo? = nil, receipt: ReceiptDetail? = nil,
         verificationCode: CodeBadge? = nil
     ) {
@@ -278,6 +283,8 @@ public struct MessageView: Hashable, Sendable, Identifiable {
         self.bodyLoaded = bodyLoaded
         self.remoteImages = remoteImages
         self.hasRemoteImages = hasRemoteImages
+        self.safeImages = safeImages
+        self.heldBackImages = heldBackImages
         self.hasTrackers = hasTrackers
         self.attachments = attachments
         self.unsubscribe = unsubscribe

@@ -40,9 +40,26 @@ struct ServiceReaderStateTests {
         let message = try #require(try await firstThread(rig).messages.first)
         #expect(message.hasRemoteImages)
         #expect(message.remoteImages == .blocked)
+        // Under the default "safe" setting a shared image loads and nothing is held back.
+        #expect(message.safeImages)
+        #expect(!message.heldBackImages)
+        #expect(message.html?.contains("https://cdn.example.com/a.png") == true)
         let allowed = try await rig.service.allowRemoteImages(messageId: message.id, always: false)
         #expect(allowed.remoteImages == .allowed)
         #expect(allowed.hasRemoteImages)
+    }
+
+    @Test func safeModeHoldsBackAPersonalImage() async throws {
+        let rig = try await ServiceRig.make()
+        defer { Task { await rig.cleanup() } }
+        try await rig.addAccount()
+        await deliverHTML(rig, subject: "Promo", html: "<img src=\"https://cdn.example.com/a.png\"><img src=\"https://cdn.example.com/b.png?uid=9\">")
+        try await rig.service.syncNow()
+        let message = try #require(try await firstThread(rig).messages.first)
+        #expect(message.safeImages)
+        #expect(message.heldBackImages)
+        #expect(message.html?.contains("https://cdn.example.com/a.png") == true)
+        #expect(message.html?.contains("uid=9") == false)
     }
 
     @Test func theThreadSaysWhereItIsSoArchiveFollowsTheConversationNotTheList() async throws {

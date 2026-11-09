@@ -131,14 +131,16 @@ extension ServiceCore {
     /// The reader's MessageView: sanitized HTML with the image policy applied, trackers removed, receipt and code attached.
     private func view(of m: StoredMessage, settings: Settings, policy: ImagePolicy) async -> MessageView {
         let trust = SenderTrust(isFromMe: m.isFromMe, inSent: m.inSent, headers: m.headers)
-        let allow = policy.allowed(messageId: m.id, from: m.from, trust: trust)
+        let level = policy.level(messageId: m.id, from: m.from, trust: trust)
+        let allow = level == .all
         let cids = Dictionary(m.attachments.compactMap { a in a.contentId.map { (Self.strippedCid($0), a.id) } }, uniquingKeysWith: { first, _ in first })
         var clean: SanitizeResult?
         if let raw = m.rawHtml {
             clean = HTMLSanitizer.sanitize(raw, SanitizeOptions(
                 allowRemoteImages: allow, receiptsHost: Self.receiptsHost(settings.receipts.endpoint),
                 cidResolver: { cid in cids[Self.strippedCid(cid)].map { "\(Self.attachmentURLPrefix)\($0)" } },
-                blockTrackers: settings.inbox.blockTrackers))
+                blockTrackers: settings.inbox.blockTrackers,
+                safeImageRecipients: level == .safe ? (m.to + m.cc + m.bcc).map(\.address) : nil))
         }
         var receipt: ReceiptDetail?
         if let messageId = m.messageId { receipt = try? await store.receiptDetail(accountId: m.accountId, messageId: messageId) }
@@ -146,7 +148,9 @@ extension ServiceCore {
             id: m.id, accountId: m.accountId, threadId: m.threadId, messageId: m.messageId, from: m.from, to: m.to, cc: m.cc, bcc: m.bcc,
             replyTo: m.replyTo, subject: m.subject, date: m.date, seen: m.seen, pinned: m.flagged, isFromMe: m.isFromMe, snippet: m.snippet,
             html: clean?.html, text: m.text, bodyLoaded: m.bodyLoaded,
-            remoteImages: allow ? .allowed : .blocked, hasRemoteImages: clean?.hasRemoteImages ?? false, hasTrackers: clean?.hasTrackers ?? false,
+            remoteImages: allow ? .allowed : .blocked, hasRemoteImages: clean?.hasRemoteImages ?? false,
+            safeImages: level == .safe && clean?.hasRemoteImages == true, heldBackImages: clean?.blockedImages ?? false,
+            hasTrackers: clean?.hasTrackers ?? false,
             attachments: m.attachments, unsubscribe: m.unsubscribe, receipt: receipt, verificationCode: await codes.badge(messageId: m.id))
     }
 

@@ -31,7 +31,7 @@ public struct Settings: Codable, Hashable, Sendable {
         public enum MarkReadOnOpen: String, Codable, Hashable, Sendable { case instant, delay, never }
         public enum AfterArchive: String, Codable, Hashable, Sendable { case next, previous, list }
         public enum RemoteImages: String, Codable, Hashable, Sendable {
-            case always, never
+            case always, never, safe
             case knownSenders = "known_senders"
         }
         public var focused = true
@@ -39,7 +39,7 @@ public struct Settings: Codable, Hashable, Sendable {
         public var markReadOnOpen: MarkReadOnOpen = .instant
         public var afterArchive: AfterArchive = .next
         public var blockTrackers = true
-        public var remoteImages: RemoteImages = .knownSenders
+        public var remoteImages: RemoteImages = .safe
         public init() {}
     }
 
