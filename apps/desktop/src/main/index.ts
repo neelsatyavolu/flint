@@ -201,6 +201,10 @@ async function main(): Promise<void> {
           if (!Notification.isSupported()) return;
           new Notification({ title: `Flint ${version} is ready`, body: "It installs the next time you quit Flint.", silent: true }).show();
         },
+        restarting: (version) => {
+          if (!Notification.isSupported()) return;
+          new Notification({ title: `Updating to Flint ${version}`, body: "Flint is restarting to install it. Your drafts are saved.", silent: true }).show();
+        },
         // Stop the service first so the before-quit handler doesn't hold up the installer's quit and relaunch.
         beforeInstall: async () => {
           quitting = true;
@@ -250,7 +254,9 @@ async function main(): Promise<void> {
     setBadge: (n) => app.setBadgeCount(n),
   });
   const applySettings = (s: { receipts: { endpoint: string }; inbox: { blockTrackers: boolean }; appearance: { theme: "system" | "dark" | "light" }; updates: { mode: UpdateMode } }): void => {
+    const modeChanged = updateMode !== s.updates.mode;
     updateMode = s.updates.mode;
+    if (modeChanged) updates?.modeChanged();
     filter.update({ receiptsHost: receiptsHostFromEndpoint(s.receipts.endpoint), blockTrackers: s.inbox.blockTrackers });
     nativeTheme.themeSource = s.appearance.theme;
   };
@@ -275,7 +281,11 @@ async function main(): Promise<void> {
   openWindow(dataDir);
   updates?.start();
   // Connections die while the Mac sleeps; reconnect on wake instead of waiting out a backoff grown while offline.
-  powerMonitor.on("resume", () => service?.resume());
+  powerMonitor.on("resume", () => {
+    service?.resume();
+    // A Mac that slept through the hourly check looks again on wake.
+    updates?.check(false);
+  });
   app.on("activate", () => {
     if (!mainWindow) openWindow(dataDir);
     else focusWindow(mainWindow);
