@@ -69,7 +69,7 @@ module.exports = {
     ...(helperBuilt ? [{ from: "../autofill-helper/dist/FlintAutofill", to: "autofill/FlintAutofill" }] : []),
     ...(extensionBuilt ? [{ from: "../browser-extension/dist", to: "browser-extension" }] : []),
   ],
-  protocols: [{ name: "Mail link", schemes: ["mailto"] }],
+  protocols: [{ name: "Mail link", schemes: ["mailto"] }, { name: "Flint link", schemes: ["flint"] }],
   // The update feed: electron-builder writes app-update.yml into the app and latest-mac.yml next to the
   // builds; scripts/release.sh uploads both with the zips to the GitHub release.
   publish: [{ provider: "github", owner: "neelsatyavolu", repo: "flint", releaseType: "release" }],

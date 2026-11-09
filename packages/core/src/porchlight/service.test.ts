@@ -22,6 +22,7 @@ function setup() {
   const calls: Call[] = [];
   /** Answers per path; default: claim succeeds, imports create one package per item. */
   let reply: (call: Call) => Response | Promise<Response> = (call) => {
+    if (call.url.endsWith("/v1/pairing/peek")) return Response.json({ ok: true, data: { account: "n•••@xanom.co" }, error: null });
     if (call.url.endsWith("/v1/pairing/claim")) return Response.json({ ok: true, data: { token: TOKEN, tokenId: TOKEN_ID, scopes: ["imports:write"] }, error: null }, { status: 201 });
     if (call.url.endsWith("/v1/imports/flint")) {
       const items = (call.body as { items: { dedupeKey: string }[] }).items;
@@ -36,8 +37,9 @@ function setup() {
   });
   const ensureBodies = vi.fn(async (_ids: number[]) => undefined);
   const poke = vi.fn();
+  const emit = vi.fn();
   const service = new PorchlightService({
-    store, now: () => now, fetch: fetchImpl, ensureBodies, poke, deviceName: () => "Studio",
+    store, now: () => now, fetch: fetchImpl, ensureBodies, poke, emit, deviceName: () => "Studio",
     platform: { secrets: {
       get: async (k) => secrets.get(k) ?? null,
       set: async (k, v) => { secrets.set(k, v); },
@@ -58,7 +60,7 @@ function setup() {
   /** Runs the queue until nothing is due right now. */
   const drain = async () => { for (let i = 0; i < 10 && (service.nextDueAt() ?? Infinity) <= now; i++) await service.run(); };
   return {
-    store, seed, service, secrets, calls, imports, ensureBodies, poke, add, drain, fetchImpl,
+    store, seed, service, secrets, calls, imports, ensureBodies, poke, emit, add, drain, fetchImpl,
     clock: (value: number) => { now = value; }, reply: (fn: typeof reply) => { reply = fn; },
   };
 }
@@ -70,9 +72,24 @@ describe("Porchlight pairing", () => {
     expect(t.calls[0]).toMatchObject({ url: "https://porchlight.xanom.co/v1/pairing/claim", method: "POST", body: { code: "ABCDEFGH", label: "Flint on Studio" } });
     expect(t.calls[0]!.headers.authorization).toBeUndefined();
     expect(JSON.parse(t.secrets.get(PORCHLIGHT_SECRET)!)).toEqual({ token: TOKEN, tokenId: TOKEN_ID });
-    expect(status).toEqual({ connection: { label: "Flint on Studio", pairedAt: T0, signedOut: false }, imported: 0, pending: 0, lastImportAt: null });
+    expect(status).toEqual({ connection: { label: "Flint on Studio", account: null, pairedAt: T0, signedOut: false }, imported: 0, pending: 0, lastImportAt: null });
     const everyRow = JSON.stringify([t.store.db.prepare("SELECT * FROM porchlight_connection").all(), t.store.db.prepare("SELECT * FROM kv_cache").all()]);
     expect(everyRow).not.toContain(TOKEN);
+  });
+
+  it("tells the window when the connection changes", async () => {
+    const t = setup();
+    const status = await t.service.api.pairPorchlight("ABCDEFGH");
+    expect(t.emit).toHaveBeenLastCalledWith({ type: "porchlight", status });
+    await t.service.api.disconnectPorchlight();
+    expect(t.emit).toHaveBeenLastCalledWith({ type: "porchlight", status: expect.objectContaining({ connection: null }) });
+  });
+
+  it("keeps the account a link was confirmed for, and shows it", async () => {
+    const t = setup();
+    const status = await t.service.api.pairPorchlight("ABCDEFGH", { account: "n•••@xanom.co" });
+    expect(status.connection).toMatchObject({ label: "Flint on Studio", account: "n•••@xanom.co" });
+    expect((await t.service.api.porchlightStatus()).connection?.account).toBe("n•••@xanom.co");
   });
 
   it("rejects a malformed code without calling Porchlight", async () => {
@@ -134,6 +151,50 @@ describe("Porchlight pairing", () => {
     await t.service.api.pairPorchlight("ABCDEFGH");
     t.reply((call) => call.method === "DELETE" ? Response.json({ ok: true, data: { deleted: true } }) : new Response(null, { status: 500 }));
     expect(await t.service.api.disconnectPorchlight()).toEqual({ revoked: true });
+  });
+});
+
+describe("Porchlight link check (peek)", () => {
+  it("asks which account a code belongs to without claiming it", async () => {
+    const t = setup();
+    expect(await t.service.api.peekPorchlight(" abcd-efgh ")).toEqual({ account: "n•••@xanom.co" });
+    expect(t.calls).toHaveLength(1);
+    expect(t.calls[0]).toMatchObject({ url: "https://porchlight.xanom.co/v1/pairing/peek", method: "POST", body: { code: "ABCDEFGH" } });
+    expect(t.calls[0]!.headers.authorization).toBeUndefined();
+    expect(t.secrets.size).toBe(0);
+    expect((await t.service.api.porchlightStatus()).connection).toBeNull();
+  });
+
+  it("peek, then claim: the same code pairs after the user says yes", async () => {
+    const t = setup();
+    const { account } = await t.service.api.peekPorchlight("ABCDEFGH");
+    await t.service.api.pairPorchlight("ABCDEFGH", { account });
+    expect(t.calls.map((c) => c.url.replace("https://porchlight.xanom.co", ""))).toEqual(["/v1/pairing/peek", "/v1/pairing/claim"]);
+    expect((await t.service.api.porchlightStatus()).connection?.account).toBe("n•••@xanom.co");
+  });
+
+  it("rejects a malformed code without calling Porchlight", async () => {
+    const t = setup();
+    await expect(t.service.api.peekPorchlight("ABC")).rejects.toMatchObject({ code: "invalid" });
+    expect(t.calls).toHaveLength(0);
+  });
+
+  it("explains an unknown, expired or used code, rate limits and being offline", async () => {
+    const t = setup();
+    t.reply(() => new Response(null, { status: 404 }));
+    await expect(t.service.api.peekPorchlight("ABCDEFGH")).rejects.toThrow("expired or was already used");
+    t.reply(() => new Response(null, { status: 429 }));
+    await expect(t.service.api.peekPorchlight("ABCDEFGH")).rejects.toThrow("Too many tries");
+    t.reply(() => { throw new TypeError("fetch failed"); });
+    await expect(t.service.api.peekPorchlight("ABCDEFGH")).rejects.toMatchObject({ code: "network" });
+  });
+
+  it("refuses an answer without a readable account", async () => {
+    const t = setup();
+    t.reply(() => Response.json({ ok: true, data: { account: "" }, error: null }));
+    await expect(t.service.api.peekPorchlight("ABCDEFGH")).rejects.toThrow();
+    t.reply(() => Response.json({ ok: true, data: { account: "x".repeat(300) }, error: null }));
+    await expect(t.service.api.peekPorchlight("ABCDEFGH")).rejects.toThrow();
   });
 });
 

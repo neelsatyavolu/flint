@@ -215,8 +215,13 @@ export interface FlintApi {
 
   // Porchlight delivery tracker (pairing is desktop-only; agents can read what was imported)
   porchlightStatus(): Promise<PorchlightStatus>;
-  /** Trades the 8-character code from Porchlight Settings for an API token, then imports the last 30 days of shipping mail. */
-  pairPorchlight(code: string): Promise<PorchlightStatus>;
+  /** Which Porchlight account a pairing code belongs to (masked email), without using the code up. For the confirm step of a flint:// link. */
+  peekPorchlight(code: string): Promise<{ account: string }>;
+  /**
+   * Trades the 8-character code from Porchlight Settings for an API token, then imports the last 30 days of shipping mail.
+   * `account` is the masked email the user confirmed (from peekPorchlight), kept for display.
+   */
+  pairPorchlight(code: string, opts?: { account?: string }): Promise<PorchlightStatus>;
   /** Forgets the token and the import queue. `revoked` is false when Porchlight could not be told; the user removes it there. */
   disconnectPorchlight(): Promise<{ revoked: boolean }>;
   /** Packages imported into Porchlight, newest first, one per package; `threadId` limits them to one conversation. */
@@ -269,7 +274,7 @@ export const METHOD_TIERS: Record<FlintMethod, "read" | "modify" | "send" | "adm
   listCalendarAccounts: "admin", addGoogleCalendarAccount: "admin", addCalDavAccount: "admin", updateCalendarAccount: "admin", removeCalendarAccount: "admin",
   listConnectors: "admin", previewConnector: "admin", openConnectorPairPage: "admin", pairConnector: "admin",
   previewConnectorApproval: "admin", approveConnector: "admin", removeConnector: "admin",
-  porchlightStatus: "admin", pairPorchlight: "admin", disconnectPorchlight: "admin", listPorchlightPackages: "read",
+  porchlightStatus: "admin", peekPorchlight: "admin", pairPorchlight: "admin", disconnectPorchlight: "admin", listPorchlightPackages: "read",
   getSettings: "admin", updateSettings: "admin", sendTestNotification: "admin",
 };
 

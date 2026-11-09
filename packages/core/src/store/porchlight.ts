@@ -6,10 +6,11 @@ export const PORCHLIGHT_DAY = 86_400_000;
 export const PORCHLIGHT_HISTORY_DAYS = 30;
 /** A row that still can't be sent after this long (offline for a week, server down) is given up. */
 const GIVE_UP_MS = 7 * PORCHLIGHT_DAY;
-export const PORCHLIGHT_ORIGIN = "https://porchlight.xanom.co";
+import { PORCHLIGHT_ORIGIN } from "../porchlight/config";
+export { PORCHLIGHT_ORIGIN };
 
 export type PorchlightConnectionRow = {
-  token_id: string; label: string; paired_at: number; status: "active" | "signed_out"; last_import_at: number | null;
+  token_id: string; label: string; account: string | null; paired_at: number; status: "active" | "signed_out"; last_import_at: number | null;
 };
 export type PorchlightImportRow = {
   message_id: string; message_row_id: number | null; state: "pending" | "imported" | "skipped" | "rejected" | "failed";
@@ -36,10 +37,11 @@ export class PorchlightRepo {
   }
 
   /** Replaces any earlier connection. Rows already imported stay; their packages are still in the same account or a new one. */
-  savePorchlightConnection(tokenId: string, label: string, now: number): void {
-    this.q.run(`INSERT INTO porchlight_connection (id, token_id, label, paired_at, status) VALUES (1, ?, ?, ?, 'active')
-      ON CONFLICT (id) DO UPDATE SET token_id = excluded.token_id, label = excluded.label, paired_at = excluded.paired_at, status = 'active'`,
-    tokenId, label, now);
+  savePorchlightConnection(tokenId: string, label: string, account: string | null, now: number): void {
+    this.q.run(`INSERT INTO porchlight_connection (id, token_id, label, account, paired_at, status) VALUES (1, ?, ?, ?, ?, 'active')
+      ON CONFLICT (id) DO UPDATE SET token_id = excluded.token_id, label = excluded.label, account = excluded.account,
+        paired_at = excluded.paired_at, status = 'active'`,
+    tokenId, label, account, now);
   }
 
   setPorchlightSignedOut(): void {

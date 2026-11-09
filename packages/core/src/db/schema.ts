@@ -427,4 +427,7 @@ export const MIGRATIONS: readonly string[] = [
   CREATE INDEX porchlight_imports_due ON porchlight_imports (state, next_attempt);
   CREATE INDEX porchlight_imports_row ON porchlight_imports (message_row_id);
   `,
+  /* 13: the Porchlight account a pairing link was confirmed for, masked by Porchlight ("n•••@xanom.co"). Display only. */ `
+  ALTER TABLE porchlight_connection ADD COLUMN account TEXT;
+  `,
 ];

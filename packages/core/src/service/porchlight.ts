@@ -4,7 +4,7 @@ import type { ServiceContext } from "./context";
 export function wirePorchlight(ctx: ServiceContext) {
   const service = new PorchlightService({
     store: ctx.store, platform: ctx.platform, fetch: ctx.fetch, now: ctx.now,
-    ensureBodies: (ids) => ctx.ensureBodies(ids), poke: () => ctx.scheduler.poke(),
+    ensureBodies: (ids) => ctx.ensureBodies(ids), poke: () => ctx.scheduler.poke(), emit: ctx.emit,
   });
   let running: Promise<void> | null = null;
   const unregister = ctx.scheduler.addJob({

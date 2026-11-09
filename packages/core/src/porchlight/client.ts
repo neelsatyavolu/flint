@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PORCHLIGHT_ORIGIN } from "../store/porchlight";
+import { PORCHLIGHT_ORIGIN } from "./config";
 import type { PorchlightCarrierId } from "./carriers";
 
 /** One item of POST /v1/imports/flint. Exactly these fields: never bodies (Porchlight SPEC §7). */
@@ -28,6 +28,7 @@ const Imports = z.object({
     dedupeKey: z.string(), packageId: UUID.nullable(), outcome: z.enum(["created", "updated", "unchanged", "rejected"]), reason: z.string().optional(),
   })),
 });
+const Peek = z.object({ account: z.string().min(1).max(254) });
 const Envelope = z.object({ ok: z.literal(true), data: z.unknown() });
 
 const TIMEOUT_MS = 15_000;
@@ -38,6 +39,11 @@ export class PorchlightClient {
   /** POST /v1/pairing/claim. No auth: the one-time code is the credential. */
   async claim(code: string, label: string): Promise<z.infer<typeof Claim>> {
     return this.#call("POST", "/v1/pairing/claim", null, { code, label }, Claim);
+  }
+
+  /** POST /v1/pairing/peek. No auth and it doesn't use the code up: answers the masked email of the account that made it. */
+  async peek(code: string): Promise<z.infer<typeof Peek>> {
+    return this.#call("POST", "/v1/pairing/peek", null, { code }, Peek);
   }
 
   /** POST /v1/imports/flint with 1-100 items. */

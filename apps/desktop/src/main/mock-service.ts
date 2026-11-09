@@ -77,6 +77,7 @@ export function createMockService(dataDir: string): FlintService {
     async removeConnector() {},
 
     async porchlightStatus() { return { connection: null, imported: 0, pending: 0, lastImportAt: null }; },
+    async peekPorchlight() { throw new FlintError("invalid", "Porchlight is unavailable in the empty desktop mock."); },
     async pairPorchlight() { throw new FlintError("invalid", "Porchlight is unavailable in the empty desktop mock."); },
     async disconnectPorchlight() { return { revoked: false }; },
     async listPorchlightPackages() { return []; },

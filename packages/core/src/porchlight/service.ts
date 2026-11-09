@@ -4,14 +4,16 @@ import type { Platform } from "../platform";
 import type { Store, StoredMessage } from "../store";
 import { PORCHLIGHT_DAY, PORCHLIGHT_HISTORY_DAYS, type PorchlightImportRow } from "../store/porchlight";
 import { detectTracking, mayCarryTracking } from "../tracking/detect";
-import { FlintError, type PorchlightStatus } from "../types";
+import { FlintError, type FlintEvent, type PorchlightStatus } from "../types";
 import { porchlightCarrier } from "./carriers";
 import { PorchlightClient, PorchlightHttpError, type FlintImportItem } from "./client";
 
-export type PorchlightApi = Pick<FlintApi, "porchlightStatus" | "pairPorchlight" | "disconnectPorchlight" | "listPorchlightPackages">;
+export type PorchlightApi = Pick<FlintApi, "porchlightStatus" | "peekPorchlight" | "pairPorchlight" | "disconnectPorchlight" | "listPorchlightPackages">;
 export type PorchlightDeps = {
   store: Store; platform: Pick<Platform, "secrets">; fetch: typeof fetch; now(): number;
   ensureBodies(ids: number[]): Promise<void>; poke(): void;
+  /** Tells the window the connection changed ({ type: "porchlight" }). */
+  emit?: (event: FlintEvent) => void;
   /** The device part of the token label, "Flint on <name>". Defaults to this computer's host name. */
   deviceName?: () => string;
   origin?: string;
@@ -35,7 +37,8 @@ export class PorchlightService {
     this.#unlisten = deps.store.onIngest(() => deps.poke());
     this.api = {
       porchlightStatus: async () => this.#status(),
-      pairPorchlight: (code) => this.#serial(() => this.#pair(code)),
+      peekPorchlight: (code) => this.#peek(code),
+      pairPorchlight: (code, opts = {}) => this.#serial(() => this.#pair(code, opts.account)),
       disconnectPorchlight: () => this.#serial(() => this.#disconnect()),
       listPorchlightPackages: async (opts = {}) => {
         if (opts.threadId !== undefined && (!Number.isInteger(opts.threadId) || opts.threadId <= 0)) throw new FlintError("invalid", "threadId must be a positive whole number.");
@@ -70,15 +73,24 @@ export class PorchlightService {
   #status(): PorchlightStatus {
     const c = this.deps.store.porchlightConnection();
     return {
-      connection: c ? { label: c.label, pairedAt: c.paired_at, signedOut: c.status === "signed_out" } : null,
+      connection: c ? { label: c.label, account: c.account, pairedAt: c.paired_at, signedOut: c.status === "signed_out" } : null,
       ...this.deps.store.porchlightCounts(),
       lastImportAt: c?.last_import_at ?? null,
     };
   }
 
-  async #pair(raw: string): Promise<PorchlightStatus> {
-    const code = String(raw).toUpperCase().replace(/[^A-Z0-9]/g, "");
-    if (code.length !== 8) throw new FlintError("invalid", "Enter the 8-character code from Porchlight Settings.");
+  async #peek(raw: string): Promise<{ account: string }> {
+    const code = normalizeCode(raw);
+    try {
+      return { account: (await this.#client.peek(code)).account };
+    } catch (error) {
+      throw peekError(error);
+    }
+  }
+
+  async #pair(raw: string, account?: string): Promise<PorchlightStatus> {
+    const code = normalizeCode(raw);
+    const shown = typeof account === "string" && account.trim() ? account.trim().slice(0, 254) : null;
     const { store, platform, now } = this.deps;
     const label = `Flint on ${(this.deps.deviceName ?? defaultDeviceName)()}`.slice(0, 100);
     let claimed: { token: string; tokenId: string };
@@ -91,7 +103,7 @@ export class PorchlightService {
     try {
       await platform.secrets.set(PORCHLIGHT_SECRET, JSON.stringify({ token: claimed.token, tokenId: claimed.tokenId } satisfies Secret));
       store.transaction(() => {
-        store.savePorchlightConnection(claimed.tokenId, label, now());
+        store.savePorchlightConnection(claimed.tokenId, label, shown, now());
         store.queuePorchlightMessages(store.connectorHistory(now() - PORCHLIGHT_HISTORY_DAYS * PORCHLIGHT_DAY), now());
       });
     } catch (error) {
@@ -103,7 +115,13 @@ export class PorchlightService {
     // A token replaced by pairing again is no longer needed.
     if (previous && previous.tokenId !== claimed.tokenId) await this.#client.revoke(previous.token, previous.tokenId);
     this.deps.poke();
-    return this.#status();
+    return this.#announce();
+  }
+
+  #announce(): PorchlightStatus {
+    const status = this.#status();
+    this.deps.emit?.({ type: "porchlight", status });
+    return status;
   }
 
   async #disconnect(): Promise<{ revoked: boolean }> {
@@ -113,6 +131,7 @@ export class PorchlightService {
     store.deletePorchlight();
     await platform.secrets.delete(PORCHLIGHT_SECRET);
     this.deps.poke();
+    this.#announce();
     return { revoked: secret ? await this.#client.revoke(secret.token, secret.tokenId) : false };
   }
 
@@ -242,6 +261,20 @@ async function readSecret(platform: Pick<Platform, "secrets">): Promise<Secret |
 
 function defaultDeviceName(): string {
   return hostname().replace(/\.local$/i, "").replace(/-/g, " ").trim() || "this Mac";
+}
+
+function normalizeCode(raw: string): string {
+  const code = String(raw).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (code.length !== 8) throw new FlintError("invalid", "Enter the 8-character code from Porchlight Settings.");
+  return code;
+}
+
+function peekError(error: unknown): FlintError {
+  const status = error instanceof PorchlightHttpError ? error.status : 0;
+  if (status === 404 || status === 400 || status === 401) return new FlintError("invalid", "This Porchlight link expired or was already used. In Porchlight, click Connect Flint again.");
+  if (status === 429) return new FlintError("invalid", "Too many tries. Wait a few minutes, then try again.");
+  if (status === 0) return new FlintError("network", "Couldn't reach Porchlight. Check your connection and try again.");
+  return new FlintError("internal", `Porchlight couldn't check this link (HTTP ${status}). Try again in a minute.`);
 }
 
 function pairingError(error: unknown): FlintError {
