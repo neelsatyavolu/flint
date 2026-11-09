@@ -1,0 +1,21 @@
+Subject: DHL On Demand Delivery: Your shipment is on the way
+From: DHL Express <noreply@dhl.com>
+Note: synthetic. Written from public DHL On Demand Delivery examples; the waybill is jkeen/tracking_number_data's DHL test number 3318810025. Not real mail.
+
+DHL Express - Excellence. Simply delivered.
+(https://www.dhl.com/…)
+
+Hello ALEX RIVERA,
+
+Your shipment from EXAMPLE GMBH is on the way.
+
+Waybill Number: 3318810025
+Estimated delivery: Friday, November 13, 2026
+Delivery time: End of day
+
+Manage your delivery
+(https://mydhl.express.dhl/…)
+
+Customer Service: 1-800-225-5345
+
+This is an automatically generated email. Please do not reply.

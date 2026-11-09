@@ -1,0 +1,14 @@
+Subject: Your order has shipped
+From: Thrive Market <orders@thrivemarket.com>
+Note: synthetic. Written from public examples of merchant mail that hand off to AxleHire (now Jitsu); the shipper number has a third-party-reported SCD shape and is made up. Not real mail.
+
+Thrive Market
+(https://thrivemarket.com/…)
+
+Your order #T1234567 has shipped.
+
+Tracking number: SCD0000F00410922107
+Track your delivery with AxleHire
+(https://recipient.gojitsu.com/…)
+
+Thanks for shopping with us!

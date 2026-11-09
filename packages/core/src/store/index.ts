@@ -2,6 +2,7 @@ import { tx, type Db } from "../db/open";
 import { AccountsRepo } from "./accounts";
 import { CalendarAccountsRepo } from "./calendarAccounts";
 import { ConnectorsRepo } from "./connectors";
+import { PorchlightRepo } from "./porchlight";
 import { ContactsRepo } from "./contacts";
 import { DashboardRepo } from "./dashboard";
 import { DraftsRepo, ScheduledRepo } from "./drafts";
@@ -24,7 +25,7 @@ import { ThreadListRepo } from "./threadList";
 /** Flat view of every repository's methods, so callers write store.ingestMessages(...), store.listThreads(...). */
 type Pub<T> = { [K in keyof T]: T[K] };
 export interface Store extends
-  Pub<ConnectorsRepo>, Pub<AccountsRepo>, Pub<FoldersRepo>, Pub<ContactsRepo>, Pub<RulesRepo>, Pub<ReceiptsRepo>, Pub<IngestRepo>, Pub<MessagesRepo>,
+  Pub<ConnectorsRepo>, Pub<PorchlightRepo>, Pub<AccountsRepo>, Pub<FoldersRepo>, Pub<ContactsRepo>, Pub<RulesRepo>, Pub<ReceiptsRepo>, Pub<IngestRepo>, Pub<MessagesRepo>,
   Pub<ThreadListRepo>, Pub<ThreadActionsRepo>, Pub<SettingsRepo>, Pub<KvRepo>, Pub<ActivityRepo>, Pub<DraftsRepo>, Pub<ScheduledRepo>,
   Pub<LibraryRepo>, Pub<RemindersRepo>, Pub<DashboardRepo>, Pub<RecategorizeRepo>, Pub<PendingOpsRepo>, Pub<InvitesRepo>, Pub<CalendarAccountsRepo> {}
 
@@ -47,7 +48,7 @@ export class Store {
     const messages = new MessagesRepo(q, accounts);
     const lists = new ThreadListRepo(q, accounts, receipts, rules);
     const repos: object[] = [
-      accounts, folders, contacts, rules, receipts, messages, lists, new ConnectorsRepo(q),
+      accounts, folders, contacts, rules, receipts, messages, lists, new ConnectorsRepo(q), new PorchlightRepo(q),
       new IngestRepo(q, accounts, folders, contacts, rules, receipts),
       new ThreadActionsRepo(q, accounts, folders, messages),
       new SettingsRepo(q), new KvRepo(q), new ActivityRepo(q), new DraftsRepo(q), new ScheduledRepo(q),

@@ -1,0 +1,21 @@
+Subject: Out for delivery: "Kindle Paperwhite (16 GB)..."
+From: Amazon.com <shipment-tracking@amazon.com>
+Note: synthetic. Written from public examples of Amazon delivery mail; the number is jkeen/tracking_number_data's UPS test number 1Z5R89390357567127. Not real mail.
+
+   Your Orders
+(https://www.amazon.com/…)
+
+Your package is out for delivery.
+
+Arriving today by 8 PM
+Order # 112-0000000-1111111
+Track package
+(https://www.amazon.com/…)
+
+Kindle Paperwhite (16 GB)
+
+Shipped with UPS
+Tracking ID: 1Z5R89390357567127
+
+Ship to
+Alex - SPRINGFIELD, CA

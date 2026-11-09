@@ -1,7 +1,9 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Pin, BellOff, ChevronDown as CaretDown } from "lucide-react";
+import { Pin, BellOff, ChevronDown as CaretDown, Package } from "lucide-react";
 import clsx from "clsx";
 import type { FlintApi, MessageView, ThreadDetail, ThreadId } from "@flint/core";
+import type { PorchlightPackage } from "@flint/core/types";
+import { openExternal } from "../../lib/host";
 import { flint } from "../../lib/api";
 import { formatPresetTime } from "../../lib/time";
 import { Badge, Button, Dialog, EmptyState, Menu, Skeleton, useToast } from "../../ui";
@@ -42,6 +44,7 @@ export function ThreadHeader({ thread }: { thread: ThreadDetail }) {
   const [confirmUnsub, setConfirmUnsub] = useState(false);
   const account = accounts.find((a) => a.id === thread.accountId);
   const unsub = thread.messages.findLast((m) => m.unsubscribe);
+  const packages = usePorchlightPackages(thread.id, thread.messages.length);
   const chips = [
     thread.pinned ? <Badge key="pin"><Pin size={10} strokeWidth={1.5} />Pinned</Badge> : null,
     thread.muted ? <Badge key="mute"><BellOff size={10} strokeWidth={1.5} />Muted</Badge> : null,
@@ -69,6 +72,12 @@ export function ThreadHeader({ thread }: { thread: ThreadDetail }) {
         <span className={styles.acctText} title={account.email}>{account.email}</span>
       </Badge>
     ) : null,
+    ...packages.map((p) => (
+      <button key={`pl-${p.packageId}`} type="button" className={styles.categoryChip} title={`${p.carrier ? `${p.carrier} ` : ""}${p.trackingNumber}`}
+        aria-label={`Tracking in Porchlight: ${p.trackingNumber}. Open in Porchlight`} onClick={() => openExternal(p.url)}>
+        <Package size={10} strokeWidth={1.5} aria-hidden />Tracking in Porchlight
+      </button>
+    )),
   ].filter(Boolean);
 
   return (
@@ -83,6 +92,19 @@ export function ThreadHeader({ thread }: { thread: ThreadDetail }) {
       {unsub ? <UnsubscribeDialog message={unsub} open={confirmUnsub} onClose={() => setConfirmUnsub(false)} /> : null}
     </div>
   );
+}
+
+/** Packages from this thread that Flint sent to Porchlight. Rechecked when a message arrives; empty when not paired. */
+function usePorchlightPackages(threadId: ThreadId, messageCount: number): PorchlightPackage[] {
+  const [packages, setPackages] = useState<{ threadId: ThreadId; list: PorchlightPackage[] }>({ threadId, list: [] });
+  useEffect(() => {
+    let live = true;
+    flint.listPorchlightPackages({ threadId, limit: 5 })
+      .then((list) => { if (live) setPackages({ threadId, list }); })
+      .catch(() => { if (live) setPackages({ threadId, list: [] }); });
+    return () => { live = false; };
+  }, [threadId, messageCount]);
+  return packages.threadId === threadId ? packages.list : [];
 }
 
 /** Every Inbox conversation from `address`, read 200 at a time. */

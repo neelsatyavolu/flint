@@ -138,6 +138,7 @@ export function summarize(method: FlintMethod, params: readonly unknown[], resul
     }
     case "aiCancel": return "Cancelled an AI run";
     case "listAgentActivity": return "Listed agent activity";
+    case "listPorchlightPackages": return "Listed packages sent to Porchlight";
     default: return humanize(method);
   }
 }

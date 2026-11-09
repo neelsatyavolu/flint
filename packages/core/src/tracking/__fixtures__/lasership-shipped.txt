@@ -1,0 +1,17 @@
+Subject: Your Chewy order has shipped!
+From: Chewy <noreply@chewy.com>
+Note: synthetic. Written from public examples of merchant shipping mail; the number is jkeen/tracking_number_data's LaserShip test number 1LS717793482164. Not real mail.
+
+Chewy
+(https://www.chewy.com/…)
+
+Your order is on its way!
+
+Order #1000000000
+Shipped via LaserShip
+Tracking #: 1LS717793482164
+Track Package
+(https://www.lasership.com/…)
+
+Blue Buffalo Life Protection Formula, 30 lb bag
+Qty: 1

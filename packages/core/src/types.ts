@@ -830,3 +830,24 @@ export type ConnectorPreview = {
   count: number;
   subjects: string[];
 };
+
+/** The Porchlight delivery tracker (porchlight.xanom.co). The API token is stored only in Platform.secrets. */
+export type PorchlightStatus = {
+  /** null until paired. `signedOut`: Porchlight rejected the token (revoked there); pair again to resume. */
+  connection: { label: string; pairedAt: number; signedOut: boolean } | null;
+  /** Messages whose package Porchlight is tracking, and messages still waiting to be checked or sent. */
+  imported: number;
+  pending: number;
+  lastImportAt: number | null;
+};
+/** A package Flint found in mail and imported into Porchlight. */
+export type PorchlightPackage = {
+  packageId: string;
+  /** https://porchlight.xanom.co/app/p/<packageId> */
+  url: string;
+  threadId: ThreadId;
+  /** Flint's carrier name ("UPS", "FedEx"), or null when Porchlight picked it from the number. */
+  carrier: string | null;
+  trackingNumber: string;
+  importedAt: number;
+};

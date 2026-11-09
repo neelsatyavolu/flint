@@ -1,0 +1,36 @@
+Subject: UPS Update: Package Scheduled for Delivery Tomorrow
+From: UPS <pkginfo@ups.com>
+Note: synthetic. Written from public UPS notification examples; the number is UPS's published sample 1Z999AA10123456784. Not real mail.
+
+UPS
+(https://www.ups.com/…)
+
+Hello, your package is scheduled for delivery tomorrow.
+
+Scheduled Delivery Date:
+Thursday, 11/12/2026
+
+Estimated Delivery Window:
+9:15 AM - 1:15 PM
+
+Shipped To:
+SPRINGFIELD, CA US
+
+Number of Packages:
+1
+
+Tracking Number:
+1Z999AA10123456784
+(https://www.ups.com/…)
+
+Ship From:
+EXAMPLE OUTFITTERS
+
+Want more control over your deliveries? Sign up for UPS My Choice.
+(https://www.ups.com/…)
+
+Download the UPS mobile app
+(https://www.ups.com/…)
+
+Do not reply to this e-mail. UPS and EXAMPLE OUTFITTERS will not receive your reply.
+© 2026 United Parcel Service of America, Inc. UPS, the UPS brandmark, and the color brown are trademarks of United Parcel Service of America, Inc.

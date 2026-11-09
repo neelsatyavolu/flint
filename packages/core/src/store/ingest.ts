@@ -1,4 +1,5 @@
 import { enqueueConnectorIngest } from "./connectors";
+import { enqueuePorchlightIngest } from "./porchlight";
 import { categorize } from "../categorize";
 import { tx } from "../db/open";
 import { evaluateRules, resolveCategory, senderMatchesBlocked, type RuleMessage } from "../rules";
@@ -71,7 +72,9 @@ export class IngestRepo {
         action.type === "trash" || (action.type === "move" && excludedRoles.has(run.folders.get(action.folderPath)?.role ?? "")),
       )).map((o) => o.threadId));
       for (const outcome of outcomes) {
-        if (!excludedThreads.has(outcome.threadId)) enqueueConnectorIngest(this.q, outcome.messageRowId, run.now);
+        if (excludedThreads.has(outcome.threadId)) continue;
+        enqueueConnectorIngest(this.q, outcome.messageRowId, run.now);
+        enqueuePorchlightIngest(this.q, outcome.messageRowId, run.now);
       }
       queueMicrotask(() => { for (const listener of this.ingestListeners) listener(); });
       return outcomes;
