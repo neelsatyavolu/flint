@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { MAIL_FRAME_SANDBOX, buildCsp, buildSrcdoc, interceptLinks, observeFrameHeight, textToHtml } from "./html";
+import { MAIL_FRAME_SANDBOX, buildCsp, buildSrcdoc, interceptLinks, observeFrameHeight, textToHtml, uncapCollapsedImages } from "./html";
 
 describe("buildCsp", () => {
   it("blocks remote images by default", () => {
@@ -93,6 +93,45 @@ describe("interceptLinks", () => {
     off();
     doc.getElementById("a")!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(open).toHaveBeenCalledTimes(2);
+    frame.remove();
+  });
+});
+
+describe("uncapCollapsedImages", () => {
+  /** jsdom has no layout, so each image reports the rendered width and natural width it is given. */
+  function img(doc: Document, id: string, rendered: number, natural: number, display = "block"): HTMLImageElement {
+    const el = doc.getElementById(id) as HTMLImageElement;
+    el.getBoundingClientRect = () => ({ width: rendered }) as DOMRect;
+    Object.defineProperty(el, "naturalWidth", { value: natural, configurable: true });
+    el.style.display = display;
+    return el;
+  }
+
+  it("lifts the width cap only on loaded, shown images that rendered 0 wide", () => {
+    const frame = frameWith('<img id="logo"><img id="ok"><img id="pending"><img id="hidden"><img id="pixel">');
+    const doc = frame.contentDocument!;
+    const logo = img(doc, "logo", 0, 396);
+    const ok = img(doc, "ok", 120, 120);
+    const pending = img(doc, "pending", 0, 0);
+    const hidden = img(doc, "hidden", 0, 258, "none");
+    const pixel = img(doc, "pixel", 0, 1);
+    const stop = uncapCollapsedImages(frame);
+    expect(logo.style.maxWidth).toBe("none");
+    for (const el of [ok, pending, hidden, pixel]) expect(el.style.maxWidth).toBe("");
+    stop();
+    frame.remove();
+  });
+
+  it("checks again when an image finishes loading", () => {
+    const frame = frameWith('<img id="late">');
+    const doc = frame.contentDocument!;
+    const late = img(doc, "late", 0, 0);
+    const stop = uncapCollapsedImages(frame);
+    expect(late.style.maxWidth).toBe("");
+    Object.defineProperty(late, "naturalWidth", { value: 396 });
+    late.dispatchEvent(new Event("load"));
+    expect(late.style.maxWidth).toBe("none");
+    stop();
     frame.remove();
   });
 });
