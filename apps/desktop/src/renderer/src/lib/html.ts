@@ -159,6 +159,31 @@ export function observeFrameHeight(frame: HTMLIFrameElement, onHeight: (px: numb
 }
 
 /** Intercepts link clicks inside the frame and routes them to `open` (system browser). */
+/**
+ * The frame caps images at `max-width:100%`. Chromium sizes such an image inside an auto-width table cell from a
+ * zero minimum, so a logo without a width attribute (Amazon's header, for one) collapses to nothing. This lifts the
+ * cap on every shown, loaded image that rendered 0 wide, now and whenever another image finishes loading.
+ */
+export function uncapCollapsedImages(frame: HTMLIFrameElement): () => void {
+  const doc = frame.contentDocument;
+  if (!doc) return () => undefined;
+  const view = doc.defaultView;
+  const check = () => {
+    for (const img of Array.from(doc.images)) {
+      if (img.naturalWidth <= 1 || img.getBoundingClientRect().width > 0) continue;
+      if (view?.getComputedStyle(img).display === "none") continue;
+      img.style.maxWidth = "none";
+    }
+  };
+  const onLoad = (e: Event) => {
+    if ((e.target as Element | null)?.tagName === "IMG") check();
+  };
+  check();
+  // load does not bubble, so listen in the capture phase.
+  doc.addEventListener("load", onLoad, true);
+  return () => doc.removeEventListener("load", onLoad, true);
+}
+
 export function interceptLinks(frame: HTMLIFrameElement, open: (url: string) => void): () => void {
   const doc = frame.contentDocument;
   if (!doc) return () => undefined;

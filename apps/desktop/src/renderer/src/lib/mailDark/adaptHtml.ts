@@ -6,6 +6,8 @@ type Ctx = { under: Rgba; kept: boolean; fg: Rgba };
 const SKIP = new Set(["SCRIPT", "SVG", "HEAD", "TEMPLATE", "NOSCRIPT"]);
 const SIGNATURE_HINT = /(gmail_signature|moz-signature|signature|(^|[\s_-])sig([\s_-]|$))/i;
 const LOGO_HINT = /logo|brand|wordmark/i;
+/** Light art the sender made for dark backgrounds ("whiterev", "Logo_Dark", class "dark-img"): a plate would hide it. */
+const DARK_VARIANT = /dark|white|reverse|invert/i;
 const FLAT_IMAGE = /\.(png|svg|gif|webp)(\?|#|$)|^data:image\/(png|svg\+xml|gif|webp)/i;
 const PLATE = "background:#ffffff;padding:2px 4px;border-radius:2px";
 
@@ -16,6 +18,7 @@ function needsPlate(img: Element): boolean {
   if (Number(img.getAttribute("width")) > 260) return false;
   if (/background(-color)?\s*:/i.test(img.getAttribute("style") ?? "")) return false;
   const hint = `${img.getAttribute("alt") ?? ""} ${img.getAttribute("class") ?? ""} ${img.getAttribute("id") ?? ""} ${src.startsWith("data:") ? "" : src}`;
+  if (DARK_VARIANT.test(hint)) return false;
   if (LOGO_HINT.test(hint)) return true;
   for (let p: Element | null = img.parentElement; p; p = p.parentElement) {
     const marks = `${p.getAttribute("class") ?? ""} ${p.getAttribute("id") ?? ""} ${p.getAttribute("data-smartmail") ?? ""}`;

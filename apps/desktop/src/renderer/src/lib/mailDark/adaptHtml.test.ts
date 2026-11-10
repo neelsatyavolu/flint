@@ -137,6 +137,10 @@ describe("signature with a logo", () => {
     const o = adaptMailForDark('<table><tr><td style="background:#0F110F"><img src="https://x.test/infocus-logo.png" width="28" height="28" alt=""></td></tr></table>');
     expect(o.html).not.toContain("#ffffff");
   });
+  it("does not plate a logo the sender made for dark backgrounds", () => {
+    const o = adaptMailForDark('<img src="https://x.test/Amazon_logo_whiterev_US.png" height="58" class="dark-img"><img src="https://x.test/Smile_Logo_Dark.png" alt="Amazon.com" width="86">');
+    expect(o.html).not.toContain("#ffffff");
+  });
 });
 
 describe("mail that cannot be adapted", () => {

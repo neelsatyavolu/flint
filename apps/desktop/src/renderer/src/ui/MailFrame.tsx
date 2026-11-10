@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MAIL_FRAME_SANDBOX, buildSrcdoc, interceptLinks, observeFrameHeight } from "../lib/html";
+import { MAIL_FRAME_SANDBOX, buildSrcdoc, interceptLinks, observeFrameHeight, uncapCollapsedImages } from "../lib/html";
 import { openExternal } from "../lib/host";
 import { readFrameColors, useResolvedTheme } from "../lib/theme";
 
@@ -86,9 +86,12 @@ export function MailFrame({ html, allowRemoteImages, colors, sheet, padding, tit
       }
     });
     let stopLinks = () => {};
+    let stopImages = () => {};
     const bind = () => {
       stopLinks();
+      stopImages();
       stopLinks = interceptLinks(frame, onLink ?? openExternal);
+      stopImages = uncapCollapsedImages(frame);
     };
     frame.addEventListener("load", bind);
     return () => {
@@ -96,6 +99,7 @@ export function MailFrame({ html, allowRemoteImages, colors, sheet, padding, tit
       frame.removeEventListener("load", onLoad);
       clearTimeout(timer);
       stopLinks();
+      stopImages();
       stopHeight();
     };
   }, [srcDoc, key, onLink]);
