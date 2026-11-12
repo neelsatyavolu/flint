@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import clsx from "clsx";
 import type { AgentActivity } from "@flint/core";
@@ -9,28 +10,60 @@ import { Badge, Button, EmptyState, SectionLabel, SkeletonRows, useToast, type B
 import { PaneHeader } from "../../shell/PaneHeader";
 import { navStore } from "../../state/nav";
 import { ApprovalCard } from "./ApprovalCard";
-import { groupActivity, scheduledIdOf, statusLabel } from "./activityModel";
+import { describeReads, foldReads, groupActivity, scheduledIdOf, statusLabel, type ActivityEntry } from "./activityModel";
 import styles from "./AgentActivityView.module.css";
 
 const TONE: Record<AgentActivity["status"], BadgeTone | null> = { ok: null, error: "danger", awaiting_approval: "warn", approved: "ok", denied: "neutral" };
 
-function Row({ item, draftId, onDecide }: { item: AgentActivity; draftId: number | null | undefined; onDecide: (item: AgentActivity, approve: boolean) => void }) {
+type Decide = (item: AgentActivity, approve: boolean) => void;
+
+function CallRow({ item }: { item: AgentActivity }) {
   const tone = TONE[item.status];
-  if (item.status === "awaiting_approval") {
-    return <li><ApprovalCard item={item} draftId={draftId} onDecide={(ok) => onDecide(item, ok)} /></li>;
-  }
   return (
-    <li className={styles.row}>
+    <li className={styles.row} title={item.method}>
       <time className={clsx("t-data", styles.time)}>{format(item.at, "h:mm a")}</time>
-      <div className={styles.main}>
-        <span className={styles.summary}>{item.summary}</span>
-        <span className={clsx("t-data", styles.meta)}>{item.agent} · {item.method}</span>
-      </div>
-      <div className={styles.side}>
-        {tone ? <Badge tone={tone}>{statusLabel(item.status)}</Badge> : null}
-      </div>
+      <span className={styles.summary}>{item.summary}</span>
+      {tone ? <Badge tone={tone}>{statusLabel(item.status)}</Badge> : null}
+      <span className={clsx("t-data", styles.agent)}>{item.agent}</span>
     </li>
   );
+}
+
+/** A burst of reads as one quiet line; opens to show each call. */
+function ReadsRow({ agent, items }: { agent: string; items: AgentActivity[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <li className={styles.reads}>
+      <button type="button" className={styles.row} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <time className={clsx("t-data", styles.time)}>{format(items[0]!.at, "h:mm a")}</time>
+        <span className={clsx(styles.summary, styles.quiet)}>{describeReads(items)}</span>
+        <span className={clsx("t-data", styles.count)}>
+          {items.length} reads
+          <ChevronRight size={14} strokeWidth={1.5} className={clsx(styles.chevron, open && styles.turned)} />
+        </span>
+        <span className={clsx("t-data", styles.agent)}>{agent}</span>
+      </button>
+      {open ? (
+        <ul className={styles.calls}>
+          {items.map((i) => (
+            <li key={i.id} className={styles.call} title={i.method}>
+              <time className={clsx("t-data", styles.time)}>{format(i.at, "h:mm:ss a")}</time>
+              <span className={styles.summary}>{i.summary}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  );
+}
+
+function Entry({ entry, draftOf, onDecide }: { entry: ActivityEntry; draftOf: (item: AgentActivity) => number | null | undefined; onDecide: Decide }) {
+  if (entry.kind === "reads") return <ReadsRow agent={entry.agent} items={entry.items} />;
+  const { item } = entry;
+  if (item.status === "awaiting_approval") {
+    return <li><ApprovalCard item={item} draftId={draftOf(item)} onDecide={(ok) => onDecide(item, ok)} /></li>;
+  }
+  return <CallRow item={item} />;
 }
 
 /** Timeline of every call agents made through the CLI and agent API, with Approve and Deny for queued sends. */
@@ -79,7 +112,7 @@ export function AgentActivityView() {
             {groups.map((g) => (
               <section key={g.label} className={styles.group}>
                 <SectionLabel rule className={clsx(styles.groupLabel, g.attention && styles.attention)}>{g.label}</SectionLabel>
-                <ul>{g.items.map((i) => <Row key={i.id} item={i} draftId={draftOf(i)} onDecide={(it, ok) => void decide(it, ok)} />)}</ul>
+                <ul>{foldReads(g.items).map((e) => <Entry key={e.kind === "call" ? e.item.id : `r${e.items[0]!.id}`} entry={e} draftOf={draftOf} onDecide={(it, ok) => void decide(it, ok)} />)}</ul>
               </section>
             ))}
           </div>

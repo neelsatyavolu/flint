@@ -57,6 +57,10 @@ export function makeActivity(now: number): AgentActivity[] {
     { at: now - 4 * min, agent: "claude-code", method: "sendDraft", summary: "Queued mail to nina@bluepine.example for approval", status: "awaiting_approval", detail: { draftId: 9001, to: "nina@bluepine.example", subject: "Contract questions" } },
     { at: now - 11 * min, agent: "claude-code", method: "getThread", summary: "Read thread 'Freelancing Cycle 3'", status: "ok", detail: {} },
     { at: now - 26 * min, agent: "claude-code", method: "listThreads", summary: "Listed 20 unread threads in Inbox", status: "ok", detail: {} },
+    // A burst of reads, the way an agent looks around before acting. The view folds these into one line.
+    ...["Listed drafts", "Listed queued mail", "Listed spam", "Listed accounts", "Listed trash", "Listed accounts", "Listed inbox", "Listed accounts"].map((summary, i) => ({
+      at: now - (90 + i) * min, agent: "claude-code", method: summary === "Listed accounts" ? "listAccounts" : "listThreads", summary, status: "ok" as const, detail: {},
+    })),
     { at: now - 3 * 60 * min, agent: "cron-digest", method: "archive", summary: "Archived 3 threads", status: "ok", detail: { count: 3 } },
     { at: now - 5 * 60 * min, agent: "cli", method: "searchThreads", summary: "Searched 'invoice 2291'", status: "ok", detail: {} },
     { at: now - 26 * 60 * min, agent: "claude-code", method: "createDraft", summary: "Drafted reply to Priya Raman", status: "ok", detail: {} },
