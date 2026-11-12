@@ -12,7 +12,7 @@ const UPDATE_COPY = {
 } as const;
 
 /** Keep in step with apps/desktop/package.json. */
-export const APP_VERSION = "1.1.1";
+export const APP_VERSION = "1.1.2";
 
 export function AboutSection() {
   const { settings, save } = useSettingsStore();
