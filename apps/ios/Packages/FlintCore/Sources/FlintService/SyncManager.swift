@@ -65,6 +65,18 @@ final class SyncManager: Sendable {
         for id in ids { await stop(id) }
     }
 
+    /// Stops every sync loop but keeps the sessions and their idle command connections, so `startAll` resumes on them without
+    /// logging in again. Accounts pause side by side.
+    func pauseAll() async {
+        let sessions = state.withLock { s -> [AccountSession] in
+            s.started.removeAll()
+            return Array(s.sessions.values)
+        }
+        await withTaskGroup(of: Void.self) { group in
+            for session in sessions { group.addTask { await session.pause() } }
+        }
+    }
+
     /// Restarts every account that stopped on a sign-in error, for example after the Google client id was corrected.
     func restartAuthErrors() async {
         let ids = state.withLock { s in s.statuses.filter { $0.value.state == .authError }.map(\.key) }

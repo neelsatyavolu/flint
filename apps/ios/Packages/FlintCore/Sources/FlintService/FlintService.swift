@@ -53,13 +53,24 @@ public final class FlintService: Sendable {
         core.runtime.installSubscriptionsIfNone { core.wireListeners() }
     }
 
-    /// Stops sync and the pump (the app is going to the background). `start()` resumes.
+    /// Stops sync and the pump and closes every connection. `start()` resumes.
     public func stop() async {
+        await halt()
+        await core.sync.stopAll()
+    }
+
+    /// Like `stop()`, for the trip to the background: each account keeps its idle command connection, so the next `start()` syncs
+    /// on it at once instead of connecting and logging in again. A kept connection is checked before use and replaced when dead.
+    public func pause() async {
+        await halt()
+        await core.sync.pauseAll()
+    }
+
+    private func halt() async {
         let taken = core.runtime.take()
         for subscription in taken.subscriptions { subscription() }
         taken.maintenance?.cancel()
         await core.pump.stop()
-        await core.sync.stopAll()
     }
 
     /// Code detection in progress and codes announced. New mail starts a scan a moment after the sync reports it; a background run

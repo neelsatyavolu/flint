@@ -7,6 +7,9 @@ import Foundation
 
 public enum FolderSync {
     public static let batchSize = 200
+    /// The first batch of a folder's initial window: about one screen of the newest mail, so the list has something to show
+    /// within a round trip or two instead of after a full batch.
+    static let firstBatchSize = 50
     static let flagChunk = 500
     /// UIDs fetched per `loadOlder` call and folder.
     public static let backfillBatch = 500
@@ -62,7 +65,9 @@ public enum FolderSync {
         let uids = found.filter { !local.contains($0) }.sorted(by: >) // newest first
         var done = 0
         var minUid: Int?
-        for batch in chunked(uids, size: batchSize) {
+        let head = Array(uids.prefix(firstBatchSize))
+        let batches = (head.isEmpty ? [] : [head]) + chunked(Array(uids.dropFirst(firstBatchSize)), size: batchSize)
+        for batch in batches {
             try await ingest(c, folder: folder, uids: batch, evaluate: false)
             done += batch.count
             minUid = min(minUid ?? .max, batch.min() ?? .max)

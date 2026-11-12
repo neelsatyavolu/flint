@@ -32,6 +32,27 @@ struct ServiceSyncLifecycleTests {
         #expect(await rig.fake.connectCount == calls)
     }
 
+    @Test func pausingForTheBackgroundStopsSyncAndStartingResumesOnTheKeptConnection() async throws {
+        let rig = try await ServiceRig.make(autoSync: true)
+        defer { Task { await rig.cleanup() } }
+        await rig.deliver("already here", ageDays: 1)
+        try await rig.addAccount()
+        await rig.service.start()
+        #expect(await serviceEventually { (try? await rig.service.listThreads(inbox()).items.count) == 1 })
+
+        await rig.service.pause()
+        await rig.deliver("while away", from: "bo@example.org")
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(rig.log.newMailSubjects.isEmpty)
+        #expect(await rig.fake.isConnected)
+
+        await rig.service.start()
+        #expect(await serviceEventually { rig.log.newMailSubjects == ["while away"] })
+        #expect(await rig.fake.calls.contains("noop"))
+        await rig.service.stop()
+        #expect(await !rig.fake.isConnected)
+    }
+
     @Test func aRejectedSignInEndsInSignInAgainAndAFixedClientRestartsIt() async throws {
         let rig = try await ServiceRig.make(autoSync: true)
         defer { Task { await rig.cleanup() } }

@@ -6,6 +6,7 @@
 import FlintModel
 import FlintStore
 import Foundation
+import Synchronization
 
 public struct SessionConfiguration: Sendable {
     /// Poll interval when IDLE is not available.
@@ -22,6 +23,11 @@ public struct SessionConfiguration: Sendable {
     public var reconcileEveryCycles = 15
     /// An IDLE connection that ends sooner than this is not restarted at once.
     public var idleMinimumLifetime: Duration = .seconds(10)
+    /// A command connection kept across `pause` is reused for this long. After that the server or a NAT has likely dropped it,
+    /// so the session logs in again rather than wait for a dead socket.
+    public var keepAcrossPause: Duration = .seconds(600)
+    /// How long a kept connection has to answer NOOP before it is replaced.
+    public var livenessTimeout: Duration = .milliseconds(1500)
     /// Root of the attachment cache (`<root>/attachments/...`).
     public var cacheRoot: URL
 
@@ -53,6 +59,8 @@ public actor AccountSession: TransportRunner {
     private var networkTask: Task<Void, Never>?
     private var lastPath: NetworkPathState?
     private var stopped = true
+    /// Set while the command connection is kept across a pause; it is checked before its first use.
+    private var pausedAt: ContinuousClock.Instant?
 
     private var wakeWaiter: CheckedContinuation<Void, Never>?
     private var pendingWake = false
@@ -93,11 +101,7 @@ public actor AccountSession: TransportRunner {
         loopTask = Task { [weak self] in await self?.runLoop() }
         if let network {
             networkTask = Task { [weak self] in
-                var first = true
-                for await state in network.updates() {
-                    await self?.pathChanged(state, initial: first)
-                    first = false
-                }
+                for await state in network.updates() { await self?.pathChanged(state) }
             }
         }
     }
@@ -111,6 +115,22 @@ public actor AccountSession: TransportRunner {
         await closeTransports()
         await loopTask?.value
         loopTask = nil
+    }
+
+    /// Stops the loop like `stop` (for the trip to the background) but keeps the command connection when it is not busy, so the
+    /// first sync back in the foreground skips connecting and logging in. It is checked with NOOP before it is used again.
+    /// The IDLE connection always closes; `start` opens it again after the first sync.
+    public func pause() async {
+        // The loop is either waiting (keep the connection) or in a cycle; a cycle is ended like `stop` ends it.
+        let keep = loopTask == nil || wakeWaiter != nil
+        stopped = true
+        wake()
+        networkTask?.cancel()
+        networkTask = nil
+        if keep { await closeIdle() } else { await closeTransports() }
+        await loopTask?.value
+        loopTask = nil
+        if commandTransport != nil { pausedAt = ContinuousClock.now }
     }
 
     /// Runs one full sync cycle now and returns when it finishes. Throws the sync error.
@@ -269,7 +289,7 @@ public actor AccountSession: TransportRunner {
         setStatus(.syncing, progress: progress, lastSyncAt: nil)
     }
 
-    private func emitChanged(_ threadIds: [ThreadID]) {
+    private nonisolated func emitChanged(_ threadIds: [ThreadID]) {
         var seen = Set<ThreadID>()
         let unique = threadIds.filter { seen.insert($0).inserted }
         if !unique.isEmpty { emit(.mailChanged(accountId: accountId, threadIds: unique)) }
@@ -341,10 +361,12 @@ public actor AccountSession: TransportRunner {
         }
     }
 
-    private func pathChanged(_ state: NetworkPathState, initial: Bool) async {
+    /// The first update of a fresh session only records the path. After a pause it is compared too: a Wi-Fi to cellular switch
+    /// while in the background leaves the kept connection on a dead route.
+    private func pathChanged(_ state: NetworkPathState) async {
         let previous = lastPath
         lastPath = state
-        guard !initial, previous != state else { return }
+        guard let previous, previous != state else { return }
         if !state.satisfied {
             setStatus(.offline, error: nil)
             return
@@ -375,13 +397,39 @@ public actor AccountSession: TransportRunner {
 
     private func ensureCommandTransport() async throws -> any MailTransport {
         if let existing = commandTransport {
-            if await existing.isConnected { return existing }
-            await existing.disconnect()
+            let kept = pausedAt.map { ContinuousClock.now - $0 }
+            pausedAt = nil
+            if let kept {
+                if kept < config.keepAcrossPause, await Self.answers(existing, within: config.livenessTimeout) { return existing }
+            } else if await existing.isConnected {
+                return existing
+            }
             commandTransport = nil
+            // A dead kept connection may still have the NOOP in flight, and SwiftMail runs a disconnect only after it times out
+            // (5 s): close it on the side and log in again now.
+            if kept != nil { Task { await existing.disconnect() } } else { await existing.disconnect() }
         }
         let transport = try await connectedTransport()
         commandTransport = transport
         return transport
+    }
+
+    /// True when the connection answers NOOP in time. A socket that went dead without closing never answers; the NOOP is left to
+    /// fail on its own rather than waited for.
+    private static func answers(_ transport: any MailTransport, within timeout: Duration) async -> Bool {
+        guard await transport.isConnected else { return false }
+        let once = Once()
+        return await withCheckedContinuation { continuation in
+            let timer = Task {
+                try? await Task.sleep(for: timeout)
+                if once.claim() { continuation.resume(returning: false) }
+            }
+            Task {
+                let alive = (try? await transport.noop()) != nil
+                if once.claim() { continuation.resume(returning: alive) }
+                timer.cancel()
+            }
+        }
     }
 
     private func dropCommandTransport() async {
@@ -391,15 +439,20 @@ public actor AccountSession: TransportRunner {
     }
 
     private func closeTransports() async {
+        let command = commandTransport
+        commandTransport = nil
+        pausedAt = nil
+        await closeIdle()
+        await command?.disconnect()
+    }
+
+    private func closeIdle() async {
         idleGeneration += 1
         idleTask?.cancel()
         idleTask = nil
         let idle = idleTransport
-        let command = commandTransport
         idleTransport = nil
-        commandTransport = nil
         await idle?.disconnect()
-        await command?.disconnect()
     }
 
     // MARK: IDLE
@@ -447,8 +500,10 @@ public actor AccountSession: TransportRunner {
     }
 
     private static let genericRoles: [MailboxRole] = [.inbox, .drafts, .sent, .archive, .spam, .trash]
-    /// All Mail last: label and location changes settle first.
-    private static let gmailRoles: [MailboxRole] = [.trash, .spam, .all]
+    /// All Mail first: the inbox lives there, so new mail shows without waiting on Trash and Spam (or on months of them in a first
+    /// sync). Messages are keyed by X-GM-MSGID and move between these folders, so the order changes nothing once the cycle is done;
+    /// mail deleted elsewhere just leaves the list a moment later. Expunges are reconciled only after every folder has synced.
+    private static let gmailRoles: [MailboxRole] = [.all, .trash, .spam]
 
     private func targets(_ folders: [Folder], gmail: Bool) async -> [Folder] {
         if gmail {
@@ -504,7 +559,8 @@ public actor AccountSession: TransportRunner {
         // to the generic folder set instead of syncing an empty mailbox without any error.
         let gmail = account.provider == .gmail && caps.gmail && folders.contains { $0.role == .all }
         let picked = await targets(folders, gmail: gmail)
-        let progress = SyncCollector(progress: { [weak self] value in Task { await self?.reportProgress(value) } })
+        let progress = SyncCollector(
+            progress: { [weak self] value in Task { await self?.reportProgress(value) } }, changed: { [weak self] ids in self?.emitChanged(ids) })
         var pending: [SyncBatch] = []
         do {
             for folder in picked {
@@ -573,6 +629,18 @@ public actor AccountSession: TransportRunner {
             } catch {
                 return // body prefetch is best effort; the next sync or an open fetches on demand
             }
+        }
+    }
+}
+
+/// True for the first caller of `claim` only: whichever of two racing tasks finishes first resumes a continuation.
+private final class Once: Sendable {
+    private let done = Mutex(false)
+
+    func claim() -> Bool {
+        done.withLock { done in
+            defer { done = true }
+            return !done
         }
     }
 }

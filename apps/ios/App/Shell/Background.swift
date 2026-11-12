@@ -260,7 +260,7 @@ extension AppModel {
         }
         recordRun(record)
         scheduleBackgroundWork(nextDue: nextDue)
-        if !isAppActive { await service.stop() }
+        if !isAppActive { await service.pause() }
         return record
     }
 
@@ -323,7 +323,7 @@ extension AppModel {
             break
         case .archive, .markRead:
             await withBackgroundTask { await notifications.perform(request) }
-            if !isAppActive { await service?.stop() }
+            if !isAppActive { await service?.pause() }
         case .copyCode:
             // "Copy code" opens the app. It may still read as inactive while a cold launch finishes: never stop sync for it.
             await notifications.perform(request)

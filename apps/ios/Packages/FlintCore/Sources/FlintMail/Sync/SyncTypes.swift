@@ -25,8 +25,14 @@ public actor SyncCollector {
     private(set) var batches: [SyncBatch] = []
     private var changed: [ThreadID] = []
     private var progressHandler: (@Sendable (SyncProgress) -> Void)?
+    private var changedHandler: (@Sendable ([ThreadID]) -> Void)?
 
-    public init(progress: (@Sendable (SyncProgress) -> Void)? = nil) { progressHandler = progress }
+    /// With `changed`, changed threads are reported as each batch lands instead of collected for `drain`, so a long first sync
+    /// fills the list batch by batch rather than all at once when the folder is done.
+    public init(progress: (@Sendable (SyncProgress) -> Void)? = nil, changed: (@Sendable ([ThreadID]) -> Void)? = nil) {
+        progressHandler = progress
+        changedHandler = changed
+    }
 
     func add(_ batch: SyncBatch) {
         batches.append(batch)
@@ -34,6 +40,10 @@ public actor SyncCollector {
     }
 
     func addChanged(_ ids: [ThreadID]) {
+        if let changedHandler {
+            if !ids.isEmpty { changedHandler(ids) }
+            return
+        }
         for id in ids where !changed.contains(id) { changed.append(id) }
     }
 

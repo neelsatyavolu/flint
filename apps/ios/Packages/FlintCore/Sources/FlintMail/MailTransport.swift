@@ -1,7 +1,7 @@
 // FROZEN CONTRACT (Wave 1, track 1B). The seam between Flint and the IMAP/SMTP library.
 //
 // One `MailTransport` is one IMAP connection plus the SMTP settings for sending. The account session owns two per
-// account (commands, and IDLE) and tears both down when the app backgrounds. Implementations:
+// account (commands, and IDLE). Both close when the session stops; a pause for the background keeps the command one. Implementations:
 //   - SwiftMailTransport (track 2B, the only file that imports SwiftMail)
 //   - FakeMailTransport (this track, in-memory, for sync-engine tests)
 //
@@ -15,6 +15,12 @@
 import FlintModel
 import Foundation
 
+extension MailTransport {
+    public func noop() async throws {
+        guard await isConnected else { throw FlintError(.network, "Not connected to the IMAP server.") }
+    }
+}
+
 public protocol MailTransport: Sendable {
     // Connection
     func connect(_ configuration: MailTransportConfiguration) async throws
@@ -22,6 +28,8 @@ public protocol MailTransport: Sendable {
     func updateCredential(_ credential: MailCredential) async
     func disconnect() async
     var isConnected: Bool { get async }
+    /// Sends NOOP. A connection kept across a trip to the background is checked with it before it is used again.
+    func noop() async throws
     var capabilities: TransportCapabilities { get async }
     /// Logs in to SMTP without sending, for "test connection".
     func verifySend() async throws

@@ -97,6 +97,10 @@ public actor SwiftMailTransport: MailTransport {
 
     public var capabilities: TransportCapabilities { caps }
 
+    public func noop() async throws {
+        do { _ = try await server().noop() } catch { throw Self.map(error) }
+    }
+
     public func verifySend() async throws {
         let smtp = try await openSMTP()
         try? await smtp.disconnect()

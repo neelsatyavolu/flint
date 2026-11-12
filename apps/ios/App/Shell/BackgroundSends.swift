@@ -56,8 +56,8 @@ struct NoBackgroundTasking: BackgroundTasking {
 }
 
 extension AppModel {
-    /// Background: keep the app alive long enough to send what falls due inside the undo window, then stop sync sessions and
-    /// the scheduler pump.
+    /// Background: keep the app alive long enough to send what falls due inside the undo window, then pause sync sessions (their
+    /// idle connections stay open for a quick return) and stop the scheduler pump.
     func sceneEnteredBackground() async {
         guard let service else { return }
         // `backgroundTimeRemaining` is `greatestFiniteMagnitude` until a task has begun: clamp before converting to Int.
@@ -73,7 +73,7 @@ extension AppModel {
                 if case .deferred(let until) = outcome { nextDue = until }
                 return outcome
             },
-            stop: { await service.stop() })
+            stop: { await service.pause() })
         // What is still due waits for a background slot (`BGProcessingTask`) or a local notification.
         scheduleBackgroundWork(nextDue: nextDue)
     }

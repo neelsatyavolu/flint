@@ -68,7 +68,8 @@ public actor FakeMailTransport: MailTransport {
     public func failNextAfter(_ method: String, skip: Int, with error: FlintError) { delayedFailures[method] = (skip, error) }
 
     /// The next call to `method` waits until `release(method)`, like a slow server; other calls keep going meanwhile (one shot).
-    /// Only `listFolders` honors it.
+    /// Only `listFolders` and `noop` honor it. A stalled `noop` is a silently dead socket and, as in SwiftMail, a `disconnect`
+    /// waits behind it until it is released.
     public func stallNext(_ method: String) { stallNextCall.insert(method) }
 
     public func release(_ method: String) {
@@ -240,6 +241,7 @@ public actor FakeMailTransport: MailTransport {
 
     public func disconnect() async {
         calls.append("disconnect")
+        if !(stalledCalls["noop"]?.isEmpty ?? true) { await withCheckedContinuation { stalledCalls["noop", default: []].append($0) } }
         openConnections = max(0, openConnections - 1)
         guard openConnections == 0 else { return }
         connected = false
@@ -249,6 +251,13 @@ public actor FakeMailTransport: MailTransport {
     }
 
     public var isConnected: Bool { connected }
+
+    public func noop() async throws {
+        try begin("noop")
+        guard stallNextCall.remove("noop") != nil else { return }
+        await withCheckedContinuation { stalledCalls["noop", default: []].append($0) }
+        if !connected { throw FlintError(.network, "Not connected.") }
+    }
     public var capabilities: TransportCapabilities { caps }
 
     public func verifySend() async throws {

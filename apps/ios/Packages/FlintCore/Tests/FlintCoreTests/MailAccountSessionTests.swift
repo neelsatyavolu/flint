@@ -40,7 +40,8 @@ struct MailSessionRig {
 
     static func make(
         capabilities: TransportCapabilities = TransportCapabilities(), folders: [RemoteFolder] = standardFolders, provider: MailProvider = .imap,
-        network: (any NetworkMonitoring)? = nil, fast: Bool = false, credentials: @escaping AccountSession.CredentialProvider = { .password(user: "me@test.local", password: "pw") }
+        network: (any NetworkMonitoring)? = nil, fast: Bool = false, credentials: @escaping AccountSession.CredentialProvider = { .password(user: "me@test.local", password: "pw") },
+        configure: (inout SessionConfiguration) -> Void = { _ in }
     ) async -> MailSessionRig {
         let store = MailTestStore()
         await store.addAccount(mailTestAccount(provider: provider))
@@ -56,6 +57,7 @@ struct MailSessionRig {
             config.backoffMaximum = .milliseconds(80)
             config.idleMinimumLifetime = .milliseconds(0)
         }
+        configure(&config)
         let session = AccountSession(
             accountId: "a1", store: store, transportFactory: { fake }, credentials: credentials, emit: { log.add($0) }, configuration: config,
             network: network, now: { mailTestNow })
@@ -100,6 +102,15 @@ struct MailSessionCycleTests {
         #expect(status.state == .idle && status.lastSyncAt == mailTestNow && status.error == nil)
         #expect(!r.log.changes.isEmpty)
         #expect(r.newMail.isEmpty) // the initial window never announces mail
+    }
+
+    @Test func aLongFirstSyncShowsMailBatchByBatchStartingWithOneScreen() async throws {
+        let r = await MailSessionRig.make()
+        for i in 0..<60 { await r.fake.deliver(mailTestEnvelope("m \(i)", ageDays: 1), to: "INBOX") }
+        try await r.session.syncNow()
+        #expect(await r.rows("INBOX").count == 60)
+        // One screen first, the rest in its own batch: the list refreshes after each, not once at the end of the folder.
+        #expect(r.log.changes.map(\.count).prefix(2) == [50, 10])
     }
 
     @Test func recentInboxBodiesArePrefetchedAndDecoded() async throws {
@@ -400,6 +411,63 @@ struct MailSessionLoopTests {
         await r.session.stop()
     }
 
+    @Test func aPauseKeepsTheConnectionAndTheNextSyncReusesItAfterANoop() async throws {
+        let r = await MailSessionRig.make()
+        await r.fake.deliver(mailTestEnvelope("first", ageDays: 1), to: "INBOX")
+        try await r.session.syncNow()
+        await r.session.pause()
+        #expect(await r.fake.isConnected)
+        let connects = await r.fake.connectCount
+        await r.fake.deliver(mailTestEnvelope("while away", ageDays: 0), to: "INBOX")
+        try await r.session.syncNow()
+        #expect(await r.fake.connectCount == connects)
+        #expect(await r.fake.calls.filter { $0 == "noop" }.count == 1) // checked once, on first use
+        #expect(await r.rows("INBOX").count == 2)
+    }
+
+    @Test(.timeLimit(.minutes(1))) func aKeptConnectionThatWentSilentlyDeadIsReplacedWithinTheTimeout() async throws {
+        let r = await MailSessionRig.make(configure: { $0.livenessTimeout = .milliseconds(50); $0.backoffMinimum = .seconds(60) })
+        try await r.session.syncNow()
+        await r.session.pause()
+        let connects = await r.fake.connectCount
+        await r.fake.stallNext("noop") // the socket looks open but nothing answers
+        await r.fake.deliver(mailTestEnvelope("while away", ageDays: 0), to: "INBOX")
+        let started = ContinuousClock.now
+        try await r.session.syncNow()
+        #expect(ContinuousClock.now - started < .seconds(2))
+        #expect(await r.fake.connectCount == connects + 1)
+        #expect(await r.rows("INBOX").map(\.subject) == ["while away"])
+        #expect(!r.syncStates.contains(.error) && !r.syncStates.contains(.offline))
+        await r.fake.release("noop") // the dead connection's NOOP finally gives up, and its disconnect runs
+    }
+
+    @Test func aConnectionKeptTooLongIsReplacedWithoutAskingIt() async throws {
+        let r = await MailSessionRig.make(configure: { $0.keepAcrossPause = .zero })
+        try await r.session.syncNow()
+        await r.session.pause()
+        let connects = await r.fake.connectCount
+        try await r.session.syncNow()
+        #expect(await r.fake.connectCount == connects + 1)
+        #expect(await !r.fake.calls.contains("noop"))
+    }
+
+    @Test func aNetworkSwitchWhileAwayDropsTheKeptConnection() async throws {
+        let monitor = MailFakePathMonitor()
+        let r = await MailSessionRig.make(network: monitor, fast: true)
+        await r.session.start()
+        #expect(await r.firstSyncDone())
+        monitor.send(NetworkPathState(satisfied: true, signature: "wifi"))
+        #expect(await mailEventually { await r.fake.calls.contains("idle") })
+        await r.session.pause()
+        let idles = await r.fake.calls.filter { $0 == "idle" }.count
+        await r.session.start()
+        #expect(await mailEventually { await r.fake.calls.filter { $0 == "idle" }.count > idles }) // back and settled
+        let connects = await r.fake.connectCount
+        monitor.send(NetworkPathState(satisfied: true, signature: "cellular")) // the first update after coming back
+        #expect(await mailEventually { await r.fake.connectCount > connects })
+        await r.session.stop()
+    }
+
     @Test func stopDisconnectsAndTheLoopCanBeStartedAgain() async throws {
         let r = await MailSessionRig.make(fast: true)
         await r.session.start()
@@ -439,6 +507,38 @@ struct MailSessionGmailTests {
         #expect(row.gmMsgid == "m1")
         let inbox = try #require(await r.folder("INBOX"))
         #expect(await r.store.membership(of: row.id).contains(inbox.id))
+    }
+
+    @Test func gmailSyncsAllMailBeforeTrashAndSpam() async throws {
+        let r = await MailSessionRig.make(capabilities: TransportCapabilities(gmail: true), folders: Self.gmailFolders, provider: .gmail)
+        await r.fake.deliver(mailTestEnvelope("deleted", ageDays: 1, gmail: GmailAttributes(msgid: "m0", thrid: "t0", labels: ["\\Trash"])), to: "[Gmail]/Trash")
+        await r.fake.deliver(mailTestEnvelope("g", ageDays: 1, gmail: GmailAttributes(msgid: "m1", thrid: "t1", labels: ["\\Inbox"])), to: "[Gmail]/All Mail")
+        try await r.session.syncNow()
+        let first = try #require(await r.rows("[Gmail]/All Mail").first?.threadId)
+        #expect(r.log.changes.first == [first])
+        #expect(await r.rows("[Gmail]/Trash").count == 1)
+
+        // Every later cycle too: new inbox mail is reported before new spam.
+        let before = r.log.changes.count
+        await r.fake.deliver(mailTestEnvelope("spam", ageDays: 0, gmail: GmailAttributes(msgid: "m2", thrid: "t2", labels: ["\\Spam"])), to: "[Gmail]/Spam")
+        await r.fake.deliver(mailTestEnvelope("fresh", ageDays: 0, gmail: GmailAttributes(msgid: "m3", thrid: "t3", labels: ["\\Inbox"])), to: "[Gmail]/All Mail")
+        try await r.session.syncNow()
+        let fresh = try #require(await r.rows("[Gmail]/All Mail").first { $0.gmMsgid == "m3" }?.threadId)
+        #expect(r.log.changes.dropFirst(before).first == [fresh])
+        #expect(await r.rows("[Gmail]/Spam").count == 1)
+    }
+
+    @Test func gmailMailRestoredFromTrashEndsUpInAllMailOnly() async throws {
+        let r = await MailSessionRig.make(capabilities: TransportCapabilities(gmail: true), folders: Self.gmailFolders, provider: .gmail)
+        let trashUid = await r.fake.deliver(mailTestEnvelope("oops", ageDays: 1, gmail: GmailAttributes(msgid: "m1", thrid: "t1", labels: ["\\Trash"])), to: "[Gmail]/Trash")
+        try await r.session.syncNow()
+        #expect(await r.rows("[Gmail]/Trash").count == 1)
+        // Restored on another device: gone from Trash, back in All Mail under a new UID.
+        await r.fake.removeExternally(uids: [trashUid], in: "[Gmail]/Trash")
+        await r.fake.deliver(mailTestEnvelope("oops", ageDays: 1, gmail: GmailAttributes(msgid: "m1", thrid: "t1", labels: ["\\Inbox"])), to: "[Gmail]/All Mail")
+        try await r.session.syncNow()
+        #expect(await r.rows("[Gmail]/Trash").isEmpty)
+        #expect(await r.rows("[Gmail]/All Mail").map(\.gmMsgid) == ["m1"])
     }
 
     @Test func gmailThatHidesAllMailFallsBackToTheGenericFolderSet() async throws {

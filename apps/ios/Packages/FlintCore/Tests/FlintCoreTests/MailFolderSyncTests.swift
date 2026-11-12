@@ -34,7 +34,7 @@ private func deliver(_ rig: Rig, _ count: Int, ageDays: Double = 0, to path: Str
 
 @Suite("FolderSync initial window")
 struct MailInitialSyncTests {
-    @Test func syncsTheWindowNewestFirstInBatchesOf200() async throws {
+    @Test func syncsTheWindowNewestFirstOneScreenThenBatchesOf200() async throws {
         let r = try await rig()
         await deliver(r, 5, ageDays: 400, subject: "old")
         await deliver(r, 450, ageDays: 1, subject: "recent")
@@ -43,10 +43,10 @@ struct MailInitialSyncTests {
         let rows = await r.store.allMessages(in: r.folder.id)
         #expect(rows.count == 450) // the five old ones are outside 90 days
         let drained = await r.collector.drain()
-        #expect(drained.batches.map(\.items.count) == [200, 200, 50])
+        #expect(drained.batches.map(\.items.count) == [50, 200, 200])
         #expect(drained.batches.allSatisfy { !$0.evaluated })
         // Newest first: the first batch holds the highest UIDs.
-        #expect(drained.batches[0].items.map(\.uid).min() == 256 && drained.batches[2].items.map(\.uid).max() == 55)
+        #expect(drained.batches[0].items.map(\.uid).min() == 406 && drained.batches[2].items.map(\.uid).max() == 205)
         let state = try await r.store.folderSyncState(r.folder.id)
         #expect(state.uidValidity == 1000 && state.uidNext == 456 && state.syncedMinUid == 6 && state.lastSyncAt == mailTestNow)
     }
@@ -74,7 +74,7 @@ struct MailInitialSyncTests {
         context.collector = collector
         try await FolderSync.sync(context, folder: r.folder)
         let values = seen.values
-        #expect(values.map(\.done) == [200, 250] && values.allSatisfy { $0.total == 250 && $0.folder == "INBOX" })
+        #expect(values.map(\.done) == [50, 250] && values.allSatisfy { $0.total == 250 && $0.folder == "INBOX" })
     }
 
     @Test func mapsEnvelopesIncludingHeadersAndAttachments() async throws {
