@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AgentActivity } from "@flint/core";
-import { describeReads, foldReads } from "./activityModel";
+import { describeReads, foldReads, withPending } from "./activityModel";
 
 const MIN = 60_000;
 let nextId = 1;
@@ -57,5 +57,14 @@ describe("describeReads", () => {
       call(0, "listFolders", "Listed folders"),
     ];
     expect(describeReads(items)).toBe('Listed inbox and folders, read thread "Lunch", searched for "invoice" and 1 more');
+  });
+});
+
+describe("withPending", () => {
+  it("adds pending approvals older than the recent page, once", () => {
+    const old = call(1 * MIN, "sendDraft", "Queued mail", { status: "awaiting_approval" });
+    const shown = call(5 * MIN, "sendDraft", "Queued mail", { status: "awaiting_approval" });
+    const recent = [call(9 * MIN, "listThreads", "Listed inbox"), shown];
+    expect(withPending(recent, [shown, old]).map((i) => i.id)).toEqual([recent[0]!.id, shown.id, old.id]);
   });
 });

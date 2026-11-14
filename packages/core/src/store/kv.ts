@@ -60,12 +60,15 @@ export class ActivityRepo {
     return a;
   }
 
-  /** Newest first. `before` is an `at` timestamp for paging. */
-  listActivity(opts: { limit?: number; before?: number } = {}): AgentActivity[] {
+  /** Newest first. `before` is an `at` timestamp for paging; `status` keeps only that status. */
+  listActivity(opts: { limit?: number; before?: number; status?: AgentActivity["status"] } = {}): AgentActivity[] {
     const limit = Math.max(1, Math.min(opts.limit ?? 50, 500));
-    const rows = opts.before === undefined
-      ? this.q.all<ActivityRow>("SELECT * FROM agent_activity ORDER BY at DESC, id DESC LIMIT ?", limit)
-      : this.q.all<ActivityRow>("SELECT * FROM agent_activity WHERE at < ? ORDER BY at DESC, id DESC LIMIT ?", opts.before, limit);
+    const where: string[] = [];
+    const params: (string | number)[] = [];
+    if (opts.before !== undefined) { where.push("at < ?"); params.push(opts.before); }
+    if (opts.status !== undefined) { where.push("status = ?"); params.push(opts.status); }
+    const clause = where.length ? `WHERE ${where.join(" AND ")} ` : "";
+    const rows = this.q.all<ActivityRow>(`SELECT * FROM agent_activity ${clause}ORDER BY at DESC, id DESC LIMIT ?`, ...params, limit);
     return rows.map(toActivity);
   }
 

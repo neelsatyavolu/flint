@@ -1,5 +1,7 @@
 /* The column is centered in wide panes; --pane-inset lines the PaneHeader title up with it. */
 .view { --page-column: 760px; --pane-inset: calc((100% - var(--page-column)) / 2); flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--plane-2); }
+/* A taller header than other panes: the title and subtitle need room below the window edge. */
+.view > .header { height: 88px; padding-top: 16px; }
 .scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable both-edges; padding: 0 16px 48px; }
 .column { max-width: var(--page-column); margin-inline: auto; }
 /* Groups open with a section rule (SectionLabel rule), 32px apart. */

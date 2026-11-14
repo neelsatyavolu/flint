@@ -10,7 +10,7 @@ import { Badge, Button, EmptyState, SectionLabel, SkeletonRows, useToast, type B
 import { PaneHeader } from "../../shell/PaneHeader";
 import { navStore } from "../../state/nav";
 import { ApprovalCard } from "./ApprovalCard";
-import { describeReads, foldReads, groupActivity, scheduledIdOf, statusLabel, type ActivityEntry } from "./activityModel";
+import { describeReads, foldReads, groupActivity, scheduledIdOf, statusLabel, withPending, type ActivityEntry } from "./activityModel";
 import styles from "./AgentActivityView.module.css";
 
 const TONE: Record<AgentActivity["status"], BadgeTone | null> = { ok: null, error: "danger", awaiting_approval: "warn", approved: "ok", denied: "neutral" };
@@ -70,13 +70,15 @@ function Entry({ entry, draftOf, onDecide }: { entry: ActivityEntry; draftOf: (i
 export function AgentActivityView() {
   const toast = useToast();
   const { data, error, loading, refetch } = useFlintQuery((api) => api.listAgentActivity({ limit: 100 }), [], { refetchOn: ["agent_activity", "send"], mail: false });
+  // Pending approvals load on their own so a long run of reads can't push them off the recent page.
+  const pending = useFlintQuery((api) => api.listAgentActivity({ status: "awaiting_approval", limit: 500 }), [], { refetchOn: ["agent_activity", "send"], mail: false });
   const scheduled = useFlintQuery((api) => api.listScheduled(), [], { refetchOn: ["send"], mail: false });
   const draftOf = (item: AgentActivity): number | null | undefined => {
     if (!scheduled.data) return scheduled.error ? null : undefined;
     const id = scheduledIdOf(item);
     return scheduled.data?.find((s) => s.id === id)?.draftId ?? null;
   };
-  const groups = useMemo(() => groupActivity(data ?? [], Date.now(), dateGroupLabel), [data]);
+  const groups = useMemo(() => groupActivity(withPending(data ?? [], pending.data ?? []), Date.now(), dateGroupLabel), [data, pending.data]);
 
   const decide = async (item: AgentActivity, approve: boolean) => {
     const id = scheduledIdOf(item);
@@ -88,11 +90,12 @@ export function AgentActivityView() {
       toast.show({ message: "Couldn't update that send. Check Scheduled and try again.", level: "error" });
     }
     refetch();
+    pending.refetch();
   };
 
   return (
     <div className={styles.view}>
-      <PaneHeader title="Agent activity" subtitle="Everything agents did in your mail">
+      <PaneHeader className={styles.header} title="Agent activity" subtitle="Everything agents did in your mail">
         <Button size="sm" variant="ghost" onClick={() => navStore.getState().openSettings("agents")}>Agent settings</Button>
       </PaneHeader>
       <div className={styles.scroll}>

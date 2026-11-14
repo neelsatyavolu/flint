@@ -67,6 +67,8 @@ describe("kv cache and agent activity", () => {
     expect(store.listActivity().map((x) => x.id)).toEqual([b.id, a.id]);
     expect(store.listActivity({ before: 200 }).map((x) => x.id)).toEqual([a.id]);
     expect(store.listActivity({ limit: 1 })).toHaveLength(1);
+    expect(store.listActivity({ limit: 1, status: "awaiting_approval" }).map((x) => x.id)).toEqual([b.id]);
+    expect(store.listActivity({ status: "denied" })).toEqual([]);
     const u = store.updateActivity(b.id, { status: "approved", detail: { by: "user" } });
     expect(u).toMatchObject({ status: "approved", detail: { draftId: 4, by: "user" } });
     expect(store.getActivity(9999)).toBeNull();

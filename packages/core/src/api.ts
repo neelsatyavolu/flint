@@ -148,7 +148,7 @@ export interface FlintApi {
   aiCancel(runId: string): Promise<void>;
 
   // Agents
-  listAgentActivity(opts?: { limit?: number; before?: number }): Promise<AgentActivity[]>;
+  listAgentActivity(opts?: { limit?: number; before?: number; status?: AgentActivity["status"] }): Promise<AgentActivity[]>;
   agentInfo(): Promise<{ socketPath: string; tokenPath: string; cliInstalled: boolean; cliPath: string | null }>;
   installCli(): Promise<{ path: string }>;
   /** Where the "flint" Agent Skill is (or could be) installed for each coding agent on this Mac. */

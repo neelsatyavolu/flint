@@ -467,7 +467,7 @@ export function createMockApi(opts: MockOptions = {}): FlintApi {
 
     // Agents
     async listAgentActivity(opts) {
-      const list = [...state.activity].sort((a, b) => b.at - a.at).filter((a) => (opts?.before ? a.at < opts.before : true));
+      const list = [...state.activity].sort((a, b) => b.at - a.at).filter((a) => (opts?.before ? a.at < opts.before : true) && (opts?.status ? a.status === opts.status : true));
       return list.slice(0, opts?.limit ?? 50);
     },
     async agentInfo() { return { socketPath: "/Users/alex/Library/Application Support/Flint/agent.sock", tokenPath: "/Users/alex/Library/Application Support/Flint/agent-token", cliInstalled: false, cliPath: null }; },

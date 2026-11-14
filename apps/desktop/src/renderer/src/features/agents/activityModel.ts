@@ -21,7 +21,13 @@ export function scheduledIdOf(item: AgentActivity): number | null {
   return typeof id === "number" && Number.isFinite(id) ? id : null;
 }
 
-export type ActivityGroup = { label: string; attention: boolean; items: AgentActivity[] };
+/** Recent calls plus pending approvals that fell outside the recent page, without duplicates. */
+export function withPending(recent: AgentActivity[], pending: AgentActivity[]): AgentActivity[] {
+  const seen = new Set(recent.map((i) => i.id));
+  return [...recent, ...pending.filter((i) => !seen.has(i.id))];
+}
+
+export type ActivityGroup ={ label: string; attention: boolean; items: AgentActivity[] };
 
 /** Pending approvals first, then newest-first by day. */
 export function groupActivity(items: AgentActivity[], now: number, dayLabel: (at: number, now: number) => string): ActivityGroup[] {

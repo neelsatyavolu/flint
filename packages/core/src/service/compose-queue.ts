@@ -34,7 +34,7 @@ export function queueApi(ctx: ServiceContext): QueueApi {
 
   /** Marks the agent's approval request in Agent Activity as decided. */
   const settleActivity = (scheduledId: number, approved: boolean): void => {
-    const pending = store.listActivity({ limit: 500 }).find((a) => a.status === "awaiting_approval" && a.detail["scheduledId"] === scheduledId);
+    const pending = store.listActivity({ limit: 500, status: "awaiting_approval" }).find((a) => a.detail["scheduledId"] === scheduledId);
     if (!pending) return;
     ctx.emit({ type: "agent_activity", activity: store.updateActivity(pending.id, { status: approved ? "approved" : "denied" }) });
   };

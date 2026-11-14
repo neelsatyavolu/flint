@@ -46,8 +46,8 @@ export function wrapperScript(executable: string, cliPath: string, electron: boo
  * Finds the newest awaiting_approval row for this scheduled send and sets its status.
  */
 export function markApproval(ctx: ServiceContext, scheduledId: number, status: "approved" | "denied"): AgentActivity | null {
-  const row = ctx.store.listActivity({ limit: MAX_SCAN })
-    .find((a) => a.status === "awaiting_approval" && a.detail.scheduledId === scheduledId);
+  const row = ctx.store.listActivity({ limit: MAX_SCAN, status: "awaiting_approval" })
+    .find((a) => a.detail.scheduledId === scheduledId);
   if (!row) return null;
   const updated = ctx.store.updateActivity(row.id, { status, detail: { decidedAt: ctx.now() } });
   ctx.emit({ type: "agent_activity", activity: updated });
