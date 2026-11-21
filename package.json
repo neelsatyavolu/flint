@@ -19,5 +19,10 @@
     "@vitest/coverage-v8": "5",
     "typescript": "5",
     "vitest": "5"
+  },
+  "pnpm": {
+    "overrides": {
+      "zod@>=4.0.0 <4.6.6": "^4.6.7"
+    }
   }
 }
